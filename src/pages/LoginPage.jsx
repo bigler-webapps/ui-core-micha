@@ -1,0 +1,228 @@
+import React, { useState, useContext, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { Helmet } from 'react-helmet';
+import { Box, Alert } from '@mui/material';
+import { useTranslation } from 'react-i18next';
+
+// Layout & Context
+import { NarrowPage } from '../layout/PageLayout';
+import { AuthContext } from '../auth/AuthContext';
+
+// API & Services (Clean Architecture)
+import { loginWithRecoveryPassword, loginWithPassword } from '../auth/authApi';
+import { loginWithPasskey, startSocialLogin } from '../utils/authService';
+
+// Components
+import { LoginForm } from '../components/LoginForm';
+import { MfaLoginComponent } from '../components/MfaLoginComponent';
+
+export function LoginPage() {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { user, loading, login, authMethods } = useContext(AuthContext);
+  const { t } = useTranslation();
+
+  // State
+  const [step, setStep] = useState('credentials'); // 'credentials' | 'mfa'
+  const [submitting, setSubmitting] = useState(false);
+  const [errorKey, setErrorKey] = useState(null);
+  const [mfaState, setMfaState] = useState(null); // { availableTypes: [...], identifier }
+
+  // URL Params parsing
+  const params = new URLSearchParams(location.search);
+  const hashParams = new URLSearchParams(
+    String(location.hash || "").startsWith("#") ? String(location.hash).slice(1) : String(location.hash || ""),
+  );
+  const recoveryTokenRaw = hashParams.get('recovery') || params.get('recovery');
+  const recoveryToken = ['invalid', 'expired'].includes(String(recoveryTokenRaw || '').toLowerCase())
+    ? null
+    : recoveryTokenRaw;
+  // Backward-compatible fallback for legacy links using query parameters.
+  const recoveryEmail = hashParams.get('email') || params.get('email') || '';
+  const requestedNext = params.get('next');
+
+  const getRedirectTarget = (currentUser, options = {}) => {
+    if (options.forceSecurityRedirect) {
+      return options.forceSecurityRedirect;
+    }
+
+    const requiresExtra = currentUser?.security_state?.requires_additional_security === true;
+    if (requiresExtra) {
+      return '/account?tab=security&from=weak_login';
+    }
+
+    if (requestedNext && requestedNext.startsWith('/')) {
+      return requestedNext;
+    }
+
+    return '/';
+  };
+
+  useEffect(() => {
+    const socialError = params.get('error') || params.get('social');
+    if (socialError) {
+      setErrorKey('Auth.SOCIAL_LOGIN_FAILED');
+    }
+  }, [location.search]);
+
+  useEffect(() => {
+    if (loading || !user) return;
+    navigate(getRedirectTarget(user), { replace: true });
+  }, [loading, user, navigate, requestedNext]);
+
+  // --- Helper: Central Success Logic ---
+  const handleLoginSuccess = (user) => {
+    login(user); // Update Context
+    navigate(getRedirectTarget(user));
+  };
+
+  // --- Handlers ---
+
+  const handleSubmitCredentials = async ({ identifier, password }) => {
+    setErrorKey(null);
+    setSubmitting(true);
+    try {
+      // A) Recovery Flow
+      if (recoveryToken) {
+        const result = await loginWithRecoveryPassword(
+          identifier,
+          password,
+          recoveryToken
+        );
+        login(result.user);
+        navigate(
+          getRedirectTarget(result.user, {
+            forceSecurityRedirect: '/account?tab=security&from=recovery',
+          }),
+        );
+        return;
+      }
+
+      // B) Standard Password Login
+      const result = await loginWithPassword(identifier, password);
+
+      if (result.needsMfa) {
+        setMfaState({
+          availableTypes: result.availableTypes || [],
+          identifier,
+        });
+        setStep('mfa');
+      } else {
+        handleLoginSuccess(result.user);
+      }
+    } catch (err) {
+      setErrorKey(err.code || 'Auth.LOGIN_FAILED');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handlePasskeyLoginInitial = async () => {
+    setErrorKey(null);
+    setSubmitting(true);
+    try {
+      // Service handles browser interaction + API calls
+      const user = await loginWithPasskey();
+      handleLoginSuccess(user);
+    } catch (err) {
+      // 'Auth.PASSKEY_CANCELLED' is generic, maybe ignore visually or show specific hint
+      if (err.code !== 'Auth.PASSKEY_CANCELLED') {
+         setErrorKey(err.code || 'Auth.PASSKEY_FAILED');
+      }
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleMfaSuccess = ({ user, method }) => {
+    // MFA component should return the user object after verifying code
+    if (method === 'recovery_code') {
+      login(user);
+      navigate(
+        getRedirectTarget(user, {
+          forceSecurityRedirect: '/account?tab=security&from=recovery',
+        }),
+      );
+    } else {
+      handleLoginSuccess(user);
+    }
+  };
+
+  const handleMfaCancel = () => {
+    setStep('credentials');
+    setMfaState(null);
+    setErrorKey(null);
+  };
+
+  const socialProviders = Array.isArray(authMethods?.social_providers)
+    ? authMethods.social_providers
+    : [];
+  const passwordLoginEnabled = Boolean(authMethods?.password_login) || Boolean(recoveryToken);
+  const socialLoginEnabled = Boolean(authMethods?.social_login) && socialProviders.length > 0;
+  const passkeyLoginEnabled = Boolean(authMethods?.passkey_login);
+  const signupModes = Array.isArray(authMethods?.signup_modes)
+    ? authMethods.signup_modes.filter(Boolean)
+    : [];
+  const signupEnabled = signupModes.length > 0 || Boolean(authMethods?.signup);
+  const passwordResetEnabled = Boolean(authMethods?.password_reset);
+  const twoFactorRequired = Boolean(authMethods?.two_factor_required)
+    || Number(authMethods?.required_auth_factor_count || 1) >= 2;
+
+  // --- Render ---
+
+  return (
+    <NarrowPage
+      title={t('Auth.PAGE_LOGIN_TITLE')}
+      subtitle={t('Auth.PAGE_LOGIN_SUBTITLE')}
+    >
+      <Helmet>
+        <title>{t('App.NAME')} – {t('Auth.PAGE_LOGIN_TITLE')}</title>
+      </Helmet>
+
+      {errorKey && (
+        <Alert severity="error" sx={{ mb: 2 }}>
+          {t(errorKey)}
+        </Alert>
+      )}
+
+      {recoveryToken && !errorKey && (
+        <Alert severity="info" sx={{ mb: 2 }}>
+          {t('Auth.RECOVERY_LOGIN_WARNING', 'Recovery link validated. Please enter your password.')}
+        </Alert>
+      )}
+
+      {twoFactorRequired && !recoveryToken && (
+        <Alert severity="info" sx={{ mb: 2 }}>
+          {t('Auth.TWO_FACTOR_REQUIRED_HINT', 'This app requires two authentication factors for full access.')}
+        </Alert>
+      )}
+
+      {step === 'credentials' && (
+        <LoginForm
+          onSubmit={passwordLoginEnabled ? handleSubmitCredentials : null}
+          onForgotPassword={
+            passwordResetEnabled ? () => navigate('/reset-request-password') : null
+          }
+          onSocialLogin={socialLoginEnabled ? (provider) => startSocialLogin(provider) : null}
+          socialProviders={socialProviders}
+          onPasskeyLogin={passkeyLoginEnabled ? handlePasskeyLoginInitial : null}
+          onSignUp={signupEnabled ? () => navigate('/signup') : null}
+          disabled={submitting}
+          initialIdentifier={recoveryEmail}
+        />
+      )}
+
+      {step === 'mfa' && mfaState && (
+        <Box>
+           {/* Assuming MfaLoginComponent handles the API call to authenticateWithMFA */}
+          <MfaLoginComponent
+            availableTypes={mfaState.availableTypes}
+            identifier={mfaState.identifier}
+            onSuccess={handleMfaSuccess}
+            onCancel={handleMfaCancel}
+          />
+        </Box>
+      )}
+    </NarrowPage>
+  );
+}

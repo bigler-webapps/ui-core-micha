@@ -1,0 +1,118 @@
+name: Publish ui-core-micha to npm
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - "src/**"
+      - "tsconfig.build.json"
+  workflow_dispatch:
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Decide whether to publish
+        id: version_check
+        run: |
+          node <<'NODE'
+          const fs = require('fs');
+          const cp = require('child_process');
+
+          const outputPath = process.env.GITHUB_OUTPUT;
+          const githubEvent = process.env.GITHUB_EVENT_NAME || '';
+
+          function writeOutput(value) {
+            fs.appendFileSync(outputPath, `should_publish=${value}\n`, 'utf8');
+          }
+
+          if (githubEvent === 'workflow_dispatch') {
+            console.log('Manual dispatch: publish enabled.');
+            writeOutput('true');
+            process.exit(0);
+          }
+
+          const current = JSON.parse(fs.readFileSync('package.json', 'utf8')).version;
+          let previous;
+          try {
+            previous = JSON.parse(
+              cp.execFileSync('git', ['show', 'HEAD^:package.json'], { encoding: 'utf8' })
+            ).version;
+          } catch (error) {
+            console.log('No previous package.json found. Publishing.');
+            writeOutput('true');
+            process.exit(0);
+          }
+
+          console.log(`Previous version: ${previous}`);
+          console.log(`Current version:  ${current}`);
+
+          function parse(version) {
+            return version.split('.').map((part) => Number.parseInt(part, 10) || 0);
+          }
+
+          function greaterThan(a, b) {
+            const left = parse(a);
+            const right = parse(b);
+            const maxLength = Math.max(left.length, right.length);
+            for (let index = 0; index < maxLength; index += 1) {
+              const lv = left[index] || 0;
+              const rv = right[index] || 0;
+              if (lv > rv) return true;
+              if (lv < rv) return false;
+            }
+            return false;
+          }
+
+          if (greaterThan(current, previous)) {
+            console.log('Version increased. Publishing.');
+            writeOutput('true');
+          } else {
+            console.log('Version did not increase. Skipping publish.');
+            writeOutput('false');
+          }
+          NODE
+
+      - name: Set up pnpm
+        if: steps.version_check.outputs.should_publish == 'true'
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.18.1
+
+      - name: Show version from package.json
+        if: steps.version_check.outputs.should_publish == 'true'
+        run: node -e "console.log('Version from package.json:', require('./package.json').version);"
+
+      - name: Install dependencies (pnpm)
+        if: steps.version_check.outputs.should_publish == 'true'
+        run: pnpm install --frozen-lockfile
+
+      - name: Build
+        if: steps.version_check.outputs.should_publish == 'true'
+        run: pnpm run build
+
+      - name: Ensure recent npm for trusted publishing
+        if: steps.version_check.outputs.should_publish == 'true'
+        run: npm install -g npm@latest
+
+      - name: Publish to npm (Trusted Publishing)
+        if: steps.version_check.outputs.should_publish == 'true'
+        run: npm publish --access public
