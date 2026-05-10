@@ -1,6 +1,6 @@
 {
   "name": "@micha.bigler/ui-core-micha",
-  "version": "2.2.10",
+  "version": "2.2.11",
   "main": "dist/index.js",
   "module": "dist/index.js",
   "private": false,
