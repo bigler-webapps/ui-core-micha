@@ -1,8 +1,12 @@
 {
   "name": "@micha.bigler/ui-core-micha",
-  "version": "2.2.11",
+  "version": "2.2.12",
   "main": "dist/index.js",
   "module": "dist/index.js",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/bigler-webapps/ui-core-micha"
+  },
   "private": false,
   "peerDependencies": {
     "@emotion/react": "^11.0.0",
