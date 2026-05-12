@@ -14,7 +14,12 @@ function getCsrfToken() {
 // -----------------------------
 
 export async function fetchCurrentUser() {
-  const res = await apiClient.get(`${USERS_BASE}/current/`);
+  // Bootstrap-Probe: 401 darf nicht in einen Login-Redirect umschlagen,
+  // damit Public-Landings auf "/" sichtbar bleiben. `skipAuthRedirect` ist eine
+  // client-seitige axios-Config-Property und wird nicht ans Backend gesendet.
+  const res = await apiClient.get(`${USERS_BASE}/current/`, {
+    skipAuthRedirect: true,
+  });
   return res.data;
 }
 

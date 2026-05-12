@@ -3,7 +3,12 @@
 // --- 1. Auth Context (Essentiell für den Wrapper) ---
 export { AuthContext, AuthProvider } from './auth/AuthContext';
 
-export { default as apiClient, ensureCsrfToken } from "./auth/apiClient";
+export {
+  default as apiClient,
+  ensureCsrfToken,
+  addPublicPath,
+  removePublicPath,
+} from "./auth/apiClient";
 
 // --- 2. API & Services (Neue Struktur) ---
 // Statt dem 'authApi'-Objekt exportieren wir die Funktionen direkt.
