@@ -35,6 +35,8 @@ export { UserInviteComponent } from './components/UserInviteComponent';
 export { BulkInviteCsvTab } from './components/BulkInviteCsvTab';
 export { RegistrationMethodsManager } from './components/RegistrationMethodsManager';
 export { AuthFactorRequirementCard } from './components/AuthFactorRequirementCard';
+export { EmailVerificationRequirementCard } from './components/EmailVerificationRequirementCard';
+export { AccessCodeSingleUseToggle } from './components/AccessCodeSingleUseToggle';
 export { QrSignupManager } from './components/QrSignupManager';
 
 // --- 6. Translations ---

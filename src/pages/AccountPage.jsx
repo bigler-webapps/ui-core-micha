@@ -26,6 +26,8 @@ import { AccessCodeManager } from '../components/AccessCodeManager';
 import { AllowedEmailDomainsManager } from '../components/AllowedEmailDomainsManager';
 import { RegistrationMethodsManager } from '../components/RegistrationMethodsManager';
 import { AuthFactorRequirementCard } from '../components/AuthFactorRequirementCard';
+import { EmailVerificationRequirementCard } from '../components/EmailVerificationRequirementCard';
+import { AccessCodeSingleUseToggle } from '../components/AccessCodeSingleUseToggle';
 import { QrSignupManager } from '../components/QrSignupManager';
 import { QrSignupValidityManager } from '../components/QrSignupValidityManager';
 import { SupportRecoveryRequestsTab } from '../components/SupportRecoveryRequestsTab';
@@ -256,6 +258,16 @@ export function AccountPage({
 
             {canViewAuthPolicy && (
               <Paper variant="outlined" sx={{ p: 2.5, borderRadius: 2 }}>
+                <EmailVerificationRequirementCard
+                  canEdit={canWriteAuthPolicy}
+                  policy={authPolicy}
+                  onPolicyChange={setAuthPolicy}
+                />
+              </Paper>
+            )}
+
+            {canViewAuthPolicy && (
+              <Paper variant="outlined" sx={{ p: 2.5, borderRadius: 2 }}>
                 <RegistrationMethodsManager
                   policy={authPolicy}
                   error={authPolicyError}
@@ -280,6 +292,16 @@ export function AccountPage({
                   {t('Account.ACCESS_CODES_HINT', 'Manage access codes for self-registration.')}
                 </Typography>
                 <AccessCodeManager />
+              </Paper>
+            )}
+
+            {canManageAccessCodes && Boolean(authPolicy?.allow_self_signup_access_code) && (
+              <Paper variant="outlined" sx={{ p: 2.5, borderRadius: 2 }}>
+                <AccessCodeSingleUseToggle
+                  canEdit={canWriteAuthPolicy}
+                  policy={authPolicy}
+                  onPolicyChange={setAuthPolicy}
+                />
               </Paper>
             )}
 

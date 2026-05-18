@@ -1691,5 +1691,53 @@ export const authTranslations = {
     "fr": "Chargement…",
     "en": "Loading…",
     "sw": "Inapakia..."
+  },
+  "Auth.EMAIL_VERIFICATION_TITLE": {
+    "de": "E-Mail-Verifizierung",
+    "fr": "Vérification de l'e-mail",
+    "en": "Email Verification",
+    "sw": "Uthibitishaji wa Barua Pepe"
+  },
+  "Auth.EMAIL_VERIFICATION_HINT": {
+    "de": "Verlangt einen Nachweis des E-Mail-Besitzes, bevor ein Social-Login mit einem Konto verknüpft werden kann. Empfohlen.",
+    "fr": "Exige une preuve de propriété de l'adresse e-mail avant qu'une connexion sociale ne puisse être liée à un compte. Recommandé.",
+    "en": "Require verified email ownership before social sign-in can link to an account. Recommended.",
+    "sw": "Inahitaji uthibitishaji wa umiliki wa barua pepe kabla ya kuingia kwa mitandao kuunganishwa na akaunti. Inapendekezwa."
+  },
+  "Auth.EMAIL_VERIFICATION_TOGGLE": {
+    "de": "E-Mail-Verifizierung erforderlich",
+    "fr": "Vérification de l'e-mail requise",
+    "en": "Require email verification",
+    "sw": "Hitaji uthibitishaji wa barua pepe"
+  },
+  "Auth.EMAIL_VERIFICATION_SAVE_SUCCESS": {
+    "de": "Anforderung zur E-Mail-Verifizierung gespeichert.",
+    "fr": "Exigence de vérification de l'e-mail enregistrée.",
+    "en": "Email verification requirement saved.",
+    "sw": "Mahitaji ya uthibitishaji wa barua pepe yamehifadhiwa."
+  },
+  "Auth.ACCESS_CODE_SINGLE_USE_TITLE": {
+    "de": "Zugangscode: Einmalverwendung",
+    "fr": "Code d'accès : usage unique",
+    "en": "Access Code Single-Use",
+    "sw": "Msimbo wa Ufikiaji: Matumizi ya Mara Moja"
+  },
+  "Auth.ACCESS_CODE_SINGLE_USE_HINT": {
+    "de": "Wenn aktiviert, kann jeder Zugangscode nur einmal eingelöst werden. Empfohlen.",
+    "fr": "Lorsqu'activé, chaque code d'accès ne peut être utilisé qu'une seule fois. Recommandé.",
+    "en": "When enabled, each access code can be redeemed only once. Recommended.",
+    "sw": "Ikiwa imewashwa, kila msimbo wa ufikiaji unaweza kutumika mara moja tu. Inapendekezwa."
+  },
+  "Auth.ACCESS_CODE_SINGLE_USE_TOGGLE": {
+    "de": "Codes sind einmalig verwendbar",
+    "fr": "Codes à usage unique",
+    "en": "Codes are single-use",
+    "sw": "Misimbo ni ya matumizi ya mara moja"
+  },
+  "Auth.ACCESS_CODE_SINGLE_USE_SAVE_SUCCESS": {
+    "de": "Zugangscode-Richtlinie gespeichert.",
+    "fr": "Politique de code d'accès enregistrée.",
+    "en": "Access code policy saved.",
+    "sw": "Sera ya msimbo wa ufikiaji imehifadhiwa."
   }
 };
