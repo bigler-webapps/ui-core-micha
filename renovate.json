@@ -1,5 +1,8 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": ["config:recommended"],
+  "extends": [
+    "github>MichaBigler/renovate-config:default",
+    "github>MichaBigler/renovate-config:auto-merge"
+  ],
   "baseBranches": ["main"]
 }
