@@ -1692,29 +1692,95 @@ export const authTranslations = {
     "en": "Loading…",
     "sw": "Inapakia..."
   },
-  "Auth.EMAIL_VERIFICATION_TITLE": {
-    "de": "E-Mail-Verifizierung",
-    "fr": "Vérification de l'e-mail",
-    "en": "Email Verification",
-    "sw": "Uthibitishaji wa Barua Pepe"
+  "Auth.SIGNUP_CONFIRM_TITLE": {
+    "de": "Registrierung bestätigen",
+    "fr": "Confirmer l'inscription",
+    "en": "Confirm your registration",
+    "sw": "Thibitisha usajili wako"
   },
-  "Auth.EMAIL_VERIFICATION_HINT": {
-    "de": "Verlangt einen Nachweis des E-Mail-Besitzes, bevor ein Social-Login mit einem Konto verknüpft werden kann. Empfohlen.",
-    "fr": "Exige une preuve de propriété de l'adresse e-mail avant qu'une connexion sociale ne puisse être liée à un compte. Recommandé.",
-    "en": "Require verified email ownership before social sign-in can link to an account. Recommended.",
-    "sw": "Inahitaji uthibitishaji wa umiliki wa barua pepe kabla ya kuingia kwa mitandao kuunganishwa na akaunti. Inapendekezwa."
+  "Auth.SIGNUP_CONFIRM_SUBTITLE": {
+    "de": "Wähle ein Passwort, um dein Konto zu erstellen.",
+    "fr": "Choisissez un mot de passe pour finaliser votre compte.",
+    "en": "Choose a password to finish creating your account.",
+    "sw": "Chagua nenosiri ili kukamilisha kuunda akaunti yako."
   },
-  "Auth.EMAIL_VERIFICATION_TOGGLE": {
-    "de": "E-Mail-Verifizierung erforderlich",
-    "fr": "Vérification de l'e-mail requise",
-    "en": "Require email verification",
-    "sw": "Hitaji uthibitishaji wa barua pepe"
+  "Auth.SIGNUP_CONFIRM_SUBMIT": {
+    "de": "Registrierung abschließen",
+    "fr": "Confirmer l'inscription",
+    "en": "Confirm registration",
+    "sw": "Thibitisha usajili"
   },
-  "Auth.EMAIL_VERIFICATION_SAVE_SUCCESS": {
-    "de": "Anforderung zur E-Mail-Verifizierung gespeichert.",
-    "fr": "Exigence de vérification de l'e-mail enregistrée.",
-    "en": "Email verification requirement saved.",
-    "sw": "Mahitaji ya uthibitishaji wa barua pepe yamehifadhiwa."
+  "Auth.SIGNUP_CONFIRM_SUBMITTING": {
+    "de": "Wird bestätigt …",
+    "fr": "Confirmation en cours…",
+    "en": "Confirming…",
+    "sw": "Inathibitisha…"
+  },
+  "Auth.PASSWORD_TOO_SHORT": {
+    "de": "Das Passwort muss mindestens 8 Zeichen lang sein.",
+    "fr": "Le mot de passe doit comporter au moins 8 caractères.",
+    "en": "Password must be at least 8 characters long.",
+    "sw": "Nenosiri lazima liwe na herufi 8 au zaidi."
+  },
+  "Auth.PASSWORD_MISMATCH": {
+    "de": "Die Passwörter stimmen nicht überein.",
+    "fr": "Les mots de passe ne correspondent pas.",
+    "en": "Passwords do not match.",
+    "sw": "Manenosiri hayalingani."
+  },
+  "Auth.SIGNUP_REQUEST_NEW": {
+    "de": "Neue Einladung anfordern",
+    "fr": "Demander une nouvelle invitation",
+    "en": "Request a new invitation",
+    "sw": "Omba mwaliko mpya"
+  },
+  "Auth.PASSWORD_INVALID": {
+    "de": "Das Passwort erfüllt die Sicherheitsanforderungen nicht.",
+    "fr": "Le mot de passe ne respecte pas les exigences de sécurité.",
+    "en": "The password does not meet the security requirements.",
+    "sw": "Nenosiri halikidhi mahitaji ya usalama."
+  },
+  "Auth.PENDING_TOKEN_INVALID": {
+    "de": "Dieser Bestätigungslink ist ungültig oder abgelaufen.",
+    "fr": "Ce lien de confirmation est invalide ou expiré.",
+    "en": "This confirmation link is invalid or expired.",
+    "sw": "Kiungo hiki cha uthibitishaji si halali au kimemalizika muda."
+  },
+  "Auth.PENDING_TOKEN_EXPIRED": {
+    "de": "Diese Einladung ist abgelaufen. Bitte fordere eine neue an.",
+    "fr": "Cette invitation a expiré. Veuillez en demander une nouvelle.",
+    "en": "This invitation has expired. Please request a new one.",
+    "sw": "Mwaliko huu umemalizika muda. Tafadhali omba mpya."
+  },
+  "Auth.ACCESS_CODE_ALREADY_USED": {
+    "de": "Der verwendete Zugangscode ist nicht mehr gültig.",
+    "fr": "Le code d'accès utilisé n'est plus valide.",
+    "en": "The access code used is no longer valid.",
+    "sw": "Msimbo wa ufikiaji uliotumika hauwezi kutumika tena."
+  },
+  "Auth.QR_TOKEN_EXHAUSTED": {
+    "de": "Dieser QR-Code wurde bereits vollständig genutzt.",
+    "fr": "Ce QR-code a déjà été entièrement utilisé.",
+    "en": "This QR code has already been fully used.",
+    "sw": "Msimbo huu wa QR tayari umetumika kabisa."
+  },
+  "Auth.USER_ALREADY_EXISTS": {
+    "de": "Für diese E-Mail-Adresse existiert bereits ein Konto. Bitte melde dich an.",
+    "fr": "Un compte existe déjà pour cette adresse e-mail. Veuillez vous connecter.",
+    "en": "An account already exists for this email address. Please log in.",
+    "sw": "Akaunti tayari ipo kwa anwani hii ya barua pepe. Tafadhali ingia."
+  },
+  "Auth.SIGNUP_QR_MAX_REDEMPTIONS_LABEL": {
+    "de": "Max. Verwendungen",
+    "fr": "Utilisations max.",
+    "en": "Max redemptions",
+    "sw": "Idadi ya juu ya matumizi"
+  },
+  "Auth.SIGNUP_QR_MAX_REDEMPTIONS_HINT": {
+    "de": "Wie viele Personen dürfen sich mit demselben QR registrieren. Standard: 1.",
+    "fr": "Combien de personnes peuvent s'inscrire avec le même QR. Par défaut : 1.",
+    "en": "How many people may sign up with the same QR. Default: 1.",
+    "sw": "Watu wangapi wanaweza kujisajili na QR sawa. Chaguo-msingi: 1."
   },
   "Auth.ACCESS_CODE_SINGLE_USE_TITLE": {
     "de": "Zugangscode: Einmalverwendung",

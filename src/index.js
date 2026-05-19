@@ -25,6 +25,7 @@ export { PasswordResetRequestPage } from './pages/PasswordResetRequestPage';
 export { PasswordChangePage } from './pages/PasswordChangePage';
 export { PasswordInvitePage } from './pages/PasswordInvitePage';
 export { SignUpPage } from './pages/SignUpPage';
+export { SignupConfirmPage } from './pages/SignupConfirmPage';
 export { AccountPage } from './pages/AccountPage';
 
 // --- 5. Components (Wiederverwendbare UI-Teile) ---
@@ -35,7 +36,6 @@ export { UserInviteComponent } from './components/UserInviteComponent';
 export { BulkInviteCsvTab } from './components/BulkInviteCsvTab';
 export { RegistrationMethodsManager } from './components/RegistrationMethodsManager';
 export { AuthFactorRequirementCard } from './components/AuthFactorRequirementCard';
-export { EmailVerificationRequirementCard } from './components/EmailVerificationRequirementCard';
 export { AccessCodeSingleUseToggle } from './components/AccessCodeSingleUseToggle';
 export { QrSignupManager } from './components/QrSignupManager';
 

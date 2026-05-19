@@ -4,6 +4,7 @@ import {
   Box,
   Button,
   Stack,
+  TextField,
   Typography,
 } from '@mui/material';
 import { useTranslation } from 'react-i18next';
@@ -11,11 +12,20 @@ import { QRCodeSVG } from 'qrcode.react';
 import { createSignupQr } from '../auth/authApi';
 
 const DEFAULT_EXPIRY_DAYS = 90;
+const DEFAULT_MAX_REDEMPTIONS = 1;
 
 function clampExpiryDays(value) {
   const parsed = parseInt(value, 10);
   if (!Number.isFinite(parsed) || parsed < 1) {
     return DEFAULT_EXPIRY_DAYS;
+  }
+  return parsed;
+}
+
+function clampMaxRedemptions(value) {
+  const parsed = parseInt(value, 10);
+  if (!Number.isFinite(parsed) || parsed < 1) {
+    return DEFAULT_MAX_REDEMPTIONS;
   }
   return parsed;
 }
@@ -40,6 +50,7 @@ export function QrSignupManager({
   const [success, setSuccess] = useState('');
   const [result, setResult] = useState(null);
   const [copyState, setCopyState] = useState('idle');
+  const [maxRedemptions, setMaxRedemptions] = useState(DEFAULT_MAX_REDEMPTIONS);
   const hasGeneratedRef = useRef(false);
 
   const formattedExpiry = useMemo(() => {
@@ -65,6 +76,7 @@ export function QrSignupManager({
       return;
     }
     const nextDays = clampExpiryDays(daysOverride ?? expiryDays);
+    const nextRedemptions = clampMaxRedemptions(maxRedemptions);
     setBusy(true);
     setError('');
     setSuccess('');
@@ -72,6 +84,7 @@ export function QrSignupManager({
     try {
       const data = await createSignupQr({
         expires_minutes: nextDays * 24 * 60,
+        max_redemptions: nextRedemptions,
       });
       setResult(data);
       hasGeneratedRef.current = true;
@@ -89,6 +102,7 @@ export function QrSignupManager({
       setError('');
       setSuccess('');
       setCopyState('idle');
+      setMaxRedemptions(DEFAULT_MAX_REDEMPTIONS);
       hasGeneratedRef.current = false;
       return;
     }
@@ -105,6 +119,7 @@ export function QrSignupManager({
         const days = clampExpiryDays(expiryDays);
         const data = await createSignupQr({
           expires_minutes: days * 24 * 60,
+          max_redemptions: clampMaxRedemptions(maxRedemptions),
         });
         if (!active) return;
         setResult(data);
@@ -265,6 +280,22 @@ export function QrSignupManager({
       <Typography variant="body2" sx={{ mb: 2, color: 'text.secondary' }}>
         {t('Auth.SIGNUP_QR_MANAGER_HINT', 'Generate and share QR signup links below.')}
       </Typography>
+
+      <Box sx={{ mb: 2 }}>
+        <TextField
+          label={t('Auth.SIGNUP_QR_MAX_REDEMPTIONS_LABEL', 'Max redemptions')}
+          type="number"
+          size="small"
+          value={maxRedemptions}
+          onChange={(e) => setMaxRedemptions(e.target.value)}
+          inputProps={{ min: 1, step: 1 }}
+          helperText={t(
+            'Auth.SIGNUP_QR_MAX_REDEMPTIONS_HINT',
+            'How many people may sign up with the same QR. Default: 1.',
+          )}
+          disabled={busy}
+        />
+      </Box>
 
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
       {success && <Alert severity="success" sx={{ mb: 2 }}>{success}</Alert>}

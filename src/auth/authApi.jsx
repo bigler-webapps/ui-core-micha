@@ -377,6 +377,22 @@ export async function submitRegistrationRequest({
   }
 }
 
+/**
+ * S13: confirm a pending registration. The token comes from the email link;
+ * the password is the new account's first password.
+ */
+export async function confirmRegistration({ token, password }) {
+  try {
+    const res = await apiClient.post(`${USERS_BASE}/register-confirm/`, {
+      token,
+      password,
+    });
+    return res.data;
+  } catch (error) {
+    throw normaliseApiError(error, 'Auth.PENDING_TOKEN_INVALID');
+  }
+}
+
 export async function createSignupQr(payload = {}) {
   try {
     const res = await apiClient.post(`${USERS_BASE}/signup-qr/`, payload);

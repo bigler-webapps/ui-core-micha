@@ -26,7 +26,6 @@ import { AccessCodeManager } from '../components/AccessCodeManager';
 import { AllowedEmailDomainsManager } from '../components/AllowedEmailDomainsManager';
 import { RegistrationMethodsManager } from '../components/RegistrationMethodsManager';
 import { AuthFactorRequirementCard } from '../components/AuthFactorRequirementCard';
-import { EmailVerificationRequirementCard } from '../components/EmailVerificationRequirementCard';
 import { AccessCodeSingleUseToggle } from '../components/AccessCodeSingleUseToggle';
 import { QrSignupManager } from '../components/QrSignupManager';
 import { QrSignupValidityManager } from '../components/QrSignupValidityManager';
@@ -253,16 +252,6 @@ export function AccountPage({
             {canViewAuthPolicy && (
               <Paper variant="outlined" sx={{ p: 2.5, borderRadius: 2 }}>
                 <AuthFactorRequirementCard canEdit={canWriteAuthPolicy} policy={authPolicy} />
-              </Paper>
-            )}
-
-            {canViewAuthPolicy && (
-              <Paper variant="outlined" sx={{ p: 2.5, borderRadius: 2 }}>
-                <EmailVerificationRequirementCard
-                  canEdit={canWriteAuthPolicy}
-                  policy={authPolicy}
-                  onPolicyChange={setAuthPolicy}
-                />
               </Paper>
             )}
 
