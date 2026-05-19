@@ -2,9 +2,9 @@
 //
 // S13: Completes a pending registration. Reads the signed pending-token from
 // the URL (`?token=...`), asks the user for a password, and POSTs to
-// `register_confirm`. On success, the backend has set the session cookie; we
-// trigger a full page reload to `/` so AuthProvider re-initialises and picks
-// the user up at mount — avoids React-state races inside the SPA.
+// `register_confirm`. On success, the user is sent to /login to sign in
+// explicitly — matches the existing invite/password-reset pattern and
+// preserves any MFA / login-event flow the app may enforce.
 import React, { useMemo, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
@@ -55,10 +55,10 @@ export function SignupConfirmPage() {
     setSubmitting(true);
     try {
       await confirmRegistration({ token: tokenFromUrl, password });
-      // Full page reload so AuthProvider re-initialises with the just-set
-      // session cookie. Avoids React-state races where the SPA's route guard
-      // could read a stale (null) user between login() and navigate('/').
-      window.location.assign('/');
+      // Send the user to /login. Aligned with PasswordInvitePage; no implicit
+      // session that would bypass MFA challenges or skip the explicit login
+      // event in audit logs.
+      navigate('/login', { replace: true });
       return;
     } catch (err) {
       setErrorKey(err?.code || 'Auth.PENDING_TOKEN_INVALID');
