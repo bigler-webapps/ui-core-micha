@@ -2,9 +2,10 @@
 //
 // S13: Completes a pending registration. Reads the signed pending-token from
 // the URL (`?token=...`), asks the user for a password, and POSTs to
-// `register_confirm`. On success, the user is logged in by the backend session
-// cookie; we hand off to AuthContext.login so the SPA picks it up immediately.
-import React, { useContext, useMemo, useState } from 'react';
+// `register_confirm`. On success, the backend has set the session cookie; we
+// trigger a full page reload to `/` so AuthProvider re-initialises and picks
+// the user up at mount — avoids React-state races inside the SPA.
+import React, { useMemo, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
   Alert,
@@ -17,14 +18,12 @@ import {
 import { Helmet } from 'react-helmet';
 import { useTranslation } from 'react-i18next';
 import { NarrowPage } from '../layout/PageLayout';
-import { AuthContext } from '../auth/AuthContext';
-import { confirmRegistration, fetchCurrentUser } from '../auth/authApi';
+import { confirmRegistration } from '../auth/authApi';
 
 export function SignupConfirmPage() {
   const { t } = useTranslation();
   const location = useLocation();
   const navigate = useNavigate();
-  const { login } = useContext(AuthContext);
 
   const tokenFromUrl = useMemo(() => {
     const query = new URLSearchParams(location.search);
@@ -56,15 +55,11 @@ export function SignupConfirmPage() {
     setSubmitting(true);
     try {
       await confirmRegistration({ token: tokenFromUrl, password });
-      // Refresh user state from session before navigating home.
-      try {
-        const user = await fetchCurrentUser();
-        login(user);
-      } catch {
-        // If user fetch fails, still navigate — the session cookie is set
-        // server-side and the next page-load will pick the user up.
-      }
-      navigate('/', { replace: true });
+      // Full page reload so AuthProvider re-initialises with the just-set
+      // session cookie. Avoids React-state races where the SPA's route guard
+      // could read a stale (null) user between login() and navigate('/').
+      window.location.assign('/');
+      return;
     } catch (err) {
       setErrorKey(err?.code || 'Auth.PENDING_TOKEN_INVALID');
     } finally {
