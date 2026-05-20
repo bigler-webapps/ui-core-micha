@@ -95,7 +95,7 @@ jobs:
         if: steps.version_check.outputs.should_publish == 'true'
         uses: pnpm/action-setup@v4
         with:
-          version: 10.33.4
+          version: 11.1.2
 
       - name: Show version from package.json
         if: steps.version_check.outputs.should_publish == 'true'
