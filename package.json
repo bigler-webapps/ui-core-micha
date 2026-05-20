@@ -9,18 +9,18 @@
   },
   "private": false,
   "peerDependencies": {
-    "@emotion/react": "^11.0.0",
-    "@emotion/styled": "^11.0.0",
-    "@mui/material": "^7.3.5",
-    "@mui/x-data-grid": "^8.4.0",
-    "axios": "^1.0.0",
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.1",
+    "@mui/material": "^7.3.11",
+    "@mui/x-data-grid": "^8.28.6",
+    "axios": "^1.16.1",
     "i18next": "^25.10.10 || ^26.0.0",
     "qrcode.react": "^4.2.0",
-    "react": "^19.2.1",
-    "react-dom": "^19.2.1",
-    "react-helmet": "^6.0.0",
+    "react": "^19.2.6",
+    "react-dom": "^19.2.6",
+    "react-helmet": "^6.1.0",
     "react-i18next": "^16.3.5 || ^17.0.0",
-    "react-router-dom": "^7.9.6"
+    "react-router-dom": "^7.15.1"
   },
   "scripts": {
     "build": "tsc -p tsconfig.build.json"
