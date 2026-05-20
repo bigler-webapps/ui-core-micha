@@ -4,5 +4,7 @@
     "github>bigler-webapps/renovate-config",
     "github>bigler-webapps/renovate-config:auto-merge"
   ],
-  "baseBranches": ["main"]
+  "baseBranchPatterns": [
+    "main"
+  ]
 }
