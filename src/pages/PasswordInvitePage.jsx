@@ -70,8 +70,34 @@ export function PasswordInvitePage() {
           ? 'Auth.RESET_PASSWORD_SUCCESS_INVITE'
           : 'Auth.RESET_PASSWORD_SUCCESS_RESET',
       );
-      const target = nextPath
-        ? `/login?next=${encodeURIComponent(nextPath)}`
+      // Same-origin check via URL parser — startsWith('/') alone misses
+      // bypasses like `/\evil.com`, which WHATWG-parses to `https://evil.com/`
+      // for special schemes. The parser normalises backslashes and protocol-
+      // relative forms, so any cross-origin result is caught here.
+      let safeNextPath = null;
+      // Require leading-slash absolute path on the raw input (rejects
+      // relative inputs like `account/settings` and protocol-relative `//host`
+      // before they reach the URL parser, which would normalise both into a
+      // same-origin pathname starting with `/`).
+      if (
+        nextPath &&
+        typeof nextPath === 'string' &&
+        nextPath.startsWith('/') &&
+        !nextPath.startsWith('//')
+      ) {
+        try {
+          const parsed = new URL(nextPath, window.location.origin);
+          // Catches WHATWG bypasses like `/\evil.com` that resolve to a
+          // different origin even though the raw input started with `/`.
+          if (parsed.origin === window.location.origin) {
+            safeNextPath = parsed.pathname + parsed.search + parsed.hash;
+          }
+        } catch {
+          // fall through to default redirect
+        }
+      }
+      const target = safeNextPath
+        ? `/login?next=${encodeURIComponent(safeNextPath)}`
         : '/login';
       navigate(target);
     } catch (err) {
