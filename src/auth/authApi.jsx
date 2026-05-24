@@ -435,7 +435,11 @@ export async function rejectRecoveryRequest(id, supportNote) {
 
 export async function loginWithRecoveryPassword(email, password, token) {
   try {
-    await apiClient.post(`/api/support/recovery-requests/recovery-login/${token}/`, {
+    // S50 (django-core-micha >=2.13.1): token wird im POST-Body übergeben,
+    // nicht mehr als URL-Path-Segment. Vermeidet Token-Leak in Referer-Headern,
+    // Server-Access-Logs und Browser-History (POST-Credentials-Exchange).
+    await apiClient.post('/api/support/recovery-requests/recovery-login/', {
+      token,
       email,
       password
     });
