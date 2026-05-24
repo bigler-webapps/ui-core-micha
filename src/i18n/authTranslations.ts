@@ -6,6 +6,36 @@ export const authTranslations = {
     "en": "Email address or password is incorrect.",
     "sw": "Barua pepe au nenosiri sio sahihi."
   },
+  "Auth.RECOVERY_TOKEN_INVALID": {
+    "de": "Der Recovery-Link ist ungültig oder wurde bereits verwendet.",
+    "fr": "Le lien de récupération est invalide ou a déjà été utilisé.",
+    "en": "The recovery link is invalid or has already been used.",
+    "sw": "Kiungo cha urejesho si halali au tayari kimetumika."
+  },
+  "Auth.RECOVERY_TOKEN_EXPIRED": {
+    "de": "Der Recovery-Link ist abgelaufen. Bitte fordere einen neuen an.",
+    "fr": "Le lien de récupération a expiré. Veuillez en demander un nouveau.",
+    "en": "The recovery link has expired. Please request a new one.",
+    "sw": "Kiungo cha urejesho kimeisha muda wake. Tafadhali omba kipya."
+  },
+  "Auth.RECOVERY_LINK_VALIDATING": {
+    "de": "Recovery-Link wird geprüft…",
+    "fr": "Vérification du lien de récupération…",
+    "en": "Validating recovery link…",
+    "sw": "Inathibitisha kiungo cha urejesho..."
+  },
+  "Auth.RECOVERY_LOGIN_WARNING": {
+    "de": "Recovery-Link validiert. Bitte gib dein Passwort ein.",
+    "fr": "Lien de récupération validé. Veuillez saisir votre mot de passe.",
+    "en": "Recovery link validated. Please enter your password.",
+    "sw": "Kiungo cha urejesho kimethibitishwa. Tafadhali weka nenosiri lako."
+  },
+  "Auth.TWO_FACTOR_REQUIRED_HINT": {
+    "de": "Diese App benötigt zwei Authentifizierungsfaktoren für vollen Zugriff.",
+    "fr": "Cette application requiert deux facteurs d’authentification pour un accès complet.",
+    "en": "This app requires two authentication factors for full access.",
+    "sw": "Programu hii inahitaji vipengele viwili vya uthibitisho kwa ufikiaji kamili."
+  },
   "Auth.PASSKEY_FAILED": {
     "de": "Die Anmeldung mit Passkey ist fehlgeschlagen.",
     "fr": "La connexion avec passkey a échoué.",

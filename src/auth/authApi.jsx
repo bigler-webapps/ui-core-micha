@@ -433,6 +433,31 @@ export async function rejectRecoveryRequest(id, supportNote) {
   return res.data;
 }
 
+// S164: server-side session handoff. After the email-link redirect lands the
+// SPA on `/login#recovery=ok`, the LoginPage fetches the plaintext recovery
+// token from the user's server session (set by `recovery_complete_view`).
+// The endpoint pops the token on every read — a single shot per browser
+// navigation — so a navigated-away tab cannot reuse the entry.
+export async function fetchRecoverySessionToken() {
+  try {
+    const res = await apiClient.get('/api/auth/recovery/session-token/', {
+      // Visiting `/login` without a pending recovery session is the common
+      // case; the 404 it returns must not bubble up as a global "session
+      // expired" auth error in the app shell.
+      skipAuthRedirect: true,
+    });
+    return res?.data?.token || null;
+  } catch (err) {
+    if (err?.response?.status === 404) {
+      // No pending recovery in this session — treat as a non-error so the
+      // LoginPage can decide whether to surface a "link expired" message
+      // based on the `#recovery=` hash sentinel it already inspects.
+      return null;
+    }
+    throw normaliseApiError(err, 'Auth.RECOVERY_TOKEN_INVALID');
+  }
+}
+
 export async function loginWithRecoveryPassword(email, password, token) {
   try {
     // S50 (django-core-micha >=2.13.1): token wird im POST-Body übergeben,
