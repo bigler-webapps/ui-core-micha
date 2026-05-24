@@ -13,7 +13,7 @@ Already addressed:
 
 ## P2 — Major
 
-### UICORE-NEW-passwordinvite-open-redirect — `nextPath` not origin-validated at composition
+### S170 — UICORE-NEW-passwordinvite-open-redirect — `nextPath` not origin-validated at composition
 **Severity:** P2
 **File:** `src/pages/PasswordInvitePage.jsx:74`
 **Confidence:** high
