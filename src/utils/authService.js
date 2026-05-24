@@ -194,6 +194,30 @@ export async function startSocialLogin(provider, options = {}) {
   if (originUrl.hostname.startsWith('www.')) {
     originUrl.hostname = originUrl.hostname.slice(4);
   }
-  const callbackUrl = options.callbackUrl || `${originUrl.origin}/login`;
+
+  // S62: Same-Origin-Validation für `callbackUrl`. Verhindert, dass künftige
+  // Konsumenten mit tainted Wert (z.B. `?next=https://evil.example/`) einen
+  // Open-Redirect via OAuth-Callback-Pfad erzeugen. Caller heute safe
+  // (`options.callbackUrl` wird nur intern gesetzt), aber defensive depth.
+  let callbackUrl = `${originUrl.origin}/login`;
+  if (options.callbackUrl) {
+    try {
+      const candidate = new URL(options.callbackUrl, window.location.origin);
+      if (candidate.origin === originUrl.origin) {
+        callbackUrl = candidate.toString();
+      } else {
+        // Cross-origin → silent fallback auf Default; OAuth-Flows laufen
+        // weiter, nur ohne tainted URL. Symptom-Diagnose via Console-Warning.
+        // eslint-disable-next-line no-console
+        console.warn(
+          `[startSocialLogin] callbackUrl cross-origin rejected: ${candidate.origin} != ${originUrl.origin}. Falling back to /login.`
+        );
+      }
+    } catch {
+      // Invalid URL → fallback, gleiche Rationale.
+      // eslint-disable-next-line no-console
+      console.warn('[startSocialLogin] callbackUrl is not a valid URL — falling back to /login.');
+    }
+  }
   submitSocialRedirectForm({ provider, callbackUrl, csrfToken, process });
 }
