@@ -51,8 +51,30 @@ export function LoginPage() {
       return '/account?tab=security&from=weak_login';
     }
 
-    if (requestedNext && requestedNext.startsWith('/')) {
-      return requestedNext;
+    // Same-origin check via URL parser — `startsWith('/')` alone allows
+    // bypasses like `/\evil.com`, which WHATWG-parses to `https://evil.com/`
+    // for special schemes. Resolve against the current origin and only accept
+    // results whose origin matches.
+    // Require leading-slash absolute path on the raw input (rejects relative
+    // inputs like `account/settings` and protocol-relative `//host` before
+    // they reach the URL parser, which would normalise both into a same-
+    // origin pathname starting with `/`).
+    if (
+      requestedNext &&
+      typeof requestedNext === 'string' &&
+      requestedNext.startsWith('/') &&
+      !requestedNext.startsWith('//')
+    ) {
+      try {
+        const parsed = new URL(requestedNext, window.location.origin);
+        // Catches WHATWG bypasses like `/\evil.com` that resolve to a
+        // different origin even though the raw input started with `/`.
+        if (parsed.origin === window.location.origin) {
+          return parsed.pathname + parsed.search + parsed.hash;
+        }
+      } catch {
+        // fall through to default redirect
+      }
     }
 
     return '/';
