@@ -10,7 +10,7 @@ import {
 } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import apiClient from './apiClient';
-import { HEADLESS_BASE } from './authConfig.jsx';
+import { HEADLESS_BASE } from './authConfig';
 import { rejectReauth, resolveReauth, subscribe } from './reauth';
 
 export function ReauthModal() {
