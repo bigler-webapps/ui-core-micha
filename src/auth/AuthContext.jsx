@@ -10,6 +10,7 @@ import {
   fetchCurrentUser,
   logoutSession,
 } from './authApi';
+import { ReauthModal } from './ReauthModal';
 
 export const AuthContext = createContext(null);
 
@@ -136,6 +137,7 @@ export const AuthProvider = ({ children }) => {
       }}
     >
       {children}
+      <ReauthModal />
     </AuthContext.Provider>
   );
 };

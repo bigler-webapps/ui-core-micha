@@ -1835,5 +1835,23 @@ export const authTranslations = {
     "fr": "Politique de code d'accès enregistrée.",
     "en": "Access code policy saved.",
     "sw": "Sera ya msimbo wa ufikiaji imehifadhiwa."
+  },
+  "Auth.REAUTH_TITLE": {
+    "de": "Identität bestätigen",
+    "fr": "Confirmer votre identité",
+    "en": "Confirm your identity",
+    "sw": "Thibitisha utambulisho wako"
+  },
+  "Auth.REAUTH_SUBTITLE": {
+    "de": "Bitte gib dein Passwort ein, um fortzufahren.",
+    "fr": "Veuillez saisir votre mot de passe pour continuer.",
+    "en": "Please enter your password to continue.",
+    "sw": "Tafadhali ingiza nenosiri lako ili kuendelea."
+  },
+  "Auth.REAUTH_FAILED": {
+    "de": "Das Passwort ist falsch.",
+    "fr": "Le mot de passe est incorrect.",
+    "en": "The password is incorrect.",
+    "sw": "Nenosiri si sahihi."
   }
 };

@@ -1,5 +1,6 @@
 import axios from "axios";
 import { CSRF_URL } from "./authConfig";
+import { requestReauth } from "./reauth";
 
 const apiClient = axios.create({
   withCredentials: true,
@@ -130,7 +131,7 @@ function extractAuthSignal(data) {
 
 apiClient.interceptors.response.use(
   (response) => response,
-  (error) => {
+  async (error) => {
     const status = error?.response?.status ?? null;
     const data = error?.response?.data ?? {};
     const { code, i18nKey } = extractAuthSignal(data);
@@ -138,6 +139,24 @@ apiClient.interceptors.response.use(
     const isAuthStatus = status === 401 || status === 403;
     const isNotAuthenticated =
       code === "not_authenticated" || i18nKey === "auth.not_authenticated";
+
+    // Reauthentication gate: allauth returns 401 + flows[{id:"reauthenticate"}]
+    // when the session is stale before a sensitive operation (e.g. adding a passkey).
+    // Show the password-confirm modal, wait for it to complete, then retry once.
+    const flows = data?.data?.flows ?? data?.flows ?? [];
+    const needsReauth =
+      status === 401 &&
+      Array.isArray(flows) &&
+      flows.some((f) => f.id === "reauthenticate");
+
+    if (needsReauth && !error.config?._reauthRetried) {
+      try {
+        await requestReauth();
+        return apiClient({ ...error.config, _reauthRetried: true });
+      } catch {
+        return Promise.reject(error);
+      }
+    }
 
     // Per-request opt-out: bootstrap probes (e.g. fetchCurrentUser on app start)
     // expect to handle 401 silently and must not trigger a redirect-on-mount.
