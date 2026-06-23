@@ -10,8 +10,15 @@ import {
   CircularProgress,
   Alert,
   TextField,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  TableSortLabel,
+  TablePagination,
 } from '@mui/material';
-import { DataGrid } from '@mui/x-data-grid';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CancelIcon from '@mui/icons-material/Cancel';
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -20,7 +27,7 @@ import { fetchUsersList, deleteUser, updateUserRole } from '../auth/authApi';
 
 const DEFAULT_ROLES = ['none', 'student', 'teacher', 'admin'];
 
-export function UserListComponent({ 
+export function UserListComponent({
     roles = DEFAULT_ROLES,
     currentUser,
     extraColumns = [],
@@ -42,6 +49,10 @@ export function UserListComponent({
   const [error, setError] = useState(null);
   const [rowActionLoading, setRowActionLoading] = useState({});
   const [searchQuery, setSearchQuery] = useState('');
+  const [sortField, setSortField] = useState('email');
+  const [sortDir, setSortDir] = useState('asc');
+  const [page, setPage] = useState(0);
+  const [pageSize, setPageSize] = useState(25);
   const controlSx = { minWidth: 140 };
   const actionButtonSx = { textTransform: 'none', minWidth: 90 };
 
@@ -68,6 +79,10 @@ export function UserListComponent({
   useEffect(() => {
     loadUsers();
   }, [loadUsers, refreshTrigger]);
+
+  useEffect(() => {
+    setPage(0);
+  }, [searchQuery]);
 
   const handleDelete = async (userId) => {
     if (!window.confirm(t('UserList.DELETE_CONFIRM', 'Are you sure you want to delete this user?'))) return;
@@ -106,14 +121,14 @@ export function UserListComponent({
   const defaultCanEdit = (targetUser) => {
       if (!currentUser) return false;
       if (currentUser.is_superuser) return true;
-      
+
       const myRole = currentUser.role || 'none';
       const targetRole = targetUser.role || 'none';
 
       if (myRole === 'admin') return true;
-      
+
       if (myRole === 'teacher') {
-          if (targetUser.id === currentUser.id) return false; 
+          if (targetUser.id === currentUser.id) return false;
           if (['teacher', 'admin', 'supervisor'].includes(targetRole)) return false;
           return true;
       }
@@ -267,16 +282,23 @@ export function UserListComponent({
         field: 'email',
         headerName: t('Auth.EMAIL_LABEL', 'Email'),
         minWidth: 220,
-        maxWidth: 340,
         flex: 1,
+        sortable: true,
+        align: 'left',
+        headerAlign: 'left',
+        valueGetter: (row) => row?.email ?? '',
+        renderCell: (row) => row.email,
       },
       {
         field: 'name',
         headerName: t('Profile.NAME_LABEL', 'Name'),
         minWidth: 180,
-        maxWidth: 260,
         flex: 0.9,
-        valueGetter: (_value, row) => getUserDisplayName(row),
+        sortable: true,
+        align: 'left',
+        headerAlign: 'left',
+        valueGetter: (row) => getUserDisplayName(row),
+        renderCell: (row) => getUserDisplayName(row),
       },
     ];
 
@@ -285,13 +307,13 @@ export function UserListComponent({
         field: 'is_new',
         headerName: t('UserList.NEW', 'New'),
         minWidth: 90,
-        maxWidth: 110,
         flex: 0.35,
+        sortable: true,
         align: 'center',
         headerAlign: 'center',
-        valueGetter: (_value, row) => Boolean(row?.profile?.is_new || row?.is_new),
-        renderCell: (params) => renderBooleanStatusIcon(
-          Boolean(params.row?.profile?.is_new || params.row?.is_new),
+        valueGetter: (row) => Boolean(row?.profile?.is_new || row?.is_new),
+        renderCell: (row) => renderBooleanStatusIcon(
+          Boolean(row?.profile?.is_new || row?.is_new),
           t('Common.YES', 'Yes'),
           t('Common.NO', 'No'),
         ),
@@ -303,13 +325,13 @@ export function UserListComponent({
         field: 'successful_login',
         headerName: t('UserList.SUCCESSFUL_LOGIN', 'Successful Login'),
         minWidth: 120,
-        maxWidth: 150,
         flex: 0.4,
+        sortable: true,
         align: 'center',
         headerAlign: 'center',
-        valueGetter: (_value, row) => Boolean(row?.successful_login ?? row?.last_login),
-        renderCell: (params) => renderBooleanStatusIcon(
-          Boolean(params.row?.successful_login ?? params.row?.last_login),
+        valueGetter: (row) => Boolean(row?.successful_login ?? row?.last_login),
+        renderCell: (row) => renderBooleanStatusIcon(
+          Boolean(row?.successful_login ?? row?.last_login),
           t('Common.YES', 'Yes'),
           t('Common.NO', 'No'),
         ),
@@ -321,23 +343,22 @@ export function UserListComponent({
         field: 'role',
         headerName: t('UserList.ROLE', 'Role'),
         minWidth: 180,
-        maxWidth: 240,
         flex: 0.7,
-        valueGetter: (_value, row) => row?.role || 'none',
-        renderCell: (params) => {
-          const user = params.row;
-          return (
-            <FormControl size="small" fullWidth sx={controlSx} disabled={!canEdit(user)}>
-              <Select
-                value={user.role || 'none'}
-                onChange={(event) => handleChangeRole(user.id, event.target.value)}
-                variant="outlined"
-              >
-                {roles.map((role) => <MenuItem key={role} value={role}>{role}</MenuItem>)}
-              </Select>
-            </FormControl>
-          );
-        },
+        sortable: true,
+        align: 'left',
+        headerAlign: 'left',
+        valueGetter: (row) => row?.role || 'none',
+        renderCell: (row) => (
+          <FormControl size="small" fullWidth sx={controlSx} disabled={!canEdit(row)}>
+            <Select
+              value={row.role || 'none'}
+              onChange={(event) => handleChangeRole(row.id, event.target.value)}
+              variant="outlined"
+            >
+              {roles.map((role) => <MenuItem key={role} value={role}>{role}</MenuItem>)}
+            </Select>
+          </FormControl>
+        ),
       });
     }
 
@@ -345,16 +366,15 @@ export function UserListComponent({
       field: `extra:${column.key}`,
       headerName: typeof column.label === 'function' ? column.label(listContext) : column.label,
       minWidth: Number(column.minWidth) || 180,
-      maxWidth: Number(column.maxWidth) || 320,
       flex: Number(column.flex) || 0.9,
       sortable: column.sortable !== false,
       align: column.align || 'left',
       headerAlign: column.align || 'left',
-      valueGetter: (_value, row) => getExtraColumnSortValue(column, row),
-      renderCell: (params) =>
+      valueGetter: (row) => getExtraColumnSortValue(column, row),
+      renderCell: (row) =>
         column.renderCell({
-          user: params.row,
-          canEdit: canEdit(params.row),
+          user: row,
+          canEdit: canEdit(row),
           currentUser,
           extraContext,
           t,
@@ -372,65 +392,61 @@ export function UserListComponent({
       field: 'actions',
       headerName: t('Common.ACTIONS', 'Actions'),
       minWidth: Math.max(220, 110 + (visibleRowActions.length + (showDeleteAction ? 1 : 0)) * 110),
-      maxWidth: Math.max(360, 120 + (visibleRowActions.length + (showDeleteAction ? 1 : 0)) * 120),
       flex: 1.1,
       sortable: false,
-      filterable: false,
-      disableColumnMenu: true,
-      renderCell: (params) => {
-        const user = params.row;
+      align: 'left',
+      headerAlign: 'left',
+      valueGetter: null,
+      renderCell: (row) => (
+        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, alignItems: 'center', py: 0.5 }}>
+          {visibleRowActions.map((action) => {
+            const actionId = `${action.key}:${row.id}`;
+            const isBusy = Boolean(rowActionLoading[actionId]);
+            const isDisabled = typeof action.disabled === 'function'
+              ? action.disabled({
+                  user: row,
+                  canEdit: canEdit(row),
+                  currentUser,
+                  extraContext,
+                  t,
+                })
+              : false;
 
-        return (
-          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, alignItems: 'center', py: 0.5 }}>
-            {visibleRowActions.map((action) => {
-              const actionId = `${action.key}:${user.id}`;
-              const isBusy = Boolean(rowActionLoading[actionId]);
-              const isDisabled = typeof action.disabled === 'function'
-                ? action.disabled({
-                    user,
-                    canEdit: canEdit(user),
-                    currentUser,
-                    extraContext,
-                    t,
-                  })
-                : false;
+            return (
+              <Button
+                key={`${action.key}-${row.id}`}
+                size="small"
+                variant="outlined"
+                onClick={() => runRowAction(action, row)}
+                disabled={isBusy || isDisabled}
+                sx={actionButtonSx}
+              >
+                {typeof action.label === 'function'
+                  ? action.label({ user: row, t, currentUser, canEdit: canEdit(row) })
+                  : action.label}
+              </Button>
+            );
+          })}
 
-              return (
+          {showDeleteAction && (
+            <Tooltip title={t('Common.DELETE', 'Delete')}>
+              <span>
                 <Button
-                  key={`${action.key}-${user.id}`}
                   size="small"
                   variant="outlined"
-                  onClick={() => runRowAction(action, user)}
-                  disabled={isBusy || isDisabled}
+                  color="error"
+                  startIcon={<DeleteIcon />}
+                  onClick={() => handleDelete(row.id)}
+                  disabled={!canDelete(row)}
                   sx={actionButtonSx}
                 >
-                  {typeof action.label === 'function'
-                    ? action.label({ user, t, currentUser, canEdit: canEdit(user) })
-                    : action.label}
+                  {t('Common.DELETE', 'Delete')}
                 </Button>
-              );
-            })}
-
-            {showDeleteAction && (
-              <Tooltip title={t('Common.DELETE', 'Delete')}>
-                <span>
-                  <Button
-                    size="small"
-                    variant="outlined"
-                    color="error"
-                    startIcon={<DeleteIcon />}
-                    onClick={() => handleDelete(user.id)}
-                    disabled={!canDelete(user)}
-                    sx={actionButtonSx}
-                  >
-                    {t('Common.DELETE', 'Delete')}
-                  </Button>
-                </span>
-              </Tooltip>
-            )}
-          </Box>
-        );
-      },
+              </span>
+            </Tooltip>
+          )}
+        </Box>
+      ),
     };
 
     return [...baseColumns, ...mappedExtraColumns, actionColumn];
@@ -452,6 +468,31 @@ export function UserListComponent({
     canDelete,
   ]);
 
+  const sortedUsers = useMemo(() => {
+    const col = columns.find((c) => c.field === sortField);
+    return [...filteredUsers].sort((a, b) => {
+      const aVal = col?.valueGetter ? col.valueGetter(a) : (a[sortField] ?? '');
+      const bVal = col?.valueGetter ? col.valueGetter(b) : (b[sortField] ?? '');
+      const cmp = String(aVal ?? '').localeCompare(String(bVal ?? ''), undefined, { numeric: true, sensitivity: 'base' });
+      return sortDir === 'asc' ? cmp : -cmp;
+    });
+  }, [filteredUsers, sortField, sortDir, columns]);
+
+  const pagedUsers = useMemo(
+    () => sortedUsers.slice(page * pageSize, page * pageSize + pageSize),
+    [sortedUsers, page, pageSize],
+  );
+
+  const handleSortClick = (field) => {
+    if (sortField === field) {
+      setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortField(field);
+      setSortDir('asc');
+    }
+    setPage(0);
+  };
+
   return (
     <Box>
       <Typography variant="h6" gutterBottom>{t('UserList.TITLE', 'All Users')}</Typography>
@@ -466,7 +507,7 @@ export function UserListComponent({
           onChange={(event) => setSearchQuery(event.target.value)}
         />
       </Box>
-      
+
       {error && <Alert severity="error" sx={{ mb: 2 }}>{t(error)}</Alert>}
 
       {loading && (
@@ -476,40 +517,73 @@ export function UserListComponent({
       )}
 
       {!loading && (
-        <Box sx={{ width: '100%', minHeight: 520 }}>
-          <DataGrid
-            rows={filteredUsers}
-            columns={columns}
-            disableRowSelectionOnClick
-            showToolbar
-            getRowHeight={() => 'auto'}
-            pageSizeOptions={[10, 25, 50, 100]}
-            initialState={{
-              sorting: { sortModel: [{ field: 'email', sort: 'asc' }] },
-              pagination: { paginationModel: { pageSize: 25, page: 0 } },
+        <Box sx={{ width: '100%' }}>
+          <TableContainer sx={{ border: 1, borderColor: 'divider', borderRadius: 1 }}>
+            <Table size="small">
+              <TableHead sx={{ bgcolor: 'action.hover' }}>
+                <TableRow>
+                  {columns.map((col) => (
+                    <TableCell
+                      key={col.field}
+                      align={col.headerAlign || col.align || 'left'}
+                      sortDirection={sortField === col.field ? sortDir : false}
+                      sx={{ minWidth: col.minWidth, fontWeight: 600, whiteSpace: 'nowrap' }}
+                    >
+                      {col.sortable !== false ? (
+                        <TableSortLabel
+                          active={sortField === col.field}
+                          direction={sortField === col.field ? sortDir : 'asc'}
+                          onClick={() => handleSortClick(col.field)}
+                        >
+                          {col.headerName}
+                        </TableSortLabel>
+                      ) : (
+                        col.headerName
+                      )}
+                    </TableCell>
+                  ))}
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {pagedUsers.length === 0 ? (
+                  <TableRow>
+                    <TableCell
+                      colSpan={columns.length}
+                      align="center"
+                      sx={{ py: 4, color: 'text.secondary' }}
+                    >
+                      {t('UserList.NO_USERS', 'No users found.')}
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  pagedUsers.map((row) => (
+                    <TableRow key={row.id} hover>
+                      {columns.map((col) => (
+                        <TableCell
+                          key={col.field}
+                          align={col.align || 'left'}
+                          sx={{ verticalAlign: 'top', py: 1 }}
+                        >
+                          {col.renderCell(row)}
+                        </TableCell>
+                      ))}
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </TableContainer>
+          <TablePagination
+            component="div"
+            count={sortedUsers.length}
+            page={page}
+            onPageChange={(_, newPage) => setPage(newPage)}
+            rowsPerPage={pageSize}
+            onRowsPerPageChange={(event) => {
+              setPageSize(Number(event.target.value));
+              setPage(0);
             }}
-            localeText={{
-              noRowsLabel: t('UserList.NO_USERS', 'No users found.'),
-              toolbarQuickFilterPlaceholder: t('UserList.SEARCH_PLACEHOLDER', 'Search users...'),
-            }}
-            slotProps={{
-              toolbar: {
-                showQuickFilter: true,
-                quickFilterProps: { debounceMs: 300 },
-              },
-            }}
-            sx={{
-              border: 1,
-              borderColor: 'divider',
-              '& .MuiDataGrid-cell': {
-                display: 'flex',
-                alignItems: 'flex-start',
-                py: 1,
-              },
-              '& .MuiDataGrid-columnHeaders': {
-                bgcolor: 'action.hover',
-              },
-            }}
+            rowsPerPageOptions={[10, 25, 50, 100]}
           />
         </Box>
       )}
