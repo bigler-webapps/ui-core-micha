@@ -7,6 +7,7 @@ import React, {
   useState,
 } from 'react';
 import { AuthContext } from '../auth/AuthContext';
+import { getNotificationPreferences } from '../notifications/api';
 import { getOnboardingStepConfig } from './api';
 import { selectActiveSteps } from './stepSelection';
 import CookieConsentStep from './steps/CookieConsentStep';
@@ -34,11 +35,11 @@ export const UNIVERSAL_STEP_DESCRIPTORS = [
   },
   {
     id: 'browser_push',
-    condition: (ctx) => Boolean(ctx.pushState?.supported && !ctx.pushState.subscribed),
+    condition: (ctx) => Boolean(ctx.pushState?.supported && (!ctx.pushState.subscribed || !ctx.emailOptedIn)),
     blocking: false,
     skipable: true,
     persistDismissed: true,
-    titleKey: 'Onboarding.BROWSER_PUSH_TITLE',
+    titleKey: 'Onboarding.NOTIFICATIONS_TITLE',
     Component: BrowserPushStep,
   },
 ];
@@ -71,6 +72,7 @@ export function OnboardingProvider({ children, extraSteps = [] }) {
   const [configMap, setConfigMap] = useState({});
   const [configLoaded, setConfigLoaded] = useState(false);
   const [pushState, setPushState] = useState(getInitialPushState);
+  const [emailOptedIn, setEmailOptedIn] = useState(false);
   const [dismissedSet, setDismissedSet] = useState(loadDismissedSteps);
 
   const descriptors = useMemo(
@@ -123,6 +125,25 @@ export function OnboardingProvider({ children, extraSteps = [] }) {
     return () => { cancelled = true; };
   }, []);
 
+  useEffect(() => {
+    let cancelled = false;
+    if (!user) {
+      setEmailOptedIn(false);
+      return undefined;
+    }
+
+    setEmailOptedIn(false);
+    getNotificationPreferences()
+      .then((data) => {
+        if (!cancelled) setEmailOptedIn(Boolean(data?.email_opt_in));
+      })
+      .catch(() => {
+        if (!cancelled) setEmailOptedIn(false);
+      });
+
+    return () => { cancelled = true; };
+  }, [user]);
+
   const dismissStep = useCallback((id) => {
     setDismissedSet((previous) => {
       const next = new Set(previous);
@@ -138,7 +159,7 @@ export function OnboardingProvider({ children, extraSteps = [] }) {
     });
   }, []);
 
-  const ctx = useMemo(() => ({ user, pushState }), [user, pushState]);
+  const ctx = useMemo(() => ({ user, pushState, emailOptedIn }), [user, pushState, emailOptedIn]);
   const activeSteps = useMemo(() => {
     if (!configLoaded || !user) return [];
     return selectActiveSteps(descriptors, configMap, ctx, dismissedSet);
