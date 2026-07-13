@@ -2,6 +2,17 @@
  * Canonical service-worker source. Copy this file verbatim to each consuming
  * application's public/sw.js so it is served from that application's origin root.
  */
+const resolveSameOriginUrl = (url) => {
+  try {
+    const resolvedUrl = new URL(url || '/', self.location.origin);
+    if (resolvedUrl.origin !== self.location.origin) return '/';
+
+    return `${resolvedUrl.pathname}${resolvedUrl.search}${resolvedUrl.hash}`;
+  } catch {
+    return '/';
+  }
+};
+
 self.addEventListener('push', (event) => {
   if (!event.data) return;
 
@@ -14,7 +25,7 @@ self.addEventListener('push', (event) => {
 
   const options = {
     body: payload.body || '',
-    data: { url: payload.url || '/' },
+    data: { url: resolveSameOriginUrl(payload.url) },
   };
   if (payload.icon) options.icon = payload.icon;
   if (payload.badge) options.badge = payload.badge;
@@ -24,7 +35,7 @@ self.addEventListener('push', (event) => {
 
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
-  const url = event.notification.data?.url || '/';
+  const url = resolveSameOriginUrl(event.notification.data?.url);
 
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
