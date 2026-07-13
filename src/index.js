@@ -41,3 +41,25 @@ export { QrSignupManager } from './components/QrSignupManager';
 
 // --- 6. Translations ---
 export { authTranslations } from './i18n/authTranslations';
+
+// --- 7. Notifications ---
+export { NotificationSettings } from './notifications/NotificationSettings';
+export * from './notifications/api';
+
+// --- 8. Onboarding ---
+export * from './onboarding/api';
+export { selectActiveSteps } from './onboarding/stepSelection';
+export {
+  OnboardingContext,
+  OnboardingProvider,
+  UNIVERSAL_STEP_DESCRIPTORS,
+  useOnboarding,
+} from './onboarding/OnboardingProvider';
+export { OnboardingWizard } from './onboarding/OnboardingWizard';
+export { CookieConsentStep } from './onboarding/steps/CookieConsentStep';
+export { CompleteNameStep } from './onboarding/steps/CompleteNameStep';
+export { BrowserPushStep } from './onboarding/steps/BrowserPushStep';
+
+// --- 9. Translations ---
+export { notificationsTranslations } from './i18n/notificationsTranslations';
+export { onboardingTranslations } from './i18n/onboardingTranslations';

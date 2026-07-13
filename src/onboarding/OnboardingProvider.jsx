@@ -1,0 +1,153 @@
+import React, {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from 'react';
+import { AuthContext } from '../auth/AuthContext';
+import { getOnboardingStepConfig } from './api';
+import { selectActiveSteps } from './stepSelection';
+import CookieConsentStep from './steps/CookieConsentStep';
+import CompleteNameStep from './steps/CompleteNameStep';
+import BrowserPushStep from './steps/BrowserPushStep';
+
+export const UNIVERSAL_STEP_DESCRIPTORS = [
+  {
+    id: 'cookie_consent',
+    condition: (ctx) => Boolean(ctx.user && !ctx.user.accepted_convenience_cookies),
+    blocking: true,
+    skipable: false,
+    persistDismissed: false,
+    titleKey: 'Onboarding.COOKIE_CONSENT_TITLE',
+    Component: CookieConsentStep,
+  },
+  {
+    id: 'complete_name',
+    condition: (ctx) => Boolean(ctx.user && (!ctx.user.first_name?.trim() || !ctx.user.last_name?.trim())),
+    blocking: true,
+    skipable: false,
+    persistDismissed: false,
+    titleKey: 'Onboarding.COMPLETE_NAME_TITLE',
+    Component: CompleteNameStep,
+  },
+  {
+    id: 'browser_push',
+    condition: (ctx) => Boolean(ctx.pushState?.supported && !ctx.pushState.subscribed),
+    blocking: false,
+    skipable: true,
+    persistDismissed: true,
+    titleKey: 'Onboarding.BROWSER_PUSH_TITLE',
+    Component: BrowserPushStep,
+  },
+];
+
+export const OnboardingContext = createContext(null);
+
+export function useOnboarding() {
+  return useContext(OnboardingContext);
+}
+
+function loadDismissedSteps() {
+  if (typeof window === 'undefined') return new Set();
+  try {
+    return new Set(JSON.parse(window.localStorage.getItem('onboarding_dismissed')) || []);
+  } catch {
+    return new Set();
+  }
+}
+
+function getInitialPushState() {
+  const supported = typeof navigator !== 'undefined'
+    && typeof window !== 'undefined'
+    && 'serviceWorker' in navigator
+    && 'PushManager' in window;
+  return supported ? null : { supported: false, subscribed: false };
+}
+
+export function OnboardingProvider({ children, extraSteps = [] }) {
+  const { user } = useContext(AuthContext);
+  const [configMap, setConfigMap] = useState({});
+  const [configLoaded, setConfigLoaded] = useState(false);
+  const [pushState, setPushState] = useState(getInitialPushState);
+  const [dismissedSet, setDismissedSet] = useState(loadDismissedSteps);
+
+  const descriptors = useMemo(
+    () => [...UNIVERSAL_STEP_DESCRIPTORS, ...extraSteps],
+    [extraSteps],
+  );
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!user) {
+      setConfigMap({});
+      setConfigLoaded(false);
+      return undefined;
+    }
+
+    getOnboardingStepConfig()
+      .then((data) => {
+        if (cancelled) return;
+        const nextConfigMap = {};
+        (data || []).forEach((item) => { nextConfigMap[item.key] = item.enabled; });
+        setConfigMap(nextConfigMap);
+      })
+      .catch(() => {
+        if (!cancelled) setConfigMap({});
+      })
+      .finally(() => {
+        if (!cancelled) setConfigLoaded(true);
+      });
+
+    return () => { cancelled = true; };
+  }, [user]);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (typeof navigator === 'undefined' || typeof window === 'undefined'
+      || !('serviceWorker' in navigator) || !('PushManager' in window)) {
+      setPushState({ supported: false, subscribed: false });
+      return undefined;
+    }
+
+    navigator.serviceWorker.ready
+      .then((registration) => registration.pushManager.getSubscription())
+      .then((subscription) => {
+        if (!cancelled) setPushState({ supported: true, subscribed: Boolean(subscription) });
+      })
+      .catch(() => {
+        if (!cancelled) setPushState({ supported: true, subscribed: false });
+      });
+
+    return () => { cancelled = true; };
+  }, []);
+
+  const dismissStep = useCallback((id) => {
+    setDismissedSet((previous) => {
+      const next = new Set(previous);
+      next.add(id);
+      if (typeof window !== 'undefined') {
+        try {
+          window.localStorage.setItem('onboarding_dismissed', JSON.stringify([...next]));
+        } catch {
+          // Persistence is optional; the in-memory dismissal still applies.
+        }
+      }
+      return next;
+    });
+  }, []);
+
+  const ctx = useMemo(() => ({ user, pushState }), [user, pushState]);
+  const activeSteps = useMemo(() => {
+    if (!configLoaded || !user) return [];
+    return selectActiveSteps(descriptors, configMap, ctx, dismissedSet);
+  }, [configLoaded, user, descriptors, configMap, ctx, dismissedSet]);
+
+  const value = useMemo(
+    () => ({ activeSteps, dismissStep, ctx, configMap, setConfigMap }),
+    [activeSteps, dismissStep, ctx, configMap],
+  );
+
+  return <OnboardingContext.Provider value={value}>{children}</OnboardingContext.Provider>;
+}

@@ -1,0 +1,17 @@
+export const onboardingTranslations = {
+  'Onboarding.SETUP': { de: 'Einrichtung', fr: 'Configuration', en: 'Setup', sw: 'Usanidi' },
+  'Onboarding.STEP_COUNTER': { de: 'Schritt {{current}} von {{total}}', fr: 'Étape {{current}} sur {{total}}', en: 'Step {{current}} of {{total}}', sw: 'Hatua ya {{current}} kati ya {{total}}' },
+  'Onboarding.COOKIE_CONSENT_TITLE': { de: 'Cookie-Einstellungen', fr: 'Préférences des cookies', en: 'Cookie preferences', sw: 'Mapendeleo ya vidakuzi' },
+  'Onboarding.COOKIE_CONSENT_BODY': { de: 'Diese App verwendet optionale Cookies, um deine Einstellungen und Präferenzen zu speichern. Möchtest du diese aktivieren?', fr: 'Cette application utilise des cookies facultatifs pour enregistrer vos réglages et préférences. Souhaitez-vous les activer ?', en: 'This app uses optional cookies to save your settings and preferences. Would you like to enable them?', sw: 'Programu hii hutumia vidakuzi vya hiari kuhifadhi mipangilio na mapendeleo yako. Je, ungependa kuviwasha?' },
+  'Onboarding.COOKIE_CONSENT_ACCEPT': { de: 'Akzeptieren', fr: 'Accepter', en: 'Accept', sw: 'Kubali' },
+  'Onboarding.COOKIE_CONSENT_ERROR': { de: 'Die Cookie-Einstellung konnte nicht gespeichert werden. Bitte versuche es erneut.', fr: 'Impossible d’enregistrer votre préférence de cookies. Veuillez réessayer.', en: 'Your cookie preference could not be saved. Please try again.', sw: 'Upendeleo wako wa vidakuzi haukuweza kuhifadhiwa. Tafadhali jaribu tena.' },
+  'Onboarding.COMPLETE_NAME_TITLE': { de: 'Dein Name', fr: 'Votre nom', en: 'Your name', sw: 'Jina lako' },
+  'Onboarding.COMPLETE_NAME_BODY': { de: 'Bitte gib deinen Vor- und Nachnamen an, damit andere dich erkennen.', fr: 'Veuillez indiquer votre prénom et votre nom afin que les autres puissent vous reconnaître.', en: 'Please provide your first and last name so others can recognise you.', sw: 'Tafadhali weka jina lako la kwanza na la mwisho ili wengine wakutambue.' },
+  'Onboarding.FIRST_NAME_LABEL': { de: 'Vorname', fr: 'Prénom', en: 'First name', sw: 'Jina la kwanza' },
+  'Onboarding.LAST_NAME_LABEL': { de: 'Nachname', fr: 'Nom', en: 'Last name', sw: 'Jina la mwisho' },
+  'Onboarding.SAVE': { de: 'Speichern', fr: 'Enregistrer', en: 'Save', sw: 'Hifadhi' },
+  'Onboarding.COMPLETE_NAME_ERROR': { de: 'Der Name konnte nicht gespeichert werden. Bitte versuche es erneut.', fr: 'Impossible d’enregistrer votre nom. Veuillez réessayer.', en: 'Your name could not be saved. Please try again.', sw: 'Jina lako halikuweza kuhifadhiwa. Tafadhali jaribu tena.' },
+  'Onboarding.BROWSER_PUSH_TITLE': { de: 'Push-Benachrichtigungen', fr: 'Notifications push', en: 'Push notifications', sw: 'Arifa za push' },
+  'Onboarding.BROWSER_PUSH_BODY': { de: 'Erhalte Benachrichtigungen direkt im Browser, auch wenn die App nicht geöffnet ist.', fr: 'Recevez des notifications directement dans votre navigateur, même lorsque l’application est fermée.', en: 'Receive notifications directly in your browser, even when the app is not open.', sw: 'Pokea arifa moja kwa moja kwenye kivinjari chako, hata programu haijafunguliwa.' },
+  'Onboarding.SKIP': { de: 'Überspringen', fr: 'Passer', en: 'Skip', sw: 'Ruka' },
+};
