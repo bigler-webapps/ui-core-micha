@@ -51,18 +51,22 @@ jobs:
           }
 
           const current = JSON.parse(fs.readFileSync('package.json', 'utf8')).version;
-          let previous;
+          let published;
           try {
-            previous = JSON.parse(
-              cp.execFileSync('git', ['show', 'HEAD^:package.json'], { encoding: 'utf8' })
-            ).version;
+            published = cp.execFileSync(
+              'npm',
+              ['view', '@micha.bigler/ui-core-micha', 'version'],
+              { encoding: 'utf8' }
+            ).trim();
           } catch (error) {
-            console.log('No previous package.json found. Publishing.');
+            console.log(
+              'Could not fetch the published npm version (the package may not exist yet or the registry is unavailable). Publishing.'
+            );
             writeOutput('true');
             process.exit(0);
           }
 
-          console.log(`Previous version: ${previous}`);
+          console.log(`Published version: ${published}`);
           console.log(`Current version:  ${current}`);
 
           function parse(version) {
@@ -82,7 +86,7 @@ jobs:
             return false;
           }
 
-          if (greaterThan(current, previous)) {
+          if (greaterThan(current, published)) {
             console.log('Version increased. Publishing.');
             writeOutput('true');
           } else {
