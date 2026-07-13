@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useContext, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import Box from '@mui/material/Box';
 import Dialog from '@mui/material/Dialog';
@@ -6,11 +6,13 @@ import DialogContent from '@mui/material/DialogContent';
 import DialogTitle from '@mui/material/DialogTitle';
 import LinearProgress from '@mui/material/LinearProgress';
 import Typography from '@mui/material/Typography';
+import { AuthContext } from '../auth/AuthContext';
 import { useOnboarding } from './OnboardingProvider';
 
 export function OnboardingWizard() {
   const { t } = useTranslation();
   const onboarding = useOnboarding();
+  const authContext = useContext(AuthContext);
   const [sessionDismissed, setSessionDismissed] = useState(() => new Set());
   const totalRef = useRef(null);
   const [completed, setCompleted] = useState(0);
@@ -39,6 +41,9 @@ export function OnboardingWizard() {
   const completeCurrentStep = () => {
     setSessionDismissed((previous) => new Set([...previous, currentStep.id]));
     setCompleted((count) => count + 1);
+    authContext?.refreshUser?.()?.catch(() => {
+      // Best-effort refresh; the step itself already persisted successfully.
+    });
   };
 
   const dismissCurrentStep = () => {

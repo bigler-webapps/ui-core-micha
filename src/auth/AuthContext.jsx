@@ -115,6 +115,11 @@ export const AuthProvider = ({ children }) => {
     }));
   };
 
+  const refreshUser = async () => {
+    const data = await fetchCurrentUser();
+    if (data) setUser(mapUserFromApi(data));
+  };
+
   const logout = async () => {
     try {
       await logoutSession();
@@ -134,6 +139,7 @@ export const AuthProvider = ({ children }) => {
         loading,
         login,
         logout,
+        refreshUser,
       }}
     >
       {children}

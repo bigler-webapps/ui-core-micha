@@ -16,11 +16,11 @@ import BrowserPushStep from './steps/BrowserPushStep';
 export const UNIVERSAL_STEP_DESCRIPTORS = [
   {
     id: 'cookie_consent',
-    condition: (ctx) => Boolean(ctx.user && !ctx.user.accepted_convenience_cookies),
+    condition: (ctx) => Boolean(ctx.user && !ctx.user.accepted_privacy_statement),
     blocking: true,
     skipable: false,
     persistDismissed: false,
-    titleKey: 'Onboarding.COOKIE_CONSENT_TITLE',
+    titleKey: 'Onboarding.PRIVACY_COOKIES_TITLE',
     Component: CookieConsentStep,
   },
   {
