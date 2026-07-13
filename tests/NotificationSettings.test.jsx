@@ -49,7 +49,7 @@ describe('NotificationSettings push toggle', () => {
     vi.stubGlobal('Notification', { requestPermission: vi.fn().mockResolvedValue('granted') });
 
     render(<NotificationSettings />);
-    fireEvent.click(await screen.findByRole('button', { name: 'NotificationSettings.PUSH_ENABLE' }));
+    fireEvent.click(await screen.findByRole('switch', { name: /PUSH_LABEL/ }));
 
     await waitFor(() => expect(notificationsApi.patchNotificationPreferences).toHaveBeenCalledWith({ push_opt_in: true }));
     expect(Notification.requestPermission).toHaveBeenCalledOnce();
@@ -73,7 +73,7 @@ describe('NotificationSettings push toggle', () => {
     installPushEnvironment(subscription);
 
     render(<NotificationSettings />);
-    fireEvent.click(await screen.findByRole('button', { name: 'NotificationSettings.PUSH_DISABLE' }));
+    fireEvent.click(await screen.findByRole('switch', { name: /PUSH_LABEL/ }));
 
     await waitFor(() => expect(subscription.unsubscribe).toHaveBeenCalledOnce());
     expect(notificationsApi.removePushSubscription).toHaveBeenCalledWith({ endpoint: subscription.endpoint });

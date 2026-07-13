@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import Alert from '@mui/material/Alert';
 import Box from '@mui/material/Box';
-import Button from '@mui/material/Button';
 import CircularProgress from '@mui/material/CircularProgress';
 import Divider from '@mui/material/Divider';
 import FormControlLabel from '@mui/material/FormControlLabel';
@@ -172,15 +171,20 @@ export function NotificationSettings() {
       <Divider />
 
       <Box sx={{ py: 2 }}>
-        <Typography variant="body1" gutterBottom>{t('NotificationSettings.PUSH_LABEL')}</Typography>
-        <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 1.5 }}>{t('NotificationSettings.PUSH_HINT')}</Typography>
         {iosNeedsInstall && <Alert severity="info" sx={{ mb: 1.5 }}>{t('NotificationSettings.IOS_HINT')}</Alert>}
-        {!pushSupported && !iosNeedsInstall && <Alert severity="warning">{t('NotificationSettings.PUSH_NOT_SUPPORTED')}</Alert>}
-        {pushSupported && !iosNeedsInstall && (pushSubscribed ? (
-          <Button variant="outlined" color="error" onClick={handleDisablePush} disabled={savingPush} startIcon={savingPush ? <CircularProgress size={16} /> : undefined}>{t('NotificationSettings.PUSH_DISABLE')}</Button>
-        ) : (
-          <Button variant="contained" onClick={handleEnablePush} disabled={savingPush} startIcon={savingPush ? <CircularProgress size={16} /> : undefined}>{t('NotificationSettings.PUSH_ENABLE')}</Button>
-        ))}
+        {!pushSupported && !iosNeedsInstall && <Alert severity="warning" sx={{ mb: 1.5 }}>{t('NotificationSettings.PUSH_NOT_SUPPORTED')}</Alert>}
+        <FormControlLabel
+          control={(
+            <Switch
+              checked={pushSubscribed}
+              onChange={(event) => (event.target.checked ? handleEnablePush() : handleDisablePush())}
+              disabled={savingPush || !pushSupported || iosNeedsInstall}
+            />
+          )}
+          label={<Box><Typography variant="body1">{t('NotificationSettings.PUSH_LABEL')}</Typography><Typography variant="caption" color="text.secondary">{t('NotificationSettings.PUSH_HINT')}</Typography></Box>}
+          labelPlacement="end"
+          sx={{ alignItems: 'flex-start', ml: 0 }}
+        />
       </Box>
     </Box>
   );
