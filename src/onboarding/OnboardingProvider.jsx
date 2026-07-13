@@ -35,7 +35,10 @@ export const UNIVERSAL_STEP_DESCRIPTORS = [
   },
   {
     id: 'browser_push',
-    condition: (ctx) => Boolean(ctx.pushState?.supported && (!ctx.pushState.subscribed || !ctx.emailOptedIn)),
+    condition: (ctx) => Boolean(
+      (ctx.pushState?.supported && (!ctx.pushState.subscribed || !ctx.emailOptedIn))
+      || (!ctx.pushState?.supported && !ctx.emailOptedIn),
+    ),
     blocking: false,
     skipable: true,
     persistDismissed: true,

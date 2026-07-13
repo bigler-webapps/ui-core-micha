@@ -14,8 +14,6 @@ export const onboardingTranslations = {
   'Onboarding.LAST_NAME_LABEL': { de: 'Nachname', fr: 'Nom', en: 'Last name', sw: 'Jina la mwisho' },
   'Onboarding.SAVE': { de: 'Speichern', fr: 'Enregistrer', en: 'Save', sw: 'Hifadhi' },
   'Onboarding.COMPLETE_NAME_ERROR': { de: 'Der Name konnte nicht gespeichert werden. Bitte versuche es erneut.', fr: 'Impossible d’enregistrer votre nom. Veuillez réessayer.', en: 'Your name could not be saved. Please try again.', sw: 'Jina lako halikuweza kuhifadhiwa. Tafadhali jaribu tena.' },
-  'Onboarding.BROWSER_PUSH_TITLE': { de: 'Push-Benachrichtigungen', fr: 'Notifications push', en: 'Push notifications', sw: 'Arifa za push' },
-  'Onboarding.BROWSER_PUSH_BODY': { de: 'Erhalte Benachrichtigungen direkt im Browser, auch wenn die App nicht geöffnet ist.', fr: 'Recevez des notifications directement dans votre navigateur, même lorsque l’application est fermée.', en: 'Receive notifications directly in your browser, even when the app is not open.', sw: 'Pokea arifa moja kwa moja kwenye kivinjari chako, hata programu haijafunguliwa.' },
   'Onboarding.NOTIFICATIONS_TITLE': { de: 'Benachrichtigungen', fr: 'Notifications', en: 'Notifications', sw: 'Arifa' },
   'Onboarding.NOTIFICATIONS_BODY': { de: 'Wähle aus, wie du über wichtige Neuigkeiten informiert werden möchtest.', fr: 'Choisissez comment vous souhaitez être informé des informations importantes.', en: 'Choose how you would like to be notified about important updates.', sw: 'Chagua jinsi unavyotaka kuarifiwa kuhusu taarifa muhimu.' },
   'Onboarding.EMAIL_NOTIFICATIONS_LABEL': { de: 'E-Mail-Benachrichtigungen', fr: 'Notifications par e-mail', en: 'Email notifications', sw: 'Arifa za barua pepe' },

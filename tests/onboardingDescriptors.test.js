@@ -38,10 +38,17 @@ describe('browser_push descriptor condition', () => {
     })).toBe(true);
   });
 
-  it('is inactive when push is unsupported or both channels are enabled', () => {
+  it('is active when push is unsupported and email notifications are not enabled', () => {
     expect(browserPushDescriptor.condition({
       pushState: { supported: false, subscribed: false },
       emailOptedIn: false,
+    })).toBe(true);
+  });
+
+  it('is inactive when push is unsupported with email notifications enabled or both channels are enabled', () => {
+    expect(browserPushDescriptor.condition({
+      pushState: { supported: false, subscribed: false },
+      emailOptedIn: true,
     })).toBe(false);
     expect(browserPushDescriptor.condition({
       pushState: { supported: true, subscribed: true },
