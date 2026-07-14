@@ -70,7 +70,12 @@ function getInitialPushState() {
   return supported ? null : { supported: false, subscribed: false };
 }
 
-export function OnboardingProvider({ children, extraSteps = [] }) {
+// Stable empty-object default — an inline `{}` default would create a new
+// reference every render, invalidating the `ctx` memo below for every
+// consumer even when no extraContext is passed.
+const EMPTY_EXTRA_CONTEXT = {};
+
+export function OnboardingProvider({ children, extraSteps = [], extraContext = EMPTY_EXTRA_CONTEXT }) {
   const { user } = useContext(AuthContext);
   const [configMap, setConfigMap] = useState({});
   const [configLoaded, setConfigLoaded] = useState(false);
@@ -162,7 +167,11 @@ export function OnboardingProvider({ children, extraSteps = [] }) {
     });
   }, []);
 
-  const ctx = useMemo(() => ({ user, pushState, emailOptedIn }), [user, pushState, emailOptedIn]);
+  // extraContext is spread last: duplicate core keys intentionally override core values, so apps should use distinct names.
+  const ctx = useMemo(
+    () => ({ user, pushState, emailOptedIn, ...extraContext }),
+    [user, pushState, emailOptedIn, extraContext],
+  );
   const activeSteps = useMemo(() => {
     if (!configLoaded || !user) return [];
     return selectActiveSteps(descriptors, configMap, ctx, dismissedSet);

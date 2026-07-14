@@ -1,6 +1,6 @@
 {
   "name": "@micha.bigler/ui-core-micha",
-  "version": "2.8.1",
+  "version": "2.8.2",
   "main": "dist/index.js",
   "module": "dist/index.js",
   "repository": {
