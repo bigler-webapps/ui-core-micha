@@ -22,4 +22,8 @@ export const onboardingTranslations = {
   'Onboarding.PUSH_NOTIFICATIONS_HINT': { de: 'Aktiviere Benachrichtigungen für dieses Gerät.', fr: 'Activez les notifications pour cet appareil.', en: 'Enable notifications for this device.', sw: 'Washa arifa kwa kifaa hiki.' },
   'Onboarding.PUSH_ENABLED': { de: 'Push-Benachrichtigungen sind auf diesem Gerät aktiviert.', fr: 'Les notifications push sont activées sur cet appareil.', en: 'Push notifications are enabled on this device.', sw: 'Arifa za push zimewashwa kwenye kifaa hiki.' },
   'Onboarding.SKIP': { de: 'Überspringen', fr: 'Passer', en: 'Skip', sw: 'Ruka' },
+  'Onboarding.PWA_INSTALL_TITLE': { de: 'App installieren', fr: 'Installer l’app', en: 'Install app', sw: 'Sakinisha programu' },
+  'Onboarding.PWA_INSTALL_BODY': { de: 'Installiere die App auf deinem Gerät für schnelleren Zugriff und ein App-ähnliches Erlebnis.', fr: 'Installez l’application sur votre appareil pour un accès plus rapide et une expérience similaire à une app native.', en: 'Install the app on your device for faster access and an app-like experience.', sw: 'Sakinisha programu kwenye kifaa chako kwa ufikiaji wa haraka na hali ya matumizi kama programu.' },
+  'Onboarding.PWA_INSTALL_IOS_BODY': { de: 'Zum Installieren: Teilen-Symbol antippen und „Zum Home-Bildschirm“ wählen.', fr: 'Pour installer : appuyez sur Partager, puis « Sur l’écran d’accueil ».', en: 'To install: tap Share, then “Add to Home Screen”.', sw: 'Kusakinisha: gusa Shiriki, kisha chagua “Ongeza kwenye Skrini ya Kwanza”.' },
+  'Onboarding.PWA_INSTALL_ACTION': { de: 'Installieren', fr: 'Installer', en: 'Install', sw: 'Sakinisha' },
 };

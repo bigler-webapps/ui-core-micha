@@ -59,6 +59,7 @@ export { OnboardingWizard } from './onboarding/OnboardingWizard';
 export { CookieConsentStep } from './onboarding/steps/CookieConsentStep';
 export { CompleteNameStep } from './onboarding/steps/CompleteNameStep';
 export { BrowserPushStep } from './onboarding/steps/BrowserPushStep';
+export { PwaInstallStep } from './onboarding/steps/PwaInstallStep';
 
 // --- 9. Translations ---
 export { notificationsTranslations } from './i18n/notificationsTranslations';

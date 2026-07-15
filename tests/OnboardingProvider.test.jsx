@@ -26,7 +26,7 @@ function ActiveStepsProbe() {
   return <span data-testid="active-steps">{onboarding?.activeSteps.map((step) => step.id).join(',')}</span>;
 }
 
-function renderProvider({ extraContext, extraSteps, children = <Probe /> } = {}) {
+function renderProvider({ extraContext, extraSteps, pwaInstallEnabled, children = <Probe /> } = {}) {
   return render(
     <AuthContext.Provider value={{
       user: {
@@ -36,7 +36,13 @@ function renderProvider({ extraContext, extraSteps, children = <Probe /> } = {})
         last_name: 'Lovelace',
       },
     }}>
-      <OnboardingProvider extraContext={extraContext} extraSteps={extraSteps}>{children}</OnboardingProvider>
+      <OnboardingProvider
+        extraContext={extraContext}
+        extraSteps={extraSteps}
+        pwaInstallEnabled={pwaInstallEnabled}
+      >
+        {children}
+      </OnboardingProvider>
     </AuthContext.Provider>,
   );
 }
@@ -104,5 +110,51 @@ describe('OnboardingProvider extra context', () => {
 
     await waitFor(() => expect(unreadMessagesCondition).toHaveBeenCalled());
     expect(screen.getByTestId('active-steps').textContent).not.toContain('unread_messages');
+  });
+});
+
+describe('OnboardingProvider pwa_install capture', () => {
+  beforeEach(() => {
+    cleanup();
+    vi.clearAllMocks();
+    onboardingApi.getOnboardingStepConfig.mockResolvedValue([]);
+    notificationsApi.getNotificationPreferences.mockResolvedValue({ email_opt_in: true });
+  });
+
+  function dispatchBeforeInstallPrompt() {
+    const event = new Event('beforeinstallprompt', { cancelable: true });
+    event.prompt = vi.fn();
+    event.userChoice = Promise.resolve({ outcome: 'accepted' });
+    window.dispatchEvent(event);
+    return event;
+  }
+
+  it('does not show pwa_install without the app opt-in prop, and does not suppress the browser default install UI', async () => {
+    renderProvider({ pwaInstallEnabled: false, children: <ActiveStepsProbe /> });
+    await waitFor(() => expect(onboardingApi.getOnboardingStepConfig).toHaveBeenCalled());
+
+    const event = dispatchBeforeInstallPrompt();
+
+    await waitFor(() => expect(screen.getByTestId('active-steps').textContent).not.toContain('pwa_install'));
+    // Regression guard: a non-opted-in app must keep the browser's own
+    // native install UI, since it has no replacement to show instead.
+    expect(event.defaultPrevented).toBe(false);
+  });
+
+  it('shows pwa_install once opted in and a beforeinstallprompt event is captured', async () => {
+    renderProvider({ pwaInstallEnabled: true, children: <ActiveStepsProbe /> });
+    await waitFor(() => expect(onboardingApi.getOnboardingStepConfig).toHaveBeenCalled());
+
+    const event = dispatchBeforeInstallPrompt();
+
+    await waitFor(() => expect(screen.getByTestId('active-steps').textContent).toContain('pwa_install'));
+    expect(event.defaultPrevented).toBe(true);
+  });
+
+  it('does not show pwa_install when opted in but no prompt was ever captured (non-iOS)', async () => {
+    renderProvider({ pwaInstallEnabled: true, children: <ActiveStepsProbe /> });
+    await waitFor(() => expect(onboardingApi.getOnboardingStepConfig).toHaveBeenCalled());
+
+    expect(screen.getByTestId('active-steps').textContent).not.toContain('pwa_install');
   });
 });
