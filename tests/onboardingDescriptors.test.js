@@ -28,12 +28,29 @@ describe('cookie_consent descriptor condition', () => {
 });
 
 describe('browser_push descriptor condition', () => {
-  it('is active when push is supported and either channel remains unconfigured', () => {
+  it('is active by default only when neither supported channel is configured', () => {
     expect(browserPushDescriptor.condition({
+      pushState: { supported: true, subscribed: false },
+      emailOptedIn: false,
+    })).toBe(true);
+    expect(browserPushDescriptor.condition({
+      pushState: { supported: true, subscribed: false },
+      emailOptedIn: true,
+    })).toBe(false);
+    expect(browserPushDescriptor.condition({
+      pushState: { supported: true, subscribed: true },
+      emailOptedIn: false,
+    })).toBe(false);
+  });
+
+  it('keeps the legacy condition when configured for all-channels', () => {
+    expect(browserPushDescriptor.condition({
+      browserPush: { nagUntil: 'all-channels' },
       pushState: { supported: true, subscribed: false },
       emailOptedIn: true,
     })).toBe(true);
     expect(browserPushDescriptor.condition({
+      browserPush: { nagUntil: 'all-channels' },
       pushState: { supported: true, subscribed: true },
       emailOptedIn: false,
     })).toBe(true);

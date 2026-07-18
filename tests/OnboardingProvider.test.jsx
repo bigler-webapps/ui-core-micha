@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import React from 'react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, render, screen, waitFor } from '@testing-library/react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 
 const onboardingApi = vi.hoisted(() => ({
   getOnboardingStepConfig: vi.fn(),
@@ -23,10 +23,25 @@ function Probe() {
 
 function ActiveStepsProbe() {
   const onboarding = useOnboarding();
-  return <span data-testid="active-steps">{onboarding?.activeSteps.map((step) => step.id).join(',')}</span>;
+  return (
+    <>
+      <span data-testid="active-steps">{onboarding?.activeSteps.map((step) => step.id).join(',')}</span>
+      <span data-testid="push-subscribed">{String(onboarding?.ctx.pushState?.subscribed)}</span>
+    </>
+  );
 }
 
-function renderProvider({ extraContext, extraSteps, pwaInstallEnabled, children = <Probe /> } = {}) {
+function MarkStepSeenProbe() {
+  const onboarding = useOnboarding();
+  return (
+    <>
+      <ActiveStepsProbe />
+      <button type="button" onClick={() => onboarding.markStepSeen('browser_push')}>Mark browser push seen</button>
+    </>
+  );
+}
+
+function renderProvider({ browserPush, extraContext, extraSteps, pwaInstallEnabled, children = <Probe /> } = {}) {
   return render(
     <AuthContext.Provider value={{
       user: {
@@ -40,6 +55,7 @@ function renderProvider({ extraContext, extraSteps, pwaInstallEnabled, children 
         extraContext={extraContext}
         extraSteps={extraSteps}
         pwaInstallEnabled={pwaInstallEnabled}
+        browserPush={browserPush}
       >
         {children}
       </OnboardingProvider>
@@ -156,5 +172,123 @@ describe('OnboardingProvider pwa_install capture', () => {
     await waitFor(() => expect(onboardingApi.getOnboardingStepConfig).toHaveBeenCalled());
 
     expect(screen.getByTestId('active-steps').textContent).not.toContain('pwa_install');
+  });
+});
+
+describe('OnboardingProvider browser_push configuration', () => {
+  const serviceWorkerDescriptor = Object.getOwnPropertyDescriptor(navigator, 'serviceWorker');
+  const pushManagerDescriptor = Object.getOwnPropertyDescriptor(window, 'PushManager');
+  const localStorageDescriptor = Object.getOwnPropertyDescriptor(window, 'localStorage');
+  const localStorageItems = new Map();
+
+  function installLocalStorage() {
+    Object.defineProperty(window, 'localStorage', {
+      configurable: true,
+      value: {
+        getItem: (key) => localStorageItems.get(key) || null,
+        setItem: (key, value) => localStorageItems.set(key, String(value)),
+        clear: () => localStorageItems.clear(),
+      },
+    });
+  }
+
+  function installPushState(subscribed) {
+    Object.defineProperty(navigator, 'serviceWorker', {
+      configurable: true,
+      value: {
+        ready: Promise.resolve({
+          pushManager: { getSubscription: () => Promise.resolve(subscribed ? {} : null) },
+        }),
+      },
+    });
+    Object.defineProperty(window, 'PushManager', {
+      configurable: true,
+      value: window.PushManager || function PushManager() {},
+    });
+  }
+
+  function restorePushSupport() {
+    if (serviceWorkerDescriptor) {
+      Object.defineProperty(navigator, 'serviceWorker', serviceWorkerDescriptor);
+    } else {
+      delete navigator.serviceWorker;
+    }
+    if (pushManagerDescriptor) {
+      Object.defineProperty(window, 'PushManager', pushManagerDescriptor);
+    } else {
+      delete window.PushManager;
+    }
+  }
+
+  function restoreLocalStorage() {
+    if (localStorageDescriptor) {
+      Object.defineProperty(window, 'localStorage', localStorageDescriptor);
+    } else {
+      delete window.localStorage;
+    }
+  }
+
+  beforeEach(() => {
+    cleanup();
+    vi.clearAllMocks();
+    installLocalStorage();
+    window.localStorage.clear();
+    onboardingApi.getOnboardingStepConfig.mockResolvedValue([]);
+    notificationsApi.getNotificationPreferences.mockResolvedValue({ email_opt_in: false });
+    installPushState(true);
+  });
+
+  afterEach(() => {
+    restorePushSupport();
+    restoreLocalStorage();
+  });
+
+  it('uses any-channel by default and all-channels when explicitly configured', async () => {
+    const defaultRender = renderProvider({ children: <ActiveStepsProbe /> });
+
+    await waitFor(() => expect(screen.getByTestId('push-subscribed').textContent).toBe('true'));
+    expect(screen.getByTestId('active-steps').textContent).not.toContain('browser_push');
+
+    defaultRender.unmount();
+    renderProvider({
+      browserPush: { nagUntil: 'all-channels' },
+      children: <ActiveStepsProbe />,
+    });
+
+    await waitFor(() => expect(screen.getByTestId('push-subscribed').textContent).toBe('true'));
+    expect(screen.getByTestId('active-steps').textContent).toContain('browser_push');
+  });
+
+  it('never shows browser_push when nagUntil is off', async () => {
+    renderProvider({ browserPush: { nagUntil: 'off' }, children: <ActiveStepsProbe /> });
+
+    await waitFor(() => expect(screen.getByTestId('push-subscribed').textContent).toBe('true'));
+    expect(screen.getByTestId('active-steps').textContent).not.toContain('browser_push');
+  });
+
+  it('persists showOnce for the next provider session without hiding the current session step', async () => {
+    installPushState(false);
+    const firstRender = renderProvider({
+      browserPush: { showOnce: true },
+      children: <MarkStepSeenProbe />,
+    });
+
+    await waitFor(() => expect(screen.getByTestId('push-subscribed').textContent).toBe('false'));
+    await waitFor(() => expect(screen.getByTestId('active-steps').textContent).toContain('browser_push'));
+
+    fireEvent.click(screen.getByRole('button', { name: 'Mark browser push seen' }));
+
+    expect(screen.getByTestId('active-steps').textContent).toContain('browser_push');
+    expect(JSON.parse(window.localStorage.getItem('onboarding_seen'))).toContain('browser_push');
+
+    firstRender.unmount();
+    renderProvider({
+      browserPush: { showOnce: true },
+      extraSteps: [{ id: 'provider_loaded', condition: () => true, persistDismissed: false }],
+      children: <ActiveStepsProbe />,
+    });
+
+    await waitFor(() => expect(screen.getByTestId('active-steps').textContent).toContain('provider_loaded'));
+    expect(screen.getByTestId('active-steps').textContent).not.toContain('browser_push');
   });
 });

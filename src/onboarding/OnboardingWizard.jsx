@@ -18,6 +18,7 @@ export function OnboardingWizard() {
   const [completed, setCompleted] = useState(0);
   const activeSteps = onboarding?.activeSteps || [];
   const visibleSteps = activeSteps.filter((step) => !sessionDismissed.has(step.id));
+  const currentStep = visibleSteps[0];
 
   useEffect(() => {
     if (visibleSteps.length > 0 && totalRef.current === null) {
@@ -30,10 +31,13 @@ export function OnboardingWizard() {
     }
   }, [visibleSteps.length]);
 
+  useEffect(() => {
+    if (onboarding && currentStep) onboarding.markStepSeen(currentStep.id);
+  }, [onboarding, currentStep?.id]);
+
   if (!onboarding || visibleSteps.length === 0) return null;
 
   const { dismissStep, ctx } = onboarding;
-  const currentStep = visibleSteps[0];
   const total = totalRef.current || visibleSteps.length;
   const progress = total > 1 ? Math.round((completed / total) * 100) : 0;
   const StepComponent = currentStep.Component;

@@ -4,6 +4,7 @@ import React, {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from 'react';
 import { AuthContext } from '../auth/AuthContext';
@@ -36,10 +37,15 @@ export const UNIVERSAL_STEP_DESCRIPTORS = [
   },
   {
     id: 'browser_push',
-    condition: (ctx) => Boolean(
-      (ctx.pushState?.supported && (!ctx.pushState.subscribed || !ctx.emailOptedIn))
-      || (!ctx.pushState?.supported && !ctx.emailOptedIn),
-    ),
+    condition: (ctx) => {
+      const { nagUntil = 'any-channel', showOnce = false } = ctx.browserPush || {};
+      if (showOnce && ctx.seenSteps?.has('browser_push')) return false;
+      if (nagUntil === 'off') return false;
+      const supported = ctx.pushState?.supported;
+      if (!supported) return !ctx.emailOptedIn;
+      if (nagUntil === 'all-channels') return !ctx.pushState.subscribed || !ctx.emailOptedIn;
+      return !ctx.pushState.subscribed && !ctx.emailOptedIn; // 'any-channel' (default)
+    },
     blocking: false,
     skipable: true,
     persistDismissed: true,
@@ -82,6 +88,26 @@ function loadDismissedSteps() {
   }
 }
 
+function loadSeenSteps() {
+  if (typeof window === 'undefined') return new Set();
+  try {
+    return new Set(JSON.parse(window.localStorage.getItem('onboarding_seen')) || []);
+  } catch {
+    return new Set();
+  }
+}
+
+function persistSeenStep(id) {
+  if (typeof window === 'undefined') return;
+  try {
+    const seenSteps = loadSeenSteps();
+    seenSteps.add(id);
+    window.localStorage.setItem('onboarding_seen', JSON.stringify([...seenSteps]));
+  } catch {
+    // Persistence is optional; the current session remains unaffected.
+  }
+}
+
 function getInitialPushState() {
   const supported = typeof navigator !== 'undefined'
     && typeof window !== 'undefined'
@@ -110,9 +136,14 @@ function getInitialPwaInstallState() {
 // reference every render, invalidating the `ctx` memo below for every
 // consumer even when no extraContext is passed.
 const EMPTY_EXTRA_CONTEXT = {};
+const EMPTY_BROWSER_PUSH = {};
 
 export function OnboardingProvider({
-  children, extraSteps = [], extraContext = EMPTY_EXTRA_CONTEXT, pwaInstallEnabled = false,
+  children,
+  extraSteps = [],
+  extraContext = EMPTY_EXTRA_CONTEXT,
+  pwaInstallEnabled = false,
+  browserPush = EMPTY_BROWSER_PUSH,
 }) {
   const { user } = useContext(AuthContext);
   const [configMap, setConfigMap] = useState({});
@@ -121,6 +152,12 @@ export function OnboardingProvider({
   const [emailOptedIn, setEmailOptedIn] = useState(false);
   const [pwaInstall, setPwaInstall] = useState(getInitialPwaInstallState);
   const [dismissedSet, setDismissedSet] = useState(loadDismissedSteps);
+  const seenAtMountRef = useRef(loadSeenSteps());
+
+  const resolvedBrowserPush = useMemo(
+    () => ({ nagUntil: 'any-channel', showOnce: false, ...browserPush }),
+    [browserPush],
+  );
 
   const descriptors = useMemo(
     () => [...UNIVERSAL_STEP_DESCRIPTORS, ...extraSteps],
@@ -248,12 +285,32 @@ export function OnboardingProvider({
     });
   }, []);
 
+  const markStepSeen = useCallback((id) => {
+    persistSeenStep(id);
+  }, []);
+
   // extraContext is spread last: duplicate core keys intentionally override core values, so apps should use distinct names.
   const ctx = useMemo(
     () => ({
-      user, pushState, emailOptedIn, pwaInstall, pwaInstallEnabled, ...extraContext,
+      user,
+      pushState,
+      emailOptedIn,
+      pwaInstall,
+      pwaInstallEnabled,
+      browserPush: resolvedBrowserPush,
+      seenSteps: seenAtMountRef.current,
+      ...extraContext,
     }),
-    [user, pushState, emailOptedIn, pwaInstall, pwaInstallEnabled, extraContext],
+    [
+      user,
+      pushState,
+      emailOptedIn,
+      pwaInstall,
+      pwaInstallEnabled,
+      resolvedBrowserPush,
+      seenAtMountRef.current,
+      extraContext,
+    ],
   );
   const activeSteps = useMemo(() => {
     if (!configLoaded || !user) return [];
@@ -261,8 +318,8 @@ export function OnboardingProvider({
   }, [configLoaded, user, descriptors, configMap, ctx, dismissedSet]);
 
   const value = useMemo(
-    () => ({ activeSteps, dismissStep, ctx, configMap, setConfigMap }),
-    [activeSteps, dismissStep, ctx, configMap],
+    () => ({ activeSteps, dismissStep, markStepSeen, ctx, configMap, setConfigMap }),
+    [activeSteps, dismissStep, markStepSeen, ctx, configMap],
   );
 
   return <OnboardingContext.Provider value={value}>{children}</OnboardingContext.Provider>;
