@@ -79,19 +79,27 @@ export const AuthProvider = ({ children }) => {
         // 1) Ensure CSRF cookie exists using the specific client
         await ensureCsrfToken();
 
-        // 2) Load auth methods (public)
-        try {
-          const methods = await fetchAuthMethods();
+        // 2) Both calls depend on CSRF, but not on each other. Await both settlements
+        // so loading stays true until the complete auth bootstrap has finished.
+        const [methodsResult, userResult] = await Promise.allSettled([
+          fetchAuthMethods(),
+          fetchCurrentUser(),
+        ]);
+
+        // Keep defaults when the public auth-methods request fails.
+        if (methodsResult.status === 'fulfilled') {
+          const methods = methodsResult.value;
           if (isMounted && methods && typeof methods === 'object') {
             setAuthMethods((prev) => ({ ...prev, ...methods }));
           }
-        } catch {
-          // Keep defaults; login UI remains usable.
         }
 
-        // 3) Load user
-        const data = await fetchCurrentUser();
-        
+        // Preserve the previous unauthenticated/error handling for current-user.
+        if (userResult.status === 'rejected') {
+          throw userResult.reason;
+        }
+
+        const data = userResult.value;
         if (isMounted) {
           setUser(mapUserFromApi(data));
         }
