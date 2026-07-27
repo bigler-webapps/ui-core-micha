@@ -45,6 +45,9 @@ export { authTranslations } from './i18n/authTranslations';
 // --- 7. Notifications ---
 export { NotificationSettings } from './notifications/NotificationSettings';
 export * from './notifications/api';
+export { NotificationsProvider, useNotifications } from './notifications/NotificationsProvider';
+export { NotificationBell } from './notifications/NotificationBell';
+export { getNotificationFeed, getUnreadCount, markNotifications } from './notifications/feedApi';
 
 // --- 8. Onboarding ---
 export * from './onboarding/api';

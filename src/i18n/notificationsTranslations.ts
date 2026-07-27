@@ -1,4 +1,7 @@
 export const notificationsTranslations = {
+  'NotificationBell.TITLE': { de: 'Benachrichtigungen', fr: 'Notifications', en: 'Notifications', sw: 'Arifa' },
+  'NotificationBell.EMPTY': { de: 'Keine Benachrichtigungen vorhanden.', fr: 'Aucune notification.', en: 'No notifications.', sw: 'Hakuna arifa.' },
+  'NotificationBell.MARK_ALL': { de: 'Alle als gelesen markieren', fr: 'Tout marquer comme lu', en: 'Mark all as read', sw: 'Weka zote alama kuwa zimesomwa' },
   'NotificationSettings.TITLE': { de: 'Benachrichtigungen', fr: 'Notifications', en: 'Notifications', sw: 'Arifa' },
   'NotificationSettings.SUBTITLE': { de: 'Lege fest, wie du informiert werden möchtest.', fr: 'Choisissez comment vous souhaitez être informé.', en: 'Choose how you want to be notified.', sw: 'Chagua jinsi unavyotaka kuarifiwa.' },
   'NotificationSettings.LOAD_ERROR': { de: 'Benachrichtigungseinstellungen konnten nicht geladen werden.', fr: 'Impossible de charger les paramètres de notification.', en: 'Notification settings could not be loaded.', sw: 'Mipangilio ya arifa haikuweza kupakiwa.' },
