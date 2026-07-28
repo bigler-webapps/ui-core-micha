@@ -359,6 +359,7 @@ export async function submitRegistrationRequest({
   accessCode,
   registrationContextToken,
   registrationContext,
+  turnstileToken,
 }) {
   const payload = { email, mode };
   if (accessCode) payload.access_code = accessCode;
@@ -368,6 +369,7 @@ export async function submitRegistrationRequest({
   if (registrationContext) {
     payload.registration_context = registrationContext;
   }
+  if (turnstileToken) payload.turnstile_token = turnstileToken;
 
   try {
     const res = await apiClient.post(`${USERS_BASE}/register-request/`, payload);

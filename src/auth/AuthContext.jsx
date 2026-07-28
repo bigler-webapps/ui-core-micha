@@ -19,6 +19,7 @@ const DEFAULT_AUTH_METHODS = {
   password_reset: true,
   signup: true,
   signup_modes: ['self_signup_access_code'],
+  turnstile_site_key: '',
   password_change: true,
   social_login: true,
   social_providers: ['google', 'microsoft'],

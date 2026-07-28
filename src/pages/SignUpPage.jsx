@@ -1,4 +1,10 @@
-import React, { useContext, useEffect, useMemo, useState } from 'react';
+import React, {
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
   Alert,
@@ -13,6 +19,12 @@ import { useTranslation } from 'react-i18next';
 import { NarrowPage } from '../layout/PageLayout';
 import { AuthContext } from '../auth/AuthContext';
 import { submitRegistrationRequest } from '../auth/authApi';
+import { TurnstileWidget } from '../components/TurnstileWidget';
+
+const TURNSTILE_SIGNUP_MODES = new Set([
+  'self_signup_open',
+  'self_signup_email_domain',
+]);
 
 const MODE_LABELS = {
   self_signup_access_code: 'Auth.SIGNUP_ACCESS_CODE_TAB',
@@ -60,6 +72,11 @@ export function SignUpPage() {
   const [submitting, setSubmitting] = useState(false);
   const [successKey, setSuccessKey] = useState(null);
   const [errorKey, setErrorKey] = useState(null);
+  const [turnstileToken, setTurnstileToken] = useState('');
+  const turnstileWidgetRef = useRef(null);
+
+  const turnstileRequired = Boolean(authMethods?.turnstile_site_key)
+    && TURNSTILE_SIGNUP_MODES.has(mode);
 
   const pageSubtitle = useMemo(() => {
     if (mode === 'self_signup_qr' && tokenFromUrl) {
@@ -77,6 +94,10 @@ export function SignUpPage() {
   useEffect(() => {
     setMode(initialMode);
   }, [initialMode]);
+
+  useEffect(() => {
+    setTurnstileToken('');
+  }, [mode, authMethods?.turnstile_site_key]);
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -98,6 +119,8 @@ export function SignUpPage() {
       return;
     }
 
+    if (turnstileRequired && !turnstileToken) return;
+
     setSubmitting(true);
     try {
       await submitRegistrationRequest({
@@ -105,10 +128,15 @@ export function SignUpPage() {
         mode,
         accessCode,
         registrationContextToken: mode === 'self_signup_qr' ? tokenFromUrl : null,
+        turnstileToken: turnstileRequired ? turnstileToken : undefined,
       });
       setSuccessKey('Auth.INVITE_REQUEST_SUCCESS');
     } catch (err) {
       setErrorKey(err.code || 'Auth.INVITE_FAILED');
+      if (turnstileRequired) {
+        setTurnstileToken('');
+        turnstileWidgetRef.current?.reset();
+      }
     } finally {
       setSubmitting(false);
     }
@@ -186,10 +214,18 @@ export function SignUpPage() {
           />
         )}
 
+        {turnstileRequired && (
+          <TurnstileWidget
+            ref={turnstileWidgetRef}
+            siteKey={authMethods.turnstile_site_key}
+            onToken={setTurnstileToken}
+          />
+        )}
+
         <Button
           type="submit"
           variant="contained"
-          disabled={submitting || signupModes.length === 0}
+          disabled={submitting || signupModes.length === 0 || (turnstileRequired && !turnstileToken)}
         >
           {submitting
             ? t('Auth.SIGNUP_SUBMITTING')
