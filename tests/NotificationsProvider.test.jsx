@@ -136,6 +136,7 @@ describe('NotificationsProvider', () => {
   it('decrements unread count on a cross-tab status push and does not double-count a repeat push', async () => {
     renderProvider();
     await waitFor(() => expect(screen.getByTestId('unread-count').textContent).toBe('2'));
+    await waitFor(() => expect(MockWebSocket.instances).toHaveLength(1));
 
     MockWebSocket.instances[0].onmessage({ data: JSON.stringify({
       type: 'notification.status',

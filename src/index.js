@@ -46,6 +46,7 @@ export { authTranslations } from './i18n/authTranslations';
 export { NotificationSettings } from './notifications/NotificationSettings';
 export * from './notifications/api';
 export { NotificationsProvider, useNotifications } from './notifications/NotificationsProvider';
+export { useRealtime } from './notifications/realtime';
 export { NotificationBell } from './notifications/NotificationBell';
 export { getNotificationFeed, getUnreadCount, markNotifications } from './notifications/feedApi';
 
