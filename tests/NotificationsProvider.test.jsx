@@ -195,4 +195,42 @@ describe('NotificationsProvider', () => {
     expect(currentNotifications()[0]).toEqual(expect.objectContaining({ done: true }));
     expect(feedApi.markNotifications).toHaveBeenCalledWith({ action: 'done', ids: [1] });
   });
+
+  it('folds two WS messages for the same notification_id into one feed entry with a single unread increment (NOTIF-12 D2)', async () => {
+    renderProvider();
+    await waitFor(() => expect(screen.getByTestId('unread-count').textContent).toBe('2'));
+    await waitFor(() => expect(MockWebSocket.instances).toHaveLength(1));
+
+    MockWebSocket.instances[0].onmessage({ data: JSON.stringify({
+      type: 'payment_due',
+      channel: 'chip',
+      notification_id: 404,
+      content: { title_key: 'chip.title' },
+    }) });
+    await waitFor(() => expect(screen.getByTestId('unread-count').textContent).toBe('3'));
+
+    MockWebSocket.instances[0].onmessage({ data: JSON.stringify({
+      type: 'payment_due',
+      channel: 'popup',
+      notification_id: 404,
+      content: { title_key: 'popup.title' },
+    }) });
+
+    await waitFor(() => expect(currentNotifications().find((n) => n.notification_id === 404).content)
+      .toEqual({ title_key: 'popup.title' }));
+    expect(currentNotifications().filter((n) => n.notification_id === 404)).toHaveLength(1);
+    expect(screen.getByTestId('unread-count').textContent).toBe('3');
+  });
+
+  it('NOTIF-13 R1 guard: does not open the socket until the REST seed resolves', async () => {
+    let resolveFeed;
+    feedApi.getNotificationFeed.mockReturnValue(new Promise((resolve) => { resolveFeed = resolve; }));
+
+    renderProvider();
+
+    expect(MockWebSocket.instances).toHaveLength(0);
+
+    resolveFeed({ results: [] });
+    await waitFor(() => expect(MockWebSocket.instances).toHaveLength(1));
+  });
 });

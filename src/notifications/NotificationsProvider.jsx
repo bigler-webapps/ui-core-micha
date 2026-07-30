@@ -116,6 +116,27 @@ export function NotificationsProvider({ children, wsUrlBase }) {
     }
 
     const pushedNotification = normalizeNotificationPush(data);
+
+    // NOTIF-12 D2: a notification routed to more than one channel (e.g. chip
+    // + popup) arrives as multiple WS messages sharing one notification_id.
+    // Fold repeats into the existing feed entry (last-write-wins on content)
+    // instead of appending a duplicate and double-incrementing the badge.
+    const existingIndex = pushedNotification.notification_id == null
+      ? -1
+      : notificationsRef.current.findIndex(
+        (notification) => notification.notification_id === pushedNotification.notification_id,
+      );
+
+    if (existingIndex !== -1) {
+      const nextNotifications = notificationsRef.current.map((notification, index) => (
+        index === existingIndex
+          ? { ...notification, notification_type: pushedNotification.notification_type, content: pushedNotification.content }
+          : notification
+      ));
+      replaceNotifications(nextNotifications);
+      return;
+    }
+
     replaceNotifications([pushedNotification, ...notificationsRef.current]);
     setUnreadCount((count) => count + 1);
   }, [replaceNotifications]);

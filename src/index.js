@@ -48,6 +48,7 @@ export * from './notifications/api';
 export { NotificationsProvider, useNotifications } from './notifications/NotificationsProvider';
 export { useRealtime } from './notifications/realtime';
 export { NotificationBell } from './notifications/NotificationBell';
+export { PopupSurface } from './notifications/PopupSurface';
 export { getNotificationFeed, getUnreadCount, markNotifications } from './notifications/feedApi';
 
 // --- 8. Onboarding ---
