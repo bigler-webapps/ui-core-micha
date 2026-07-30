@@ -155,22 +155,124 @@ full assembled diff.)
 
 ## Part B — Implementation map (filled by the Orchestrator on `git pull`)
 
-> TODO (Orchestrator, from repo knowledge — do not change Part A):
-> - **Named files to change** (`path`, `:line`/function): the new `src/components/charts/*` files,
->   the `src/index.js` barrel additions, `package.json` `peerDependencies` (+ version bump), the ucm
->   i18n resource files under `src/i18n`, and the new test files.
-> - **Architecture/contract slice:** ucm's component + barrel-export conventions; how existing
->   components (e.g. `src/components/ProfileComponent`) are structured, themed, and i18n-wired; how
->   ucm's Vitest/RTL tests are laid out; the publish/version_check flow.
-> - **Key snippets:** the repeated hram panel skeleton to mirror (from the scout — `Paper` +
->   `Typography h6` + toolbar + loading/error/empty + `Box height` + export), and hram's existing
->   export handler as the reference for the generic export util.
-> - **Invariants / pitfalls:** additive exports only; peer (not direct) dep; no hardcoded palette;
->   container-sized default; dark-mode palette; i18n every string.
-> - **Progress contract** (`PLAN:` / `PROGRESS:` / one final `RESULT:`).
-> - **Execution directive** (Codex-first via Bash: `codex exec --skip-git-repo-check
->   --dangerously-bypass-approvals-and-sandbox "$(cat work-orders/CHART-1.md)"`; cwd = the
->   `ui-core-micha` repo root, NOT the workspace root; Claude fallback only on Codex quota/exit).
+**Dependency approval:** operator explicitly approved adding `@mui/x-charts` as a `peerDependency`
+(2026-07-30, in-chat). Cleared to proceed.
+
+**Target version:** current `package.json` `version` is `2.14.0` (NOTIF-12 already published) →
+next free additive minor is **`2.15.0`**, matching the Envelope's target. Confirm still free against
+the npm registry immediately before publish.
+
+### Named files to change
+
+- `src/components/charts/ChartFrame.jsx` — new. Frame component (Paper/title/toolbar/state
+  precedence/export/a11y).
+- `src/components/charts/BarChart.jsx` — new. Preset over `@mui/x-charts` `BarChart`.
+- `src/components/charts/LineChart.jsx` — new. Preset over `@mui/x-charts` `LineChart`.
+- `src/components/charts/palette.js` — new. Neutral theme-aware categorical + sequential palette,
+  resolved from the active MUI theme (light/dark), NOT hardcoded hex in consumer-visible API.
+- `src/components/charts/formatters.js` — new. Locale-aware number formatters (percentage, compact,
+  ratio) built on `Intl.NumberFormat`, driven off `i18next.language`.
+- `src/components/charts/exportChart.js` — new. Generic SVG/PNG export util operating on a container
+  `ref`, mirroring hram's `XMLSerializer` → `Blob` → (PNG: `canvas` 2x-scale) → anchor-download
+  pattern (see hram `AllocationPerformancePanel.jsx` `handleExportSvg`/`handleExportPng`, no new
+  dependency).
+- `src/index.js` — add barrel exports for `ChartFrame`, `BarChart`, `LineChart`, palette/formatter
+  helpers, additive only, alongside the existing "Components" export block (~lines 1-72).
+- `src/i18n/chartsTranslations.ts` — new namespace, mirrors the existing
+  `notificationsTranslations.ts` shape (`{ 'ChartFrame.KEY': { de, fr, en, sw } }`); register it
+  wherever `notificationsTranslations`/`onboardingTranslations` are aggregated into the i18n bundle.
+- `package.json` — add `"@mui/x-charts": "^8.0.0"` (or the loosest range compatible with hram's
+  pinned `8.28.2`) to `peerDependencies`; bump `"version"` to `2.15.0` (confirm free at publish time
+  per above); add `@mui/x-charts` to `devDependencies` too (peer deps aren't auto-installed, tests
+  need it present).
+- `tests/ChartFrame.test.jsx`, `tests/BarChart.test.jsx`, `tests/LineChart.test.jsx`,
+  `tests/chartsPalette.test.js` (or similar) — new, in the existing `/tests/` root dir (not
+  co-located), `@vitest-environment jsdom` pragma, Vitest + RTL per `tests/NotificationSettings.test.jsx`
+  conventions.
+
+### Architecture/contract slice
+
+- **Component style:** plain `.jsx` (no TypeScript, no PropTypes — JSDoc only), MUI `sx` prop for
+  styling, functional components with hooks. Mirror `src/components/ProfileComponent.jsx`.
+- **i18n:** `useTranslation()` from `react-i18next`; keys namespaced `Category.KEY_NAME` (e.g.
+  `ChartFrame.EXPORT_SVG_LABEL`, `ChartFrame.EMPTY_DEFAULT`). Translation objects are flat
+  `{ key: { de, fr, en, sw } }` dictionaries per `src/i18n/notificationsTranslations.ts` — follow
+  that exact shape for `chartsTranslations.ts`, all four locales required.
+- **Barrel export:** `src/index.js` groups exports by category with comment headers (Auth Context,
+  API/Services, Layouts, Pages, Components, Translations, Notifications, Onboarding) — add a
+  `// Charts` section, export components + `chartsTranslations` alongside the others.
+- **Theme:** no centralized theme file exists in ucm today (components rely on the MUI default
+  theme via `sx` and `useTheme()`). The palette module must read `theme.palette.mode` via
+  `useTheme()` to select light/dark variants — do not assume a specific app theme shape beyond
+  standard MUI.
+- **Peer deps:** current `peerDependencies` list (`@mui/material ^7.3.11`, `react ^19.2.6`, etc.) —
+  add `@mui/x-charts` alongside, do not touch existing entries.
+- **hram reference (adoption target, NOT touched in this WO):** `hram/frontend/src/components/
+  OutputComponents/Results/ResultsTimelinePanel.jsx` and `ExpertTimelinePanel.jsx` show the
+  Paper→Typography(h6)→toolbar(ToggleButtonGroup)→loading/error/empty(Alert)→chart→footer skeleton
+  ChartFrame must replicate structurally; `AllocationPerformancePanel.jsx` (~lines 198-238) has the
+  reference export functions; `hram/frontend/src/.../theme.js` `dataViz` palette (~lines 20-30) is
+  the domain palette that stays app-side — the kit's neutral palette is a separate, generic
+  categorical/sequential set, not a copy of `dataViz`.
+
+### Key snippets (for the implementer to mirror, not copy verbatim)
+
+hram's existing Paper/title/toolbar/state scaffolding (`ResultsTimelinePanel.jsx`/
+`ExpertTimelinePanel.jsx`):
+```jsx
+<Paper variant="outlined" sx={{ p: 2 }}>
+  <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+    <Typography variant="h6">{t("...")}</Typography>
+    <ToggleButtonGroup exclusive size="small" ...>...</ToggleButtonGroup>
+  </Box>
+  {loading && <CircularProgress />}
+  {error && <Alert severity="error">...</Alert>}
+  {isEmpty && <Alert severity="info">...</Alert>}
+  {!loading && !error && !isEmpty && children}
+</Paper>
+```
+hram's export pattern (`AllocationPerformancePanel.jsx`): `XMLSerializer().serializeToString(svgRef.current)`
+→ `Blob(['image/svg+xml'])` → anchor download for SVG; for PNG, load the SVG blob into an `Image`,
+draw to a 2x-scaled `<canvas>` with a white background fill, then `canvas.toBlob()` → anchor download.
+`exportChart.js` should generalize this to accept a container ref (find the first `<svg>` descendant)
+so it works for both an MUI X-Charts body and a raw-`<svg>` body.
+
+### Invariants / do-not-touch / pitfalls
+
+- Additive exports only — do not modify or remove any existing `src/index.js` export line.
+- `@mui/x-charts` is a **peerDependency**, never a direct `dependency` (hram supplies its own
+  installed copy; ucm must not double-bundle it).
+- No hardcoded hex/palette values in the public API surface — palette resolves from
+  `useTheme().palette.mode`; tests must assert this (e.g. render under both a light and dark MUI
+  theme, assert different resolved values).
+- Container-sized/responsive by default — do not hardcode chart pixel width; offer `minHeight`/
+  `aspect` as an opt-in fallback only.
+- Every user-facing string in the kit goes through `t('ChartFrame....')` — no literal English
+  strings in JSX.
+- Do not touch hram, `dataViz`, or any hram i18n keys — this WO is ucm-only.
+- State precedence is strict: `loading` beats `error` beats `isEmpty` beats `children` — write the
+  test asserting this order, not just each state individually.
+- No new heavy dependency for PNG export (e.g. no `html2canvas`/`dom-to-image`) — reuse the
+  serialize+canvas approach; if a clean generic path is not achievable without a new dep, ship
+  SVG-export only and explicitly note PNG deferred in the `RESULT:` — do not silently drop it.
+
+### Progress contract
+
+Codex must emit: one `PLAN: <step1> | <step2> | …` line up front; a single-line
+`PROGRESS: [<n>/<total>] <present-tense action>` before every file/edit/step and `… done` on
+completion, spaced so no gap exceeds ~2 min; exactly one final `RESULT: DONE|BLOCKED <reason>`.
+stdout unbuffered.
+
+### Execution directive
+
+Implement through `codex exec` in the background, invoked **directly via Bash** (never the
+`debugger`/`*_coder` Agent wrappers), with **both** `--skip-git-repo-check` and
+`--dangerously-bypass-approvals-and-sandbox`, prompt passed as a positional argument read from this
+committed file (`"$(cat work-orders/CHART-1.md)"`). cwd = `ui-core-micha` repo root (this repo),
+**never** the workspace root `…/webapps`. Fall back to direct Claude implementation only on Codex
+quota/rate-limit/non-zero exit. Codex WRITES the required tests but MUST NOT RUN them and MUST NOT
+run any review or `git add`/`commit`/`push` — leave the working tree uncommitted for the
+Orchestrator's independent review, which runs after Codex finishes.
 
 ---
 
