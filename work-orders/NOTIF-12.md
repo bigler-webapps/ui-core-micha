@@ -7,11 +7,10 @@ file. Fall back to direct Claude implementation only on Codex quota / rate-limit
 
 Feature-level WO (Expertenchat envelope). Seams verified against ucm 2.12.0 / dcm 2.32.0.
 
-## HARD GATE — do not start before NOTIF-13 has landed and published
-NOTIF-12 consumes NOTIF-13's envelope contract and its `subscribe(type, handler)` primitive. Starting
-earlier means building on the catch-all in `NotificationsProvider.jsx:130-132` that NOTIF-13 removes.
-Both WOs also edit `ui-core-micha/src/notifications/` and `src/index.js`, so running them in parallel
-violates the AGENTS.md overlap rule. **Sequence: NOTIF-13 → publish → NOTIF-12.**
+## HARD GATE — SATISFIED 2026-07-30
+NOTIF-13 landed and published: ucm **2.13.0** (`7a83ee9`), dcm **2.33.0** (`de77335`), both verified
+live on npm/PyPI. This WO was re-verified against the landed code on 2026-07-30 and the context
+package below describes the **actual shipped API**, not the pre-NOTIF-13 state. Cleared to start.
 
 ## TIER
 Tier 2 — this extracts a renderer out of `OnboardingWizard`, which **cockpit and jg run in
@@ -49,11 +48,27 @@ recorded on `NotificationRecipient` — **not** in the onboarding progress store
 **dcm `notifications/dispatch.py`:**
 - `PopupDispatcher` (`:117-121`) is a stub: logs "queued for unimplemented popup channel" and returns
   `DeliveryResult(ok=None, error="pending")`. It is registered in `_DISPATCHERS` (`:126-133`).
-- The model to copy is `ChipDispatcher` (`:62-74`): it calls
-  `push_to_users([recipient.user], {"type": notification.notification_type, "content": ..., "notification_id": ...})`
-  and returns `DeliveryResult(ok=True)`. **Note the `type` field carries the *domain* type** — this is
-  precisely the overload NOTIF-13 replaces with a proper envelope. Emit NOTIF-13's envelope, not this
-  legacy shape.
+- The model to copy is `ChipDispatcher` (`dispatch.py:64-75`, post-NOTIF-13): it calls
+  `push_to_users([recipient.user], notification_envelope({"type": notification.notification_type, "content": ..., "notification_id": ...}))`
+  and returns `DeliveryResult(ok=True)`.
+
+**How NOTIF-13 actually shipped — read this before writing scope D.** The envelope is a
+**domain-level** discriminator, not a per-channel one:
+- `delivery.py:25` `NOTIFICATION_ENVELOPE = "notification"`; `delivery.py:28-35`
+  `notification_envelope(payload)` merges `{"envelope": "notification"}` into any payload. **Additive**
+  — the pre-existing fields, including the overloaded `type`, are unchanged.
+- ucm `src/notifications/realtime.jsx:68` routes purely on `data.envelope ?? DEFAULT_ENVELOPE`, then
+  fans to every handler subscribed to that envelope.
+- **Inside** the notification envelope, `NotificationsProvider` keeps the original two-way split:
+  `data.type === 'notification.status'` patches status (`:98`), and **everything else is appended to
+  the feed with `unreadCount + 1`** (`:120`).
+
+**Consequence — the trap this WO must avoid:** if `PopupDispatcher` simply calls
+`notification_envelope({...})` like Chip does, its message is **indistinguishable from a chip
+message**. The popup surface subscribing to the `"notification"` envelope would receive every chip
+notification and pop up for all of them, and a notification routed to *both* chip and popup would
+produce **two feed entries and `unreadCount + 2` for one notification**. Scope D and D2 below exist
+to close exactly this.
 - `_render_content(content, user)` (`:44-60`) renders `title_key`/`body_key`/`params` in the
   recipient's language — reuse it rather than re-deriving text client-side if the payload needs text.
 - `prefs.py:22` already treats `popup` as a channel defaulting to True; `router.py:24` narrows to
@@ -82,25 +97,46 @@ reusable renderer (dialog frame, counter/progress header, the `onComplete`/`onDi
 contract). `OnboardingWizard` keeps its current behaviour by composing that shell with the onboarding
 store; the popup surface composes the same shell with notification state.
 
-**B. ucm — the popup surface.** A component that selects popup-eligible notifications from
-notification state, renders them through the shell, marks `seen` on display and `dismissed` on close,
-and subscribes to NOTIF-13's popup envelope type so a popup can appear live. Export additively from
-`src/index.js`.
+**B. ucm — the popup surface.** A component that renders popup-eligible notifications through the
+shell, marks `seen` on display and `dismissed` on close. For live popups it subscribes via
+`useRealtime()` to the **`"notification"` envelope** (`DEFAULT_ENVELOPE` — there is no popup-specific
+envelope, see D) and filters on `channel === "popup"`, ignoring `notification.status` messages and
+channel-less legacy payloads. Export additively from `src/index.js`.
 
 **C. Coexistence rule with onboarding — specify and test it.** Both surfaces render a MUI `Dialog`, so
 two modals can be open at once. Required behaviour: **a blocking onboarding step wins**; the popup
 waits until no blocking onboarding step is active. Non-blocking coexistence must not stack two dialogs.
 
-**D. dcm — implement `PopupDispatcher.deliver`.** Emit NOTIF-13's envelope over `push_to_users` and
-return `DeliveryResult(ok=True)`. Keep the delivery-record semantics identical to `ChipDispatcher`
-(the surrounding `dispatch()` machinery already records pending → sent/failed; do not re-implement it).
+**D. dcm — implement `PopupDispatcher.deliver`, with a channel discriminator *inside* the envelope.**
+Emit through `notification_envelope()` (so Layer-1 routing stays domain-keyed and messaging can still
+ride alongside) and add an explicit **`"channel": "popup"`** field to the payload. Return
+`DeliveryResult(ok=True)`. Keep delivery-record semantics identical to `ChipDispatcher` — the
+surrounding `dispatch()` machinery already records pending → sent/failed; do not re-implement it.
+
+**Do NOT invent a second envelope value** (e.g. `"notification.popup"`). The envelope discriminates
+*domains* so a future messaging stream can share the socket; overloading it with channels would
+undo NOTIF-13's design. Channel selection belongs inside the payload.
+
+For symmetry and so the client can tell the cases apart, `ChipDispatcher` should carry
+`"channel": "chip"` as well. **Backward compatibility:** a payload with **no** `channel` field must
+keep behaving exactly as today (feed entry + unread increment), because an app pinned to an older dcm
+will still send channel-less payloads.
+
+**D2. ucm — de-duplicate by `notification_id` in `NotificationsProvider`.** A notification routed to
+both chip and popup now produces two WS messages. The provider must fold them into **one** feed entry
+and **one** unread increment (de-dupe on `notification_id`, last-write-wins on content). Without this,
+enabling popup alongside chip double-counts the badge. This is an edit to `NotificationsProvider`,
+which is explicitly in scope here — it is not part of NOTIF-13's realtime core.
 
 ## DO NOT TOUCH
 - **The onboarding progress store** — `markStepSeen`, `dismissStep`, `persistDismissed` persistence,
   `OnboardingProvider`'s step-selection semantics, `stepSelection.js`.
 - The four existing step components (`CookieConsentStep`, `CompleteNameStep`, `BrowserPushStep`,
   `PwaInstallStep`) and their props.
-- NOTIF-13's realtime core — **consume** `subscribe()`, do not restructure it.
+- **NOTIF-13's realtime core** (`src/notifications/realtime.jsx`) — consume `useRealtime()` /
+  `subscribe(envelope, handler)`, do not restructure it. In particular leave the `seeded` gate, the
+  backoff/reconnect semantics and the envelope-routing alone. (`NotificationsProvider` itself IS
+  editable — scope D2 requires it.)
 - `feed/*` REST contract, `NotificationBell`, `NotificationSettings`.
 - `prefs.py`, `router.py`, `resolve_channels` — popup already works there; a type opting in is an
   app-side change, not this WO's.
@@ -112,6 +148,14 @@ return `DeliveryResult(ok=True)`. Keep the delivery-record semantics identical t
   run in production. The step counter (`totalRef`/`completed`), the session-dismissed Set, and the
   `blocking` escape-key behaviour are easy to break silently.
 - **Stacked modals** if C is skipped — two dialogs, neither reachable.
+- **Badge double-count** if D2 is skipped: a notification routed to both chip and popup arrives as two
+  WS messages and increments `unreadCount` twice for one notification. This is the single most likely
+  silent defect in this WO.
+- **Popup storm** if B subscribes to the envelope without filtering on `channel` — every chip
+  notification would pop up a modal.
+- **Regressing the NOTIF-13 R1 fix:** the `seeded` gate in `NotificationsProvider` exists because
+  decoupling the REST seed from the socket connect opened a silent-message-loss race. Do not touch it
+  while implementing D2.
 - **Dead code rot:** with no producer, only the tests exercise the path. Hence the mandatory test-local
   producer type.
 - **Status semantics drift:** marking a popup `done` instead of `dismissed` would pollute todo-channel
@@ -126,12 +170,20 @@ ucm (`pnpm test`, vitest):
 - **onboarding regression guard:** existing `OnboardingWizard` behaviour unchanged — step counter,
   progress bar, session-dismissed set, `blocking` disabling escape/backdrop close, `persistDismissed`
   still calling `dismissStep`;
-- with no popup-eligible notification present, nothing renders.
+- with no popup-eligible notification present, nothing renders;
+- **no popup storm:** a `channel: "chip"` message and a channel-less legacy message both leave the
+  popup surface silent;
+- **no double-count (D2):** two WS messages for the same `notification_id` (one `chip`, one `popup`)
+  yield exactly one feed entry and `unreadCount + 1`;
+- **NOTIF-13 R1 guard:** the `seeded` gate still holds — no socket messages are processed before the
+  REST seed completes.
 
 dcm (`pytest` on the notifications package):
 - register a **test-local** notification type declaring `eligible_channels=["popup"]`, call `notify()`,
-  and assert the dispatcher delivered (`ok=True`) with NOTIF-13's envelope shape on the wire — the
-  end-to-end proof required by the scaffolding notice;
+  and assert the dispatcher delivered (`ok=True`) with `envelope: "notification"` **and**
+  `channel: "popup"` on the wire — the end-to-end proof required by the scaffolding notice;
+- a chip delivery still carries `envelope: "notification"` and now `channel: "chip"`, with every other
+  field unchanged (no regression for existing consumers);
 - `resolve_channels` still excludes `popup` for types that do not declare it (no accidental widening);
 - the existing `test_dispatch.py` registry assertion (`:25`) still passes.
 
@@ -157,6 +209,6 @@ exceeds ~2 min. stdout unbuffered. Exactly one final `RESULT: DONE|BLOCKED <reas
 ## MINI-HANDOVER (paste into a fresh Orchestrator session)
 ```
 Orchestrator: implement work-orders/NOTIF-12.md in ui-core-micha (main; scope D also touches
-django-core-micha). Check the hard gate first — NOTIF-13 must be landed and published. git pull,
-read the WO, then follow orchestrate-codex (Codex-first, own independent review, commit on green).
+django-core-micha). The NOTIF-13 gate is satisfied (ucm 2.13.0 / dcm 2.33.0). git pull, read the WO,
+then follow orchestrate-codex (Codex-first, own independent review, commit on green).
 ```
