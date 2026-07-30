@@ -39,10 +39,23 @@ export { AuthFactorRequirementCard } from './components/AuthFactorRequirementCar
 export { AccessCodeSingleUseToggle } from './components/AccessCodeSingleUseToggle';
 export { QrSignupManager } from './components/QrSignupManager';
 
-// --- 6. Translations ---
+// --- 6. Charts ---
+export { ChartFrame } from './components/charts/ChartFrame';
+export { BarChart } from './components/charts/BarChart';
+export { LineChart } from './components/charts/LineChart';
+export { getNeutralChartPalette, useNeutralChartPalette } from './components/charts/palette';
+export {
+  formatPercentage,
+  formatCompact,
+  formatRatio,
+  createChartFormatters,
+  useChartFormatters,
+} from './components/charts/formatters';
+
+// --- 7. Translations ---
 export { authTranslations } from './i18n/authTranslations';
 
-// --- 7. Notifications ---
+// --- 8. Notifications ---
 export { NotificationSettings } from './notifications/NotificationSettings';
 export * from './notifications/api';
 export { NotificationsProvider, useNotifications } from './notifications/NotificationsProvider';
@@ -51,7 +64,7 @@ export { NotificationBell } from './notifications/NotificationBell';
 export { PopupSurface } from './notifications/PopupSurface';
 export { getNotificationFeed, getUnreadCount, markNotifications } from './notifications/feedApi';
 
-// --- 8. Onboarding ---
+// --- 9. Onboarding ---
 export * from './onboarding/api';
 export { selectActiveSteps } from './onboarding/stepSelection';
 export {
@@ -66,6 +79,7 @@ export { CompleteNameStep } from './onboarding/steps/CompleteNameStep';
 export { BrowserPushStep } from './onboarding/steps/BrowserPushStep';
 export { PwaInstallStep } from './onboarding/steps/PwaInstallStep';
 
-// --- 9. Translations ---
+// --- 10. Translations ---
 export { notificationsTranslations } from './i18n/notificationsTranslations';
 export { onboardingTranslations } from './i18n/onboardingTranslations';
+export { chartsTranslations } from './i18n/chartsTranslations';
