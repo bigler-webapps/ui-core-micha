@@ -2,9 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useRef, useState } f
 
 import { AuthContext } from '../auth/AuthContext';
 import { getNotificationFeed, getUnreadCount, markNotifications } from './feedApi';
-
-const INITIAL_BACKOFF_MS = 1_000;
-const MAX_BACKOFF_MS = 30_000;
+import { DEFAULT_ENVELOPE, RealtimeContext, useRealtimeCore } from './realtime';
 
 const NotificationsContext = createContext(null);
 
@@ -62,7 +60,6 @@ export function NotificationsProvider({ children, wsUrlBase }) {
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const notificationsRef = useRef([]);
-  const socketRef = useRef(null);
 
   const replaceNotifications = useCallback((nextNotifications) => {
     notificationsRef.current = nextNotifications;
@@ -84,99 +81,92 @@ export function NotificationsProvider({ children, wsUrlBase }) {
     return { notifications: nextNotifications, unreadCount: nextUnreadCount };
   }, [authenticated, replaceNotifications]);
 
+  // Seeded gates the socket connect, not just `authenticated`: the prior single-purpose
+  // socket owner awaited the initial REST feed/unread-count fetch before opening the
+  // WebSocket, so a live push could never race an empty/incomplete `notificationsRef`.
+  // Preserved here rather than connecting immediately, since `refresh()`'s
+  // `replaceNotifications(...)` is unconditional and would silently drop a message that
+  // arrived and patched state before the initial REST response landed.
+  const [seeded, setSeeded] = useState(false);
+
+  const { subscribe } = useRealtimeCore({
+    active: authenticated && seeded,
+    wsUrl: getWebSocketUrl(wsUrlBase),
+  });
+
+  const handleRealtimeMessage = useCallback((data) => {
+    if (data.type === 'notification.status') {
+      let unreadDelta = 0;
+      const nextNotifications = notificationsRef.current.map((notification) => {
+        if (notification.notification_id !== data.notification_id) return notification;
+
+        const wasUnread = !notification.seen && !notification.dismissed;
+        const patched = patchStatus(notification, data.status || {});
+        const isUnread = !patched.seen && !patched.dismissed;
+        if (wasUnread !== isUnread) {
+          unreadDelta += isUnread ? 1 : -1;
+        }
+        return patched;
+      });
+      replaceNotifications(nextNotifications);
+      if (unreadDelta) {
+        setUnreadCount((count) => Math.max(0, count + unreadDelta));
+      }
+      return;
+    }
+
+    const pushedNotification = normalizeNotificationPush(data);
+
+    // NOTIF-12 D2: a notification routed to more than one channel (e.g. chip
+    // + popup) arrives as multiple WS messages sharing one notification_id.
+    // Fold repeats into the existing feed entry (last-write-wins on content)
+    // instead of appending a duplicate and double-incrementing the badge.
+    const existingIndex = pushedNotification.notification_id == null
+      ? -1
+      : notificationsRef.current.findIndex(
+        (notification) => notification.notification_id === pushedNotification.notification_id,
+      );
+
+    if (existingIndex !== -1) {
+      const nextNotifications = notificationsRef.current.map((notification, index) => (
+        index === existingIndex
+          ? { ...notification, notification_type: pushedNotification.notification_type, content: pushedNotification.content }
+          : notification
+      ));
+      replaceNotifications(nextNotifications);
+      return;
+    }
+
+    replaceNotifications([pushedNotification, ...notificationsRef.current]);
+    setUnreadCount((count) => count + 1);
+  }, [replaceNotifications]);
+
+  useEffect(() => {
+    if (!authenticated) return undefined;
+    return subscribe(DEFAULT_ENVELOPE, handleRealtimeMessage);
+  }, [authenticated, subscribe, handleRealtimeMessage]);
+
   useEffect(() => {
     if (!authenticated) {
       replaceNotifications([]);
       setUnreadCount(0);
+      setSeeded(false);
       return undefined;
     }
 
-    let active = true;
-    let reconnectTimer = null;
-    let backoffMs = INITIAL_BACKOFF_MS;
-
-    const patchNotifications = (updater) => {
-      const nextNotifications = updater(notificationsRef.current);
-      replaceNotifications(nextNotifications);
-    };
-
-    const handleMessage = (event) => {
-      let data;
-      try {
-        data = JSON.parse(event.data);
-      } catch {
-        return;
-      }
-
-      if (data.type === 'notification.status') {
-        let unreadDelta = 0;
-        patchNotifications((current) => current.map((notification) => {
-          if (notification.notification_id !== data.notification_id) return notification;
-
-          const wasUnread = !notification.seen && !notification.dismissed;
-          const patched = patchStatus(notification, data.status || {});
-          const isUnread = !patched.seen && !patched.dismissed;
-          if (wasUnread !== isUnread) {
-            unreadDelta += isUnread ? 1 : -1;
-          }
-          return patched;
-        }));
-        if (unreadDelta) {
-          setUnreadCount((count) => Math.max(0, count + unreadDelta));
-        }
-        return;
-      }
-
-      const pushedNotification = normalizeNotificationPush(data);
-      patchNotifications((current) => [pushedNotification, ...current]);
-      setUnreadCount((count) => count + 1);
-    };
-
-    const connect = () => {
-      if (!active || socketRef.current) return;
-
-      const socket = new WebSocket(getWebSocketUrl(wsUrlBase));
-      socketRef.current = socket;
-
-      socket.onopen = () => {
-        backoffMs = INITIAL_BACKOFF_MS;
-      };
-      socket.onmessage = handleMessage;
-      socket.onerror = () => {
-        socket.close();
-      };
-      socket.onclose = () => {
-        if (socketRef.current === socket) {
-          socketRef.current = null;
-        }
-        if (!active || reconnectTimer) return;
-        reconnectTimer = setTimeout(() => {
-          reconnectTimer = null;
-          connect();
-        }, backoffMs);
-        backoffMs = Math.min(backoffMs * 2, MAX_BACKOFF_MS);
-      };
-    };
-
-    const seedAndConnect = async () => {
-      try {
-        await refresh();
-      } catch {
+    let cancelled = false;
+    refresh()
+      .catch(() => {
         // The live stream remains useful if the initial REST request is temporarily unavailable.
-      }
-      if (active) connect();
-    };
-
-    seedAndConnect();
+      })
+      .finally(() => {
+        if (!cancelled) setSeeded(true);
+      });
 
     return () => {
-      active = false;
-      clearTimeout(reconnectTimer);
-      const socket = socketRef.current;
-      socketRef.current = null;
-      if (socket) socket.close();
+      cancelled = true;
     };
-  }, [authenticated, refresh, replaceNotifications, wsUrlBase]);
+  }, [authenticated, refresh, replaceNotifications]);
 
   const mark = useCallback((action, ids) => {
     const selectedIds = Array.isArray(ids) ? ids : [];
@@ -210,16 +200,18 @@ export function NotificationsProvider({ children, wsUrlBase }) {
   const markDone = useCallback((ids) => mark('done', ids), [mark]);
 
   return (
-    <NotificationsContext.Provider value={{
-      notifications,
-      unreadCount,
-      markSeen,
-      markDismissed,
-      markDone,
-      refresh,
-    }}>
-      {children}
-    </NotificationsContext.Provider>
+    <RealtimeContext.Provider value={{ subscribe }}>
+      <NotificationsContext.Provider value={{
+        notifications,
+        unreadCount,
+        markSeen,
+        markDismissed,
+        markDone,
+        refresh,
+      }}>
+        {children}
+      </NotificationsContext.Provider>
+    </RealtimeContext.Provider>
   );
 }
 

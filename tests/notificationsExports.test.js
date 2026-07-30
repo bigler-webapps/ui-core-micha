@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   NotificationSettings,
+  PopupSurface,
   getNotificationPreferences,
   getVapidPublicKey,
   listPushSubscriptions,
@@ -25,5 +26,9 @@ describe('notification barrel exports', () => {
       urlBase64ToUint8Array,
       notificationsTranslations,
     ].forEach((value) => expect(value).toBeDefined());
+  });
+
+  it('additively exports the NOTIF-12 popup surface', () => {
+    expect(PopupSurface).toBeDefined();
   });
 });

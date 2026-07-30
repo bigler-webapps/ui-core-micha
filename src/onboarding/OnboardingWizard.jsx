@@ -1,16 +1,9 @@
 import React, { useContext, useEffect, useRef, useState } from 'react';
-import { useTranslation } from 'react-i18next';
-import Box from '@mui/material/Box';
-import Dialog from '@mui/material/Dialog';
-import DialogContent from '@mui/material/DialogContent';
-import DialogTitle from '@mui/material/DialogTitle';
-import LinearProgress from '@mui/material/LinearProgress';
-import Typography from '@mui/material/Typography';
 import { AuthContext } from '../auth/AuthContext';
 import { useOnboarding } from './OnboardingProvider';
+import { WizardDialogShell } from './WizardDialogShell';
 
 export function OnboardingWizard() {
-  const { t } = useTranslation();
   const onboarding = useOnboarding();
   const authContext = useContext(AuthContext);
   const [sessionDismissed, setSessionDismissed] = useState(() => new Set());
@@ -39,8 +32,6 @@ export function OnboardingWizard() {
 
   const { dismissStep, ctx } = onboarding;
   const total = totalRef.current || visibleSteps.length;
-  const progress = total > 1 ? Math.round((completed / total) * 100) : 0;
-  const StepComponent = currentStep.Component;
 
   const completeCurrentStep = () => {
     setSessionDismissed((previous) => new Set([...previous, currentStep.id]));
@@ -56,19 +47,14 @@ export function OnboardingWizard() {
   };
 
   return (
-    <Dialog open fullWidth maxWidth="sm" disableEscapeKeyDown={currentStep.blocking} onClose={currentStep.blocking ? undefined : dismissCurrentStep}>
-      <DialogTitle sx={{ pb: 0 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <Typography variant="subtitle2" color="text.secondary">
-            {total > 1 ? t('Onboarding.STEP_COUNTER', { current: completed + 1, total }) : t('Onboarding.SETUP')}
-          </Typography>
-        </Box>
-        {total > 1 && <LinearProgress variant="determinate" value={progress} sx={{ mt: 1, borderRadius: 1 }} />}
-      </DialogTitle>
-      <DialogContent sx={{ pt: 2 }}>
-        <StepComponent onComplete={completeCurrentStep} onDismiss={dismissCurrentStep} ctx={ctx} />
-      </DialogContent>
-    </Dialog>
+    <WizardDialogShell
+      step={currentStep}
+      stepIndex={completed}
+      total={total}
+      onComplete={completeCurrentStep}
+      onDismiss={dismissCurrentStep}
+      ctx={ctx}
+    />
   );
 }
 

@@ -17,4 +17,6 @@ export const notificationsTranslations = {
   'NotificationSettings.PUSH_CONFLICT': { de: 'Dieses Gerät ist bereits mit einem anderen Konto für Push-Benachrichtigungen verbunden.', fr: 'Cet appareil est déjà associé à un autre compte pour les notifications push.', en: 'This device is already associated with another account for push notifications.', sw: 'Kifaa hiki tayari kimeunganishwa na akaunti nyingine kwa arifa za push.' },
   'NotificationSettings.PUSH_NOT_SUPPORTED': { de: 'Push-Benachrichtigungen werden von diesem Browser nicht unterstützt.', fr: 'Les notifications push ne sont pas prises en charge par ce navigateur.', en: 'Push notifications are not supported by this browser.', sw: 'Arifa za push hazitumiki na kivinjari hiki.' },
   'NotificationSettings.IOS_HINT': { de: 'Füge diese App zuerst zum Home-Bildschirm hinzu, um Push-Benachrichtigungen zu aktivieren.', fr: 'Ajoutez d’abord cette application à l’écran d’accueil pour activer les notifications push.', en: 'Add this app to your home screen first to enable push notifications.', sw: 'Ongeza programu hii kwenye skrini yako ya mwanzo kwanza ili kuwasha arifa za push.' },
+  'PopupSurface.CLOSE': { de: 'Schliessen', fr: 'Fermer', en: 'Close', sw: 'Funga' },
+  'PopupSurface.TITLE': { de: 'Benachrichtigung', fr: 'Notification', en: 'Notification', sw: 'Arifa' },
 };
