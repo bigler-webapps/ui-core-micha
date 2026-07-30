@@ -2,7 +2,7 @@
 
 - **Repo:** `ui-core-micha` (`@micha.bigler/ui-core-micha`), branch `main` (library, publish-from-main; no `develop`)
 - **Tier:** 2 (new shared-library public API + a dependency change + governance-anchored contract)
-- **Status:** planned
+- **Status:** done (f1b3614)
 - **Workstream:** `CHART-*` (chart / data-viz kit)
 
 > This file has two halves. **Part A (Envelope)** below is authored by the Expertenchat and is the
