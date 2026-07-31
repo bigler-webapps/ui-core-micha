@@ -80,6 +80,16 @@ describe('messaging Thread surfaces', () => {
     expect(api.getReadStatus).toHaveBeenCalledWith(2);
   });
 
+  it('does not mount ReadTicks (or fire a REST call) for a still-pending optimistic own message', async () => {
+    api.listMessages.mockResolvedValue({
+      results: [{ id: 'local-r9', conversation_id: 1, body: 'Sending...', created_at: '2026-07-31T10:00:00Z', sender: { id: 9 }, status: 'pending', client_request_id: 'r9' }],
+      next_cursor: null,
+    });
+    renderThread(api, { userId: 9 });
+    await screen.findByText('Sending...');
+    expect(api.getReadStatus).not.toHaveBeenCalled();
+  });
+
   it('mounts Thread and ReadTicks independently', async () => {
     renderThread(api);
     await screen.findByLabelText('MessagingThread.TIMELINE');

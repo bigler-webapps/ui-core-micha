@@ -72,6 +72,8 @@ export { ConversationLaunchers } from './messaging/ConversationLaunchers';
 export { Thread } from './messaging/Thread';
 export { MessageBubble } from './messaging/MessageBubble';
 export { ReadTicks } from './messaging/ReadTicks';
+export { Composer } from './messaging/Composer';
+export { AttachmentList } from './messaging/AttachmentList';
 
 // --- 9. Onboarding ---
 export * from './onboarding/api';

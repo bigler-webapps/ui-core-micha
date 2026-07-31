@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useReducer, useRef } from 'react';
 
+import { AuthContext } from '../auth/AuthContext';
 import {
   archiveConversation,
   createBroadcastConversation,
@@ -10,6 +11,10 @@ import {
   listMessages,
   listThread,
   patchConversationPreferences,
+  createMessage,
+  uploadAttachments,
+  getAttachment,
+  getAttachmentThumbnail,
 } from './api';
 import { useRealtime } from '../notifications/realtime';
 
@@ -19,11 +24,44 @@ const EMPTY_CACHE = { conversations: {}, messages: {}, threads: {}, polls: {}, r
 const DEFAULT_API = {
   listConversations, listMessages, listThread, getReadStatus, getUnreadCount, archiveConversation,
   patchConversationPreferences, createGroupConversation, createBroadcastConversation,
+  createMessage, uploadAttachments, getAttachment, getAttachmentThumbnail,
 };
 
 function idOf(item) { return item?.id ?? item?.conversation_id ?? item?.message_id ?? item?.poll_id; }
 function mergeById(slice, item) { const id = idOf(item); return id == null ? slice : { ...slice, [id]: { ...slice[id], ...item } }; }
 function resultsOf(response) { return response?.results || []; }
+function clientRequestIdOf(message) { return message?.client_request_id; }
+
+/**
+ * dcm's DRF validation errors aren't always {detail}: ConversationAttachmentView
+ * translates a rejected upload into a field-keyed {"files": [...]} body (the
+ * MSG-2 chunk-4 fix — see django-core-micha messaging/views.py), while other
+ * endpoints use {detail}. Check every shape a caller might actually receive
+ * before falling back to the generic axios error message.
+ */
+export function extractApiErrorMessage(error) {
+  const data = error?.response?.data;
+  if (typeof data?.detail === 'string') return data.detail;
+  if (typeof data?.message === 'string') return data.message;
+  if (Array.isArray(data?.files)) return data.files.join(' ');
+  if (data && typeof data === 'object') {
+    const firstArray = Object.values(data).find((value) => Array.isArray(value) && value.length);
+    if (firstArray) return firstArray.join(' ');
+  }
+  return error?.message;
+}
+
+function reconcileMessage(messages, message) {
+  const requestId = clientRequestIdOf(message);
+  const matchingEntry = requestId && Object.entries(messages).find(([, item]) => clientRequestIdOf(item) === requestId);
+  if (!matchingEntry) return mergeById(messages, message);
+  const [previousKey, previous] = matchingEntry;
+  const next = { ...messages };
+  delete next[previousKey];
+  const id = idOf(message) ?? previousKey;
+  next[id] = { ...previous, ...message, id: idOf(message) ?? previous.id, status: message.status || 'sent', error: null };
+  return next;
+}
 
 export function messagingReducer(state, action) {
   switch (action.type) {
@@ -41,6 +79,14 @@ export function messagingReducer(state, action) {
       return { ...state, messages, cursors: { ...state.cursors, threads: { ...state.cursors.threads, [action.rootId]: action.nextCursor ?? null } } };
     }
     case 'conversationUpsert': return { ...state, conversations: mergeById(state.conversations, action.conversation) };
+    case 'messageOptimistic': return { ...state, messages: mergeById(state.messages, action.message) };
+    case 'messageReconciled': return { ...state, messages: reconcileMessage(state.messages, action.message) };
+    case 'messageFailed': {
+      const matching = Object.entries(state.messages).find(([, item]) => clientRequestIdOf(item) === action.clientRequestId);
+      if (!matching) return state;
+      const [key, message] = matching;
+      return { ...state, messages: { ...state.messages, [key]: { ...message, status: 'error', error: action.error } } };
+    }
     case 'frame': return applyFrame(state, action.frame);
     default: return state;
   }
@@ -51,7 +97,7 @@ export function applyFrame(state, frame) {
   const conversationId = frame.conversation_id ?? payload.conversation_id;
   if (frame.type === 'message') {
     const message = { ...payload, conversation_id: conversationId };
-    return { ...state, messages: mergeById(state.messages, message) };
+    return { ...state, messages: reconcileMessage(state.messages, message) };
   }
   if (frame.type === 'message_edited') return { ...state, messages: mergeById(state.messages, payload) };
   if (frame.type === 'message_deleted') {
@@ -72,6 +118,7 @@ export function applyFrame(state, frame) {
 
 export function MessagingProvider({ children, filters = {}, activeConversationId = null, api = DEFAULT_API, active = true }) {
   const { subscribe, onReconnect } = useRealtime();
+  const { user } = useContext(AuthContext) || {};
   const [cache, dispatch] = useReducer(messagingReducer, EMPTY_CACHE);
   const activeIdRef = useRef(activeConversationId);
   const seenEventsRef = useRef(new Set());
@@ -132,6 +179,49 @@ export function MessagingProvider({ children, filters = {}, activeConversationId
     const conversation = await api.createBroadcastConversation(payload);
     return updateConversation(conversation);
   }, [api, updateConversation]);
+  const sendMessage = useCallback(async (conversationId, payload, { clientRequestId, retry = false } = {}) => {
+    const requestId = clientRequestId || payload.client_request_id;
+    const optimistic = {
+      id: `local-${requestId}`,
+      conversation_id: conversationId,
+      kind: payload.kind || 'chat',
+      body: payload.body || '',
+      reply_to: payload.reply_to || null,
+      client_request_id: requestId,
+      created_at: new Date().toISOString(),
+      status: 'pending',
+      sender: user ? { id: user.id, display_name: user.display_name || user.username } : undefined,
+      ...(retry ? {} : {}),
+    };
+    if (!retry) dispatch({ type: 'messageOptimistic', message: optimistic });
+    else dispatch({ type: 'messageReconciled', message: { ...optimistic, status: 'pending', error: null } });
+    try {
+      const message = await api.createMessage(conversationId, { ...payload, client_request_id: requestId }, { idempotencyKey: requestId });
+      dispatch({ type: 'messageReconciled', message: { ...message, conversation_id: message?.conversation_id ?? conversationId, client_request_id: message?.client_request_id ?? requestId } });
+      return message;
+    } catch (error) {
+      dispatch({ type: 'messageFailed', clientRequestId: requestId, error: extractApiErrorMessage(error) });
+      throw error;
+    }
+  }, [api, user]);
+  const sendAttachments = useCallback(async (conversationId, formData, { clientRequestId, optimisticMessage, retry = false } = {}) => {
+    const optimistic = {
+      id: `local-${clientRequestId}`, conversation_id: conversationId, kind: 'chat', body: optimisticMessage?.body || '',
+      reply_to: optimisticMessage?.reply_to || null, client_request_id: clientRequestId, created_at: new Date().toISOString(), status: 'pending',
+      sender: user ? { id: user.id, display_name: user.display_name || user.username } : undefined,
+      attachments: optimisticMessage?.attachments || [],
+    };
+    if (!retry) dispatch({ type: 'messageOptimistic', message: optimistic });
+    else dispatch({ type: 'messageReconciled', message: { ...optimistic, status: 'pending', error: null } });
+    try {
+      const message = await api.uploadAttachments(conversationId, formData, { idempotencyKey: clientRequestId });
+      dispatch({ type: 'messageReconciled', message: { ...message, conversation_id: message?.conversation_id ?? conversationId, client_request_id: message?.client_request_id ?? clientRequestId } });
+      return message;
+    } catch (error) {
+      dispatch({ type: 'messageFailed', clientRequestId, error: extractApiErrorMessage(error) });
+      throw error;
+    }
+  }, [api, user]);
   const refresh = useCallback(async () => Promise.all([refreshConversations(), refreshUnread(), refreshThread()]), [refreshConversations, refreshThread, refreshUnread]);
 
   // `/api/messaging/` is authenticated-only (design §REST). Host apps mount
@@ -157,10 +247,11 @@ export function MessagingProvider({ children, filters = {}, activeConversationId
   const value = useMemo(() => ({
     cache, refresh, refreshConversations, refreshUnread, refreshThread, loadMoreMessages, loadThreadReplies, getMessageReadStatus, loadMoreConversations,
     setConversationArchived, setConversationPreferences, openGroupConversation,
-    openBroadcastConversation, activeConversationId,
+    openBroadcastConversation, sendMessage, sendAttachments, getAttachment: api.getAttachment,
+    getAttachmentThumbnail: api.getAttachmentThumbnail, activeConversationId,
   }), [cache, refresh, refreshConversations, refreshUnread, refreshThread, loadMoreMessages, loadThreadReplies, getMessageReadStatus, loadMoreConversations,
     setConversationArchived, setConversationPreferences, openGroupConversation,
-    openBroadcastConversation, activeConversationId]);
+    openBroadcastConversation, sendMessage, sendAttachments, api.getAttachment, api.getAttachmentThumbnail, activeConversationId]);
   return <MessagingContext.Provider value={value}>{children}</MessagingContext.Provider>;
 }
 

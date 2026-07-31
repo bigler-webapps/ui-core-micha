@@ -11,6 +11,8 @@ import { MessagingProvider, useMessaging } from '../src/messaging/MessagingProvi
 import { ConversationList } from '../src/messaging/ConversationList';
 import { Thread } from '../src/messaging/Thread';
 import { ReadTicks } from '../src/messaging/ReadTicks';
+import { Composer } from '../src/messaging/Composer';
+import { AttachmentList } from '../src/messaging/AttachmentList';
 import { barChartFixture } from './fixtures';
 import { useMockTransport } from './mockTransport';
 
@@ -66,6 +68,10 @@ const messagingHarnessApi = {
   patchConversationPreferences: async (id, patch) => ({ id, ...patch }),
   createGroupConversation: async (payload) => ({ id: 20, title: payload.title || 'Opened group', kind: 'group' }),
   createBroadcastConversation: async () => ({ id: 21, title: 'Announcements', kind: 'broadcast' }),
+  createMessage: async (conversationId, payload) => ({ id: 46, conversation_id: conversationId, body: payload.body, client_request_id: payload.client_request_id, sender: { display_name: 'Harness user' } }),
+  uploadAttachments: async (conversationId, formData) => ({ id: 47, conversation_id: conversationId, body: formData.get('body'), attachments: [{ id: 5, filename: 'example.png', content_type: 'image/png' }] }),
+  getAttachment: async () => new Blob(['harness']),
+  getAttachmentThumbnail: async () => new Blob(['harness'], { type: 'image/png' }),
 };
 
 function MessagingStateDump() {
@@ -103,6 +109,8 @@ function ConversationListEntry() {
 
 function ThreadEntry() { return <MessagingProvider api={messagingHarnessApi} activeConversationId={12}><Thread conversationId={12} /></MessagingProvider>; }
 function ReadTicksEntry() { return <MessagingProvider api={messagingHarnessApi} active={false}><ReadTicks messageId={44} conversation={{ id: 12, kind: 'group' }} /></MessagingProvider>; }
+function ComposerEntry() { return <MessagingProvider api={messagingHarnessApi} active={false}><Composer conversationId={12} replyTarget={{ id: 44, sender: { display_name: 'Alex' } }} /></MessagingProvider>; }
+function AttachmentListEntry() { return <MessagingProvider api={messagingHarnessApi} active={false}><AttachmentList attachments={[{ id: 5, filename: 'example.png', content_type: 'image/png' }, { id: 6, filename: 'notes.pdf', content_type: 'application/pdf' }]} /></MessagingProvider>; }
 
 export const entries = [
   { id: 'notification-bell', label: 'Notifications / Bell', Component: NotificationBellEntry },
@@ -112,4 +120,6 @@ export const entries = [
   { id: 'messaging-conversation-list', label: 'Messaging / Conversation list', Component: ConversationListEntry },
   { id: 'messaging-thread', label: 'Messaging / Thread', Component: ThreadEntry },
   { id: 'messaging-read-ticks', label: 'Messaging / Read ticks', Component: ReadTicksEntry },
+  { id: 'messaging-composer', label: 'Messaging / Composer', Component: ComposerEntry },
+  { id: 'messaging-attachment-list', label: 'Messaging / Attachment list', Component: AttachmentListEntry },
 ];

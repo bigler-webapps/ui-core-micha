@@ -1,5 +1,10 @@
 # Messaging deviations from jg
 
+## Chunk 4 — composer and attachments
+
+- The composer is an independently mountable provider collaborator and accepts the timeline's reply target as a small placement prop, instead of being coupled into jg's monolithic `Thread`. It preserves reply selection and clears that selection after a successful send.
+- Attachment previews are compact authenticated thumbnail fetches with explicit download actions rather than jg's gallery/lightbox. Preview and download retain viewer-gated byte access; the licensed interaction redesign avoids a second media-viewer state machine in this shared surface.
+
 ## Chunk 3 — timeline, replies and receipts
 
 - The timeline is split into `Thread`, `MessageBubble` and `ReadTicks`, with a simple expandable reply view rather than jg's coupled full-screen/thread-pane state. This preserves one-level reply viewing while allowing each surface to mount independently.

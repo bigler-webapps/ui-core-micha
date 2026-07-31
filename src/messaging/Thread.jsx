@@ -8,6 +8,13 @@ import { useMessaging } from './MessagingProvider';
 import { ReadTicks } from './ReadTicks';
 
 function chronological(messages) { return [...messages].sort((left, right) => new Date(left.created_at || 0) - new Date(right.created_at || 0)); }
+// A still-pending optimistic row (chunk 4) has a fake `local-<requestId>` id
+// and no durable server row yet — mounting ReadTicks against it would fire a
+// getMessageReadStatus REST call for an id the server has never heard of.
+// Wait for reconciliation (status !== 'pending') before showing read state.
+function canShowReadTicks(message, user) {
+  return Boolean(user?.id) && message.sender?.id === user.id && message.status !== 'pending';
+}
 
 /**
  * A standalone timeline. Compose/reaction/poll/attachment mutations remain
@@ -53,10 +60,9 @@ export function Thread({ conversationId, onReplyTargetChange }) {
         {!roots.length && <Typography color="text.secondary" textAlign="center" py={4}>{t('MessagingThread.EMPTY')}</Typography>}
         <Stack spacing={1}>{roots.map((message) => {
           const replies = chronological(Object.values(cache.messages).filter((item) => item.reply_to === message.id));
-          const isOwn = Boolean(user?.id) && message.sender?.id === user.id;
-          return <Stack key={message.id} spacing={0.75}><MessageBubble message={message} onReply={reply}>{isOwn && <ReadTicks messageId={message.id} conversation={conversation} />}</MessageBubble>
+          return <Stack key={message.id} spacing={0.75}><MessageBubble message={message} onReply={reply}>{canShowReadTicks(message, user) && <ReadTicks messageId={message.id} conversation={conversation} />}</MessageBubble>
             {(message.reply_count || replies.length) > 0 && <Button size="small" onClick={() => toggleReplies(message)}>{openThreads[message.id] ? t('MessagingThread.HIDE_REPLIES') : t('MessagingThread.SHOW_REPLIES', { count: message.reply_count || replies.length })}</Button>}
-            {openThreads[message.id] && <Stack spacing={0.75} sx={{ pl: 3, borderLeft: 2, borderColor: 'divider' }}>{replies.map((item) => <MessageBubble key={item.id} message={item} replyTo={message} onReply={reply}>{Boolean(user?.id) && item.sender?.id === user.id && <ReadTicks messageId={item.id} conversation={conversation} />}</MessageBubble>)}</Stack>}
+            {openThreads[message.id] && <Stack spacing={0.75} sx={{ pl: 3, borderLeft: 2, borderColor: 'divider' }}>{replies.map((item) => <MessageBubble key={item.id} message={item} replyTo={message} onReply={reply}>{canShowReadTicks(item, user) && <ReadTicks messageId={item.id} conversation={conversation} />}</MessageBubble>)}</Stack>}
             <Divider /></Stack>;
         })}</Stack>
       </Box>

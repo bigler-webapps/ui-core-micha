@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { ConversationLaunchers, ConversationList, MessageBubble, MessagingProvider, messagingTranslations, ReadTicks, Thread, useMessaging } from '../src/index';
+import { AttachmentList, Composer, ConversationLaunchers, ConversationList, MessageBubble, MessagingProvider, messagingTranslations, ReadTicks, Thread, useMessaging } from '../src/index';
 
 describe('messaging barrel exports', () => {
   it('exports the provider, hook, standalone list and launchers', () => {
@@ -10,6 +10,8 @@ describe('messaging barrel exports', () => {
     expect(Thread).toBeDefined();
     expect(MessageBubble).toBeDefined();
     expect(ReadTicks).toBeDefined();
+    expect(Composer).toBeDefined();
+    expect(AttachmentList).toBeDefined();
     expect(messagingTranslations).toBeDefined();
   });
 });

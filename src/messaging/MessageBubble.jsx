@@ -1,5 +1,6 @@
 import { Chip, Paper, Stack, Typography } from '@mui/material';
 import { useTranslation } from 'react-i18next';
+import { AttachmentList } from './AttachmentList';
 
 function senderName(message) {
   return message.sender?.display_name || message.sender?.username || message.sender_name || message.sender?.name;
@@ -22,7 +23,7 @@ export function MessageBubble({ message, replyTo, onReply, children }) {
         </Stack>
         <Typography sx={{ whiteSpace: 'pre-wrap' }}>{deleted ? t('MessagingThread.DELETED') : (message.body || message.title || '')}</Typography>
         {!deleted && <Stack direction="row" spacing={0.5} flexWrap="wrap">
-          {attachments.length > 0 && <Chip size="small" label={t('MessagingThread.ATTACHMENT_COUNT', { count: attachments.length })} />}
+          {attachments.length > 0 && <AttachmentList attachments={attachments} />}
           {reactions.length > 0 && <Chip size="small" label={t('MessagingThread.REACTION_COUNT', { count: reactions.length })} />}
           {message.poll && <Chip size="small" label={t('MessagingThread.POLL')} />}
         </Stack>}

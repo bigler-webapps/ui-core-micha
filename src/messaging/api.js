@@ -42,6 +42,6 @@ export function markConversationRead(conversationId, readAt) { return apiClient.
 export function getReadStatus(messageId) { return apiClient.get(`${BASE_URL}messages/${messageId}/read-status/`).then(data); }
 export function votePoll(pollId, optionIds) { return apiClient.post(`${BASE_URL}polls/${pollId}/vote/`, { option_ids: optionIds }).then(data); }
 export function closePoll(pollId) { return apiClient.post(`${BASE_URL}polls/${pollId}/close/`).then(data); }
-export function getAttachment(attachmentId) { return apiClient.get(`${BASE_URL}attachments/${attachmentId}/`).then(data); }
-export function getAttachmentThumbnail(attachmentId) { return apiClient.get(`${BASE_URL}attachments/${attachmentId}/thumbnail/`).then(data); }
+export function getAttachment(attachmentId) { return apiClient.get(`${BASE_URL}attachments/${attachmentId}/`, { responseType: 'blob' }).then(data); }
+export function getAttachmentThumbnail(attachmentId) { return apiClient.get(`${BASE_URL}attachments/${attachmentId}/thumbnail/`, { responseType: 'blob' }).then(data); }
 export function getUnreadCount() { return apiClient.get(`${BASE_URL}unread-count/`).then(data); }
