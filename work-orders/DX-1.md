@@ -26,6 +26,9 @@ messaging-specific.
 - A small set of harness entries covering the existing surfaces well enough to prove the harness is
   real: at minimum one notifications surface and one charts surface. Adding an entry for a new
   component must be a few lines, not a framework.
+- **A single component must be mountable standalone**, not only a whole assembled surface. MSG-3
+  relies on this: it requires one harness entry per named component as its decomposition forcing
+  function, so the harness must not assume an entry equals a full page.
 - A **mock transport layer** the entries drive: fixture data plus an injectable API/realtime adapter,
   so a surface can be exercised without a backend. Where a component takes its data through a
   provider, the harness supplies a mock provider rather than patching the component.

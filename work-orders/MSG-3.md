@@ -86,13 +86,42 @@ and must appear in the deviation list either as reproduced or as an explicitly s
 This file was missing from the first parity inventory and is exactly the shape of gap through which a
 feature disappears with nobody deciding to drop it.
 
+### Decomposition is a requirement, not a preference
+
+jg's messaging UI is one 2470-LOC component with a 2173-LOC test file. **Reproducing that shape in ucm
+is a scope violation, even if every feature is present.** The component list above is a set of binding
+boundaries, not a suggested file layout. Concretely:
+
+- **Each named component is a separately exported, independently mountable, independently testable
+  unit** — not an internal helper reachable only through `Thread`. `Composer`, `ReactionBar`,
+  `PollCard`, `AttachmentList` and `ReadTicks` must each stand on their own.
+- **Domain state lives in the provider and its normalized cache; components read it through the
+  hook.** Design §ucm surface says host apps get components, "not a forked state machine" — the
+  corollary inside ucm is that subcomponents do not receive conversation/message state by
+  prop-drilling through `Thread`. This is the actual cause of a 2470-LOC component, not the feature
+  count. **This applies to domain state only** — conversations, messages, receipts, unread counts,
+  poll results. Ephemeral UI state stays local to the component that owns it: composer draft text,
+  upload progress, scroll and virtualization position, open menus, hover state. Lifting those into
+  the provider would be a worse design, not a more compliant one.
+- **Every component gets its own DX-1 harness entry, mountable standalone.** This is the forcing
+  function: a monolith cannot be mounted piecewise, so the harness makes accidental re-monolithisation
+  visible immediately rather than at review time.
+- **Soft size trigger:** any single component file above ~400 LOC must be justified explicitly in that
+  chunk's review. Not a hard cap — a deliberate, argued exception is fine, an unexamined 1500-line
+  component is not.
+- `Thread` itself owns the timeline and its virtualization/scroll behaviour. Composing, reacting,
+  poll rendering, attachment rendering and receipt display are **collaborators it renders**, not
+  responsibilities it absorbs.
+
+The `ui_reviewer` pass at WO end covers this explicitly, alongside design-system consistency.
+
 ### Proposed chunk plan (staged commits, one independent review per chunk)
 
 1. `MessagingProvider` + API adapter + normalized cache + Layer-1 subscription (frames, `event_id`
    dedup, reconnect refetch).
 2. `ConversationList` + launchers + unread / archive / mute + list pagination.
-3. `Thread` + message rendering + one-level replies / thread view + infinite reverse scroll + read
-   ticks.
+3. `Thread` (timeline + scroll/virtualization only) + message rendering + one-level replies / thread
+   view + infinite reverse scroll, with `ReadTicks` as a separate collaborator component.
 4. `Composer` (optimistic send, retry/error) + attachment upload + `AttachmentList`.
 5. `ReactionBar` + `PollCard` + config/preferences + i18n sweep + barrel exports + the deviation list.
 
@@ -115,7 +144,9 @@ and say so; do not compress by dropping scope.
   chunk-4 lesson: a rejected upload must read as a rejection).
 - **i18n coverage:** every new key exists in all three languages; no hardcoded user-facing string.
 - **Exports regression:** the barrel exposes the new public surface, mirroring
-  `tests/notificationsExports.test.js`.
+  `tests/notificationsExports.test.js`. This doubles as the decomposition check — every named
+  component must be individually exported and individually renderable in its own test, which a
+  monolith cannot satisfy.
 - Existing ucm suites (notifications, onboarding, auth, charts) stay green — this WO is additive.
 
 Per AGENTS.md "Test scope", per-chunk runs stay scoped to that chunk; the WO-end gate is the
