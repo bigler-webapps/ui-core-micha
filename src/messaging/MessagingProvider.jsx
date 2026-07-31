@@ -269,7 +269,7 @@ export function MessagingProvider({ children, filters = {}, activeConversationId
       throw error;
     }
   }, [api, user]);
-  const sendAttachments = useCallback(async (conversationId, formData, { clientRequestId, optimisticMessage, retry = false } = {}) => {
+  const sendAttachments = useCallback(async (conversationId, formData, { clientRequestId, optimisticMessage, retry = false, onUploadProgress } = {}) => {
     const optimistic = {
       id: `local-${clientRequestId}`, conversation_id: conversationId, kind: 'chat', body: optimisticMessage?.body || '',
       reply_to: optimisticMessage?.reply_to || null, client_request_id: clientRequestId, created_at: new Date().toISOString(), status: 'pending',
@@ -279,7 +279,7 @@ export function MessagingProvider({ children, filters = {}, activeConversationId
     if (!retry) dispatch({ type: 'messageOptimistic', message: optimistic });
     else dispatch({ type: 'messageReconciled', message: { ...optimistic, status: 'pending', error: null } });
     try {
-      const message = await api.uploadAttachments(conversationId, formData, { idempotencyKey: clientRequestId });
+      const message = await api.uploadAttachments(conversationId, formData, { idempotencyKey: clientRequestId, onUploadProgress });
       dispatch({ type: 'messageReconciled', message: { ...message, conversation_id: message?.conversation_id ?? conversationId, client_request_id: message?.client_request_id ?? clientRequestId } });
       return message;
     } catch (error) {

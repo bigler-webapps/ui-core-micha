@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 
 import { extractApiErrorMessage, useMessaging } from './MessagingProvider';
 
-const QUICK_EMOJIS = ['👍', '❤️', '😂', '🎉', '👀'];
+export const QUICK_EMOJIS = ['👍', '❤️', '😂', '🎉', '👀'];
 
 /** Independently mountable aggregate reaction controls for one message. */
 export function ReactionBar({ message }) {

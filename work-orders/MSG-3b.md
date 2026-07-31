@@ -954,6 +954,17 @@ outcome from this chunk). This is the single most important deliverable of the w
 "why this WO exists" framing — do not compress it into a vague summary; go row by row, referencing the
 row number from the checklist in `work-orders/MSG-3b.md` Part A.
 
+**Correction from chunk 5's independent review, apply when writing row 36's deviation-doc entry:**
+chunk 5's guidance above (row 36 section) speculated the poll-disabled-while-images-staged gate exists
+"presumably because a message can't carry both a poll and attachments in one send." That premise is
+**not** true — verified against dcm's `services.py`: `send_message` and `create_poll` are always two
+structurally separate `Message` rows created via two separate API calls; there is no combined send that
+could carry both, so there is no server-side mutual-exclusivity constraint. The gate is real and kept
+(it's harmless UX convenience matching jg), but its deviation-doc rationale must say **"UI convenience,
+matching jg's composer behavior — no dcm-side constraint requires it,"** not the unverified premise
+above. Do not restate the wrong reasoning as fact — this is exactly the failure mode ("claimed
+completeness/reasoning without checking the seam") this WO exists to correct.
+
 **Required tests to WRITE (chunk 6 scope):**
 - Row 39: relative-timestamp rendering for a few representative ages (just-now, minutes, hours, days).
 - Row 40: only if genuinely fixing something (see the verify-first note above) — otherwise state the

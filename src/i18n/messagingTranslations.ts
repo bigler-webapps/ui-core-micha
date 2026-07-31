@@ -1,4 +1,8 @@
 export const messagingTranslations = {
+  'MessagingComposer.ADD_EMOJI': { de: 'Emoji hinzufügen', en: 'Add emoji', fr: 'Ajouter un emoji' },
+  'MessagingComposer.STAGED_FILES': { de: 'Vorgemerkte Anhänge', en: 'Staged attachments', fr: 'Pièces jointes préparées' },
+  'MessagingComposer.REMOVE_ATTACHMENT': { de: '{{name}} entfernen', en: 'Remove {{name}}', fr: 'Supprimer {{name}}' },
+  'MessagingComposer.UPLOADING': { de: 'Anhänge werden hochgeladen…', en: 'Uploading attachments…', fr: 'Téléversement des pièces jointes…' },
   'MessagingList.LABEL': { de: 'Unterhaltungen', en: 'Conversations', fr: 'Conversations' },
   'MessagingList.EMPTY': { de: 'Noch keine Unterhaltungen.', en: 'No conversations yet.', fr: 'Aucune conversation pour le moment.' },
   'MessagingList.NO_MESSAGES': { de: 'Noch keine Nachrichten', en: 'No messages yet', fr: 'Aucun message pour le moment' },

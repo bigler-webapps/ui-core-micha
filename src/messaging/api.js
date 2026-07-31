@@ -7,11 +7,12 @@ function data(response) {
   return response.data;
 }
 
-function requestConfig({ cursor, params, headers } = {}) {
+function requestConfig({ cursor, params, headers, onUploadProgress } = {}) {
   return {
     ...(params ? { params } : {}),
     ...(cursor ? { params: { ...(params || {}), cursor } } : {}),
     ...(headers ? { headers } : {}),
+    ...(onUploadProgress ? { onUploadProgress } : {}),
   };
 }
 
@@ -29,7 +30,7 @@ export function archiveConversation(conversationId, archived) { return apiClient
 export function patchConversationPreferences(conversationId, patch) { return apiClient.post(`${conversationsUrl}${conversationId}/preferences/`, patch).then(data); }
 export function listMessages(conversationId, { cursor } = {}) { return apiClient.get(`${conversationsUrl}${conversationId}/messages/`, requestConfig({ cursor })).then(data); }
 export function createMessage(conversationId, payload, { idempotencyKey } = {}) { return apiClient.post(`${conversationsUrl}${conversationId}/messages/`, payload, requestConfig({ headers: idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : undefined })).then(data); }
-export function uploadAttachments(conversationId, formData, { idempotencyKey } = {}) { return apiClient.post(`${conversationsUrl}${conversationId}/attachments/`, formData, requestConfig({ headers: idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : undefined })).then(data); }
+export function uploadAttachments(conversationId, formData, { idempotencyKey, onUploadProgress } = {}) { return apiClient.post(`${conversationsUrl}${conversationId}/attachments/`, formData, requestConfig({ headers: idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : undefined, onUploadProgress })).then(data); }
 export function createPoll(conversationId, payload, { idempotencyKey } = {}) { return apiClient.post(`${conversationsUrl}${conversationId}/polls/`, payload, requestConfig({ headers: idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : undefined })).then(data); }
 export function getMessage(messageId) { return apiClient.get(`${BASE_URL}messages/${messageId}/`).then(data); }
 export function patchMessage(messageId, patch) { return apiClient.patch(`${BASE_URL}messages/${messageId}/`, patch).then(data); }

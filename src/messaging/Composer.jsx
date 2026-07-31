@@ -1,13 +1,18 @@
-import { Alert, Button, Checkbox, Dialog, DialogActions, DialogContent, DialogTitle, FormControlLabel, IconButton, Stack, TextField, Typography } from '@mui/material';
+import { Alert, Box, Button, Checkbox, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle, FormControlLabel, IconButton, LinearProgress, Menu, MenuItem, Stack, TextField, Typography } from '@mui/material';
 import AttachFileIcon from '@mui/icons-material/AttachFile';
 import CampaignOutlinedIcon from '@mui/icons-material/CampaignOutlined';
+import CloseIcon from '@mui/icons-material/Close';
+import EmojiEmotionsOutlinedIcon from '@mui/icons-material/EmojiEmotionsOutlined';
 import PollOutlinedIcon from '@mui/icons-material/PollOutlined';
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
+import { compressImageForUpload } from './composerImageCompression';
 import { extractApiErrorMessage, useMessaging } from './MessagingProvider';
+import { QUICK_EMOJIS } from './ReactionBar';
 
 function newRequestId() { return globalThis.crypto?.randomUUID?.() || `message-${Date.now()}-${Math.random().toString(36).slice(2)}`; }
+function isImage(file) { return file.type?.startsWith('image/'); }
 
 /**
  * A provider-backed, independently mountable REST composer.
@@ -34,10 +39,20 @@ export function Composer({ conversationId, replyTarget = null, onReplyTargetChan
   const [announcementOpen, setAnnouncementOpen] = useState(false);
   const [announcementTitle, setAnnouncementTitle] = useState('');
   const [announcementBody, setAnnouncementBody] = useState('');
+  const [emojiAnchor, setEmojiAnchor] = useState(null);
+  const [previews, setPreviews] = useState([]);
+  const [uploadProgress, setUploadProgress] = useState(null);
   const inputRef = useRef(null);
+  const messageInputRef = useRef(null);
   useEffect(() => {
     if (replyTarget?.deleted_at) onReplyTargetChange?.(null);
   }, [replyTarget, onReplyTargetChange]);
+  useEffect(() => { setBody(''); setFiles([]); }, [conversationId]);
+  useEffect(() => {
+    const urls = files.map((file) => isImage(file) ? URL.createObjectURL(file) : null);
+    setPreviews(urls);
+    return () => urls.filter(Boolean).forEach((url) => URL.revokeObjectURL(url));
+  }, [files]);
   const submit = async (requestId = newRequestId(), retry = false) => {
     if (!body.trim() && !files.length) return;
     setSending(true); setError(null);
@@ -45,18 +60,29 @@ export function Composer({ conversationId, replyTarget = null, onReplyTargetChan
     try {
       if (files.length) {
         const formData = new FormData();
-        files.forEach((file) => formData.append('files[]', file));
+        const uploadFiles = await Promise.all(files.map(compressImageForUpload));
+        uploadFiles.forEach((file) => formData.append('files[]', file));
         if (payload.body) formData.append('body', payload.body);
         if (payload.reply_to) formData.append('reply_to', String(payload.reply_to));
         formData.append('client_request_id', requestId);
-        await sendAttachments(conversationId, formData, { clientRequestId: requestId, retry, optimisticMessage: { body: payload.body, reply_to: payload.reply_to, attachments: files.map((file, index) => ({ id: `local-${requestId}-${index}`, filename: file.name, content_type: file.type })) } });
+        setUploadProgress(0);
+        const onUploadProgress = (event) => setUploadProgress(event.total ? Math.round((event.loaded / event.total) * 100) : null);
+        await sendAttachments(conversationId, formData, { clientRequestId: requestId, retry, onUploadProgress, optimisticMessage: { body: payload.body, reply_to: payload.reply_to, attachments: files.map((file, index) => ({ id: `local-${requestId}-${index}`, filename: file.name, content_type: file.type })) } });
       } else await sendMessage(conversationId, payload, { clientRequestId: requestId, retry });
       setBody(''); setFiles([]); setFailed(null); onReplyTargetChange?.(null);
     } catch (sendError) {
       const message = extractApiErrorMessage(sendError);
       setError(files.length ? t('MessagingComposer.UPLOAD_ERROR', { message }) : t('MessagingComposer.SEND_ERROR', { message }));
       setFailed({ requestId, retry: true });
-    } finally { setSending(false); }
+    } finally { setSending(false); setUploadProgress(null); }
+  };
+  const removeFile = (index) => setFiles((current) => current.filter((_, fileIndex) => fileIndex !== index));
+  const insertEmoji = (emoji) => {
+    const input = messageInputRef.current?.querySelector?.('textarea') || messageInputRef.current;
+    const start = input?.selectionStart ?? body.length;
+    const end = input?.selectionEnd ?? start;
+    setBody(`${body.slice(0, start)}${emoji}${body.slice(end)}`); setEmojiAnchor(null);
+    requestAnimationFrame(() => { input?.focus(); input?.setSelectionRange(start + emoji.length, start + emoji.length); });
   };
   const submitPoll = async () => {
     const options = pollOptions.map((option) => option.trim()).filter(Boolean);
@@ -85,16 +111,33 @@ export function Composer({ conversationId, replyTarget = null, onReplyTargetChan
   return <Stack component="form" spacing={1} onSubmit={(event) => { event.preventDefault(); submit(); }} aria-label={t('MessagingComposer.LABEL')}>
     {replyTarget && <Alert severity="info" onClose={() => onReplyTargetChange?.(null)}>{t('MessagingComposer.REPLYING_TO', { sender: replyTarget.sender?.display_name || t('MessagingThread.UNKNOWN_SENDER') })}</Alert>}
     {error && <Alert severity="error" role="alert">{error}</Alert>}
+    {files.length > 0 && <Stack direction="row" spacing={0.5} flexWrap="wrap" aria-label={t('MessagingComposer.STAGED_FILES')}>
+      {files.map((file, index) => <Stack key={`${file.name}-${index}`} direction="row" alignItems="center" spacing={0.25} sx={{ border: 1, borderColor: 'divider', borderRadius: 1, p: 0.25 }}>
+        {previews[index] && <Box component="img" src={previews[index]} alt={file.name} width={36} height={36} sx={{ objectFit: 'cover' }} />}
+        <Typography variant="caption">{file.name}</Typography><IconButton type="button" size="small" aria-label={t('MessagingComposer.REMOVE_ATTACHMENT', { name: file.name })} onClick={() => removeFile(index)}><CloseIcon fontSize="inherit" /></IconButton>
+      </Stack>)}
+    </Stack>}
     {files.length > 0 && <Typography variant="caption">{t('MessagingComposer.FILES_SELECTED', { count: files.length })}</Typography>}
     <Stack direction="row" spacing={1} alignItems="flex-end">
       <input ref={inputRef} hidden type="file" multiple onChange={(event) => setFiles(Array.from(event.target.files || []))} />
       <IconButton type="button" aria-label={t('MessagingComposer.ADD_ATTACHMENT')} onClick={() => inputRef.current?.click()}><AttachFileIcon /></IconButton>
-      <IconButton type="button" aria-label={t('MessagingPoll.CREATE')} onClick={() => setPollOpen(true)}><PollOutlinedIcon /></IconButton>
+      <IconButton type="button" aria-label={t('MessagingComposer.ADD_EMOJI')} onClick={(event) => setEmojiAnchor(event.currentTarget)}><EmojiEmotionsOutlinedIcon /></IconButton>
+      <IconButton type="button" aria-label={t('MessagingPoll.CREATE')} disabled={pollOpen || files.some(isImage)} onClick={() => setPollOpen(true)}><PollOutlinedIcon /></IconButton>
       {allowAnnouncement && <IconButton type="button" aria-label={t('MessagingAnnouncement.CREATE')} onClick={() => setAnnouncementOpen(true)}><CampaignOutlinedIcon /></IconButton>}
-      <TextField fullWidth multiline minRows={2} value={body} onChange={(event) => setBody(event.target.value)} label={t('MessagingComposer.MESSAGE')} disabled={sending} />
+      <TextField inputRef={messageInputRef} fullWidth multiline minRows={2} value={body} onChange={(event) => setBody(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing) { event.preventDefault(); submit(); } }} label={t('MessagingComposer.MESSAGE')} disabled={sending} />
       <Button type="submit" variant="contained" disabled={sending || (!body.trim() && !files.length)}>{t('MessagingComposer.SEND')}</Button>
     </Stack>
+    {sending && files.length > 0 && <Stack spacing={0.5} role="status">
+      <Stack direction="row" spacing={1} alignItems="center">
+        {uploadProgress == null ? <CircularProgress size={16} /> : <CircularProgress size={16} variant="determinate" value={uploadProgress} />}
+        <Typography variant="caption">{t('MessagingComposer.UPLOADING')}</Typography>
+      </Stack>
+      {uploadProgress != null && <LinearProgress variant="determinate" value={uploadProgress} />}
+    </Stack>}
     {failed && <Button type="button" onClick={() => submit(failed.requestId, true)} disabled={sending}>{t('MessagingComposer.RETRY')}</Button>}
+    <Menu anchorEl={emojiAnchor} open={Boolean(emojiAnchor)} onClose={() => setEmojiAnchor(null)}>
+      {QUICK_EMOJIS.map((emoji) => <MenuItem key={emoji} onClick={() => insertEmoji(emoji)}>{emoji}</MenuItem>)}
+    </Menu>
     <Dialog open={pollOpen} onClose={() => !sending && setPollOpen(false)} fullWidth maxWidth="sm">
       <DialogTitle>{t('MessagingPoll.CREATE')}</DialogTitle><DialogContent><Stack spacing={1} sx={{ pt: 1 }}>
         <TextField label={t('MessagingPoll.QUESTION')} value={pollQuestion} onChange={(event) => setPollQuestion(event.target.value)} autoFocus />
