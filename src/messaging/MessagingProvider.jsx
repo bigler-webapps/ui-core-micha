@@ -154,7 +154,17 @@ export function applyFrame(state, frame, activeConversationId = null) {
   if (frame.type === 'reaction') {
     const messageId = frame.message_id ?? payload.message_id;
     const previous = state.messages[messageId] || { id: messageId };
-    return { ...state, messages: mergeById(state.messages, { ...previous, reactions: payload.reactions || frame.reactions || previous.reactions || [] }) };
+    // serialize_reactions (dcm) returns [{emoji, count}] only, never a
+    // per-viewer `reacted` flag, in any context — not REST, not frames, by
+    // design (aggregate-only). Wholesale-replacing `reactions` with the
+    // incoming server list would silently wipe every previously-known
+    // `reacted` flag on this message, not just whichever emoji changed.
+    // Merge by emoji instead: carry forward a previously-known `reacted`
+    // flag for any emoji still present in the incoming aggregate.
+    const incoming = payload.reactions || frame.reactions || previous.reactions || [];
+    const previousByEmoji = new Map((previous.reactions || []).map((reaction) => [reaction.emoji, reaction]));
+    const reactions = incoming.map((reaction) => ({ ...reaction, reacted: reaction.reacted ?? previousByEmoji.get(reaction.emoji)?.reacted ?? false }));
+    return { ...state, messages: mergeById(state.messages, { ...previous, reactions }) };
   }
   if (frame.type === 'poll_updated') {
     const messageId = frame.message_id ?? payload.message_id;
@@ -344,7 +354,14 @@ export function MessagingProvider({ children, filters = {}, activeConversationId
     patchMessage({ ...message, reactions: nextReactions });
     try {
       const result = active ? await api.removeReaction(messageId, emoji) : await api.addReaction(messageId, emoji);
-      patchMessage({ ...message, ...(result?.message || result), reactions: result?.reactions || result?.message?.reactions || nextReactions });
+      // Same aggregate-only shape as the realtime `reaction` frame (serialize_reactions
+      // never returns a per-viewer `reacted` flag) — merge the server's confirmed
+      // counts with the reacted flags nextReactions already computed correctly,
+      // rather than letting the reacted-less server array wipe them.
+      const confirmedCounts = result?.reactions || result?.message?.reactions;
+      const nextByEmoji = new Map(nextReactions.map((reaction) => [reaction.emoji, reaction]));
+      const reactions = confirmedCounts ? confirmedCounts.map((reaction) => ({ ...reaction, reacted: reaction.reacted ?? nextByEmoji.get(reaction.emoji)?.reacted ?? false })) : nextReactions;
+      patchMessage({ ...message, ...(result?.message || result), reactions });
       return result;
     } catch (error) { patchMessage(message); throw error; }
   }, [api, cache.messages, patchMessage]);

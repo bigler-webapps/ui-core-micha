@@ -19,7 +19,9 @@ afterEach(cleanup);
 
 describe('messaging reactions and polls', () => {
   it('round-trips add and remove reactions through the cache-backed API', async () => {
-    const api = baseApi(); api.addReaction.mockResolvedValue({ reactions: [{ emoji: '👍', count: 1, reacted: true }] }); api.removeReaction.mockResolvedValue({ reactions: [] });
+    // serialize_reactions (dcm) never returns a per-viewer `reacted` flag —
+    // {emoji, count} only, in every context.
+    const api = baseApi(); api.addReaction.mockResolvedValue({ reactions: [{ emoji: '👍', count: 1 }] }); api.removeReaction.mockResolvedValue({ reactions: [] });
     const { rerender } = render(<MessagingProvider api={api} active={false}><ReactionBar message={{ id: 7, reactions: [{ emoji: '👍', count: 1, reacted: false }] }} /></MessagingProvider>);
     fireEvent.click(screen.getByRole('button', { name: 'MessagingReactions.TOGGLE' })); await waitFor(() => expect(api.addReaction).toHaveBeenCalledWith(7, '👍'));
     rerender(<MessagingProvider api={api} active={false}><ReactionBar message={{ id: 7, reactions: [{ emoji: '👍', count: 1, reacted: true }] }} /></MessagingProvider>);

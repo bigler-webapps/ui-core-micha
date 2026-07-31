@@ -21,6 +21,33 @@ const FRAME_EXEMPTIONS = {
   thread_read_state: 'Receipt synchronisation is outside MSG-3b.',
 };
 
+const BLOCKED_LINE = /\*\*BLOCKED\*\*/;
+const VERSION_PIN = /dcm \d+\.\d+\.\d+/;
+
+// A BLOCKED row without a version pin is exactly how MSG-3b's seven blocked
+// rows went stale unnoticed: dcm shipped what they needed mid-flight and the
+// WO-end review had no cheap way to tell. This check can't know whether dcm
+// has since shipped — it only guarantees the pin exists, which is what turns
+// the re-check into a two-minute job instead of an archaeology exercise.
+function unpinnedBlockedLines(markdown) {
+  return markdown.split('\n').filter((line) => BLOCKED_LINE.test(line) && !VERSION_PIN.test(line));
+}
+
+describe('messaging deviation-doc BLOCKED entries carry a dependency version pin', () => {
+  it('every BLOCKED line in docs/messaging-deviations.md names the dcm version it was blocked at', () => {
+    const markdown = fs.readFileSync(path.join(root, 'docs', 'messaging-deviations.md'), 'utf8');
+    expect(unpinnedBlockedLines(markdown)).toEqual([]);
+  });
+
+  // Required negative case (the WO is explicit: prove the check can fail,
+  // not only that the real file happens to pass).
+  it('flags a BLOCKED line that omits the version pin', () => {
+    const unpinned = '99. **BLOCKED** — some capability with no dependency version named.';
+    const pinned = '100. **BLOCKED** (blocked as of dcm 2.37.0) — some other capability.';
+    expect(unpinnedBlockedLines(`${unpinned}\n${pinned}`)).toEqual([unpinned]);
+  });
+});
+
 describe('messaging adapter and realtime contract conformance', () => {
   it('has a caller for every API export unless it has an explicit rationale', () => {
     const apiSource = fs.readFileSync(path.join(messagingRoot, 'api.js'), 'utf8');
