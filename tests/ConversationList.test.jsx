@@ -17,7 +17,7 @@ describe('ConversationList', () => {
   let api;
   beforeEach(() => {
     api = {
-      listConversations: vi.fn().mockResolvedValue({ results: [{ id: 1, title: 'First', unread_count: 2, last_message: { body: 'Hello' } }], next_cursor: 'opaque-cursor' }),
+      listConversations: vi.fn().mockResolvedValue({ results: [{ id: 1, title: 'First', unread_count: 2, last_message: { excerpt: 'Hello' } }], next_cursor: 'opaque-cursor' }),
       getUnreadCount: vi.fn().mockResolvedValue({ unread_count: 2, by_conversation: { 1: 2 } }),
       listMessages: vi.fn().mockResolvedValue({ results: [] }),
       archiveConversation: vi.fn().mockResolvedValue({ id: 1, archived: true }),

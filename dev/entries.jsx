@@ -61,7 +61,7 @@ function RealtimeAdapterEntry() {
 const messagingHarnessApi = {
   listConversations: async ({ cursor } = {}) => cursor
     ? ({ results: [{ id: 13, title: 'Archived planning', last_message_at: '2026-07-30T09:00:00Z' }], next_cursor: null })
-    : ({ results: [{ id: 12, title: 'Support group', unread_count: 1, last_message_at: '2026-07-31T09:00:00Z', last_message: { body: 'Can someone help?' } }], next_cursor: 'signed-next-page' }),
+    : ({ results: [{ id: 12, title: 'Support group', unread_count: 1, last_message_at: '2026-07-31T09:00:00Z', last_message: { excerpt: 'Can someone help?' } }], next_cursor: 'signed-next-page' }),
   // GET conversations/{id}/messages/ returns roots only (design §REST); replies
   // come from GET messages/{root_id}/thread/ (listThread below), never mixed in here.
   listMessages: async (conversationId, { cursor } = {}) => cursor

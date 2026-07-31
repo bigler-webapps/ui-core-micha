@@ -141,7 +141,16 @@ export function applyFrame(state, frame, activeConversationId = null) {
       },
     };
   }
-  if (frame.type === 'message_edited') return { ...state, messages: mergeById(state.messages, payload) };
+  if (frame.type === 'message_edited') {
+    // dcm's publish_messaging_event always attaches a full frame.message
+    // (serialize_message) for this event type, so `payload` already carries
+    // the message's own `.id` in practice. The explicit `id:` override below
+    // is defensive only — it keeps this branch correct even if a future
+    // producer ever omits `.message` and falls through to the raw frame,
+    // whose `conversation_id` would otherwise win idOf()'s fallback order.
+    const messageId = frame.message_id ?? payload.message_id;
+    return { ...state, messages: mergeById(state.messages, { ...payload, id: messageId }) };
+  }
   if (frame.type === 'reaction') {
     const messageId = frame.message_id ?? payload.message_id;
     const previous = state.messages[messageId] || { id: messageId };

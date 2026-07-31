@@ -68,7 +68,7 @@ export function ConversationList({ onOpen, groupLaunchers, broadcastLauncher, au
               <Badge color="error" badgeContent={unread || null} max={99} sx={{ mr: 2 }}>
                 {archived ? <Archive fontSize="small" color="disabled" /> : <KindIcon conversation={conversation} />}
               </Badge>
-              <ListItemText primary={<Stack direction="row" spacing={1} justifyContent="space-between"><Typography component="span" fontWeight={unread ? 700 : 400} noWrap>{titleOf(conversation, t)}</Typography>{relativeTime(conversation.last_message_at, i18n?.language) && <Typography component="span" variant="caption" color="text.secondary" noWrap>{relativeTime(conversation.last_message_at, i18n?.language)}</Typography>}</Stack>} secondary={conversation.last_message?.body || t('MessagingList.NO_MESSAGES')} secondaryTypographyProps={{ noWrap: true }} />
+              <ListItemText primary={<Stack direction="row" spacing={1} justifyContent="space-between"><Typography component="span" fontWeight={unread ? 700 : 400} noWrap>{titleOf(conversation, t)}</Typography>{relativeTime(conversation.last_message_at, i18n?.language) && <Typography component="span" variant="caption" color="text.secondary" noWrap>{relativeTime(conversation.last_message_at, i18n?.language)}</Typography>}</Stack>} secondary={conversation.last_message?.excerpt || t('MessagingList.NO_MESSAGES')} secondaryTypographyProps={{ noWrap: true }} />
               <IconButton aria-label={t('MessagingList.ACTIONS')} onClick={(event) => { event.stopPropagation(); setMenuAnchor(event.currentTarget); setMenuConversation(conversation); }}><MoreVert /></IconButton>
             </ListItemButton>;
           })}
