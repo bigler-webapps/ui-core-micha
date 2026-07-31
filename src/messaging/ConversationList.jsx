@@ -10,6 +10,12 @@ function titleOf(conversation, t) { return conversation.title || conversation.ot
 function ordered(conversations) {
   return [...conversations].sort((left, right) => new Date(right.last_message_at || 0) - new Date(left.last_message_at || 0));
 }
+function relativeTime(value, locale) {
+  if (!value) return null;
+  const seconds = Math.max(0, Math.floor((Date.now() - new Date(value).getTime()) / 1000));
+  const [amount, unit] = seconds < 60 ? [0, 'second'] : seconds < 3600 ? [Math.floor(seconds / 60), 'minute'] : seconds < 86400 ? [Math.floor(seconds / 3600), 'hour'] : [Math.floor(seconds / 86400), 'day'];
+  return new Intl.RelativeTimeFormat(locale, { numeric: 'auto', style: 'narrow' }).format(-amount, unit);
+}
 // jg's ConversationList renders a distinct icon per conversation kind so a
 // user can identify type/person at a glance (getConversationAvatar); that
 // glanceable identification is a feature, not layout, so it's reproduced
@@ -22,7 +28,7 @@ function KindIcon({ conversation }) {
 
 /** A standalone, provider-backed list; scope picker metadata is supplied as launcher props. */
 export function ConversationList({ onOpen, groupLaunchers, broadcastLauncher, autoOpenBroadcast = false, includeArchived = false }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { cache, activeConversationId, loadMoreConversations, setConversationArchived, setConversationPreferences, markConversationRead } = useMessaging();
   const [menuConversation, setMenuConversation] = useState(null);
   const [menuAnchor, setMenuAnchor] = useState(null);
@@ -62,7 +68,7 @@ export function ConversationList({ onOpen, groupLaunchers, broadcastLauncher, au
               <Badge color="error" badgeContent={unread || null} max={99} sx={{ mr: 2 }}>
                 {archived ? <Archive fontSize="small" color="disabled" /> : <KindIcon conversation={conversation} />}
               </Badge>
-              <ListItemText primary={titleOf(conversation, t)} secondary={conversation.last_message?.body || t('MessagingList.NO_MESSAGES')} primaryTypographyProps={{ fontWeight: unread ? 700 : 400, noWrap: true }} secondaryTypographyProps={{ noWrap: true }} />
+              <ListItemText primary={<Stack direction="row" spacing={1} justifyContent="space-between"><Typography component="span" fontWeight={unread ? 700 : 400} noWrap>{titleOf(conversation, t)}</Typography>{relativeTime(conversation.last_message_at, i18n?.language) && <Typography component="span" variant="caption" color="text.secondary" noWrap>{relativeTime(conversation.last_message_at, i18n?.language)}</Typography>}</Stack>} secondary={conversation.last_message?.body || t('MessagingList.NO_MESSAGES')} secondaryTypographyProps={{ noWrap: true }} />
               <IconButton aria-label={t('MessagingList.ACTIONS')} onClick={(event) => { event.stopPropagation(); setMenuAnchor(event.currentTarget); setMenuConversation(conversation); }}><MoreVert /></IconButton>
             </ListItemButton>;
           })}

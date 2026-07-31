@@ -142,7 +142,7 @@ export function Composer({ conversationId, replyTarget = null, onReplyTargetChan
       <DialogTitle>{t('MessagingPoll.CREATE')}</DialogTitle><DialogContent><Stack spacing={1} sx={{ pt: 1 }}>
         <TextField label={t('MessagingPoll.QUESTION')} value={pollQuestion} onChange={(event) => setPollQuestion(event.target.value)} autoFocus />
         {pollOptions.map((option, index) => <TextField key={index} label={t('MessagingPoll.OPTION', { count: index + 1 })} value={option} onChange={(event) => setPollOptions((current) => current.map((value, optionIndex) => optionIndex === index ? event.target.value : value))} />)}
-        <Button type="button" onClick={() => setPollOptions((current) => [...current, ''])}>{t('MessagingPoll.ADD_OPTION')}</Button>
+        <Button type="button" disabled={pollOptions.length >= 10} onClick={() => setPollOptions((current) => [...current, ''])}>{t('MessagingPoll.ADD_OPTION')}</Button>
         <FormControlLabel control={<Checkbox checked={allowMultiple} onChange={(event) => setAllowMultiple(event.target.checked)} />} label={t('MessagingPoll.ALLOW_MULTIPLE')} />
       </Stack></DialogContent><DialogActions><Button onClick={() => setPollOpen(false)}>{t('MessagingPoll.CANCEL')}</Button><Button variant="contained" onClick={submitPoll} disabled={sending}>{t('MessagingPoll.CREATE')}</Button></DialogActions>
     </Dialog>

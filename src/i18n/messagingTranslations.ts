@@ -54,6 +54,7 @@ export const messagingTranslations = {
   'MessagingDirect.START_ERROR': { de: 'Direktnachricht konnte nicht gestartet werden.', en: 'Direct message could not be started.', fr: 'Impossible de démarrer le message direct.' },
   'MessagingReadTicks.ALL_READ': { de: 'Von allen gelesen', en: 'Read by everyone', fr: 'Lu par tout le monde' },
   'MessagingReadTicks.DELIVERED': { de: 'Zugestellt an {{count}}', en: 'Delivered to {{count}}', fr: 'Distribué à {{count}}' },
+  'MessagingReadTicks.RECIPIENTS': { de: 'Lesebestätigungen', en: 'Read recipients', fr: 'Destinataires lus' },
   'MessagingComposer.LABEL': { de: 'Nachricht verfassen', en: 'Compose message', fr: 'Rédiger un message' },
   'MessagingComposer.MESSAGE': { de: 'Nachricht', en: 'Message', fr: 'Message' },
   'MessagingComposer.SEND': { de: 'Senden', en: 'Send', fr: 'Envoyer' },
@@ -102,4 +103,5 @@ export const messagingTranslations = {
   'MessagingAnnouncement.CANCEL': { de: 'Abbrechen', en: 'Cancel', fr: 'Annuler' },
   'MessagingAnnouncement.VALIDATION': { de: 'Ein Titel ist erforderlich.', en: 'A title is required.', fr: 'Un titre est requis.' },
   'MessagingAnnouncement.ERROR': { de: 'Ankündigung konnte nicht gesendet werden: {{message}}', en: 'Announcement could not be sent: {{message}}', fr: 'Impossible d’envoyer l’annonce : {{message}}' },
+  'MessagingAnnouncement.OPEN_LINK': { de: 'Link öffnen', en: 'Open link', fr: 'Ouvrir le lien' },
 };

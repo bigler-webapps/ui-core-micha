@@ -28,7 +28,7 @@ function quoteLabel(message, t) {
 }
 
 /** Provider-backed timeline collaborator, including per-message mutations. */
-export function MessageBubble({ message, replyTo, onReply, onJumpToMessage, canModerateMessages = false, children }) {
+export function MessageBubble({ message, replyTo, conversation, onReply, onJumpToMessage, onAnnouncementLink, canModerateMessages = false, children }) {
   const { t } = useTranslation();
   const messaging = useOptionalMessaging();
   const { currentUser, editMessage, removeMessage } = messaging || {};
@@ -72,11 +72,12 @@ export function MessageBubble({ message, replyTo, onReply, onJumpToMessage, canM
           </Stack>
         </Button>}
         <Stack direction="row" spacing={1} alignItems="baseline">
-          <Typography variant="subtitle2">{senderName(message) || t('MessagingThread.UNKNOWN_SENDER')}</Typography>
+          {conversation?.kind !== 'direct' && <Typography variant="subtitle2">{senderName(message) || t('MessagingThread.UNKNOWN_SENDER')}</Typography>}
           {message.created_at && <Typography variant="caption" color="text.secondary">{new Date(message.created_at).toLocaleString()}</Typography>}
           {message.edited_at && !deleted && <Typography variant="caption" color="text.secondary">{t('MessagingThread.EDITED')}</Typography>}
         </Stack>
         {!deleted && message.kind === 'announcement' && message.title && <Typography variant="subtitle1" fontWeight={700}>{message.title}</Typography>}
+        {!deleted && message.kind === 'announcement' && message.link_target && onAnnouncementLink && <Button type="button" size="small" onClick={() => onAnnouncementLink(message.link_target)}>{t('MessagingAnnouncement.OPEN_LINK')}</Button>}
         {error && <Alert severity="error" role="alert">{error}</Alert>}
         {editing ? <Stack spacing={0.75}><TextField label={t('MessagingActions.EDIT')} value={draft} onChange={(event) => setDraft(event.target.value)} multiline minRows={2} autoFocus disabled={saving} /><Stack direction="row" spacing={1}><Button type="button" onClick={saveEdit} disabled={saving}>{t('MessagingActions.SAVE')}</Button><Button type="button" onClick={() => setEditing(false)} disabled={saving}>{t('MessagingActions.CANCEL')}</Button></Stack></Stack> : <Typography sx={{ whiteSpace: 'pre-wrap' }}>{deleted ? t('MessagingThread.DELETED') : (message.kind === 'announcement' ? message.body : (message.body || message.title)) || ''}</Typography>}
         {!deleted && <Stack spacing={0.75}>

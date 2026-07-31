@@ -61,7 +61,7 @@ describe('messaging Thread surfaces', () => {
     api.getReadStatus.mockResolvedValue({ all_read: false, delivered_count: 2, recipient_detail: [{ display_name: 'Visible recipient' }] });
     render(<MessagingProvider api={api} active={false}><ReadTicks messageId={2} conversation={{ id: 1, kind: 'group' }} /></MessagingProvider>);
     const tick = await screen.findByLabelText('MessagingReadTicks.DELIVERED:2');
-    fireEvent.mouseOver(tick);
+    fireEvent.click(tick);
     await screen.findByText('Visible recipient');
   });
 

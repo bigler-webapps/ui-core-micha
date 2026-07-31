@@ -28,31 +28,47 @@ function canShowReadTicks(message, user) {
  * `getMessageReadStatus` REST calls a rendered timeline fires — one per own
  * message shown, not one per message in the conversation.
  */
-export function Thread({ conversationId, onReplyTargetChange, canModerateMessages = false }) {
+export function Thread({ conversationId, onReplyTargetChange, canModerateMessages = false, onAnnouncementLink }) {
   const { t } = useTranslation();
   const { user } = useContext(AuthContext) || {};
   const { cache, loadMoreMessages, loadThreadReplies, markConversationRead, markThreadRead } = useMessaging();
   const scrollRef = useRef(null);
+  const wasNearBottomRef = useRef(true);
+  const messageCountRef = useRef(0);
   const [loadingOlder, setLoadingOlder] = useState(false);
   const [error, setError] = useState(null);
   const [replyingTo, setReplyingTo] = useState(null);
   const [openThreads, setOpenThreads] = useState({});
   const conversation = cache.conversations[conversationId];
+  const conversationMessages = useMemo(() => chronological(Object.values(cache.messages).filter((message) => message.conversation_id === conversationId)), [cache.messages, conversationId]);
   const roots = useMemo(() => chronological(Object.values(cache.messages).filter((message) => message.conversation_id === conversationId && !replyToId(message))), [cache.messages, conversationId]);
 
   useEffect(() => { if (conversationId != null) markConversationRead(conversationId).catch(() => {}); }, [conversationId, markConversationRead]);
+  useEffect(() => { wasNearBottomRef.current = true; messageCountRef.current = 0; }, [conversationId]);
   useEffect(() => {
     if (replyingTo && cache.messages[replyingTo.id]?.deleted_at) {
       setReplyingTo(null);
       onReplyTargetChange?.(null);
     }
   }, [cache.messages, onReplyTargetChange, replyingTo]);
+  useEffect(() => {
+    const isNewMessage = conversationMessages.length > messageCountRef.current;
+    messageCountRef.current = conversationMessages.length;
+    if (!isNewMessage || !wasNearBottomRef.current || !scrollRef.current) return;
+    const timeline = scrollRef.current;
+    if (typeof timeline.scrollTo === 'function') timeline.scrollTo({ top: timeline.scrollHeight, behavior: 'smooth' });
+    else timeline.scrollTop = timeline.scrollHeight;
+  }, [conversationMessages]);
 
   const loadOlder = useCallback(async () => {
     setLoadingOlder(true); setError(null);
     try { await loadMoreMessages(conversationId); } catch { setError(t('MessagingThread.LOAD_ERROR')); } finally { setLoadingOlder(false); }
   }, [conversationId, loadMoreMessages, t]);
-  const onScroll = () => { if (scrollRef.current?.scrollTop === 0 && cache.cursors.messages[conversationId] && !loadingOlder) loadOlder(); };
+  const onScroll = () => {
+    const timeline = scrollRef.current;
+    if (timeline) wasNearBottomRef.current = timeline.scrollHeight - timeline.scrollTop - timeline.clientHeight < 80;
+    if (timeline?.scrollTop === 0 && cache.cursors.messages[conversationId] && !loadingOlder) loadOlder();
+  };
   const reply = (message) => { setReplyingTo(message); onReplyTargetChange?.(message); };
   const jumpToMessage = (messageId) => {
     const target = [...(scrollRef.current?.querySelectorAll('[data-message-id]') || [])]
@@ -75,9 +91,9 @@ export function Thread({ conversationId, onReplyTargetChange, canModerateMessage
         {!roots.length && <Typography color="text.secondary" textAlign="center" py={4}>{t('MessagingThread.EMPTY')}</Typography>}
         <Stack spacing={1}>{roots.map((message) => {
           const replies = chronological(Object.values(cache.messages).filter((item) => String(replyToId(item)) === String(message.id)));
-          return <Stack key={message.id} spacing={0.75}><MessageBubble message={message} onReply={reply} onJumpToMessage={jumpToMessage} canModerateMessages={canModerateMessages}>{canShowReadTicks(message, user) && <ReadTicks messageId={message.id} conversation={conversation} />}</MessageBubble>
+          return <Stack key={message.id} spacing={0.75}><MessageBubble message={message} conversation={conversation} onReply={reply} onJumpToMessage={jumpToMessage} onAnnouncementLink={onAnnouncementLink} canModerateMessages={canModerateMessages}>{canShowReadTicks(message, user) && <ReadTicks messageId={message.id} conversation={conversation} />}</MessageBubble>
             {(message.reply_count || replies.length) > 0 && <Button size="small" onClick={() => toggleReplies(message)}>{openThreads[message.id] ? t('MessagingThread.HIDE_REPLIES') : t('MessagingThread.SHOW_REPLIES', { count: message.reply_count || replies.length })}</Button>}
-            {openThreads[message.id] && <Stack spacing={0.75} sx={{ pl: 3, borderLeft: 2, borderColor: 'divider' }}>{replies.map((item) => <MessageBubble key={item.id} message={item} replyTo={message} onReply={reply} onJumpToMessage={jumpToMessage} canModerateMessages={canModerateMessages}>{canShowReadTicks(item, user) && <ReadTicks messageId={item.id} conversation={conversation} />}</MessageBubble>)}</Stack>}
+            {openThreads[message.id] && <Stack spacing={0.75} sx={{ pl: 3, borderLeft: 2, borderColor: 'divider' }}>{replies.map((item) => <MessageBubble key={item.id} message={item} replyTo={message} conversation={conversation} onReply={reply} onJumpToMessage={jumpToMessage} onAnnouncementLink={onAnnouncementLink} canModerateMessages={canModerateMessages}>{canShowReadTicks(item, user) && <ReadTicks messageId={item.id} conversation={conversation} />}</MessageBubble>)}</Stack>}
             <Divider /></Stack>;
         })}</Stack>
       </Box>
