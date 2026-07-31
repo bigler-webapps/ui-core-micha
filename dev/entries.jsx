@@ -61,15 +61,29 @@ function RealtimeAdapterEntry() {
 const messagingHarnessApi = {
   listConversations: async ({ cursor } = {}) => cursor
     ? ({ results: [{ id: 13, title: 'Archived planning', last_message_at: '2026-07-30T09:00:00Z' }], next_cursor: null })
-    : ({ results: [{ id: 12, title: 'Support group', unread_count: 1, last_message_at: '2026-07-31T09:00:00Z', last_message: { excerpt: 'Can someone help?' } }], next_cursor: 'signed-next-page' }),
+    : ({ results: [
+        { id: 12, title: 'Support group', unread_count: 1, last_message_at: '2026-07-31T09:00:00Z', last_message: { excerpt: 'Can someone help?' } },
+        // Row 42 (MSG-3d): two managed conversations, distinguishable only via
+        // external_key — ucm renders whatever ConversationListEntry's
+        // resolveManagedLabel resolver below returns, never the raw value.
+        { id: 30, kind: 'managed', external_key: 'all', last_message_at: '2026-07-29T09:00:00Z' },
+        { id: 31, kind: 'managed', external_key: 'team', last_message_at: '2026-07-28T09:00:00Z' },
+      ], next_cursor: 'signed-next-page' }),
   // GET conversations/{id}/messages/ returns roots only (design §REST); replies
   // come from GET messages/{root_id}/thread/ (listThread below), never mixed in here.
+  // reply_count with no thread_last_read_at (MSG-3d row 27): the unread-reply
+  // marker on the thread toggle should render visibly by default here.
   listMessages: async (conversationId, { cursor } = {}) => cursor
     ? ({ results: [{ id: 42, conversation_id: conversationId, body: 'An older message', created_at: '2026-07-30T09:00:00Z' }], next_cursor: null })
-    : ({ results: [{ id: 44, conversation_id: conversationId, body: 'Initial message', created_at: '2026-07-31T09:00:00Z', sender: { display_name: 'Alex' }, reply_count: 1 }], next_cursor: 'signed-older-page' }),
+    : ({ results: [{ id: 44, conversation_id: conversationId, body: 'Initial message', created_at: '2026-07-31T09:00:00Z', sender: { display_name: 'Alex' }, reply_count: 1, last_reply_at: '2026-07-31T09:05:00Z', thread_last_read_at: null }], next_cursor: 'signed-older-page' }),
   listThread: async (rootId) => ({ results: [{ id: 45, reply_to: rootId, body: 'A reply', created_at: '2026-07-31T09:05:00Z', sender: { display_name: 'Sam' } }], next_cursor: null }),
   getReadStatus: async () => ({ all_read: false, delivered_count: 2 }),
   getUnreadCount: async () => ({ unread_count: 1, by_conversation: { 12: 1 } }),
+  markConversationRead: async () => ({}),
+  // The response's last_read_at (MSG-3d) maps onto the root's own
+  // thread_last_read_at cache field — clicking "Show replies" in this harness
+  // should make the unread-reply marker disappear.
+  markThreadRead: async () => ({ last_read_at: new Date().toISOString() }),
   archiveConversation: async (id, archived) => ({ id, archived }),
   patchConversationPreferences: async (id, patch) => ({ id, ...patch }),
   createGroupConversation: async (payload) => ({ id: 20, title: payload.title || 'Opened group', kind: 'group' }),
@@ -115,6 +129,7 @@ function ConversationListEntry() {
         groupLaunchers={[{ id: 'volunteers', label: 'Open volunteers group', payload: { title: 'Volunteers', participant_ids: [1, 2] } }]}
         broadcastLauncher={{ label: 'Open announcements', payload: { scope: { kind: 'global' } } }}
         onOpen={(conversation) => setOpened(conversation)}
+        resolveManagedLabel={(conversation) => (conversation.external_key === 'all' ? 'Everyone' : conversation.external_key === 'team' ? 'My team' : null)}
       />
       {opened && <Typography sx={{ mt: 2 }}>Opened: {opened.title}</Typography>}
     </MessagingProvider>
