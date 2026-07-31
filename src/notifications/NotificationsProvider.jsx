@@ -89,7 +89,7 @@ export function NotificationsProvider({ children, wsUrlBase }) {
   // arrived and patched state before the initial REST response landed.
   const [seeded, setSeeded] = useState(false);
 
-  const { subscribe } = useRealtimeCore({
+  const { subscribe, onReconnect } = useRealtimeCore({
     active: authenticated && seeded,
     wsUrl: getWebSocketUrl(wsUrlBase),
   });
@@ -200,7 +200,7 @@ export function NotificationsProvider({ children, wsUrlBase }) {
   const markDone = useCallback((ids) => mark('done', ids), [mark]);
 
   return (
-    <RealtimeContext.Provider value={{ subscribe }}>
+    <RealtimeContext.Provider value={{ subscribe, onReconnect }}>
       <NotificationsContext.Provider value={{
         notifications,
         unreadCount,

@@ -64,6 +64,10 @@ export { NotificationBell } from './notifications/NotificationBell';
 export { PopupSurface } from './notifications/PopupSurface';
 export { getNotificationFeed, getUnreadCount, markNotifications } from './notifications/feedApi';
 
+// --- 9. Messaging ---
+export * from './messaging/api';
+export { MessagingProvider, useMessaging } from './messaging/MessagingProvider';
+
 // --- 9. Onboarding ---
 export * from './onboarding/api';
 export { selectActiveSteps } from './onboarding/stepSelection';

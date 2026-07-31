@@ -37,6 +37,13 @@ function StreamConsumer({ envelope, testId }) {
   return <output data-testid={testId}>{JSON.stringify(received)}</output>;
 }
 
+function ReconnectConsumer() {
+  const { onReconnect } = useRealtime();
+  const [count, setCount] = React.useState(0);
+  React.useEffect(() => onReconnect(() => setCount((current) => current + 1)), [onReconnect]);
+  return <output data-testid="reconnect-count">{count}</output>;
+}
+
 function NotificationsConsumer() {
   const notifications = useNotifications();
   return (
@@ -176,6 +183,26 @@ describe('realtime primitive (NOTIF-13)', () => {
 
       await vi.waitFor(() => expect(received('message-stream')).toHaveLength(1));
       expect(received('message-stream')[0]).toEqual(expect.objectContaining({ body: 'after-reopen' }));
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('additively signals consumers when a closed connection re-establishes', async () => {
+    vi.useFakeTimers();
+    try {
+      render(
+        <AuthContext.Provider value={{ user: { id: 4 } }}>
+          <NotificationsProvider><ReconnectConsumer /></NotificationsProvider>
+        </AuthContext.Provider>,
+      );
+      await vi.waitFor(() => expect(MockWebSocket.instances).toHaveLength(1));
+      MockWebSocket.instances[0].onopen();
+      expect(screen.getByTestId('reconnect-count').textContent).toBe('0');
+      MockWebSocket.instances[0].onclose();
+      await vi.advanceTimersByTimeAsync(1_000);
+      MockWebSocket.instances[1].onopen();
+      await vi.waitFor(() => expect(screen.getByTestId('reconnect-count').textContent).toBe('1'));
     } finally {
       vi.useRealTimers();
     }

@@ -53,6 +53,7 @@ MockWebSocket.CLOSED = 3;
 export function createMockTransport({ notifications = notificationFixtures } = {}) {
   let feed = [...notifications];
   const subscribers = new Map();
+  const reconnectSubscribers = new Set();
 
   return {
     async adapter(config) {
@@ -79,6 +80,14 @@ export function createMockTransport({ notifications = notificationFixtures } = {
       subscribers.set(envelope, handlers);
       return () => handlers.delete(handler);
     },
+    // Mirrors the shape `useRealtimeCore` returns (`{ subscribe, onReconnect }`,
+    // the MSG-3 chunk-1 additive extension) so a component that calls
+    // `onReconnect()` internally (e.g. MessagingProvider) can be exercised in
+    // the harness the same way `dispatchReconnect()` lets it be triggered.
+    onReconnect(handler) {
+      reconnectSubscribers.add(handler);
+      return () => reconnectSubscribers.delete(handler);
+    },
     // Drives both consumption paths: components reading `useRealtime()`
     // from an ambient RealtimeContext (e.g. a harness entry composed
     // directly under MockTransportProvider), and components that open
@@ -88,6 +97,9 @@ export function createMockTransport({ notifications = notificationFixtures } = {
       const envelope = frame.envelope || 'notification';
       subscribers.get(envelope)?.forEach((handler) => handler(frame));
       MockWebSocket.dispatch(frame);
+    },
+    dispatchReconnect() {
+      reconnectSubscribers.forEach((handler) => handler());
     },
   };
 }
@@ -100,7 +112,7 @@ export function MockTransportProvider({ children }) {
     window.WebSocket = MockWebSocket;
   }
   const transport = transportRef.current;
-  const realtimeValue = useMemo(() => ({ subscribe: transport.subscribe }), [transport]);
+  const realtimeValue = useMemo(() => ({ subscribe: transport.subscribe, onReconnect: transport.onReconnect }), [transport]);
 
   return (
     <MockTransportContext.Provider value={transport}>

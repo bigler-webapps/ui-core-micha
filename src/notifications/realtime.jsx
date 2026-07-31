@@ -33,6 +33,7 @@ export { RealtimeContext };
 export function useRealtimeCore({ active, wsUrl }) {
   const socketRef = useRef(null);
   const subscribersRef = useRef(new Map());
+  const reconnectSubscribersRef = useRef(new Set());
 
   const subscribe = useCallback((envelope, handler) => {
     const subscribers = subscribersRef.current;
@@ -50,12 +51,21 @@ export function useRealtimeCore({ active, wsUrl }) {
     };
   }, []);
 
+  // Additive lifecycle signal for domains whose REST projections must be
+  // refreshed after the one shared transport reconnects. It deliberately does
+  // not alter the socket/backoff ownership or the envelope subscriber API.
+  const onReconnect = useCallback((handler) => {
+    reconnectSubscribersRef.current.add(handler);
+    return () => reconnectSubscribersRef.current.delete(handler);
+  }, []);
+
   useEffect(() => {
     if (!active) return undefined;
 
     let isActive = true;
     let reconnectTimer = null;
     let backoffMs = INITIAL_BACKOFF_MS;
+    let hasConnected = false;
 
     const handleMessage = (event) => {
       let data;
@@ -85,6 +95,16 @@ export function useRealtimeCore({ active, wsUrl }) {
 
       socket.onopen = () => {
         backoffMs = INITIAL_BACKOFF_MS;
+        if (hasConnected) {
+          reconnectSubscribersRef.current.forEach((handler) => {
+            try {
+              handler();
+            } catch (error) {
+              console.error('Realtime reconnect subscriber error', error);
+            }
+          });
+        }
+        hasConnected = true;
       };
       socket.onmessage = handleMessage;
       socket.onerror = () => {
@@ -114,5 +134,5 @@ export function useRealtimeCore({ active, wsUrl }) {
     };
   }, [active, wsUrl]);
 
-  return { subscribe };
+  return { subscribe, onReconnect };
 }
