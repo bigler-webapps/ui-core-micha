@@ -180,6 +180,32 @@ them until dcm ships and say so if the sequencing slips.
 
 Everything else in this WO is buildable against dcm 2.36.1 today.
 
+### Chunk plan — the unblocked scope (staged commits, one independent review per chunk)
+
+**In scope now: 39 rows.** Rows marked `OK` or `DEV` need no work; rows 38, 51-53 and 56-58 are
+BLOCKED on `MSG-2c` and stay untouched. Everything else is buildable against dcm 2.36.1 today.
+
+| Chunk | Rows | Content |
+|---|---|---|
+| 1 | 1-5, plus the contract-conformance test | Unread lifecycle end to end: mark-read on select and on open, thread read, global badge decrement, live increment for non-active conversations. Do this first — it is the one outright broken loop, and the conformance test written here guides every chunk after it. |
+| 2 | 23-27 | Threading: fix the `reply_to_id`/`reply_to` mismatch (row 23 makes an already-built feature work), then quoted preview, jump-to-original, quote blanking on delete, unread-reply dot. |
+| 3 | 6-12, 16 | Message action menu (hover / long-press / right-click), edit, delete with confirmation, copy, and the state-clearing behaviour when a message under edit or reply is deleted. |
+| 4 | 17-22 | DM launcher and recipient picker, candidate list host-supplied via a `groupLaunchers`-style prop. |
+| 5 | 30-34, 36, 37 | Composer: Shift+Enter, staged-image previews with per-file remove, upload progress, client-side image compression, emoji insertion at cursor. Row 37 is a **record-only** item — do not reproduce jg's draft leak. |
+| 6 | 39, 40, 42, 45-47, 50, 54, plus the corrected deviation list | List timestamp and active-row highlight, the managed all-vs-team decision, auto-scroll, announcement deep-link rendering, sender-name suppression in DMs, read-status detail, poll option bounds. Close with the deviation list rewritten against this checklist. |
+
+Rows 45, 47, 50, 54 and 42 are marked verify/decide: look at the code before calling them done in
+either direction, and record the outcome in the deviation list rather than leaving it implicit.
+
+**Conformance-test exemptions.** The test from chunk 1 will flag every `api.js` export without a caller.
+After this WO wires `markConversationRead`, `markThreadRead`, `patchMessage`, `deleteMessage` and
+`createDirectConversation`, three remain unwired: `createManagedConversation`,
+`createObjectThreadConversation` and `getMessage`. Each must either get an explicit, reasoned exemption
+entry or be removed — an unexplained allowlist entry reintroduces exactly the blind spot this test
+exists to close. The frame side of the test compares handlers against **the design's frame list**, not
+against what the backend currently emits, so handlers for `reaction` and `poll_updated` are correct and
+must not be deleted while `MSG-2c` is outstanding.
+
 ### Required tests to WRITE
 
 - **One test per row above that this WO implements.** A capability with no test is not delivered.
