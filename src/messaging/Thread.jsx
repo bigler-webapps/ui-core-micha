@@ -1,5 +1,5 @@
 import { Alert, Box, Button, CircularProgress, Divider, Stack, Typography } from '@mui/material';
-import { useCallback, useContext, useMemo, useRef, useState } from 'react';
+import { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { AuthContext } from '../auth/AuthContext';
@@ -30,7 +30,7 @@ function canShowReadTicks(message, user) {
 export function Thread({ conversationId, onReplyTargetChange }) {
   const { t } = useTranslation();
   const { user } = useContext(AuthContext) || {};
-  const { cache, loadMoreMessages, loadThreadReplies } = useMessaging();
+  const { cache, loadMoreMessages, loadThreadReplies, markConversationRead, markThreadRead } = useMessaging();
   const scrollRef = useRef(null);
   const [loadingOlder, setLoadingOlder] = useState(false);
   const [error, setError] = useState(null);
@@ -38,6 +38,8 @@ export function Thread({ conversationId, onReplyTargetChange }) {
   const [openThreads, setOpenThreads] = useState({});
   const conversation = cache.conversations[conversationId];
   const roots = useMemo(() => chronological(Object.values(cache.messages).filter((message) => message.conversation_id === conversationId && !message.reply_to)), [cache.messages, conversationId]);
+
+  useEffect(() => { if (conversationId != null) markConversationRead(conversationId).catch(() => {}); }, [conversationId, markConversationRead]);
 
   const loadOlder = useCallback(async () => {
     setLoadingOlder(true); setError(null);
@@ -48,6 +50,7 @@ export function Thread({ conversationId, onReplyTargetChange }) {
   const toggleReplies = async (root) => {
     if (!openThreads[root.id]) {
       try { await loadThreadReplies(root.id); } catch { setError(t('MessagingThread.REPLIES_ERROR')); return; }
+      markThreadRead(root.id).catch(() => {});
     }
     setOpenThreads((current) => ({ ...current, [root.id]: !current[root.id] }));
   };

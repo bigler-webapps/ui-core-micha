@@ -11,6 +11,8 @@ import {
   listMessages,
   listThread,
   patchConversationPreferences,
+  markConversationRead,
+  markThreadRead,
   createMessage,
   uploadAttachments,
   getAttachment,
@@ -31,6 +33,7 @@ const EMPTY_CACHE = { conversations: {}, messages: {}, threads: {}, polls: {}, r
 const DEFAULT_API = {
   listConversations, listMessages, listThread, getReadStatus, getUnreadCount, archiveConversation,
   patchConversationPreferences, createGroupConversation, createBroadcastConversation,
+  markConversationRead, markThreadRead,
   createMessage, uploadAttachments, getAttachment, getAttachmentThumbnail,
   addReaction, removeReaction, createPoll, votePoll, closePoll, getConversationConfig, patchConversationConfig,
 };
@@ -96,17 +99,43 @@ export function messagingReducer(state, action) {
       return { ...state, messages: { ...state.messages, [key]: { ...message, status: 'error', error: action.error } } };
     }
     case 'messagePatched': return { ...state, messages: mergeById(state.messages, action.message) };
-    case 'frame': return applyFrame(state, action.frame);
+    case 'conversationRead': {
+      const previousCount = state.unread?.by_conversation?.[action.conversationId] || 0;
+      if (!previousCount) return state;
+      return {
+        ...state,
+        unread: {
+          ...state.unread,
+          unread_count: Math.max(0, (state.unread?.unread_count || 0) - previousCount),
+          by_conversation: { ...state.unread.by_conversation, [action.conversationId]: 0 },
+        },
+      };
+    }
+    case 'frame': return applyFrame(state, action.frame, action.activeConversationId);
     default: return state;
   }
 }
 
-export function applyFrame(state, frame) {
+export function applyFrame(state, frame, activeConversationId = null) {
   const payload = frame.message || frame.conversation || frame.participant || frame;
   const conversationId = frame.conversation_id ?? payload.conversation_id;
   if (frame.type === 'message') {
     const message = { ...payload, conversation_id: conversationId };
-    return { ...state, messages: reconcileMessage(state.messages, message) };
+    const requestId = clientRequestIdOf(message);
+    const reconcilesOptimisticMessage = Boolean(requestId && Object.values(state.messages).some((item) => clientRequestIdOf(item) === requestId));
+    const messages = reconcileMessage(state.messages, message);
+    if (conversationId == null || String(conversationId) === String(activeConversationId) || reconcilesOptimisticMessage) return { ...state, messages };
+    const unread = state.unread || EMPTY_CACHE.unread;
+    const previousCount = unread.by_conversation?.[conversationId] || 0;
+    return {
+      ...state,
+      messages,
+      unread: {
+        ...unread,
+        unread_count: (unread.unread_count || 0) + 1,
+        by_conversation: { ...unread.by_conversation, [conversationId]: previousCount + 1 },
+      },
+    };
   }
   if (frame.type === 'message_edited') return { ...state, messages: mergeById(state.messages, payload) };
   if (frame.type === 'reaction') {
@@ -191,6 +220,12 @@ export function MessagingProvider({ children, filters = {}, activeConversationId
     const conversation = await api.patchConversationPreferences(conversationId, patch);
     return updateConversation({ ...conversation, id: conversation?.id ?? conversationId, ...patch });
   }, [api, updateConversation]);
+  const markConversationAsRead = useCallback(async (conversationId, readAt) => {
+    const result = await api.markConversationRead(conversationId, readAt);
+    dispatch({ type: 'conversationRead', conversationId });
+    return result;
+  }, [api]);
+  const markReplyThreadRead = useCallback((rootId, readAt) => api.markThreadRead(rootId, readAt), [api]);
   const openGroupConversation = useCallback(async (payload) => {
     const conversation = await api.createGroupConversation(payload);
     return updateConversation(conversation);
@@ -296,7 +331,7 @@ export function MessagingProvider({ children, filters = {}, activeConversationId
       seenEventsRef.current.add(frame.event_id);
       if (seenEventsRef.current.size > 500) seenEventsRef.current.delete(seenEventsRef.current.values().next().value);
     }
-    dispatch({ type: 'frame', frame });
+    dispatch({ type: 'frame', frame, activeConversationId: activeIdRef.current });
   }), [subscribe]);
   useEffect(() => {
     if (!active || !onReconnect) return undefined;
@@ -306,11 +341,12 @@ export function MessagingProvider({ children, filters = {}, activeConversationId
   const value = useMemo(() => ({
     cache, refresh, refreshConversations, refreshUnread, refreshThread, loadMoreMessages, loadThreadReplies, getMessageReadStatus, loadMoreConversations,
     setConversationArchived, setConversationPreferences, openGroupConversation,
+    markConversationRead: markConversationAsRead, markThreadRead: markReplyThreadRead,
     openBroadcastConversation, sendMessage, sendAttachments, toggleReaction, createConversationPoll, castPollVote, closeConversationPoll,
     loadConversationConfig, saveConversationConfig, currentUser: user, getAttachment: api.getAttachment,
     getAttachmentThumbnail: api.getAttachmentThumbnail, activeConversationId,
   }), [cache, refresh, refreshConversations, refreshUnread, refreshThread, loadMoreMessages, loadThreadReplies, getMessageReadStatus, loadMoreConversations,
-    setConversationArchived, setConversationPreferences, openGroupConversation,
+    setConversationArchived, setConversationPreferences, openGroupConversation, markConversationAsRead, markReplyThreadRead,
     openBroadcastConversation, sendMessage, sendAttachments, toggleReaction, createConversationPoll, castPollVote, closeConversationPoll,
     loadConversationConfig, saveConversationConfig, user, api.getAttachment, api.getAttachmentThumbnail, activeConversationId]);
   return <MessagingContext.Provider value={value}>{children}</MessagingContext.Provider>;
