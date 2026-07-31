@@ -15,6 +15,13 @@ import {
   uploadAttachments,
   getAttachment,
   getAttachmentThumbnail,
+  addReaction,
+  removeReaction,
+  createPoll,
+  votePoll,
+  closePoll,
+  getConversationConfig,
+  patchConversationConfig,
 } from './api';
 import { useRealtime } from '../notifications/realtime';
 
@@ -25,6 +32,7 @@ const DEFAULT_API = {
   listConversations, listMessages, listThread, getReadStatus, getUnreadCount, archiveConversation,
   patchConversationPreferences, createGroupConversation, createBroadcastConversation,
   createMessage, uploadAttachments, getAttachment, getAttachmentThumbnail,
+  addReaction, removeReaction, createPoll, votePoll, closePoll, getConversationConfig, patchConversationConfig,
 };
 
 function idOf(item) { return item?.id ?? item?.conversation_id ?? item?.message_id ?? item?.poll_id; }
@@ -87,6 +95,7 @@ export function messagingReducer(state, action) {
       const [key, message] = matching;
       return { ...state, messages: { ...state.messages, [key]: { ...message, status: 'error', error: action.error } } };
     }
+    case 'messagePatched': return { ...state, messages: mergeById(state.messages, action.message) };
     case 'frame': return applyFrame(state, action.frame);
     default: return state;
   }
@@ -100,6 +109,17 @@ export function applyFrame(state, frame) {
     return { ...state, messages: reconcileMessage(state.messages, message) };
   }
   if (frame.type === 'message_edited') return { ...state, messages: mergeById(state.messages, payload) };
+  if (frame.type === 'reaction') {
+    const messageId = frame.message_id ?? payload.message_id;
+    const previous = state.messages[messageId] || { id: messageId };
+    return { ...state, messages: mergeById(state.messages, { ...previous, reactions: payload.reactions || frame.reactions || previous.reactions || [] }) };
+  }
+  if (frame.type === 'poll_updated') {
+    const messageId = frame.message_id ?? payload.message_id;
+    const previous = state.messages[messageId] || { id: messageId };
+    const poll = payload.poll || frame.poll || payload;
+    return { ...state, messages: mergeById(state.messages, { ...previous, poll }), polls: mergeById(state.polls, poll) };
+  }
   if (frame.type === 'message_deleted') {
     const previous = state.messages[frame.message_id] || {};
     return { ...state, messages: { ...state.messages, [frame.message_id]: { ...previous, id: frame.message_id, deleted_at: frame.deleted_at, deleted_by: frame.deleted_by, body: null, title: null, link_target: null } } };
@@ -186,6 +206,8 @@ export function MessagingProvider({ children, filters = {}, activeConversationId
       conversation_id: conversationId,
       kind: payload.kind || 'chat',
       body: payload.body || '',
+      title: payload.title || null,
+      link_target: payload.link_target || null,
       reply_to: payload.reply_to || null,
       client_request_id: requestId,
       created_at: new Date().toISOString(),
@@ -222,6 +244,43 @@ export function MessagingProvider({ children, filters = {}, activeConversationId
       throw error;
     }
   }, [api, user]);
+  const patchMessage = useCallback((message) => dispatch({ type: 'messagePatched', message }), []);
+  const toggleReaction = useCallback(async (messageId, emoji, active) => {
+    const message = cache.messages[messageId] || { id: messageId };
+    const reactions = message.reactions || [];
+    const current = reactions.find((reaction) => reaction.emoji === emoji);
+    const nextReactions = active
+      ? reactions.map((reaction) => reaction.emoji === emoji ? { ...reaction, reacted: false, count: Math.max(0, (reaction.count || 1) - 1) } : reaction).filter((reaction) => reaction.count !== 0)
+      : current
+        ? reactions.map((reaction) => reaction.emoji === emoji ? { ...reaction, reacted: true, count: (reaction.count || 0) + 1 } : reaction)
+        : [...reactions, { emoji, count: 1, reacted: true }];
+    patchMessage({ ...message, reactions: nextReactions });
+    try {
+      const result = active ? await api.removeReaction(messageId, emoji) : await api.addReaction(messageId, emoji);
+      patchMessage({ ...message, ...(result?.message || result), reactions: result?.reactions || result?.message?.reactions || nextReactions });
+      return result;
+    } catch (error) { patchMessage(message); throw error; }
+  }, [api, cache.messages, patchMessage]);
+  const createConversationPoll = useCallback(async (conversationId, payload, { clientRequestId } = {}) => {
+    const poll = await api.createPoll(conversationId, { ...payload, client_request_id: clientRequestId }, { idempotencyKey: clientRequestId });
+    const message = poll?.message || poll;
+    if (message?.id != null) patchMessage({ ...message, conversation_id: message.conversation_id ?? conversationId, poll: message.poll || poll.poll || poll });
+    return poll;
+  }, [api, patchMessage]);
+  const castPollVote = useCallback(async (messageId, poll, optionIds) => {
+    const result = await api.votePoll(poll.id, optionIds);
+    const nextPoll = { ...poll, ...(result?.poll || result) };
+    patchMessage({ ...(cache.messages[messageId] || { id: messageId }), poll: nextPoll });
+    return result;
+  }, [api, cache.messages, patchMessage]);
+  const closeConversationPoll = useCallback(async (messageId, poll) => {
+    const result = await api.closePoll(poll.id);
+    const nextPoll = { ...poll, ...(result?.poll || result), closed_at: result?.poll?.closed_at || result?.closed_at || new Date().toISOString() };
+    patchMessage({ ...(cache.messages[messageId] || { id: messageId }), poll: nextPoll });
+    return result;
+  }, [api, cache.messages, patchMessage]);
+  const loadConversationConfig = useCallback((conversationId) => api.getConversationConfig(conversationId), [api]);
+  const saveConversationConfig = useCallback((conversationId, patch) => api.patchConversationConfig(conversationId, patch), [api]);
   const refresh = useCallback(async () => Promise.all([refreshConversations(), refreshUnread(), refreshThread()]), [refreshConversations, refreshThread, refreshUnread]);
 
   // `/api/messaging/` is authenticated-only (design §REST). Host apps mount
@@ -247,11 +306,13 @@ export function MessagingProvider({ children, filters = {}, activeConversationId
   const value = useMemo(() => ({
     cache, refresh, refreshConversations, refreshUnread, refreshThread, loadMoreMessages, loadThreadReplies, getMessageReadStatus, loadMoreConversations,
     setConversationArchived, setConversationPreferences, openGroupConversation,
-    openBroadcastConversation, sendMessage, sendAttachments, getAttachment: api.getAttachment,
+    openBroadcastConversation, sendMessage, sendAttachments, toggleReaction, createConversationPoll, castPollVote, closeConversationPoll,
+    loadConversationConfig, saveConversationConfig, currentUser: user, getAttachment: api.getAttachment,
     getAttachmentThumbnail: api.getAttachmentThumbnail, activeConversationId,
   }), [cache, refresh, refreshConversations, refreshUnread, refreshThread, loadMoreMessages, loadThreadReplies, getMessageReadStatus, loadMoreConversations,
     setConversationArchived, setConversationPreferences, openGroupConversation,
-    openBroadcastConversation, sendMessage, sendAttachments, api.getAttachment, api.getAttachmentThumbnail, activeConversationId]);
+    openBroadcastConversation, sendMessage, sendAttachments, toggleReaction, createConversationPoll, castPollVote, closeConversationPoll,
+    loadConversationConfig, saveConversationConfig, user, api.getAttachment, api.getAttachmentThumbnail, activeConversationId]);
   return <MessagingContext.Provider value={value}>{children}</MessagingContext.Provider>;
 }
 

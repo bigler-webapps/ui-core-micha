@@ -13,6 +13,9 @@ import { Thread } from '../src/messaging/Thread';
 import { ReadTicks } from '../src/messaging/ReadTicks';
 import { Composer } from '../src/messaging/Composer';
 import { AttachmentList } from '../src/messaging/AttachmentList';
+import { ReactionBar } from '../src/messaging/ReactionBar';
+import { PollCard } from '../src/messaging/PollCard';
+import { MessagingScopeConfig } from '../src/messaging/MessagingScopeConfig';
 import { barChartFixture } from './fixtures';
 import { useMockTransport } from './mockTransport';
 
@@ -72,6 +75,13 @@ const messagingHarnessApi = {
   uploadAttachments: async (conversationId, formData) => ({ id: 47, conversation_id: conversationId, body: formData.get('body'), attachments: [{ id: 5, filename: 'example.png', content_type: 'image/png' }] }),
   getAttachment: async () => new Blob(['harness']),
   getAttachmentThumbnail: async () => new Blob(['harness'], { type: 'image/png' }),
+  addReaction: async (messageId, emoji) => ({ reactions: [{ emoji, count: 1, reacted: true }] }),
+  removeReaction: async () => ({ reactions: [] }),
+  createPoll: async (conversationId, payload) => ({ id: 48, conversation_id: conversationId, poll: { id: 8, question: payload.question, options: payload.options.map((text, index) => ({ id: index + 1, text, vote_count: 0 })), allow_multiple: payload.allow_multiple } }),
+  votePoll: async (pollId, optionIds) => ({ poll: { id: pollId, question: 'Where should we meet?', options: [{ id: 1, text: 'Library', vote_count: optionIds.includes(1) ? 1 : 0, selected: optionIds.includes(1) }, { id: 2, text: 'Café', vote_count: optionIds.includes(2) ? 1 : 0, selected: optionIds.includes(2) }], allow_multiple: false } }),
+  closePoll: async (pollId) => ({ poll: { id: pollId, question: 'Where should we meet?', options: [{ id: 1, text: 'Library', vote_count: 2 }, { id: 2, text: 'Café', vote_count: 3 }], closed_at: new Date().toISOString() } }),
+  getConversationConfig: async () => ({ dm_policy: 'all', group_chat_enabled: true, everyone_can_post: true }),
+  patchConversationConfig: async (_id, patch) => ({ dm_policy: 'all', group_chat_enabled: true, everyone_can_post: true, ...patch }),
 };
 
 function MessagingStateDump() {
@@ -109,8 +119,11 @@ function ConversationListEntry() {
 
 function ThreadEntry() { return <MessagingProvider api={messagingHarnessApi} activeConversationId={12}><Thread conversationId={12} /></MessagingProvider>; }
 function ReadTicksEntry() { return <MessagingProvider api={messagingHarnessApi} active={false}><ReadTicks messageId={44} conversation={{ id: 12, kind: 'group' }} /></MessagingProvider>; }
-function ComposerEntry() { return <MessagingProvider api={messagingHarnessApi} active={false}><Composer conversationId={12} replyTarget={{ id: 44, sender: { display_name: 'Alex' } }} /></MessagingProvider>; }
+function ComposerEntry() { return <MessagingProvider api={messagingHarnessApi} active={false}><Composer conversationId={12} replyTarget={{ id: 44, sender: { display_name: 'Alex' } }} allowAnnouncement linkTarget="/events/12/info" /></MessagingProvider>; }
 function AttachmentListEntry() { return <MessagingProvider api={messagingHarnessApi} active={false}><AttachmentList attachments={[{ id: 5, filename: 'example.png', content_type: 'image/png' }, { id: 6, filename: 'notes.pdf', content_type: 'application/pdf' }]} /></MessagingProvider>; }
+function ReactionBarEntry() { return <MessagingProvider api={messagingHarnessApi} active={false}><ReactionBar message={{ id: 44, reactions: [{ emoji: '👍', count: 2, reacted: false }, { emoji: '🎉', count: 1, reacted: true }] }} /></MessagingProvider>; }
+function PollCardEntry() { return <AuthContext.Provider value={{ user: { id: 1 } }}><MessagingProvider api={messagingHarnessApi} active={false}><PollCard message={{ id: 48, poll: { id: 8, question: 'Where should we meet?', options: [{ id: 1, text: 'Library', vote_count: 2 }, { id: 2, text: 'Café', vote_count: 3 }], allow_multiple: false, created_by: 1 }}} /></MessagingProvider></AuthContext.Provider>; }
+function MessagingScopeConfigEntry() { return <MessagingProvider api={messagingHarnessApi} active={false}><MessagingScopeConfig conversationId={12} /></MessagingProvider>; }
 
 export const entries = [
   { id: 'notification-bell', label: 'Notifications / Bell', Component: NotificationBellEntry },
@@ -122,4 +135,7 @@ export const entries = [
   { id: 'messaging-read-ticks', label: 'Messaging / Read ticks', Component: ReadTicksEntry },
   { id: 'messaging-composer', label: 'Messaging / Composer', Component: ComposerEntry },
   { id: 'messaging-attachment-list', label: 'Messaging / Attachment list', Component: AttachmentListEntry },
+  { id: 'messaging-reaction-bar', label: 'Messaging / Reaction bar', Component: ReactionBarEntry },
+  { id: 'messaging-poll-card', label: 'Messaging / Poll card', Component: PollCardEntry },
+  { id: 'messaging-scope-config', label: 'Messaging / Scope config', Component: MessagingScopeConfigEntry },
 ];

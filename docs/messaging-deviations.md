@@ -1,5 +1,19 @@
 # Messaging deviations from jg
 
+## Chunk 5 — reactions, polls and scope configuration
+
+- Reactions use a compact set of common emoji choices plus the aggregate chips, rather than jg's full third-party emoji palette. Adding and toggling every reaction remains available through the same REST mutations; the shared package avoids a new picker dependency.
+- Poll creation is a Composer dialog instead of jg's Thread-coupled dialog. It retains question, two-or-more options and multiple-choice selection, while keeping composition independently mountable.
+- Poll results are rendered inline as an accessible option list with live aggregate counts. Closing is only offered when the serialized creator/capability allows it; a server-side 403 remains visible as a validation error.
+- Scope messaging configuration is an independently mountable component addressed by conversation id, rather than jg's event-id-specific settings panel. The host supplies placement and capability gating; it retains dm policy, group-chat enablement and everyone-can-post controls.
+- **Announcement composing (jg's `AnnouncementDialog.jsx`) was missing from the first chunk-5 pass — flagged by independent review and corrected before commit, not silently accepted as a gap.** `Composer` now offers an announcement mode (title + body + a host-supplied `link_target`) behind an `allowAnnouncement` prop, since whether to offer it at all is a host/capability decision the client cannot make on its own; only the target-link *value* is host-specific navigation context ucm cannot compute (jg pre-fills it from the currently open event-info section — same reasoning as `linkTarget`'s framing here). Uses the same `sendMessage`/`kind` plumbing chunk 1 already built, with `kind: 'announcement'`.
+
+## Final parity confirmation
+
+- The provider/cache, conversation list and launchers, timeline/replies/read ticks, composer/attachments/announcements, reactions, polls and scope configuration are all represented by exported ucm surfaces. Host routing and scope selection remain host responsibilities by design.
+- The known broadcast-list pre-open unread/preview gap is retained as the accepted Chunk 2 deviation.
+- Every jg messaging file named in the work order's parity inventory (`Thread.jsx`, `ConversationList.jsx`, `MessagingContext.jsx`, `AnnouncementDialog.jsx`, `MessagingConfig.jsx`, `NewDirectMessageDialog.jsx` — unblocked by MSG-2b, `messagingApi.js`, `EmojiPickerButton.jsx`, `conversationHelpers.js`, `MessagesPage.jsx`'s launcher behavior) is represented by an exported ucm surface or an explicitly named deviation above — this line was corrected during chunk 5's independent review, which is exactly the check it exists to catch.
+
 ## Chunk 4 — composer and attachments
 
 - The composer is an independently mountable provider collaborator and accepts the timeline's reply target as a small placement prop, instead of being coupled into jg's monolithic `Thread`. It preserves reply selection and clears that selection after a successful send.

@@ -74,6 +74,9 @@ export { MessageBubble } from './messaging/MessageBubble';
 export { ReadTicks } from './messaging/ReadTicks';
 export { Composer } from './messaging/Composer';
 export { AttachmentList } from './messaging/AttachmentList';
+export { ReactionBar } from './messaging/ReactionBar';
+export { PollCard } from './messaging/PollCard';
+export { MessagingScopeConfig } from './messaging/MessagingScopeConfig';
 
 // --- 9. Onboarding ---
 export * from './onboarding/api';
