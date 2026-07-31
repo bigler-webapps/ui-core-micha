@@ -528,3 +528,116 @@ lines, no git operations, write-and-run-only-the-new-tests, leave the diff uncom
 
 **Mini-handover:** repo `C:\Users\biglmi\Documents\webapps\ui-core-micha`, branch `main`, WO
 `work-orders/MSG-3b.md` chunk 2 (Part B above, after chunk 1 is committed). Follow `orchestrate-codex`.
+
+### Chunk 3 — message actions: menu, edit, delete, copy (rows 6-12, 16)
+
+**Target repo working directory:** `C:\Users\biglmi\Documents\webapps\ui-core-micha` (repo root). Runs
+after chunk 2 is committed.
+
+**Files to change:** `src/messaging/MessageBubble.jsx` (action menu, edit-inline UI, delete
+confirmation), `src/messaging/MessagingProvider.jsx` (wire the already-existing, never-called
+`patchMessage`/`deleteMessage` `api.js` exports — note the provider already has a same-named **local**
+reducer action-creator called `patchMessage` at `MessagingProvider.jsx:247`, which is a cache merge
+helper, not an API call; do not confuse the two or silently overload the name — expose the new API
+call under a distinct name, e.g. `editMessage`/`removeMessage`, and keep the existing local
+`patchMessage` cache helper as-is, used internally the way it already is), `src/messaging/Thread.jsx`
+or `Composer.jsx` (row 11 — clearing reply/edit state when the message under edit or reply is
+deleted), `src/i18n/messagingTranslations.ts` (new copy — menu labels, edit save/cancel, delete
+confirm dialog, copy), new tests under `tests/`.
+
+**Already in place, reuse:** `src/messaging/api.js:35-36` exports `patchMessage(messageId, patch)` and
+`deleteMessage(messageId)`, both unwired (the two of chunk 1's three originally-named conformance-test
+exemptions this chunk closes — remove `patchMessage`/`deleteMessage` from
+`tests/messagingContractConformance.test.js`'s `API_EXEMPTIONS` once wired, per the exemption note
+already left there). dcm's actual permission logic (verified against
+`django-core-micha/src/django_core_micha/messaging/services.py:167-192`): `edit_message` allows the
+sender or anyone with `edit_any` in `moderation_rights(...)`; `soft_delete_message` the same with
+`delete_any`; editing a deleted message raises; deletion is idempotent (already-deleted is a no-op,
+not an error). The PATCH/DELETE endpoints are `django-core-micha`'s
+`MessageDetailView` (`views.py:227-235`) — `PATCH messages/{id}/` (`body`/`title`/`link_target` only,
+per the design doc's REST table) and `DELETE messages/{id}/`.
+
+**A real gap found while scoping this chunk, needs a decision, not silent assumption:** `serialize_message`
+(`django-core-micha/src/django_core_micha/messaging/serializers.py:60-79`) never includes any
+per-viewer capability field (no `can_edit`/`can_delete`/`is_moderator`) — moderator status
+(`edit_any`/`delete_any`) is resolved server-side from each app's `MessagingPolicy` hook and never
+surfaced to the client in any payload this repo has access to. That matches the design doc's stated
+model (`messaging-platform.md`: "Event-manager rights map to moderation/config capabities" — i.e.
+moderator-ness is host-app domain knowledge, not a generic messaging-REST fact), and mirrors the
+existing `allowAnnouncement`/`linkTarget` pattern in `Composer.jsx` (a host-supplied capability prop,
+since the client can't compute it itself).
+
+Implement accordingly: the action menu/edit/delete affordances always render for the message's own
+sender (`message.sender?.id === currentUser?.id`, matching the existing `canShowReadTicks` pattern in
+`Thread.jsx`) **and** additionally for anyone when a new host-supplied capability prop indicates
+moderator rights — thread this down from wherever it naturally enters (e.g. a `canModerateMessages`
+boolean prop on `Thread`, passed through to `MessageBubble`, defaulting to `false`). The server remains
+the actual enforcement (a 403 from a stale/wrong host-side flag must surface as a readable error, not
+crash) — client-side gating is UX-only, not the security boundary. Do not invent a REST call to fetch
+moderator status that doesn't exist; do not skip the moderator case entirely either (that would silently
+drop row 9's "or moderator" half without recording it) — the host-prop approach satisfies both.
+
+**Row 6 (action menu):** MUI `Menu`/`IconButton` triggered by a hover-revealed icon (desktop) — jg
+additionally does long-press (mobile) and right-click; matching the WO's general redesign licence
+(interaction may be redesigned, capability may not be lost), a plain always-visible-on-hover icon plus
+a right-click (`onContextMenu`) handler opening the same menu is sufficient parity; long-press-to-open
+context menu on touch is a reasonable **explicit deviation** to record (desktop hover + right-click
+covers the capability; a dedicated long-press gesture handler is disproportionate for a MUI-only
+component) rather than something to build a custom touch-gesture library for.
+
+**Row 7 (edit) + Row 8 (edit auto-cancels if deleted elsewhere):** inline edit swaps the message body
+for a `TextField` with save/cancel, calling the new `editMessage` provider action; row 8 needs the edit
+state to react to a live `message_deleted` frame or `messagePatched`/cache update marking the message
+deleted while it's being edited — since edit state is local `useState` in `MessageBubble` (or wherever
+you put it), watch `message.deleted_at` becoming true (already reactive via props, since
+`MessageBubble` re-renders on cache changes) and close the edit UI when it does, rather than polling.
+
+**Row 9 (delete, author or moderator) + Row 10 (confirmation dialog) + Row 11 (deleting a
+message under edit/reply clears that composer state):** a `Dialog` confirm before calling the new
+`removeMessage` provider action. Row 11: `Composer.jsx`'s `replyTarget` prop and `Thread.jsx`'s
+`replyingTo`/edit-in-progress state need to clear if the specific message they reference becomes
+deleted — same reactive-to-`deleted_at` approach as row 8, surfaced via the existing
+`onReplyTargetChange` callback `Composer` already accepts.
+
+**Row 12 (copy message text):** `navigator.clipboard.writeText(message.body)` from the action menu; no
+special test-environment handling needed beyond mocking `navigator.clipboard` in the test (a common,
+already-solved jsdom pattern — check whether any existing test in this repo already mocks clipboard
+before adding a new mocking approach).
+
+**Row 16 (no action menu on deleted or poll messages):** the menu trigger must not render when
+`message.deleted_at` is set (already implied — nothing to edit/delete/copy on a tombstone) or when
+`message.kind === 'poll'` (poll messages have their own `PollCard` mutation surface; the WO frames this
+as "follows from 6," i.e. a one-line gate on the menu-render condition, not new logic).
+
+**Required tests to WRITE (chunk 3 scope):**
+- Action menu renders for the sender; renders for a non-sender only when the moderator capability
+  prop is true; does not render for a non-sender/non-moderator; does not render on a deleted or poll
+  message.
+- Edit: author can edit own message (calls the API with the right payload); edit auto-closes when the
+  message's `deleted_at` flips true mid-edit.
+- Delete: confirmation dialog gates the actual delete call; author-delete and moderator-delete (via the
+  capability prop) both succeed; a non-author/non-moderator never gets the affordance in the first
+  place (so there's nothing to test-block client-side beyond "the button isn't there" — don't invent a
+  client-side permission-check unit test for a check the server owns).
+- Row 11: deleting a message currently targeted by `replyTarget`/edit-in-progress clears that state.
+- Copy: clipboard write is called with the message's exact body text.
+- Existing ucm suites (chunks 1-2 inclusive) stay green.
+
+**Deliverable note for chunk 6's deviation-doc rewrite:** record two things explicitly — the
+long-press-vs-hover/right-click interaction deviation (row 6), and the moderator-capability
+host-supplied-prop mechanism (rows 7/9), including that dcm exposes no server-side capability field so
+this is inherently a UX-only gate backed by server enforcement, not a security boundary claim.
+
+**Invariants / do-not-break:** don't touch chunks 1-2's code paths; don't rename/repurpose the existing
+local `patchMessage` cache-merge action creator in `MessagingProvider.jsx` — add new, distinctly-named
+functions for the API calls; keep `docs/messaging-deviations.md` untouched this chunk; keep the
+~400 LOC soft trigger in mind for `MessageBubble.jsx` (already grew in chunk 2) — if the menu/edit/
+delete UI pushes it over, consider a small `MessageActions`-style co-located subcomponent rather than
+letting one file sprawl, but this does not need to become a new top-level exported/index.js surface
+unless it's independently useful outside a bubble (it isn't here).
+
+**Progress contract / preamble:** identical to chunks 1-2's — `PLAN:`/`PROGRESS:`/`RESULT:` lines, no
+git operations, write-and-run-only-the-new-tests, leave the diff uncommitted.
+
+**Mini-handover:** repo `C:\Users\biglmi\Documents\webapps\ui-core-micha`, branch `main`, WO
+`work-orders/MSG-3b.md` chunk 3 (Part B above, after chunk 2 is committed). Follow `orchestrate-codex`.
