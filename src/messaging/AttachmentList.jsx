@@ -1,4 +1,4 @@
-import { Button, Stack } from '@mui/material';
+import { Box, Button, Stack } from '@mui/material';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -32,7 +32,7 @@ export function AttachmentList({ attachments = [] }) {
   };
   return <Stack direction="row" spacing={1} flexWrap="wrap" aria-label={t('MessagingAttachments.LABEL')}>
     {attachments.map((attachment) => <Button key={attachment.id} type="button" size="small" onClick={() => download(attachment)}>
-      {previews[attachment.id] && <img src={previews[attachment.id]} alt="" width="36" height="36" style={{ objectFit: 'cover', marginRight: 6 }} />}{t('MessagingAttachments.DOWNLOAD', { name: nameOf(attachment) })}
+      {previews[attachment.id] && <Box component="img" src={previews[attachment.id]} alt="" width={36} height={36} sx={{ objectFit: 'cover', mr: 0.75 }} />}{t('MessagingAttachments.DOWNLOAD', { name: nameOf(attachment) })}
     </Button>)}
   </Stack>;
 }

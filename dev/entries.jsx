@@ -9,7 +9,9 @@ import { NotificationsProvider } from '../src/notifications/NotificationsProvide
 import { useRealtime } from '../src/notifications/realtime';
 import { MessagingProvider, useMessaging } from '../src/messaging/MessagingProvider';
 import { ConversationList } from '../src/messaging/ConversationList';
+import { ConversationLaunchers } from '../src/messaging/ConversationLaunchers';
 import { Thread } from '../src/messaging/Thread';
+import { MessageBubble } from '../src/messaging/MessageBubble';
 import { ReadTicks } from '../src/messaging/ReadTicks';
 import { Composer } from '../src/messaging/Composer';
 import { AttachmentList } from '../src/messaging/AttachmentList';
@@ -118,6 +120,8 @@ function ConversationListEntry() {
 }
 
 function ThreadEntry() { return <MessagingProvider api={messagingHarnessApi} activeConversationId={12}><Thread conversationId={12} /></MessagingProvider>; }
+function MessageBubbleEntry() { return <MessagingProvider api={messagingHarnessApi} active={false}><MessageBubble message={{ id: 44, body: 'Standalone bubble mount', sender: { display_name: 'Alex' }, created_at: '2026-07-31T09:00:00Z', reactions: [{ emoji: '👍', count: 1, reacted: false }] }} onReply={() => window.alert('Reply requested')} /></MessagingProvider>; }
+function ConversationLaunchersEntry() { return <MessagingProvider api={messagingHarnessApi} active={false}><ConversationLaunchers groupLaunchers={[{ id: 'volunteers', label: 'Open volunteers group', payload: { title: 'Volunteers', participant_ids: [1, 2] } }]} broadcastLauncher={{ label: 'Open announcements', payload: { scope: { kind: 'global' } } }} onOpen={(conversation) => window.alert(`Opened: ${conversation.title}`)} /></MessagingProvider>; }
 function ReadTicksEntry() { return <MessagingProvider api={messagingHarnessApi} active={false}><ReadTicks messageId={44} conversation={{ id: 12, kind: 'group' }} /></MessagingProvider>; }
 function ComposerEntry() { return <MessagingProvider api={messagingHarnessApi} active={false}><Composer conversationId={12} replyTarget={{ id: 44, sender: { display_name: 'Alex' } }} allowAnnouncement linkTarget="/events/12/info" /></MessagingProvider>; }
 function AttachmentListEntry() { return <MessagingProvider api={messagingHarnessApi} active={false}><AttachmentList attachments={[{ id: 5, filename: 'example.png', content_type: 'image/png' }, { id: 6, filename: 'notes.pdf', content_type: 'application/pdf' }]} /></MessagingProvider>; }
@@ -132,6 +136,8 @@ export const entries = [
   { id: 'messaging-provider', label: 'Messaging / Provider state', Component: MessagingProviderEntry },
   { id: 'messaging-conversation-list', label: 'Messaging / Conversation list', Component: ConversationListEntry },
   { id: 'messaging-thread', label: 'Messaging / Thread', Component: ThreadEntry },
+  { id: 'messaging-message-bubble', label: 'Messaging / Message bubble', Component: MessageBubbleEntry },
+  { id: 'messaging-conversation-launchers', label: 'Messaging / Conversation launchers', Component: ConversationLaunchersEntry },
   { id: 'messaging-read-ticks', label: 'Messaging / Read ticks', Component: ReadTicksEntry },
   { id: 'messaging-composer', label: 'Messaging / Composer', Component: ComposerEntry },
   { id: 'messaging-attachment-list', label: 'Messaging / Attachment list', Component: AttachmentListEntry },

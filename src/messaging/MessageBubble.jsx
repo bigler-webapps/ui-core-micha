@@ -1,4 +1,4 @@
-import { Paper, Stack, Typography } from '@mui/material';
+import { Button, Paper, Stack, Typography } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import { AttachmentList } from './AttachmentList';
 import { ReactionBar } from './ReactionBar';
@@ -24,12 +24,12 @@ export function MessageBubble({ message, replyTo, onReply, children }) {
         </Stack>
         {!deleted && message.kind === 'announcement' && message.title && <Typography variant="subtitle1" fontWeight={700}>{message.title}</Typography>}
         <Typography sx={{ whiteSpace: 'pre-wrap' }}>{deleted ? t('MessagingThread.DELETED') : (message.kind === 'announcement' ? message.body : (message.body || message.title)) || ''}</Typography>
-        {!deleted && <Stack direction="row" spacing={0.5} flexWrap="wrap">
+        {!deleted && <Stack spacing={0.75}>
           {attachments.length > 0 && <AttachmentList attachments={attachments} />}
           <ReactionBar message={message} />
           {message.poll && <PollCard message={message} />}
         </Stack>}
-        {!deleted && onReply && <button type="button" onClick={() => onReply(message)}>{t('MessagingThread.REPLY')}</button>}
+        {!deleted && onReply && <Button type="button" size="small" onClick={() => onReply(message)}>{t('MessagingThread.REPLY')}</Button>}
         {children}
       </Stack>
     </Paper>
