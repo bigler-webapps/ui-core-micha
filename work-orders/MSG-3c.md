@@ -287,3 +287,92 @@ operations, write-and-run-only-the-new-tests, leave the diff uncommitted for the
 
 **Mini-handover:** repo `C:\Users\biglmi\Documents\webapps\ui-core-micha`, branch `main`, WO
 `work-orders/MSG-3c.md` chunk 2 (Part B above, after chunk 1 is committed). Follow `orchestrate-codex`.
+
+**Note from chunk 2:** the same defect class row 56/57 ask to be verified for (a `poll_updated`/
+`reaction` frame's viewer-independent projection silently wiping viewer-specific state the client
+learned from a REST response) was ALSO found and fixed in `poll_updated`'s handler while writing
+chunk 2's own tests (`MessagingProvider.jsx`'s `poll_updated` case now preserves a previously-known
+`voted_option_ids` when the incoming frame lacks it). Chunk 3 must check whether the `reaction` case
+has the analogous issue — it very likely does (see below), don't assume it's fine because it's a
+similar shape to the code that turned out to be wrong.
+
+### Chunk 3 — reaction frame-merge fix, conformance-test extension, deviation-doc rewrite (rows 56, 57 + the WO's new rule)
+
+**Files:** `src/messaging/MessagingProvider.jsx` (`applyFrame`'s `reaction` case, and `toggleReaction`'s
+REST-confirm path — same underlying bug, two call sites), `tests/messagingContractConformance.test.js`
+(the version-pin extension), `docs/messaging-deviations.md` (full rewrite of the seven now-delivered
+rows + the two still-BLOCKED rows, each BLOCKED entry now carrying an explicit version pin), new tests.
+
+**The reaction bug — verified, not hypothetical:** `django-core-micha/src/django_core_micha/messaging/serializers.py:41-46`
+(`serialize_reactions`) returns `[{emoji, count}]` **only, never a per-viewer `reacted` flag, in any
+context** — not REST, not frames, by design (the design doc's "aggregate only" rule). `MessagingProvider.jsx`'s
+`toggleReaction` (around `:315-330`) correctly sets `reacted: true/false` optimistically on the current
+user's own click, but then:
+- its own REST-confirm step merges `reactions: result?.reactions || result?.message?.reactions ||
+  nextReactions` — `result.reactions` (the real server array) is truthy and picked first, wiping the
+  optimistic `reacted` flags for every emoji on that message.
+- `applyFrame`'s `reaction` case (`:154` area) merges `reactions: payload.reactions || frame.reactions
+  || previous.reactions || []` — same problem: any `reaction` frame arriving for this message (the
+  user's own echoed toggle, or literally any other viewer reacting with a different emoji) wholesale-
+  replaces the reactions array with the server's `reacted`-less version, wiping every previously-known
+  `reacted` flag on that message, not just the one that changed.
+
+**Fix both call sites the same way:** merge the server's `{emoji,count}` list with previously-known
+`reacted` flags by emoji key — never wholesale-replace. For each emoji in the incoming server list, if
+a previous entry for that same emoji had `reacted: true`, carry it forward (unless this merge IS the
+direct result of the current user's own toggle action, in which case the just-computed optimistic value
+is correct and already known — don't let the REST-confirm step regress what the optimistic update just
+set). An emoji present in the previous list but absent from the incoming one means its count hit zero
+and it should simply not appear (matches the existing pattern at `:320`, `.filter((reaction) =>
+reaction.count !== 0)`).
+
+**Required tests (chunk 3, reaction part):**
+- A `reaction` frame for an emoji the viewer has NOT reacted with updates its count without touching
+  the viewer's `reacted` state on any OTHER emoji on the same message (the WO's explicitly named "an
+  arriving frame updates the rendered message for a viewer who did not cause it" case).
+- The viewer's own optimistically-set `reacted: true` on one emoji survives (a) the REST confirmation
+  of that same toggle, and (b) an unrelated `reaction` frame for a different emoji on the same message
+  arriving afterward.
+- A duplicate `event_id` changes nothing (verify the existing `seenEventsRef` de-dup in the provider's
+  `subscribe(...)` handler already covers this at the reducer-dispatch level — this may already be
+  correct and just need a test, not a code change; check before assuming otherwise).
+
+**Conformance-test extension (the WO's new rule, required, not optional):** add a check to
+`tests/messagingContractConformance.test.js` that reads `docs/messaging-deviations.md` and fails if any
+line containing `**BLOCKED**` does not also carry an explicit dependency-version pin (e.g. a regex for
+`dcm \d+\.\d+\.\d+` on that line or within its paragraph — check the actual final wording you land on
+in the doc rewrite below and match the regex to it, don't write the regex first and hope the prose
+matches). **Verified: this check does not currently exist, and would currently fail** — as of this
+WO's start, rows 27/38/42/51/52/53/58's `**BLOCKED**` lines in `docs/messaging-deviations.md` do NOT
+carry a version pin (only the doc's intro sentence and rows 56/57 happen to mention "dcm 2.36.1"); only
+rewriting the doc's BLOCKED rows to each name the version fixes this. **Required negative-case test**
+(the WO is explicit: "assert the negative case, not only the positive"): construct a small in-memory
+BLOCKED line missing a version pin and assert the check's own logic flags it — don't only test that the
+real file passes, prove the check can fail.
+
+**`docs/messaging-deviations.md` rewrite — the WO's central deliverable for this chunk:**
+- Rows 38, 51, 52, 53, 56, 57, 58 move from `BLOCKED` to their real delivered outcome (`OK`, matching
+  the pattern MSG-3b's own doc used for delivered rows) — each entry should reflect what was actually
+  built across chunks 1-3 of MSG-3c (last-message preview/reorder, poll rendering incl. the
+  `created_by_id`/`voted_option_ids` fixes, the `reaction`/`poll_updated` frame-merge fixes), not a
+  generic "delivered" note copy-pasted seven times.
+- Rows **27 and 42 stay BLOCKED** — do not touch their substance, only add the now-required version pin
+  if missing (e.g. "as of dcm 2.37.0" or whatever phrasing matches the new conformance-test regex).
+  These are real, still-open gaps (thread-receipt read state; `external_key` serialization) waiting on
+  a future dcm `MSG-2d`.
+- The closing "Required backend follow-up" paragraph (currently lists rows 27/38/42/51-53/56-58 as all
+  needing a future dcm WO) must be corrected to name only rows 27 and 42.
+- **Risk named in the WO, read before editing:** "correcting seven entries by hand while leaving two
+  correct ones intact is exactly where an over-eager edit removes a real blocker" — do not touch rows
+  27/42's substantive claims, only add the version pin to them if the doc rewrite's new house style
+  requires it project-wide.
+
+**Progress contract / preamble:** identical to prior chunks — `PLAN:`/`PROGRESS:`/`RESULT:` lines, no
+git operations, write-and-run-only-the-new-tests, leave the diff uncommitted for the orchestrator's
+review.
+
+**Mini-handover:** repo `C:\Users\biglmi\Documents\webapps\ui-core-micha`, branch `main`, WO
+`work-orders/MSG-3c.md` chunk 3 (Part B above, after chunk 2 is committed) — the WO's last content
+chunk. After this chunk's independent review and commit, run the WO-end `ui_reviewer` pass per the
+WO's changed instruction (cross-check BLOCKED rows against the dependency repo at its **current**
+version, not against the WO text), then one version bump + npm publish.
