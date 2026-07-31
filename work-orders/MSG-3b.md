@@ -422,3 +422,109 @@ execute and pass — do not run the full suite (the orchestrator runs the affect
 
 **Mini-handover:** repo `C:\Users\biglmi\Documents\webapps\ui-core-micha`, branch `main`, WO
 `work-orders/MSG-3b.md` chunk 1 (Part B above). Follow `orchestrate-codex`.
+
+### Chunk 2 — threading and quoting (rows 23-27)
+
+**Target repo working directory:** `C:\Users\biglmi\Documents\webapps\ui-core-micha` (repo root).
+Runs after chunk 1 is committed (its `markConversationRead`/`markThreadRead`/unread-frame plumbing
+already landed; this chunk does not depend on it beyond that both live in the same
+`MessagingProvider.jsx`).
+
+**Files to change:** `src/messaging/Thread.jsx` (root/reply grouping, unread-reply-dot state),
+`src/messaging/MessageBubble.jsx` (quoted preview rendering, click-to-jump, quote blanking on
+delete), new test coverage under `tests/`. Do not touch `docs/messaging-deviations.md` this chunk
+(rewritten once, at chunk 6).
+
+**Row 23 — the confirmed bug, verified against the actual dcm serializer
+(`django-core-micha/src/django_core_micha/messaging/serializers.py:75`):**
+`serialize_message` emits `"reply_to_id": str(message.reply_to_id) if ... else None` — every
+REST-loaded or realtime-delivered message carries `reply_to_id`, never `reply_to`. But
+`MessagingProvider.jsx`'s own optimistic-send builder (`sendMessage`, the `optimistic` object) sets
+`reply_to: payload.reply_to || null` on the **locally-constructed** row — so client-shaped optimistic
+messages use `reply_to` and server-shaped messages use `reply_to_id`. `Thread.jsx:40` (`!message.reply_to`
+for roots) and `:65` (`item.reply_to === message.id` for replies) only ever check the client-shaped
+name, so every server-loaded or WS-delivered reply silently renders as an unattached root — the exact
+defect named in the envelope.
+
+Fix by reading **both** shapes wherever a message's parent is checked (`message.reply_to_id ?? message.reply_to`),
+not by changing what field name the optimistic builder writes (that's `MessagingProvider.jsx`'s
+`sendMessage`, untouched by this chunk — rewriting it risks reopening chunk 1's just-verified
+optimistic-message tests for no benefit, since reading both shapes fixes the bug without it). Two call
+sites in `Thread.jsx` (root filter, reply filter); check `MessageBubble.jsx` and anywhere else in
+`src/messaging/*.jsx` for a bare `.reply_to` read that should also accept `.reply_to_id`.
+
+**Threading regression test (required, named explicitly in the WO):** must use a **server-shaped**
+payload — i.e. construct the test message with `reply_to_id`, not `reply_to` — for both the REST-load
+path (`listMessages`/`api.js` mock returning `{ ..., reply_to_id: rootId }`) and the realtime-frame
+path (`applyFrame`/`dispatch({ type: 'frame', ... })` with a `message` frame payload carrying
+`reply_to_id`). The WO is explicit that the existing tests pass "precisely because they use
+client-shaped objects" — do not let the new test repeat that mistake.
+
+**Row 24 (quoted preview) + Row 25 (click-to-jump) + Row 26 (quote blanks when its source is
+deleted):** `Thread.jsx:66,68` already passes the full root message object as `MessageBubble`'s
+`replyTo` prop when rendering a reply row — so `MessageBubble` already receives everything it needs
+(sender, body, deleted_at) without a new fetch. Extend the existing `{replyTo && <Typography ...>}`
+block (`MessageBubble.jsx:19`) from a sender-only caption into an actual quoted preview: sender name
+plus a short snippet of `replyTo.body`/`replyTo.title` (truncate client-side, no new i18n key needed
+beyond what's already there unless you introduce a distinct "quote" string — reuse
+`MessagingThread.REPLY_TO` if its copy still fits, otherwise add one translation key in all three
+locales, following the existing `messagingTranslations.ts` shape). Row 26: if `replyTo.deleted_at` is
+set, render a blanked/deleted placeholder in the quote instead of `replyTo.body` (soft-deleted messages
+already have `body`/`title` nulled server-side per the design doc — the placeholder text is what needs
+adding, the null-safety is already structurally there). Row 25: make the quote block clickable
+(`onClick`/`role="button"` or a `Button`, matching `MessageBubble`'s existing MUI-only convention —
+see the ui_reviewer's earlier MSG-3 finding on raw `<button>` usage, do not repeat it) and scroll the
+original into view — `Thread.jsx` owns the scroll container (`scrollRef`, line 34); the click handler
+needs a way to reach a specific message's DOM node from `MessageBubble`, e.g. an `id`/`data-message-id`
+attribute on each bubble's root `Paper` plus a callback prop threaded down from `Thread`
+(`onJumpToMessage`) that does `scrollRef.current.querySelector(...)?.scrollIntoView(...)`. Keep this
+addition in `Thread`/`MessageBubble` only — no new top-level exported component needed, this is
+within an existing component's remit, not new decomposition surface.
+
+**Row 27 (unread-reply dot on the thread toggle) — verify data availability before implementing,
+this needs the same care as the WO's explicit verify/decide rows even though it isn't tagged one:**
+investigated against dcm — `MessageThreadReceipt` (`root,user,last_read_at`) exists as a model
+(design doc line 25) and is written by `POST messages/{root_id}/thread/read/`
+(`django-core-micha/src/django_core_micha/messaging/services.py:286-289`), but **no GET endpoint or
+message-serializer field currently exposes a thread's `last_read_at` or an unread-reply flag/count to
+the client** — `serialize_message` (`serializers.py:60-79`) has no such field, and there is no
+"list threads with receipt state" endpoint. A true, cross-device-accurate unread-reply dot is
+therefore not buildable against dcm 2.36.1 — this is a real (if narrower and previously-unnoticed) gap
+of the same shape as the checklist's explicitly-BLOCKED rows, discovered while implementing, not
+assumed in advance.
+
+Do not silently drop it and do not fake server data. Two acceptable outcomes, pick one and record it
+explicitly in this chunk's summary (for chunk 6's deviation-doc rewrite to pick up verbatim):
+(a) build a **session-local, client-only heuristic** — track locally (e.g. a ref/map keyed by root id)
+the last time this provider instance called `markThreadRead` for that root in the current session, and
+show the dot when a root has replies (`reply_count`/loaded replies) newer than that local marker or
+never marked in this session; test it as exactly that — a session-local approximation, not a synced
+read receipt — and the deviation-doc entry must say so plainly (no cross-device/cross-tab accuracy
+until dcm exposes thread receipt state), or (b) skip implementation and record it as a straight
+`BLOCKED`-shaped deviation alongside rows 38/51-53/56-58, with the one-line reason above. Do not spend
+this chunk inventing a third option (e.g. guessing at an undocumented endpoint) — the two above are
+the only ones consistent with "do not stub, fake or work around blocked capabilities."
+
+**Required tests to WRITE (chunk 2 scope):**
+- The threading regression test described above (REST + realtime, both `reply_to_id`-shaped).
+- Quoted preview renders sender + snippet for a reply; blanks correctly when the quoted source is
+  deleted.
+- Click-to-jump scrolls/focuses the original message (test what's observable in jsdom — e.g. that the
+  jump handler is invoked with the right message id / that `scrollIntoView` is called on the right
+  node — not literal pixel scroll position).
+- Row 27's outcome, whichever of (a)/(b) above: if (a), a test proving the session-local dot
+  appears/clears correctly; if (b), no test needed but the decision must still be stated in the
+  chunk's own summary text.
+- Existing ucm suites (chunk-1-inclusive baseline) stay green.
+
+**Invariants / do-not-break:** don't touch chunk 1's unread-lifecycle code paths; don't touch
+`docs/messaging-deviations.md`; keep the fix to reading both `reply_to`/`reply_to_id` shapes rather
+than changing what the optimistic builder writes; no new top-level `src/index.js` export needed for
+this chunk (quoting/jump/dot are internal `Thread`/`MessageBubble` behavior, not new mountable
+surfaces) — if you find yourself wanting one, stop and flag it rather than assuming it's warranted.
+
+**Progress contract / preamble:** identical to chunk 1's (see above) — `PLAN:`/`PROGRESS:`/`RESULT:`
+lines, no git operations, write-and-run-only-the-new-tests, leave the diff uncommitted.
+
+**Mini-handover:** repo `C:\Users\biglmi\Documents\webapps\ui-core-micha`, branch `main`, WO
+`work-orders/MSG-3b.md` chunk 2 (Part B above, after chunk 1 is committed). Follow `orchestrate-codex`.
