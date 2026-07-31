@@ -9,6 +9,8 @@ import { NotificationsProvider } from '../src/notifications/NotificationsProvide
 import { useRealtime } from '../src/notifications/realtime';
 import { MessagingProvider, useMessaging } from '../src/messaging/MessagingProvider';
 import { ConversationList } from '../src/messaging/ConversationList';
+import { Thread } from '../src/messaging/Thread';
+import { ReadTicks } from '../src/messaging/ReadTicks';
 import { barChartFixture } from './fixtures';
 import { useMockTransport } from './mockTransport';
 
@@ -52,7 +54,13 @@ const messagingHarnessApi = {
   listConversations: async ({ cursor } = {}) => cursor
     ? ({ results: [{ id: 13, title: 'Archived planning', last_message_at: '2026-07-30T09:00:00Z' }], next_cursor: null })
     : ({ results: [{ id: 12, title: 'Support group', unread_count: 1, last_message_at: '2026-07-31T09:00:00Z', last_message: { body: 'Can someone help?' } }], next_cursor: 'signed-next-page' }),
-  listMessages: async (conversationId) => ({ results: [{ id: 44, conversation_id: conversationId, body: 'Initial message' }], next_cursor: null }),
+  // GET conversations/{id}/messages/ returns roots only (design §REST); replies
+  // come from GET messages/{root_id}/thread/ (listThread below), never mixed in here.
+  listMessages: async (conversationId, { cursor } = {}) => cursor
+    ? ({ results: [{ id: 42, conversation_id: conversationId, body: 'An older message', created_at: '2026-07-30T09:00:00Z' }], next_cursor: null })
+    : ({ results: [{ id: 44, conversation_id: conversationId, body: 'Initial message', created_at: '2026-07-31T09:00:00Z', sender: { display_name: 'Alex' }, reply_count: 1 }], next_cursor: 'signed-older-page' }),
+  listThread: async (rootId) => ({ results: [{ id: 45, reply_to: rootId, body: 'A reply', created_at: '2026-07-31T09:05:00Z', sender: { display_name: 'Sam' } }], next_cursor: null }),
+  getReadStatus: async () => ({ all_read: false, delivered_count: 2 }),
   getUnreadCount: async () => ({ unread_count: 1, by_conversation: { 12: 1 } }),
   archiveConversation: async (id, archived) => ({ id, archived }),
   patchConversationPreferences: async (id, patch) => ({ id, ...patch }),
@@ -93,10 +101,15 @@ function ConversationListEntry() {
   );
 }
 
+function ThreadEntry() { return <MessagingProvider api={messagingHarnessApi} activeConversationId={12}><Thread conversationId={12} /></MessagingProvider>; }
+function ReadTicksEntry() { return <MessagingProvider api={messagingHarnessApi} active={false}><ReadTicks messageId={44} conversation={{ id: 12, kind: 'group' }} /></MessagingProvider>; }
+
 export const entries = [
   { id: 'notification-bell', label: 'Notifications / Bell', Component: NotificationBellEntry },
   { id: 'bar-chart', label: 'Charts / BarChart', Component: BarChartEntry },
   { id: 'realtime-adapter', label: 'Transport / Realtime adapter', Component: RealtimeAdapterEntry },
   { id: 'messaging-provider', label: 'Messaging / Provider state', Component: MessagingProviderEntry },
   { id: 'messaging-conversation-list', label: 'Messaging / Conversation list', Component: ConversationListEntry },
+  { id: 'messaging-thread', label: 'Messaging / Thread', Component: ThreadEntry },
+  { id: 'messaging-read-ticks', label: 'Messaging / Read ticks', Component: ReadTicksEntry },
 ];

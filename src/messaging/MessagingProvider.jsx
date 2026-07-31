@@ -4,9 +4,11 @@ import {
   archiveConversation,
   createBroadcastConversation,
   createGroupConversation,
+  getReadStatus,
   getUnreadCount,
   listConversations,
   listMessages,
+  listThread,
   patchConversationPreferences,
 } from './api';
 import { useRealtime } from '../notifications/realtime';
@@ -15,7 +17,7 @@ const MessagingContext = createContext(null);
 export const MESSAGING_ENVELOPE = 'messaging';
 const EMPTY_CACHE = { conversations: {}, messages: {}, threads: {}, polls: {}, reactions: {}, receipts: {}, unread: { unread_count: 0, by_conversation: {} }, cursors: { conversations: null, messages: {}, threads: {} } };
 const DEFAULT_API = {
-  listConversations, listMessages, getUnreadCount, archiveConversation,
+  listConversations, listMessages, listThread, getReadStatus, getUnreadCount, archiveConversation,
   patchConversationPreferences, createGroupConversation, createBroadcastConversation,
 };
 
@@ -33,6 +35,10 @@ export function messagingReducer(state, action) {
     case 'messagesLoaded': {
       const messages = action.results.reduce((next, item) => mergeById(next, item), state.messages);
       return { ...state, messages, cursors: { ...state.cursors, messages: { ...state.cursors.messages, [action.conversationId]: action.nextCursor ?? null } } };
+    }
+    case 'threadLoaded': {
+      const messages = action.results.reduce((next, item) => mergeById(next, item), state.messages);
+      return { ...state, messages, cursors: { ...state.cursors, threads: { ...state.cursors.threads, [action.rootId]: action.nextCursor ?? null } } };
     }
     case 'conversationUpsert': return { ...state, conversations: mergeById(state.conversations, action.conversation) };
     case 'frame': return applyFrame(state, action.frame);
@@ -83,12 +89,22 @@ export function MessagingProvider({ children, filters = {}, activeConversationId
     dispatch({ type: 'unreadLoaded', unread });
     return unread;
   }, [api]);
-  const refreshThread = useCallback(async (conversationId = activeIdRef.current) => {
+  const refreshThread = useCallback(async (conversationId = activeIdRef.current, { cursor } = {}) => {
     if (conversationId == null) return null;
-    const response = await api.listMessages(conversationId);
+    const response = await api.listMessages(conversationId, ...(cursor ? [{ cursor }] : []));
     dispatch({ type: 'messagesLoaded', conversationId, results: resultsOf(response), nextCursor: response?.next_cursor });
     return response;
   }, [api]);
+  const loadMoreMessages = useCallback((conversationId = activeIdRef.current) => {
+    const cursor = cache.cursors.messages[conversationId];
+    return cursor ? refreshThread(conversationId, { cursor }) : Promise.resolve(null);
+  }, [cache.cursors.messages, refreshThread]);
+  const loadThreadReplies = useCallback(async (rootId, { cursor } = {}) => {
+    const response = await api.listThread(rootId, { cursor });
+    dispatch({ type: 'threadLoaded', rootId, results: resultsOf(response), nextCursor: response?.next_cursor });
+    return response;
+  }, [api]);
+  const getMessageReadStatus = useCallback((messageId) => api.getReadStatus(messageId), [api]);
   const loadMoreConversations = useCallback(async () => {
     const cursor = cache.cursors.conversations;
     if (!cursor) return null;
@@ -139,10 +155,10 @@ export function MessagingProvider({ children, filters = {}, activeConversationId
   }, [active, onReconnect, refresh]);
 
   const value = useMemo(() => ({
-    cache, refresh, refreshConversations, refreshUnread, refreshThread, loadMoreConversations,
+    cache, refresh, refreshConversations, refreshUnread, refreshThread, loadMoreMessages, loadThreadReplies, getMessageReadStatus, loadMoreConversations,
     setConversationArchived, setConversationPreferences, openGroupConversation,
     openBroadcastConversation, activeConversationId,
-  }), [cache, refresh, refreshConversations, refreshUnread, refreshThread, loadMoreConversations,
+  }), [cache, refresh, refreshConversations, refreshUnread, refreshThread, loadMoreMessages, loadThreadReplies, getMessageReadStatus, loadMoreConversations,
     setConversationArchived, setConversationPreferences, openGroupConversation,
     openBroadcastConversation, activeConversationId]);
   return <MessagingContext.Provider value={value}>{children}</MessagingContext.Provider>;

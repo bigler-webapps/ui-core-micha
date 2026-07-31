@@ -1,5 +1,13 @@
 # Messaging deviations from jg
 
+## Chunk 3 — timeline, replies and receipts
+
+- The timeline is split into `Thread`, `MessageBubble` and `ReadTicks`, with a simple expandable reply view rather than jg's coupled full-screen/thread-pane state. This preserves one-level reply viewing while allowing each surface to mount independently.
+- Reply selection is exposed through `onReplyTargetChange` rather than embedding a temporary composer. The next Composer surface consumes that context, avoiding a second compose state machine.
+- Older history automatically loads when the timeline reaches the top and also provides an explicit accessible button. Both use the server-issued opaque cursor; jg's timeline interaction is redesigned, not removed.
+- This chunk intentionally leaves reactions, polls and attachments as non-interactive count/type chips. Their existing jg capabilities are scheduled for chunks 4/5, rather than reproduced as disposable interaction implementations here.
+- Read ticks reproduce jg's `shouldShowReadTick(msg, isOwn)` semantics exactly: a `ReadTicks` collaborator is only mounted for the current user's own messages, matching jg's meaning of a read receipt (whether the sender's own message was seen) and bounding the number of `getMessageReadStatus` REST calls a rendered timeline fires to one per own message shown, not one per message in the conversation.
+
 ## Chunk 2 — conversation list and launchers
 
 - The list is a standalone, provider-backed component rather than receiving a conversation array and selection state from a page. This removes the page-owned messaging state machine while preserving selection through the host's `onOpen` placement callback.
