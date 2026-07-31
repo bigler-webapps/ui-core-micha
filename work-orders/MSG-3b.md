@@ -652,3 +652,95 @@ git operations, write-and-run-only-the-new-tests, leave the diff uncommitted.
 
 **Mini-handover:** repo `C:\Users\biglmi\Documents\webapps\ui-core-micha`, branch `main`, WO
 `work-orders/MSG-3b.md` chunk 3 (Part B above, after chunk 2 is committed). Follow `orchestrate-codex`.
+
+### Chunk 4 — DM launcher and recipient picker (rows 17-22)
+
+**Target repo working directory:** `C:\Users\biglmi\Documents\webapps\ui-core-micha` (repo root). Runs
+after chunk 3 is committed.
+
+**Files to change:** a new `src/messaging/DirectMessageLauncher.jsx` (or similar name — a new,
+independently-exported, independently-mountable component per the WO's decomposition rule, mirroring
+`ConversationLaunchers.jsx`'s existing shape rather than folding this into `ConversationList.jsx`),
+`src/messaging/MessagingProvider.jsx` (wire the already-existing, never-called
+`createDirectConversation` export), `src/index.js` (new export), `dev/entries.jsx` (new harness
+entry — binding requirement, not optional), `src/i18n/messagingTranslations.ts`, new tests.
+
+**Already in place, reuse:** `src/messaging/api.js:21` exports `createDirectConversation(payload)` with
+zero callers — the exact chunk-1-named gap. Verified against dcm's actual view
+(`django-core-micha/src/django_core_micha/messaging/views.py:131-141`, `DirectConversationView.post`):
+payload is `{ target_user_id, scope? }` (`scope` optional — omit for the global scope, matching
+`open_direct`'s default in `services.py:79-83`). A policy rejection (e.g. `dm_policy` disallows this
+pair) surfaces as a plain DRF `PermissionDenied` → generic `{"detail": "..."}` 403
+(`views.py:112-113`) — `extractApiErrorMessage` (already in `MessagingProvider.jsx`) already handles
+this shape; no new error-parsing logic needed, just a place to render it.
+
+**The candidate list is host-supplied — do not invent a discovery call.** dcm has no user-directory/
+membership-listing endpoint (verified: no such view exists in `messaging/views.py`); jg feeds its
+picker from event memberships, which is app-specific domain data outside messaging's remit. Mirror the
+existing `groupLaunchers` prop pattern (`ConversationLaunchers.jsx:12`, an array of
+`{id, label, payload}` the host constructs from its own data) — this component takes a
+`candidates` prop (e.g. `[{id, display_name}, ...]`) the host supplies, plus a `scope` value to pass
+through to `createDirectConversation`. Do not add a REST call, a search box hitting a nonexistent
+endpoint, or any client-side "list users" logic.
+
+**Row 17 (launcher to start a DM):** a button/affordance opening the picker dialog — same placement
+convention as `ConversationLaunchers`' existing broadcast/group buttons (this new component can be
+rendered alongside `ConversationLaunchers` by a host, or the host may choose to compose them together
+in its own layout — do not merge the two components into one, they have independent host-supplied
+data shapes and the WO's decomposition rule favors small, single-purpose collaborators).
+
+**Row 18 (recipient picker over the candidate list) + Row 19 (loading + empty states) + Row 20 (start
+disabled until chosen / while starting):** a `Dialog` with a list/autocomplete over the `candidates`
+prop (a plain MUI `List`/`ListItemButton` selection is sufficient — an `Autocomplete` is also fine if
+it fits better, either is within the existing MUI-only convention); "loading" here means the dialog's
+own in-flight `createDirectConversation` call (there's no separate candidate-fetch to show a loading
+state for, since candidates arrive as a prop already resolved by the host — don't invent a loading
+state for data that isn't being fetched by this component); "empty" is an empty `candidates` array.
+The start/confirm button is disabled with nothing selected and while the create call is in flight
+(mirror `Composer.jsx`'s `sending`-gated `disabled` pattern).
+
+**Row 21 (policy rejection surfaced as a readable message):** on a `createDirectConversation` rejection,
+show `extractApiErrorMessage(error)` in an `Alert` inside the dialog (matching every other
+messaging-component error pattern in this repo — `ConversationList.jsx`, `Composer.jsx`, etc.), not a
+silent failure or a generic toast.
+
+**Row 22 (fullscreen dialog on small viewports):** MUI `Dialog`'s `fullScreen` prop driven by
+`useMediaQuery(theme.breakpoints.down('sm'))` — this repo has essentially no existing
+`useMediaQuery`/breakpoint usage (noted as a residual risk in the MSG-3 `ui_reviewer` pass, not a
+blocker), so this is a legitimate, WO-required first use, not scope creep; keep it scoped to this one
+dialog, don't retrofit other components.
+
+**MSG-2b connection (context, not new work):** the WO's envelope notes MSG-2b already unblocked the
+backend first-contact-DM case; this chunk is purely the client wiring — no dcm-side work, no
+verification of MSG-2b itself needed beyond the payload shape already confirmed above.
+
+**Required tests to WRITE (chunk 4 scope):**
+- The DM launcher opens the picker; picker renders the host-supplied candidate list; empty-candidates
+  state renders distinctly.
+- Start is disabled with no selection and while the create call is pending; enabled once a candidate is
+  chosen.
+- Selecting a candidate and confirming calls `createDirectConversation` with the right
+  `target_user_id`/`scope` and opens the resulting conversation (mirror `ConversationLaunchers`'
+  existing `onOpen` callback convention).
+- A policy-rejection response renders a readable error in the dialog, does not close it, and does not
+  crash.
+- `fullScreen` responds to the small-viewport media query (test via mocking `useMediaQuery` or
+  `window.matchMedia`, whichever this repo's existing test setup already supports — check
+  `tests/setup`/`vitest.config` for an existing `matchMedia` mock before adding a new one).
+- Existing ucm suites (chunks 1-3 inclusive) stay green.
+
+**Deliverable note for chunk 6:** this chunk closes the third of chunk 1's three originally-named
+conformance-test exemptions (`createDirectConversation`) — remove it from
+`tests/messagingContractConformance.test.js`'s `API_EXEMPTIONS` once wired (mirror how chunk 3 already
+removed `patchMessage`/`deleteMessage`).
+
+**Invariants / do-not-break:** don't touch chunks 1-3's code paths; keep
+`docs/messaging-deviations.md` untouched this chunk (chunk 6 rewrites it once); this is new
+decomposition surface, so it DOES need a `src/index.js` export and a `dev/entries.jsx` harness entry
+(unlike chunks 2-3's internal-only changes) — don't skip either.
+
+**Progress contract / preamble:** identical to chunks 1-3's — `PLAN:`/`PROGRESS:`/`RESULT:` lines, no
+git operations, write-and-run-only-the-new-tests, leave the diff uncommitted.
+
+**Mini-handover:** repo `C:\Users\biglmi\Documents\webapps\ui-core-micha`, branch `main`, WO
+`work-orders/MSG-3b.md` chunk 4 (Part B above, after chunk 3 is committed). Follow `orchestrate-codex`.
