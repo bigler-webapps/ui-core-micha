@@ -744,3 +744,121 @@ git operations, write-and-run-only-the-new-tests, leave the diff uncommitted.
 
 **Mini-handover:** repo `C:\Users\biglmi\Documents\webapps\ui-core-micha`, branch `main`, WO
 `work-orders/MSG-3b.md` chunk 4 (Part B above, after chunk 3 is committed). Follow `orchestrate-codex`.
+
+### Chunk 5 — composer: shortcuts, previews, progress, compression, emoji (rows 30-34, 36, 37)
+
+**Target repo working directory:** `C:\Users\biglmi\Documents\webapps\ui-core-micha` (repo root). Runs
+after chunk 4 is committed.
+
+**Files to change:** `src/messaging/Composer.jsx` (all six rows land here — it's the composer, not new
+decomposition surface, so no new `src/index.js` export or harness entry needed, just editing the
+existing mounted component), `src/i18n/messagingTranslations.ts`, new tests. `docs/messaging-deviations.md`
+untouched this chunk.
+
+**Row 30 (Shift+Enter newline, Enter sends — currently PARTIAL, verify and complete):** the `TextField`
+at `Composer.jsx:94` is a bare `multiline` field with no `onKeyDown` handler at all — Enter currently
+just inserts a newline (native textarea behavior), it does not submit. Add an `onKeyDown` that submits
+on plain `Enter` (calling the existing `submit()` function) and allows the default newline behavior on
+`Shift+Enter` (do not `preventDefault` in that branch). Guard against submitting on IME composition
+(`event.nativeEvent.isComposing`) if you want to be thorough, but the WO's minimum bar is the
+Enter-sends/Shift+Enter-newline split itself.
+
+**Row 31 (staged-image preview strip, per-file remove — currently only a "N attachments selected"
+caption):** replace/extend the `files.length > 0` caption at `Composer.jsx:88` with a horizontal strip
+of thumbnails for image files (`file.type.startsWith('image/')` — use `URL.createObjectURL(file)`,
+matching the existing revoke-on-cleanup pattern already used in `AttachmentList.jsx:15-25` for
+downloaded thumbnails, don't leak object URLs) plus a filename chip for non-image files, each with a
+small remove (×) control that splices that one file out of the `files` state array. Keep the existing
+"N attachments selected" caption as a fallback/count label if useful, or replace it entirely with the
+strip — either is fine, the capability (see what's staged, remove one) is what's required.
+
+**Row 32 (upload progress indication):** `sendAttachments` (`MessagingProvider.jsx`) calls
+`api.uploadAttachments(conversationId, formData, {...})`, which goes through `apiClient` (axios) —
+axios requests support an `onUploadProgress` callback. Check `src/messaging/api.js:32`
+(`uploadAttachments`) and `src/auth/apiClient.jsx` for how request config is threaded through, and
+whether adding an `onUploadProgress` option is a small, additive change to `uploadAttachments`'s
+signature/config (it should be — axios accepts it in the request config object) versus something that
+needs a larger plumbing change. If threading real byte-progress through turns out to require touching
+several layers disproportionately, an indeterminate `CircularProgress`/`LinearProgress` shown for the
+duration of the upload (already-existing `sending` state) is an acceptable minimum — but attempt real
+progress first since the WO names it explicitly and the axios hook is a small addition, not a redesign.
+
+**Row 33 (client-side image compression, >2MB → max 2560px, JPEG q0.85, silent fallback):** verified
+against dcm — the server's own limit is 25MB (`django-core-micha/src/django_core_micha/messaging/attachments.py:23`,
+`MAX_ATTACHMENT_SIZE`), so this compression is purely a client-side bandwidth/upload-time optimization,
+not required for the server to accept anything; a compression failure must silently fall back to the
+original file (never block or corrupt the send) exactly as the WO's row text specifies. Implement via
+canvas: draw the image onto a `<canvas>` scaled down so its longest edge is ≤2560px (skip entirely if
+already smaller), then `canvas.toBlob(callback, 'image/jpeg', 0.85)`, wrap in a promise, and only
+apply this to files over 2MB (`file.size > 2 * 1024 * 1024`) and of an image MIME type — non-image
+files and images ≤2MB pass through unchanged. Wrap the whole compression attempt in try/catch (or a
+promise `.catch`) that resolves to the original `File` on any failure (canvas/image-decode errors,
+unsupported format, etc.) — this is the "silent fallback" the WO requires, not optional robustness.
+
+**Row 34 (emoji insertion into the message body at cursor):** an emoji picker button next to the
+existing attachment/poll/announcement `IconButton`s in `Composer.jsx:89-93`, inserting the picked
+emoji into `body` at the current cursor position (track/read `TextField`'s underlying `<textarea>`
+`selectionStart`/`selectionEnd` via a ref, splice the emoji in, then restore focus/cursor position
+after the emoji). Row 15 (`ReactionBar.jsx:8`, `QUICK_EMOJIS = ['👍', '❤️', '😂', '🎉', '👀']`) already
+established this package's precedent of a small fixed emoji set rather than a full picker library
+(recorded as an accepted `DEV` deviation from jg's `EmojiPickerButton.jsx` in the existing deviation
+doc) — reuse that same small-set convention here for consistency rather than introducing a different
+emoji selection UI or a new picker dependency; a `Menu`/`Popover` of the same or a similarly-sized
+curated emoji set opened from the new button is sufficient. Don't add a new npm dependency for this.
+
+**Row 36 (poll button disabled while images are staged) — trivial, follows from row 31:** once row 31's
+staged-file state exists, add `disabled={pollOpen indicator || files.some(f => f.type.startsWith('image/'))}`-style
+gating to the existing poll `IconButton` (`Composer.jsx:92`) — a one-line condition addition, not new
+logic; verify against the WO's exact framing (jg disables poll-composing while images are staged,
+presumably because a message can't carry both a poll and attachments in one send) before wiring it,
+i.e. confirm this is really about mutual exclusivity of poll vs. attachment in a single send (check
+`send_message`/`create_conversation` service logic in dcm if the reasoning isn't obvious from the
+existing chat-send code path) rather than assume the reason without checking.
+
+**Row 37 (draft text does NOT survive a conversation switch — explicit non-goal, jg bug, do NOT
+reproduce):** confirm current behavior already satisfies this (a fresh `Composer` mount per
+`conversationId` via React's key/prop change naturally resets local `useState` — check whether the
+host's typical usage pattern, e.g. a `key={conversationId}` on `Composer` or equivalent remount, is
+already implied elsewhere in this codebase, or whether `Composer`'s `body`/`files` state could
+persist across a `conversationId` prop change without a remount). If `Composer` is typically kept
+mounted while `conversationId` changes (rather than remounted), add an effect resetting `body`/`files`
+when `conversationId` changes, so unsent text never leaks into the next conversation — this is a
+one-line fix if needed, not a redesign. No test is required if you confirm the existing remount pattern
+already prevents this (document which is true in your chunk summary), but if you add the reset effect,
+test it.
+
+**Required tests to WRITE (chunk 5 scope):**
+- Row 30: Enter submits (with body present); Shift+Enter inserts a newline without submitting.
+- Row 31: staged images render a preview strip; removing one via its control drops it from the
+  eventual submitted `FormData`/`files[]` without affecting the others.
+- Row 32: an in-flight upload shows progress (whichever form — byte-percentage or indeterminate,
+  matching whichever you implemented); test what's actually observable (e.g. an `onUploadProgress`
+  callback firing and updating visible state, or the indeterminate indicator rendering during
+  `sending`).
+- Row 33: a file over 2MB is compressed (mock canvas/`toBlob` — check whether this repo's existing test
+  setup already provides a canvas/image mock before adding a new one) before being included in the
+  upload's `FormData`; a compression failure still results in the original file being sent, not a
+  blocked/broken send.
+- Row 34: picking an emoji inserts it into `body` at the cursor position (not just appended to the
+  end — construct a test with a non-trivial cursor position to actually prove insertion-at-cursor, not
+  insertion-at-end, which would pass a weaker test trivially).
+- Row 36: poll button is disabled once an image is staged, enabled again once removed.
+- Row 37: either a passing test proving draft state doesn't leak across a `conversationId` change, or
+  (if you conclude the existing remount pattern already prevents it) no new test, but state that
+  conclusion explicitly in your chunk summary.
+- Existing ucm suites (chunks 1-4 inclusive) stay green.
+
+**Invariants / do-not-break:** don't touch chunks 1-4's code paths; keep `Composer.jsx` component
+cohesive — if this chunk pushes it meaningfully past the ~400 LOC soft trigger, a small co-located
+helper module (e.g. `composerImageCompression.js` for the canvas logic, kept internal/unexported) is an
+acceptable way to manage size without violating the no-new-top-level-surface rule (it's not a new
+mountable component, just an extracted pure function); flag rather than silently letting one file
+sprawl if it happens anyway. No new npm dependency for the emoji picker (row 34) or anything else in
+this chunk — everything here is buildable with existing MUI + native browser APIs (canvas, axios
+progress hooks).
+
+**Progress contract / preamble:** identical to chunks 1-4's — `PLAN:`/`PROGRESS:`/`RESULT:` lines, no
+git operations, write-and-run-only-the-new-tests, leave the diff uncommitted.
+
+**Mini-handover:** repo `C:\Users\biglmi\Documents\webapps\ui-core-micha`, branch `main`, WO
+`work-orders/MSG-3b.md` chunk 5 (Part B above, after chunk 4 is committed). Follow `orchestrate-codex`.
