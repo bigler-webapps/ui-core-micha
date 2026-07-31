@@ -159,7 +159,18 @@ export function applyFrame(state, frame, activeConversationId = null) {
   if (frame.type === 'poll_updated') {
     const messageId = frame.message_id ?? payload.message_id;
     const previous = state.messages[messageId] || { id: messageId };
-    const poll = payload.poll || frame.poll || payload;
+    const incomingPoll = payload.poll || frame.poll || payload;
+    // dcm's poll_updated frame is a viewer-independent projection
+    // (serialize_poll) — it never carries voted_option_ids, which dcm only
+    // ever adds to this viewer's own vote/create/close REST response. A
+    // frame arriving after a REST-derived vote is known must not wipe that
+    // locally-known selection; carry it forward when the frame is silent
+    // about it, never invert it from frame data that structurally can't
+    // contain it.
+    const previousVotedOptionIds = previous.poll?.voted_option_ids;
+    const poll = incomingPoll.voted_option_ids === undefined && previousVotedOptionIds
+      ? { ...incomingPoll, voted_option_ids: previousVotedOptionIds }
+      : incomingPoll;
     return { ...state, messages: mergeById(state.messages, { ...previous, poll }), polls: mergeById(state.polls, poll) };
   }
   if (frame.type === 'message_deleted') {

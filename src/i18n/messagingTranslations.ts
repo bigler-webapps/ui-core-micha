@@ -85,6 +85,7 @@ export const messagingTranslations = {
   'MessagingPoll.ADD_OPTION': { de: 'Option hinzufügen', en: 'Add option', fr: 'Ajouter une option' },
   'MessagingPoll.ALLOW_MULTIPLE': { de: 'Mehrfachauswahl erlauben', en: 'Allow multiple choices', fr: 'Autoriser plusieurs choix' },
   'MessagingPoll.CANCEL': { de: 'Abbrechen', en: 'Cancel', fr: 'Annuler' },
+  'MessagingPoll.YOU_VOTED': { de: 'von dir gewählt', en: 'voted by you', fr: 'voté par vous' },
   'MessagingConfig.LABEL': { de: 'Nachrichten-Einstellungen', en: 'Messaging settings', fr: 'Paramètres de messagerie' },
   'MessagingConfig.TITLE': { de: 'Nachrichten-Einstellungen', en: 'Messaging settings', fr: 'Paramètres de messagerie' },
   'MessagingConfig.LOADING': { de: 'Einstellungen werden geladen…', en: 'Loading settings…', fr: 'Chargement des paramètres…' },
