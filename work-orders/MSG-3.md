@@ -213,6 +213,31 @@ own review per chunk, `ui_reviewer` at WO end, one publish at WO end).
 current published version 2.15.0). **Precondition: DX-1 must be landed and committed first** — do
 not start this WO's chunk 1 until DX-1's commit exists on `main`.
 
+### Operator-approved exception: additive Layer-1 reconnect signal (2026-07-31)
+
+Chunk 1's first dispatch found a real blocker: the design's "Reconnect refetches REST state/cursors"
+(§Realtime) cannot be implemented against the existing Layer-1 primitive. `useRealtimeCore`
+(`src/notifications/realtime.jsx`) tracks connect/backoff/reconnect internally but exposes only
+`{ subscribe }` — no consumer, including `NotificationsProvider`'s own `RealtimeContext.Provider`
+value, can observe a reconnect happening. This is confirmed by direct inspection, not assumed.
+
+**Operator decision:** extend `src/notifications/realtime.jsx` and (if needed to thread the value
+through) `src/notifications/NotificationsProvider.jsx` **additively** — e.g. an `onReconnect(callback)`
+registration or a `connected` boolean added to the object `useRealtimeCore` returns and the
+`RealtimeContext` value. This is the ONE approved exception to this WO's "consumed, not modified"
+boundary for `src/notifications/`; do not use it as license to touch anything else there. Requirements
+for the extension itself:
+- Purely additive — existing consumers destructuring only `{ subscribe }` must be completely
+  unaffected (same behavior, same shape for the fields they read).
+- No new WS consumer, no change to the connection/backoff logic itself, only exposing a signal that
+  already exists internally.
+- Covered by its own test in the existing `tests/realtime.test.jsx` (or a new adjacent test file
+  following that convention) proving the reconnect signal actually fires when the internal `connect()`
+  path re-establishes after a close — not just that the field exists.
+- This is chunk 1's first task, before the messaging-specific work; land it as a clearly-separated
+  part of chunk 1's diff (the reviewer will look at it as its own concern) rather than mixing it
+  invisibly into `MessagingProvider`'s implementation.
+
 ### Shared context package (applies to every chunk)
 
 **New subpackage to create:** `src/messaging/` — mirror `src/notifications/`'s layout and
