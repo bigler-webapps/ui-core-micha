@@ -289,3 +289,136 @@ at WO end). Rows marked BLOCKED stay untouched until `MSG-2c` ships.
 ## Part B — Implementation map (Orchestrator)
 
 To be filled by the Orchestrator session on `git pull`, within the envelope above.
+
+**This section covers chunk 1 only (rows 1-5 + the contract-conformance test). Later chunks get
+their own Part B addendum before their `codex exec` invocation.**
+
+### Chunk 1 — unread lifecycle + contract-conformance test
+
+**Target repo working directory:** `C:\Users\biglmi\Documents\webapps\ui-core-micha` (repo root — no
+`backend`/`frontend` subdir in this repo).
+
+**Files to change:**
+
+- `src/messaging/MessagingProvider.jsx` — the only file with real logic changes.
+- `src/messaging/ConversationList.jsx` — one call site addition (row 1).
+- `src/messaging/Thread.jsx` — one call site addition (row 2), plus the existing `toggleReplies`
+  function is where row 4 (thread-open marks thread read) belongs.
+- New test file(s) under `tests/` (see "Required tests" below) — do not touch existing test files
+  except where a shared test helper genuinely needs extending.
+- `docs/messaging-deviations.md` — not touched this chunk (the doc gets rewritten once, at chunk 6,
+  against the full checklist — do not add partial chunk-1 notes here that chunk 6 would have to
+  reconcile).
+
+**Already in place, reuse, do not re-invent:**
+
+- `src/messaging/api.js:40-41` already exports `markThreadRead(rootId, readAt)` and
+  `markConversationRead(conversationId, readAt)`. Neither has a caller anywhere in the codebase today
+  — that's exactly the gap. Do not write new API functions for this; wire the existing ones.
+- `MessagingProvider.jsx`'s `DEFAULT_API` object (line 31-36) and the `api` param destructuring must
+  both be extended to include `markConversationRead`/`markThreadRead`, following the exact pattern
+  every other adapter function already uses (see `archiveConversation`/`setConversationArchived` at
+  lines 186-189 for the closest shape: call the API, then update local state from the result).
+- `cache.unread` shape (from `EMPTY_CACHE` at line 30): `{ unread_count, by_conversation: { [id]: n } }`
+  — this is also dcm's `GET unread-count/` response shape verbatim (design doc line 75).
+
+**Row-by-row implementation guidance (the "how", not literal code — Codex owns the exact shape):**
+
+- **Row 1 (select marks read) + Row 2 (open marks read):** both end up calling the same new provider
+  action, e.g. `markConversationRead(conversationId)`, from two different call sites:
+  `ConversationList`'s existing `onClick={() => onOpen?.(conversation)}` (around line 61) and a new
+  `useEffect` in `Thread` keyed on `conversationId` (mirroring the existing pattern at
+  `MessagingProvider.jsx:292`'s `useEffect(() => { if (active) refresh()... }, [active, refresh])`).
+  Calling it from both places on the same conversation is expected and must be idempotent — the
+  second call should not double-decrement.
+- **Row 3 (badge decrements by that conversation's prior count):** this is the exact bug named in the
+  envelope's "why it's worse than rows 1-4 suggest" section — the fix must decrement
+  `unread.unread_count` by whatever `unread.by_conversation[conversationId]` held *before* this call,
+  not reset the badge to some assumed value and not just zero the per-conversation entry without
+  touching the global total. Guard against going negative (`Math.max(0, ...)`, matching the existing
+  `toggleReaction` clamp pattern at line 253).
+- **Row 4 (opening a reply thread marks the thread read):** wire `markThreadRead` from
+  `Thread.jsx`'s existing `toggleReplies` function (line 48-53) — call it when a thread is being
+  opened (not on collapse). This does not touch `cache.unread` (dcm's design has no described
+  per-thread unread projection distinct from the parent conversation's count) — confirm against the
+  design doc before assuming otherwise; if thread-level unread turns out to need its own state, that's
+  a scope question to flag, not to quietly invent.
+- **Row 5 (incoming message raises unread, only for non-active conversations):** the real defect
+  described in the envelope — `applyFrame`'s `message` case (line 107-110) never touches
+  `state.unread` at all. Fix requires two things: (a) the reducer needs to know which conversation is
+  currently active when a frame arrives — `applyFrame`/`messagingReducer` are pure and don't have
+  access to `activeIdRef`, so the `dispatch({ type: 'frame', frame })` call in the `subscribe(...)`
+  handler (line 293-300) must pass `activeConversationId: activeIdRef.current` alongside the frame,
+  and `applyFrame` must accept and use it; (b) do not increment unread for a message that reconciles
+  the current user's *own* pending optimistic send (i.e., a `reconcileMessage` match found an existing
+  local entry by `client_request_id`) — only a genuinely new incoming message should bump the badge.
+  `reconcileMessage` (line 62-72) already knows whether it matched; the frame handler needs that
+  signal surfaced, not silently discarded.
+
+**Realtime frame contract note (feeds the conformance test):** the design doc (`messaging-platform.md`
+line 155) names twelve frame types. dcm 2.36.1 only ever emits three (`message`, `message_edited`,
+`message_deleted` — row 59). The provider already has handlers for `reaction`/`poll_updated` (dead
+code until `MSG-2c`, intentionally kept, do not delete — see the WO's conformance-test-exemptions
+section) plus `conversation_upsert`/`conversation_archived`/`participant_changed`. Three design frame
+types have **no handler at all** and are legitimately out of this chunk's scope: `attachment_ready`
+(reserved/deliberately unemitted per the design doc itself), `delivered`, `read_state`,
+`thread_read_state` (no row in this WO's checklist requires them — they're a future receipts-sync
+work item, not part of rows 1-5's local-count-based unread lifecycle). The conformance test's
+frame-side check must not fail on these three/four — give them the same kind of explicit, reasoned
+exemption the WO requires for the `api.js` side, not a silent allowlist.
+
+**Contract-conformance test — shape:** a Node-side static-analysis test (vitest still runs in Node;
+`fs`/`path` are available even under the `jsdom` test environment) that:
+1. Reads `src/messaging/api.js`, extracts every `export function <name>(` — that's the full adapter
+   surface.
+2. Reads `src/messaging/MessagingProvider.jsx` and every other `src/messaging/*.jsx` component file,
+   and checks each exported api function name appears as `api.<name>(` somewhere in that source text.
+3. Fails for any export with zero call sites, **except** an explicit, named, reasoned exemption list
+   in the test file itself: after this chunk, `createManagedConversation`, `createObjectThreadConversation`
+   and `getMessage` remain genuinely uncalled (per the WO's "Conformance-test exemptions" section) —
+   list them with a one-line reason each (row 42's managed/team distinction — chunk 6 — may end up
+   calling `createManagedConversation`; if it does, remove it from the exemption list then, don't
+   leave a stale entry).
+4. Separately, reads the frame types handled in `MessagingProvider.jsx` (every `frame.type === '...'`
+   literal) and checks each is one of the twelve types the design doc lists at
+   `django-core-micha/docs/design/messaging-platform.md:155` — hardcode that list in the test (or read
+   the doc file directly with `fs`, either is fine) with the same explicit-exemption treatment for the
+   design-listed types this chunk doesn't handle (`attachment_ready`, `delivered`, `read_state`,
+   `thread_read_state`).
+5. This test is intentionally source-grepping, not behavioral — keep it in its own file
+   (`tests/messagingContractConformance.test.jsx` or similar) so its assertions and exemption lists
+   stay easy to find and update as later chunks close gaps.
+
+**Required tests to WRITE (chunk 1 scope):**
+- The contract-conformance test above.
+- Row 1: selecting a conversation in `ConversationList` calls `markConversationRead` for that
+  conversation's id.
+- Row 2: mounting `Thread` for a conversation calls `markConversationRead` for that conversation.
+- Row 3: a regression test asserting the decrement is by the conversation's *prior* count specifically
+  — seed `cache.unread` with `{ unread_count: 5, by_conversation: { 12: 2, 7: 3 } }`, mark conversation
+  12 read, assert `unread_count === 3` and `by_conversation[12] === 0`, `by_conversation[7]` untouched.
+- Row 4: expanding a reply thread calls `markThreadRead` for that root message id.
+- Row 5: dispatch a `message` frame for a non-active conversation and assert the badge rises by one;
+  dispatch one for the active conversation and assert it does not; dispatch one that reconciles an
+  existing optimistic own-message (matching `client_request_id`) and assert it does not double-count.
+- Existing ucm suites (139 tests) stay green.
+
+**Invariants / do-not-break:**
+- `applyFrame`/`messagingReducer` stay pure functions — no direct API calls or refs inside them; the
+  active-conversation-id must be threaded in as data, not read from a ref inside the reducer.
+- Don't touch the `reply_to`/`reply_to_id` field-name mismatch (row 23) — that's chunk 2, out of scope
+  here even though it's visible in `Thread.jsx` while you're in this file.
+- Don't touch `docs/messaging-deviations.md` this chunk.
+- Keep the ~400 LOC soft trigger in mind for `MessagingProvider.jsx` — it's already the largest file in
+  the package; if this change pushes it meaningfully past that, flag it rather than silently letting it
+  grow (splitting unread-lifecycle logic into a co-located reducer/action-creator module is an
+  acceptable, non-monolith-regrowing way to keep it manageable, if needed).
+
+**Progress contract:** emit `PLAN: …` once, then a single-line `PROGRESS: [n/total] <action>` before
+every relevant action and `… done` on completion, no gap over ~2 minutes, unbuffered stdout, and a
+final `RESULT: DONE` or `RESULT: BLOCKED <reason>` line. Do NOT `git add`/`commit`/`push` — leave the
+diff for the orchestrator's review. WRITE the tests listed above and run only those to confirm they
+execute and pass — do not run the full suite (the orchestrator runs the affected-areas gate after).
+
+**Mini-handover:** repo `C:\Users\biglmi\Documents\webapps\ui-core-micha`, branch `main`, WO
+`work-orders/MSG-3b.md` chunk 1 (Part B above). Follow `orchestrate-codex`.
