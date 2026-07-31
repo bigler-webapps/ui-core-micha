@@ -862,3 +862,130 @@ git operations, write-and-run-only-the-new-tests, leave the diff uncommitted.
 
 **Mini-handover:** repo `C:\Users\biglmi\Documents\webapps\ui-core-micha`, branch `main`, WO
 `work-orders/MSG-3b.md` chunk 5 (Part B above, after chunk 4 is committed). Follow `orchestrate-codex`.
+
+### Chunk 6 — list polish, timeline polish, receipts, poll bounds, and the deviation-doc rewrite (rows 39, 40, 42, 45-47, 50, 54)
+
+**Target repo working directory:** `C:\Users\biglmi\Documents\webapps\ui-core-micha` (repo root). Runs
+after chunk 5 is committed. This is the WO's last content chunk — after it lands, the WO-end
+`ui_reviewer` pass and the version-bump/publish are the only remaining steps.
+
+**Files to change:** `src/messaging/ConversationList.jsx` (rows 39, 40, 42), `src/messaging/Thread.jsx`
++ `src/messaging/MessageBubble.jsx` (rows 45, 46, 47), `src/messaging/ReadTicks.jsx` (row 50),
+`src/messaging/Composer.jsx` (row 54), `src/i18n/messagingTranslations.ts`, new tests, and finally
+**`docs/messaging-deviations.md` — rewritten once, at the end of this chunk**, against the WO's full
+checklist (this is the deliverable the WO's envelope calls out as correcting MSG-3's false completeness
+claim).
+
+**Row 39 (relative timestamp, localized) + Row 40 (active-row highlight):** `ConversationList.jsx`
+currently renders no timestamp at all (`ListItemText`'s `secondary` is the last-message preview only).
+Add a relative-time label ("now"/"5m"/"3h"/"2d") next to or under the title, computed from
+`conversation.last_message_at`, using the browser-native `Intl.RelativeTimeFormat` (locale-aware,
+zero new dependency — this repo has no existing relative-time helper to reuse, don't add a date
+library for this). For row 40: `ListItemButton` already sets `selected={conversation.id ===
+activeConversationId}` (`ConversationList.jsx:61`) — MUI's `selected` prop does apply a background
+highlight by default, so verify in the rendered/test DOM whether this is actually visually
+distinguishable (check the applied `Mui-selected` class is present) before assuming it needs new work;
+if the existing `selected` wiring already produces a real highlight, this row may already be `OK` and
+should be recorded as such rather than reimplemented — don't add redundant styling on top of something
+that already works, verify first.
+
+**Row 42 (managed *all* vs. managed *team* — decide, not build):** verified against dcm — the
+`Conversation` model has `external_key` (`django-core-micha/src/django_core_micha/messaging/models.py:86`),
+which is where jg's all-vs-team distinction lives, but `serialize_conversation_core`
+(`serializers.py:106-113`) never includes `external_key` in any REST response. This field genuinely
+cannot be surfaced client-side without a dcm change (out of this WO's scope — dcm changes belong to a
+future `MSG-2c`-style order). **Decision: record as a deviation, do not attempt to guess the
+distinction from `title` text or any other client-visible field.** This is a `decide` row, and the
+decision is: not buildable against dcm 2.36.1, closest in shape to the already-BLOCKED rows.
+
+**Row 45 (auto-scroll to bottom on a new incoming message — verify, currently missing):** `Thread.jsx`'s
+scroll container (`scrollRef`, line 34) has no effect reacting to new messages arriving in `roots`. Add
+one: on a new message appended to the active conversation, scroll to bottom — but gate it on the user
+already being near the bottom before the new message arrived (e.g. `scrollHeight - scrollTop -
+clientHeight` under some small threshold), so a user scrolled up reading history doesn't get yanked to
+the bottom by an unrelated new message. This nuance isn't explicit in the WO's one-line row text but is
+standard chat-UI behavior and avoids a real usability regression — implement it, and note the
+near-bottom gating as a considered addition in your chunk summary (not silently assumed).
+
+**Row 46 (announcement deep-link button, `link_target` accepted on compose but never rendered as an
+action):** `MessageBubble.jsx` has no rendering for `message.link_target` at all currently. Add a
+button/link shown when `!deleted && message.kind === 'announcement' && message.link_target` — but the
+link's *destination handling* is host-app routing (same reasoning already established for
+`resolveLink` on `NotificationBell` elsewhere in this package), so this needs a host-supplied callback
+prop threaded `Thread` → `MessageBubble` (e.g. `onAnnouncementLink(linkTarget)`), not a hardcoded
+`window.location`/`<a href>` navigation. Without a host callback supplied, render nothing extra (no
+broken/no-op link) rather than a non-functional button.
+
+**Row 47 (sender name shown in group/managed, suppressed in 1:1 — PARTIAL, currently unconditional):**
+`MessageBubble.jsx:31` (`senderName(message)`) renders unconditionally. `Thread.jsx` already has
+`conversation` in scope (line 40) but doesn't pass it to `MessageBubble` — thread it through (a new
+`conversation` prop on `MessageBubble`, alongside the existing `replyTo`/`onReply`/etc.) and suppress
+the sender-name line when `conversation?.kind === 'direct'` (matches jg's 1:1 convention: in a two-
+person DM, whose message it is is already visually implied by side/alignment in most chat UIs, or at
+minimum isn't worth repeating every bubble — since this package doesn't currently do left/right
+alignment by sender, keep the bubble layout as-is and just suppress the redundant name text for DMs,
+which is the capability the row asks for, not a new alignment scheme).
+
+**Row 50 (per-recipient read-status detail, gated moderator + non-direct — PARTIAL, verify tooltip vs.
+jg's popover list):** `ReadTicks.jsx` already correctly gates the DM carve-out (`conversation?.kind ===
+'direct' ? null : status.recipient_detail`, line 20) — **this part is already correct, do not touch
+the gating logic.** What's flagged PARTIAL is the *presentation*: a hover-only MUI `Tooltip` (line 22)
+is not touch/keyboard accessible the way jg's popover list is — a moderator on a touch device cannot
+see who read a message at all today. Convert to a click-to-open `Popover`/`Menu` showing the recipient
+names as a proper list (anchored on the existing `Typography` trigger), keeping the same content
+(`detailText`/aggregate `label`) — this is an interaction-fidelity fix, not new data plumbing.
+
+**Row 54 (poll option bounds 2-10 in the composer — verify):** dcm's server-side validation
+(`django-core-micha/src/django_core_micha/messaging/serializers.py:27`,
+`PollInputSerializer.options`) only enforces `min_length=2`, no maximum — the "2-10" bound is a
+client-only UX guard (jg's convention), not a server contract. `Composer.jsx`'s poll dialog
+(`pollOptions` state, `setPollOptions((current) => [...current, ''])`) currently allows unlimited
+options. Cap at 10: disable/hide the "Add option" button once `pollOptions.length >= 10`, and keep the
+existing minimum-2 validation as-is (already correct).
+
+**Deliverable: `docs/messaging-deviations.md` rewritten once, at the end of this chunk.** The WO's
+envelope is explicit that the doc's current "Final parity confirmation" section overclaims completeness
+and must be replaced with an honest, row-by-row account against this WO's full checklist (all 59 rows,
+not just chunks 1-6's 39 unblocked ones) — every row gets one of: `OK` (unchanged from before this WO,
+or newly landed), `DEV` (deliberate deviation with rationale — carry forward the existing ones from
+chunks 2/3/4/5 plus this chunk's row 6/42/47/50 interaction deviations), or `BLOCKED` (rows 38, 51-53,
+56-58, plus row 27's now-recorded BLOCKED outcome from chunk 2, plus row 42's newly-recorded BLOCKED
+outcome from this chunk). This is the single most important deliverable of the whole WO per its own
+"why this WO exists" framing — do not compress it into a vague summary; go row by row, referencing the
+row number from the checklist in `work-orders/MSG-3b.md` Part A.
+
+**Required tests to WRITE (chunk 6 scope):**
+- Row 39: relative-timestamp rendering for a few representative ages (just-now, minutes, hours, days).
+- Row 40: only if genuinely fixing something (see the verify-first note above) — otherwise state the
+  `already OK` conclusion in your summary instead of a padding test.
+- Row 45: a new message in the active conversation while scrolled near the bottom triggers a scroll-to-
+  bottom call; while scrolled away from the bottom, it does not (assert the scroll call, not real
+  jsdom layout, which has no real scroll metrics — mock `scrollHeight`/`scrollTop`/`clientHeight` on
+  the container the way this environment's other scroll-adjacent tests already do, if any precedent
+  exists, otherwise establish a minimal one here).
+- Row 46: the announcement link button renders only when a host callback is supplied and
+  `link_target` is present; clicking it calls the host callback with the right value; absent either
+  precondition, nothing extra renders.
+- Row 47: sender name renders in a group conversation, is suppressed in a direct conversation.
+- Row 50: the recipient-detail control is click-openable (not hover-only) and still respects the DM
+  carve-out (no detail control rendered/openable at all for a direct conversation, even for a
+  moderator) — this is a regression test for existing correct behavior, not just new UI.
+- Row 54: the "add option" control disables/hides at 10 options; existing 2-minimum validation stays
+  covered by its current test (don't duplicate, just don't break it).
+- Existing ucm suites (chunks 1-5 inclusive) stay green.
+
+**Invariants / do-not-break:** don't touch chunks 1-5's code paths beyond the specific additive props
+described above (`conversation` on `MessageBubble`, `onAnnouncementLink` threading); don't invent a
+managed-all-vs-team distinction client-side (row 42's decision is BLOCKED/deviation, not a guess); keep
+the ~400 LOC soft trigger in mind across `Thread.jsx`/`MessageBubble.jsx`/`ConversationList.jsx` — this
+chunk touches all three, watch for any of them growing past the trigger and flag rather than silently
+letting it happen.
+
+**Progress contract / preamble:** identical to chunks 1-5's — `PLAN:`/`PROGRESS:`/`RESULT:` lines, no
+git operations, write-and-run-only-the-new-tests, leave the diff uncommitted.
+
+**Mini-handover:** repo `C:\Users\biglmi\Documents\webapps\ui-core-micha`, branch `main`, WO
+`work-orders/MSG-3b.md` chunk 6 (Part B above, after chunk 5 is committed) — the WO's last content
+chunk. Follow `orchestrate-codex`; after this chunk's independent review and commit, run the WO-end
+`ui_reviewer` pass (checking the rewritten deviation doc against the full checklist row by row per the
+WO's "Reviews" section), then one version bump + npm publish.
