@@ -1,11 +1,12 @@
 // @vitest-environment jsdom
 import React from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 
 vi.mock('react-i18next', () => ({ useTranslation: () => ({ t: (key, options) => options?.sender ? `${key}:${options.sender}` : key }) }));
 vi.mock('../src/notifications/realtime', () => ({ useRealtime: () => ({ subscribe: () => () => {}, onReconnect: () => () => {} }) }));
 
+import { AuthContext } from '../src/auth/AuthContext';
 import { MessageBubble } from '../src/messaging/MessageBubble';
 import { applyFrame, MessagingProvider } from '../src/messaging/MessagingProvider';
 import { Thread } from '../src/messaging/Thread';
@@ -18,6 +19,7 @@ function makeApi(messages = []) {
     getUnreadCount: vi.fn().mockResolvedValue({ unread_count: 0, by_conversation: {} }),
     markConversationRead: vi.fn().mockResolvedValue({}),
     markThreadRead: vi.fn().mockResolvedValue({}),
+    getReadStatus: vi.fn().mockResolvedValue({ all_read: false, delivered_count: 0 }),
   };
 }
 function renderBubble(ui) {
@@ -59,6 +61,20 @@ describe('messaging threading and quoting', () => {
     renderBubble(<MessageBubble message={{ id: 2, body: 'Reply' }} replyTo={{ id: 1, attachments: [{ id: 9, filename: 'photo.png' }], sender: { display_name: 'Ava' } }} />);
     expect(screen.getByText('MessagingThread.QUOTE_ATTACHMENT')).toBeTruthy();
     expect(screen.queryByText('MessagingThread.DELETED')).toBeNull();
+  });
+
+  it("clears the Thread's own reply-target state when the message being replied to is deleted", async () => {
+    const api = makeApi([{ id: 20, conversation_id: 1, body: 'Reply target', sender: { id: 1, display_name: 'Ava' }, created_at: '2026-07-31T10:00:00Z' }]);
+    api.deleteMessage = vi.fn().mockResolvedValue({});
+    render(<AuthContext.Provider value={{ user: { id: 1 } }}><MessagingProvider api={api} activeConversationId={1}><Thread conversationId={1} /></MessagingProvider></AuthContext.Provider>);
+    await screen.findByText('Reply target');
+    fireEvent.click(screen.getByRole('button', { name: /MessagingThread\.REPLY\b/ }));
+    expect(screen.getByText(/MessagingThread\.REPLYING_TO/)).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: /MessagingActions\.MENU/ }));
+    fireEvent.click(screen.getByRole('menuitem', { name: /MessagingActions\.DELETE/ }));
+    fireEvent.click(screen.getByRole('button', { name: /MessagingActions\.DELETE/ }));
+    await waitFor(() => expect(api.deleteMessage).toHaveBeenCalledWith(20));
+    await waitFor(() => expect(screen.queryByText(/MessagingThread\.REPLYING_TO/)).toBeNull());
   });
 
   it('jumps from a quote to the original message', () => {

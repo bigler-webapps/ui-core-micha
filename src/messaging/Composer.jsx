@@ -2,7 +2,7 @@ import { Alert, Button, Checkbox, Dialog, DialogActions, DialogContent, DialogTi
 import AttachFileIcon from '@mui/icons-material/AttachFile';
 import CampaignOutlinedIcon from '@mui/icons-material/CampaignOutlined';
 import PollOutlinedIcon from '@mui/icons-material/PollOutlined';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { extractApiErrorMessage, useMessaging } from './MessagingProvider';
@@ -35,6 +35,9 @@ export function Composer({ conversationId, replyTarget = null, onReplyTargetChan
   const [announcementTitle, setAnnouncementTitle] = useState('');
   const [announcementBody, setAnnouncementBody] = useState('');
   const inputRef = useRef(null);
+  useEffect(() => {
+    if (replyTarget?.deleted_at) onReplyTargetChange?.(null);
+  }, [replyTarget, onReplyTargetChange]);
   const submit = async (requestId = newRequestId(), retry = false) => {
     if (!body.trim() && !files.length) return;
     setSending(true); setError(null);

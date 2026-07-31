@@ -24,6 +24,8 @@ import {
   closePoll,
   getConversationConfig,
   patchConversationConfig,
+  patchMessage as patchMessageRequest,
+  deleteMessage as deleteMessageRequest,
 } from './api';
 import { useRealtime } from '../notifications/realtime';
 
@@ -36,6 +38,7 @@ const DEFAULT_API = {
   markConversationRead, markThreadRead,
   createMessage, uploadAttachments, getAttachment, getAttachmentThumbnail,
   addReaction, removeReaction, createPoll, votePoll, closePoll, getConversationConfig, patchConversationConfig,
+  patchMessage: patchMessageRequest, deleteMessage: deleteMessageRequest,
 };
 
 function idOf(item) { return item?.id ?? item?.conversation_id ?? item?.message_id ?? item?.poll_id; }
@@ -280,6 +283,30 @@ export function MessagingProvider({ children, filters = {}, activeConversationId
     }
   }, [api, user]);
   const patchMessage = useCallback((message) => dispatch({ type: 'messagePatched', message }), []);
+  // Keep this API-backed action deliberately distinct from the cache-merge
+  // helper above. The server remains the authority for author/moderator rights.
+  const editMessage = useCallback(async (messageId, patch) => {
+    const result = await api.patchMessage(messageId, patch);
+    const message = result?.message || result;
+    patchMessage({ ...(cache.messages[messageId] || { id: messageId }), ...(message || {}), id: message?.id ?? messageId });
+    return result;
+  }, [api, cache.messages, patchMessage]);
+  const removeMessage = useCallback(async (messageId) => {
+    const result = await api.deleteMessage(messageId);
+    const message = result?.message || result;
+    const previous = cache.messages[messageId] || { id: messageId };
+    patchMessage({
+      ...previous,
+      ...(message || {}),
+      id: message?.id ?? messageId,
+      deleted_at: message?.deleted_at ?? previous.deleted_at ?? new Date().toISOString(),
+      deleted_by: message?.deleted_by ?? previous.deleted_by ?? user?.id,
+      body: null,
+      title: null,
+      link_target: null,
+    });
+    return result;
+  }, [api, cache.messages, patchMessage, user]);
   const toggleReaction = useCallback(async (messageId, emoji, active) => {
     const message = cache.messages[messageId] || { id: messageId };
     const reactions = message.reactions || [];
@@ -342,18 +369,22 @@ export function MessagingProvider({ children, filters = {}, activeConversationId
     cache, refresh, refreshConversations, refreshUnread, refreshThread, loadMoreMessages, loadThreadReplies, getMessageReadStatus, loadMoreConversations,
     setConversationArchived, setConversationPreferences, openGroupConversation,
     markConversationRead: markConversationAsRead, markThreadRead: markReplyThreadRead,
-    openBroadcastConversation, sendMessage, sendAttachments, toggleReaction, createConversationPoll, castPollVote, closeConversationPoll,
+    openBroadcastConversation, sendMessage, sendAttachments, editMessage, removeMessage, toggleReaction, createConversationPoll, castPollVote, closeConversationPoll,
     loadConversationConfig, saveConversationConfig, currentUser: user, getAttachment: api.getAttachment,
     getAttachmentThumbnail: api.getAttachmentThumbnail, activeConversationId,
   }), [cache, refresh, refreshConversations, refreshUnread, refreshThread, loadMoreMessages, loadThreadReplies, getMessageReadStatus, loadMoreConversations,
     setConversationArchived, setConversationPreferences, openGroupConversation, markConversationAsRead, markReplyThreadRead,
-    openBroadcastConversation, sendMessage, sendAttachments, toggleReaction, createConversationPoll, castPollVote, closeConversationPoll,
+    openBroadcastConversation, sendMessage, sendAttachments, editMessage, removeMessage, toggleReaction, createConversationPoll, castPollVote, closeConversationPoll,
     loadConversationConfig, saveConversationConfig, user, api.getAttachment, api.getAttachmentThumbnail, activeConversationId]);
   return <MessagingContext.Provider value={value}>{children}</MessagingContext.Provider>;
 }
 
 export function useMessaging() {
-  const context = useContext(MessagingContext);
+  const context = useOptionalMessaging();
   if (!context) throw new Error('useMessaging must be used within a MessagingProvider');
   return context;
+}
+
+export function useOptionalMessaging() {
+  return useContext(MessagingContext);
 }
