@@ -1,0 +1,17 @@
+export const messagingTranslations = {
+  'MessagingList.LABEL': { de: 'Unterhaltungen', en: 'Conversations', fr: 'Conversations' },
+  'MessagingList.EMPTY': { de: 'Noch keine Unterhaltungen.', en: 'No conversations yet.', fr: 'Aucune conversation pour le moment.' },
+  'MessagingList.NO_MESSAGES': { de: 'Noch keine Nachrichten', en: 'No messages yet', fr: 'Aucun message pour le moment' },
+  'MessagingList.UNTITLED': { de: 'Unbenannte Unterhaltung', en: 'Untitled conversation', fr: 'Conversation sans titre' },
+  'MessagingList.ACTIONS': { de: 'Aktionen für Unterhaltung', en: 'Conversation actions', fr: 'Actions de la conversation' },
+  'MessagingList.LOAD_MORE': { de: 'Mehr laden', en: 'Load more', fr: 'Charger plus' },
+  'MessagingList.LOAD_ERROR': { de: 'Unterhaltungen konnten nicht geladen werden.', en: 'Conversations could not be loaded.', fr: 'Impossible de charger les conversations.' },
+  'MessagingList.ARCHIVE': { de: 'Archivieren', en: 'Archive', fr: 'Archiver' },
+  'MessagingList.ARCHIVE_ERROR': { de: 'Unterhaltung konnte nicht archiviert werden.', en: 'Conversation could not be archived.', fr: 'Impossible d’archiver la conversation.' },
+  'MessagingList.MUTE': { de: 'Stummschalten', en: 'Mute', fr: 'Mettre en sourdine' },
+  'MessagingList.UNMUTE': { de: 'Stummschaltung aufheben', en: 'Unmute', fr: 'Réactiver le son' },
+  'MessagingList.PREFERENCES_ERROR': { de: 'Einstellungen konnten nicht gespeichert werden.', en: 'Preferences could not be saved.', fr: 'Impossible d’enregistrer les préférences.' },
+  'MessagingLaunchers.OPEN_GROUP': { de: 'Gruppenunterhaltung öffnen', en: 'Open group conversation', fr: 'Ouvrir la conversation de groupe' },
+  'MessagingLaunchers.OPEN_BROADCAST': { de: 'Ankündigungen öffnen', en: 'Open announcements', fr: 'Ouvrir les annonces' },
+  'MessagingLaunchers.OPEN_ERROR': { de: 'Unterhaltung konnte nicht geöffnet werden.', en: 'Conversation could not be opened.', fr: 'Impossible d’ouvrir la conversation.' },
+};

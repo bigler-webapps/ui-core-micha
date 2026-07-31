@@ -1,9 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { MessagingProvider, useMessaging } from '../src/index';
+import { ConversationLaunchers, ConversationList, MessagingProvider, messagingTranslations, useMessaging } from '../src/index';
 
 describe('messaging barrel exports', () => {
-  it('exports the provider and hook', () => {
+  it('exports the provider, hook, standalone list and launchers', () => {
     expect(MessagingProvider).toBeDefined();
     expect(useMessaging).toBeDefined();
+    expect(ConversationList).toBeDefined();
+    expect(ConversationLaunchers).toBeDefined();
+    expect(messagingTranslations).toBeDefined();
   });
 });

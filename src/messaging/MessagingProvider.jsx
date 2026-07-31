@@ -1,12 +1,23 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useReducer, useRef } from 'react';
 
-import { getUnreadCount, listConversations, listMessages } from './api';
+import {
+  archiveConversation,
+  createBroadcastConversation,
+  createGroupConversation,
+  getUnreadCount,
+  listConversations,
+  listMessages,
+  patchConversationPreferences,
+} from './api';
 import { useRealtime } from '../notifications/realtime';
 
 const MessagingContext = createContext(null);
 export const MESSAGING_ENVELOPE = 'messaging';
 const EMPTY_CACHE = { conversations: {}, messages: {}, threads: {}, polls: {}, reactions: {}, receipts: {}, unread: { unread_count: 0, by_conversation: {} }, cursors: { conversations: null, messages: {}, threads: {} } };
-const DEFAULT_API = { listConversations, listMessages, getUnreadCount };
+const DEFAULT_API = {
+  listConversations, listMessages, getUnreadCount, archiveConversation,
+  patchConversationPreferences, createGroupConversation, createBroadcastConversation,
+};
 
 function idOf(item) { return item?.id ?? item?.conversation_id ?? item?.message_id ?? item?.poll_id; }
 function mergeById(slice, item) { const id = idOf(item); return id == null ? slice : { ...slice, [id]: { ...slice[id], ...item } }; }
@@ -23,6 +34,7 @@ export function messagingReducer(state, action) {
       const messages = action.results.reduce((next, item) => mergeById(next, item), state.messages);
       return { ...state, messages, cursors: { ...state.cursors, messages: { ...state.cursors.messages, [action.conversationId]: action.nextCursor ?? null } } };
     }
+    case 'conversationUpsert': return { ...state, conversations: mergeById(state.conversations, action.conversation) };
     case 'frame': return applyFrame(state, action.frame);
     default: return state;
   }
@@ -77,6 +89,33 @@ export function MessagingProvider({ children, filters = {}, activeConversationId
     dispatch({ type: 'messagesLoaded', conversationId, results: resultsOf(response), nextCursor: response?.next_cursor });
     return response;
   }, [api]);
+  const loadMoreConversations = useCallback(async () => {
+    const cursor = cache.cursors.conversations;
+    if (!cursor) return null;
+    const response = await api.listConversations({ ...filtersRef.current, cursor });
+    dispatch({ type: 'conversationsLoaded', results: resultsOf(response), nextCursor: response?.next_cursor });
+    return response;
+  }, [api, cache.cursors.conversations]);
+  const updateConversation = useCallback((conversation) => {
+    dispatch({ type: 'conversationUpsert', conversation });
+    return conversation;
+  }, []);
+  const setConversationArchived = useCallback(async (conversationId, archived) => {
+    const conversation = await api.archiveConversation(conversationId, archived);
+    return updateConversation({ ...conversation, id: conversation?.id ?? conversationId, archived: Boolean(archived) });
+  }, [api, updateConversation]);
+  const setConversationPreferences = useCallback(async (conversationId, patch) => {
+    const conversation = await api.patchConversationPreferences(conversationId, patch);
+    return updateConversation({ ...conversation, id: conversation?.id ?? conversationId, ...patch });
+  }, [api, updateConversation]);
+  const openGroupConversation = useCallback(async (payload) => {
+    const conversation = await api.createGroupConversation(payload);
+    return updateConversation(conversation);
+  }, [api, updateConversation]);
+  const openBroadcastConversation = useCallback(async (payload) => {
+    const conversation = await api.createBroadcastConversation(payload);
+    return updateConversation(conversation);
+  }, [api, updateConversation]);
   const refresh = useCallback(async () => Promise.all([refreshConversations(), refreshUnread(), refreshThread()]), [refreshConversations, refreshThread, refreshUnread]);
 
   // `/api/messaging/` is authenticated-only (design §REST). Host apps mount
@@ -99,7 +138,13 @@ export function MessagingProvider({ children, filters = {}, activeConversationId
     return onReconnect(() => { refresh().catch(() => {}); });
   }, [active, onReconnect, refresh]);
 
-  const value = useMemo(() => ({ cache, refresh, refreshConversations, refreshUnread, refreshThread, activeConversationId }), [cache, refresh, refreshConversations, refreshUnread, refreshThread, activeConversationId]);
+  const value = useMemo(() => ({
+    cache, refresh, refreshConversations, refreshUnread, refreshThread, loadMoreConversations,
+    setConversationArchived, setConversationPreferences, openGroupConversation,
+    openBroadcastConversation, activeConversationId,
+  }), [cache, refresh, refreshConversations, refreshUnread, refreshThread, loadMoreConversations,
+    setConversationArchived, setConversationPreferences, openGroupConversation,
+    openBroadcastConversation, activeConversationId]);
   return <MessagingContext.Provider value={value}>{children}</MessagingContext.Provider>;
 }
 

@@ -8,6 +8,7 @@ import { NotificationBell } from '../src/notifications/NotificationBell';
 import { NotificationsProvider } from '../src/notifications/NotificationsProvider';
 import { useRealtime } from '../src/notifications/realtime';
 import { MessagingProvider, useMessaging } from '../src/messaging/MessagingProvider';
+import { ConversationList } from '../src/messaging/ConversationList';
 import { barChartFixture } from './fixtures';
 import { useMockTransport } from './mockTransport';
 
@@ -48,9 +49,15 @@ function RealtimeAdapterEntry() {
 }
 
 const messagingHarnessApi = {
-  listConversations: async () => ({ results: [{ id: 12, title: 'Support group', unread_count: 1 }], next_cursor: null }),
+  listConversations: async ({ cursor } = {}) => cursor
+    ? ({ results: [{ id: 13, title: 'Archived planning', last_message_at: '2026-07-30T09:00:00Z' }], next_cursor: null })
+    : ({ results: [{ id: 12, title: 'Support group', unread_count: 1, last_message_at: '2026-07-31T09:00:00Z', last_message: { body: 'Can someone help?' } }], next_cursor: 'signed-next-page' }),
   listMessages: async (conversationId) => ({ results: [{ id: 44, conversation_id: conversationId, body: 'Initial message' }], next_cursor: null }),
   getUnreadCount: async () => ({ unread_count: 1, by_conversation: { 12: 1 } }),
+  archiveConversation: async (id, archived) => ({ id, archived }),
+  patchConversationPreferences: async (id, patch) => ({ id, ...patch }),
+  createGroupConversation: async (payload) => ({ id: 20, title: payload.title || 'Opened group', kind: 'group' }),
+  createBroadcastConversation: async () => ({ id: 21, title: 'Announcements', kind: 'broadcast' }),
 };
 
 function MessagingStateDump() {
@@ -72,9 +79,24 @@ function MessagingProviderEntry() {
   return <MessagingProvider api={messagingHarnessApi} activeConversationId={12}><MessagingStateDump /></MessagingProvider>;
 }
 
+function ConversationListEntry() {
+  const [opened, setOpened] = useState(null);
+  return (
+    <MessagingProvider api={messagingHarnessApi}>
+      <ConversationList
+        groupLaunchers={[{ id: 'volunteers', label: 'Open volunteers group', payload: { title: 'Volunteers', participant_ids: [1, 2] } }]}
+        broadcastLauncher={{ label: 'Open announcements', payload: { scope: { kind: 'global' } } }}
+        onOpen={(conversation) => setOpened(conversation)}
+      />
+      {opened && <Typography sx={{ mt: 2 }}>Opened: {opened.title}</Typography>}
+    </MessagingProvider>
+  );
+}
+
 export const entries = [
   { id: 'notification-bell', label: 'Notifications / Bell', Component: NotificationBellEntry },
   { id: 'bar-chart', label: 'Charts / BarChart', Component: BarChartEntry },
   { id: 'realtime-adapter', label: 'Transport / Realtime adapter', Component: RealtimeAdapterEntry },
   { id: 'messaging-provider', label: 'Messaging / Provider state', Component: MessagingProviderEntry },
+  { id: 'messaging-conversation-list', label: 'Messaging / Conversation list', Component: ConversationListEntry },
 ];

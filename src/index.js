@@ -67,6 +67,8 @@ export { getNotificationFeed, getUnreadCount, markNotifications } from './notifi
 // --- 9. Messaging ---
 export * from './messaging/api';
 export { MessagingProvider, useMessaging } from './messaging/MessagingProvider';
+export { ConversationList } from './messaging/ConversationList';
+export { ConversationLaunchers } from './messaging/ConversationLaunchers';
 
 // --- 9. Onboarding ---
 export * from './onboarding/api';
@@ -87,3 +89,4 @@ export { PwaInstallStep } from './onboarding/steps/PwaInstallStep';
 export { notificationsTranslations } from './i18n/notificationsTranslations';
 export { onboardingTranslations } from './i18n/onboardingTranslations';
 export { chartsTranslations } from './i18n/chartsTranslations';
+export { messagingTranslations } from './i18n/messagingTranslations';
