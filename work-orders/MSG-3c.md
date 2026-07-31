@@ -136,4 +136,85 @@ they wait on dcm `MSG-2d`.
 
 ## Part B — Implementation map (Orchestrator)
 
-To be filled by the Orchestrator session on `git pull`, within the envelope above.
+**Target repo working directory (all chunks):** `C:\Users\biglmi\Documents\webapps\ui-core-micha` (repo
+root). **Chunk plan (Orchestrator's own — the envelope named rows, not chunks):**
+
+1. Last-message preview + reorder (rows 38, 58).
+2. Poll rendering (rows 51-53).
+3. Reaction/poll_updated frame-merge fixes (row 56/57 verification) + the conformance-test extension +
+   the deviation-doc rewrite for all seven rows.
+
+**Verified against dcm 2.37.0 while scoping** (do not re-derive these, they're settled): `serialize_last_message`/
+`serialize_conversation_core` (`django-core-micha/src/django_core_micha/messaging/serializers.py:89-113`),
+`serialize_poll`/`serialize_reactions` (`serializers.py:41-46,52-64`), `_poll_response` — the ONLY place
+`voted_option_ids` is added, view-level, on top of `serialize_poll` (`views.py:32-36`, used by the
+create/vote/close poll responses only — never by `serialize_message`'s embedded poll, never by the
+`poll_updated` frame), and the three `conversation_upsert` publish sites (`services.py:95,120,165` —
+**new-message send only**; `edit_message`/`soft_delete_message` publish `message_edited`/`message_deleted`
+but never `conversation_upsert`, so a background conversation's list preview cannot live-update on an
+edit/delete of its last message without a dcm change — out of scope, verify via REST refresh instead,
+per chunk 1 below, do not invent a frame dcm doesn't send).
+
+**Two additional bugs found during this scoping, in files this WO already touches — fix them here rather
+than filing separately:**
+- `MessagingProvider.jsx:144` (`applyFrame`'s `message_edited` case): `mergeById(state.messages, payload)`
+  where `payload` (no `.message` sub-key on this frame — it only ever carries `message_id`) falls through
+  to the raw `frame` object, and `idOf()` (`MessagingProvider.jsx:45`, `item?.id ?? item?.conversation_id
+  ?? item?.message_id ?? item?.poll_id`) checks `.conversation_id` **before** `.message_id` — every frame
+  envelope carries `conversation_id`, so a `message_edited` frame gets keyed into the cache by the
+  conversation's id instead of the message's id, silently creating a bogus cache entry and never touching
+  the real message. Zero test coverage anywhere in this repo caught it. Fix in chunk 1 (same file as the
+  conversation-preview work): merge with an explicit `id: frame.message_id`, not the `idOf` fallback chain.
+- `MessagingProvider.jsx:315-330` (`toggleReaction`) and the `reaction` frame case (`:145-149`): `serialize_reactions`
+  (verified above) returns `[{emoji, count}]` **only, never a per-viewer `reacted` flag, ever** — not in
+  REST responses, not in frames, by design (aggregate-only). `toggleReaction`'s optimistic update
+  correctly sets `reacted: true/false` locally on the user's own click, but then the REST-confirm step
+  (`:327`, `reactions: result?.reactions || ...`) and the frame handler (`:148`, `payload.reactions ||
+  frame.reactions || ...`) both prefer the server's `reacted`-less array over the optimistic one — so
+  confirming the user's own toggle, or literally any other viewer's reaction frame arriving for the same
+  message, silently wipes every emoji's locally-known `reacted` state. This is exactly what row 56 asks
+  to be verified rather than assumed. Fix in chunk 3 (bundled with the frame-merge verification, same
+  underlying fix in both places): merge the server's `{emoji,count}` list with previously-known `reacted`
+  flags by emoji key, never wholesale-replace.
+
+### Chunk 1 — last-message preview and conversation reorder (rows 38, 58)
+
+**Files:** `src/messaging/MessagingProvider.jsx` (the `message_edited` bug fix above; verify — do not
+rebuild — the existing `conversation_upsert` handling at `:160` and `EMPTY_CACHE`/reducer shape),
+`src/messaging/ConversationList.jsx` (verify — likely no change needed, see below), new tests.
+
+**Much of rows 38/58 turns out to already be built.** MSG-3b wrote `applyFrame`'s `conversation_upsert`
+case and `ConversationList`'s `last_message?.body` rendering + `last_message_at` sort defensively,
+against the design doc's frame contract, before dcm actually sent the data. Now that dcm 2.37.0 does
+(`conversation_upsert` on new-message send carries the real `serialize_conversation_core`, including
+`last_message`), this is primarily a **verification + test-writing chunk**, not a rebuild — confirm this
+by reading `ConversationList.jsx:11` (`ordered()`, sorts by `last_message_at`) and `:71`
+(`conversation.last_message?.body`) before writing anything new. If you find either needs a real change
+beyond the `message_edited` fix above, make it — but don't assume a rewrite is needed without checking.
+
+**Row 58's "an edit updates it; a delete empties it"** must be tested via **REST refresh**
+(`refreshConversations()`), not a live frame — dcm does not publish `conversation_upsert` on edit/delete
+(see the verified call-site list above). `serialize_last_message` (`serializers.py:89-97`) already
+returns `excerpt: ""` for a deleted last message — that's the server behavior a refresh test should
+assert against, mocked with a server-shaped `listConversations` response, not invented.
+
+**Required tests (chunk 1):**
+- A `conversation_upsert` frame with a real `last_message` moves that conversation to the top of
+  `ConversationList` and updates its preview text — server-shaped fixture (`last_message: {body, ...}`,
+  not a client-invented shape).
+- A REST refresh reflecting an edited last message updates the preview; reflecting a deleted one
+  (`last_message.excerpt: ""` — check the actual field name your fixture should use, verify against
+  `serialize_last_message`'s real key, which is `excerpt` not `body`, at the `last_message` level —
+  don't assume the `Conversation.last_message` shape matches `Message`'s own `body` field name) shows
+  the empty/no-preview state.
+- The `message_edited` frame-keying regression: a `message_edited` frame with only `{message_id,
+  conversation_id}` (the real minimal shape — verified above, it carries no other fields) must patch the
+  message keyed by `message_id`, and must NOT create/touch any cache entry keyed by `conversation_id`.
+- Existing ucm suites stay green.
+
+**Progress contract / preamble:** identical to MSG-3b's chunks — `PLAN:`/`PROGRESS:`/`RESULT:` lines, no
+git operations, write-and-run-only-the-new-tests, leave the diff uncommitted for the orchestrator's
+review.
+
+**Mini-handover:** repo `C:\Users\biglmi\Documents\webapps\ui-core-micha`, branch `main`, WO
+`work-orders/MSG-3c.md` chunk 1 (Part B above). Follow `orchestrate-codex`.
