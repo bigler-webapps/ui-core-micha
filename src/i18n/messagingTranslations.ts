@@ -31,6 +31,7 @@ export const messagingTranslations = {
   'MessagingThread.REPLYING_TO': { de: 'Antwort an {{sender}}', en: 'Replying to {{sender}}', fr: 'Réponse à {{sender}}' },
   'MessagingThread.SHOW_REPLIES': { de: '{{count}} Antworten anzeigen', en: 'Show {{count}} replies', fr: 'Afficher {{count}} réponses' },
   'MessagingThread.HIDE_REPLIES': { de: 'Antworten ausblenden', en: 'Hide replies', fr: 'Masquer les réponses' },
+  'MessagingThread.UNREAD_REPLIES': { de: 'Ungelesene Antworten', en: 'Unread replies', fr: 'Réponses non lues' },
   'MessagingThread.UNKNOWN_SENDER': { de: 'Unbekannte Person', en: 'Unknown person', fr: 'Personne inconnue' },
   'MessagingThread.QUOTE_ATTACHMENT': { de: 'Anhang', en: 'Attachment', fr: 'Pièce jointe' },
   'MessagingActions.MENU': { de: 'Nachrichtenaktionen', en: 'Message actions', fr: 'Actions du message' },

@@ -127,7 +127,31 @@ export function applyFrame(state, frame, activeConversationId = null) {
     const message = { ...payload, conversation_id: conversationId };
     const requestId = clientRequestIdOf(message);
     const reconcilesOptimisticMessage = Boolean(requestId && Object.values(state.messages).some((item) => clientRequestIdOf(item) === requestId));
-    const messages = reconcileMessage(state.messages, message);
+    let messages = reconcileMessage(state.messages, message);
+    // reply_count/last_reply_at are viewer-independent facts (serialize_message
+    // always includes them, live-recomputed when not annotated) — bump the
+    // cached root unconditionally, regardless of who sent the reply. Spread
+    // the existing root first and only override these two fields, never
+    // rebuild the object from frame data, so thread_last_read_at (REST-only,
+    // never present on this frame) is never wiped — the merge-trap discipline
+    // MSG-3c's fixes established for exactly this failure shape.
+    //
+    // No self-send suppression here: a viewer never receives a "message"
+    // frame for their own reply in the first place — dcm's
+    // resolve_live_recipients(sender=actor) excludes the sender from the
+    // live WS fan-out (django_core_micha/messaging/services.py), so this
+    // branch structurally cannot fire for the viewer's own send. That is a
+    // dcm-side guarantee this code relies on, not something ucm re-derives —
+    // if dcm's recipient exclusion ever changes, this would need revisiting.
+    //
+    // reply_to_id only, never a client-shaped reply_to fallback — a live
+    // "message" frame is always server-shaped (serialize_message), so a
+    // reply_to fallback here would be dead-code-guessing at a payload shape
+    // no server ever sends, exactly the kind of unverified compatibility
+    // guess this workstream has twice shipped as a real bug.
+    const rootId = message.reply_to_id;
+    const root = rootId != null ? messages[rootId] : null;
+    if (root) messages = { ...messages, [rootId]: { ...root, reply_count: (root.reply_count || 0) + 1, last_reply_at: message.created_at || root.last_reply_at } };
     if (conversationId == null || String(conversationId) === String(activeConversationId) || reconcilesOptimisticMessage) return { ...state, messages };
     const unread = state.unread || EMPTY_CACHE.unread;
     const previousCount = unread.by_conversation?.[conversationId] || 0;
@@ -259,7 +283,6 @@ export function MessagingProvider({ children, filters = {}, activeConversationId
     dispatch({ type: 'conversationRead', conversationId });
     return result;
   }, [api]);
-  const markReplyThreadRead = useCallback((rootId, readAt) => api.markThreadRead(rootId, readAt), [api]);
   const openGroupConversation = useCallback(async (payload) => {
     const conversation = await api.createGroupConversation(payload);
     return updateConversation(conversation);
@@ -318,6 +341,16 @@ export function MessagingProvider({ children, filters = {}, activeConversationId
     }
   }, [api, user]);
   const patchMessage = useCallback((message) => dispatch({ type: 'messagePatched', message }), []);
+  const markReplyThreadRead = useCallback(async (rootId, readAt) => {
+    const result = await api.markThreadRead(rootId, readAt);
+    // The mark-read response's `last_read_at` maps onto the cached root
+    // message's `thread_last_read_at` field — different key names, same
+    // value; this is the only place the client ever learns this viewer's own
+    // thread receipt, since it's REST-only and never rides a realtime frame.
+    const previous = cache.messages[rootId];
+    if (previous && result?.last_read_at !== undefined) patchMessage({ ...previous, thread_last_read_at: result.last_read_at });
+    return result;
+  }, [api, cache.messages, patchMessage]);
   // Keep this API-backed action deliberately distinct from the cache-merge
   // helper above. The server remains the authority for author/moderator rights.
   const editMessage = useCallback(async (messageId, patch) => {

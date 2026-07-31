@@ -45,7 +45,10 @@ describe('messaging unread lifecycle', () => {
   it('marks a reply thread read when it expands', async () => {
     const api = makeApi({ listMessages: vi.fn().mockResolvedValue({ results: [{ id: 40, conversation_id: 12, body: 'Root', reply_count: 1 }] }) });
     render(<MessagingProvider api={api} activeConversationId={12}><Thread conversationId={12} /></MessagingProvider>);
-    fireEvent.click(await screen.findByRole('button', { name: 'MessagingThread.SHOW_REPLIES' }));
+    // No thread_last_read_at in this fixture — the unread-reply marker
+    // (MSG-3d) correctly treats a null receipt with replies as unread, which
+    // changes the button's accessible name to include the marker text.
+    fireEvent.click(await screen.findByRole('button', { name: /MessagingThread\.SHOW_REPLIES/ }));
     await waitFor(() => expect(api.markThreadRead).toHaveBeenCalledWith(40, undefined));
   });
 

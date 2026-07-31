@@ -1,4 +1,4 @@
-# Messaging parity outcomes (MSG-3b, extended by MSG-3c)
+# Messaging parity outcomes (MSG-3b, extended by MSG-3c and MSG-3d)
 
 This is the authoritative parity record for the ucm messaging surfaces. It
 replaces the former file-level “final parity confirmation,” which was not
@@ -55,7 +55,7 @@ now fails the build if a `BLOCKED` line omits one.
 24. **OK** — Replies show a sender and short quoted snippet.
 25. **OK** — Clicking a quote scrolls its source message into view.
 26. **OK** — Quotes of deleted messages render the deleted placeholder rather than stale content.
-27. **BLOCKED** (blocked as of dcm 2.37.0) — dcm writes a thread receipt but exposes no prior thread receipt state, unread flag, or unread count to read. A truthful cross-device unread-reply dot cannot be rendered without a dcm contract addition. Re-verified against 2.37.0 (MSG-3c): still absent. Waits on dcm `MSG-2d`.
+27. **OK** (delivered in MSG-3d, was BLOCKED as of dcm 2.37.0) — dcm 2.38.0's `serialize_message` gains viewer-independent `reply_count`/`last_reply_at`, and `thread_last_read_at` is attached REST-only from `MessageThreadReceipt`. `Thread` shows an unread-reply marker on the thread toggle when `last_reply_at > thread_last_read_at`, treats a `null` receipt with replies as unread, and shows no marker (and no toggle) when there are no replies. Opening a thread updates the receipt from the REST response, not a frame (the field is never present on one, by design). An incoming reply's `message` frame also live-advances the cached root's `reply_count`/`last_reply_at`, merged field-wise so a previously-fetched `thread_last_read_at` is never wiped — the same merge-trap discipline MSG-3c's three fixes established, now with its own mandatory regression test.
 28. **OK** — Reply threads load lazily on expand and collapse locally.
 29. **DEV** — Reply composition is supplied through the independently mountable `Composer` target prop rather than jg’s per-thread embedded composer.
 
@@ -76,7 +76,7 @@ now fails the build if a `BLOCKED` line omits one.
 39. **OK** — `last_message_at` renders through browser-native, locale-aware `Intl.RelativeTimeFormat` labels.
 40. **OK** — The existing MUI `selected={conversation.id === activeConversationId}` wiring produces the `Mui-selected` active-row highlight; it was verified and needs no redundant styling.
 41. **OK** — Unread badges and bold unread titles are present.
-42. **BLOCKED** (blocked as of dcm 2.37.0) — dcm stores the managed all/team distinction in `external_key`, but `serialize_conversation_core` still omits it from every conversation payload. The UI must not guess from titles or other unrelated fields. Re-verified against 2.37.0 (MSG-3c): still absent. Waits on dcm `MSG-2d`.
+42. **OK** (delivered in MSG-3d, was BLOCKED as of dcm 2.37.0) — dcm 2.38.0's `serialize_conversation_core` includes `external_key`. ucm does not interpret it — jg's `event_all`/`event_team` vocabulary (or any other app's) stays entirely host-side. `ConversationList` accepts an optional `resolveManagedLabel(conversation)` host resolver, called only for `kind: 'managed'` conversations, falling back to the existing title behavior when unset; no app-specific string appears anywhere in `src/` (asserted directly by test).
 43. **DEV** — Generic MUI kind icons replace jg’s richer per-kind/person avatar treatment while retaining type identification.
 44. **OK** — Mute and archive actions are present.
 
@@ -109,10 +109,10 @@ now fails the build if a `BLOCKED` line omits one.
 
 ## Required backend follow-up
 
-Rows 27 and 42 require a future dcm work order (`MSG-2d`): expose readable thread receipt state, and
-serialize `external_key` where managed all/team labeling is required. Until then, these are explicit
-BLOCKED outcomes, each pinned to the dcm version they were verified blocked against, rather than
-simulated client behavior. MSG-2c (dcm 2.37.0) already delivered what MSG-3b's own audit had recorded
-as blocking rows 38, 51–53 and 56–58 — MSG-3c re-verified each against the live dependency and
-delivered them; see those rows above for what was actually built (in three cases, fixing a real
-client-side bug found only once real server data was checked against, not just unblocked).
+None outstanding. This checklist has **zero `BLOCKED` entries** as of MSG-3d. MSG-2c (dcm 2.37.0)
+delivered what MSG-3b's own audit had recorded as blocking rows 38, 51–53 and 56–58 — MSG-3c
+re-verified each against the live dependency and delivered them. MSG-2d (dcm 2.38.0) delivered what
+remained blocking rows 27 and 42 — MSG-3d re-verified and delivered them the same way. Every row of
+the original MSG-3b checklist is now either implemented or a recorded deliberate deviation; see the
+rows above for what was actually built, including the client-side bugs found and fixed only once real
+server data was checked against, not assumed from the WO text or the doc's own prior claims.

@@ -6,7 +6,17 @@ import { useTranslation } from 'react-i18next';
 import { useMessaging } from './MessagingProvider';
 import { ConversationLaunchers } from './ConversationLaunchers';
 
-function titleOf(conversation, t) { return conversation.title || conversation.other_user?.display_name || conversation.other_user?.username || t('MessagingList.UNTITLED'); }
+// external_key (dcm 2.38.0+) is the consuming app's own identity for a
+// managed conversation — ucm must not know what any particular app's values
+// mean, so a label for it is host-supplied only; resolveManagedLabel receives
+// the raw conversation (including external_key) and owns all interpretation.
+function titleOf(conversation, t, resolveManagedLabel) {
+  if (conversation.kind === 'managed' && resolveManagedLabel) {
+    const label = resolveManagedLabel(conversation);
+    if (label) return label;
+  }
+  return conversation.title || conversation.other_user?.display_name || conversation.other_user?.username || t('MessagingList.UNTITLED');
+}
 function ordered(conversations) {
   return [...conversations].sort((left, right) => new Date(right.last_message_at || 0) - new Date(left.last_message_at || 0));
 }
@@ -27,7 +37,7 @@ function KindIcon({ conversation }) {
 }
 
 /** A standalone, provider-backed list; scope picker metadata is supplied as launcher props. */
-export function ConversationList({ onOpen, groupLaunchers, broadcastLauncher, autoOpenBroadcast = false, includeArchived = false }) {
+export function ConversationList({ onOpen, groupLaunchers, broadcastLauncher, autoOpenBroadcast = false, includeArchived = false, resolveManagedLabel }) {
   const { t, i18n } = useTranslation();
   const { cache, activeConversationId, loadMoreConversations, setConversationArchived, setConversationPreferences, markConversationRead } = useMessaging();
   const [menuConversation, setMenuConversation] = useState(null);
@@ -68,7 +78,7 @@ export function ConversationList({ onOpen, groupLaunchers, broadcastLauncher, au
               <Badge color="error" badgeContent={unread || null} max={99} sx={{ mr: 2 }}>
                 {archived ? <Archive fontSize="small" color="disabled" /> : <KindIcon conversation={conversation} />}
               </Badge>
-              <ListItemText primary={<Stack direction="row" spacing={1} justifyContent="space-between"><Typography component="span" fontWeight={unread ? 700 : 400} noWrap>{titleOf(conversation, t)}</Typography>{relativeTime(conversation.last_message_at, i18n?.language) && <Typography component="span" variant="caption" color="text.secondary" noWrap>{relativeTime(conversation.last_message_at, i18n?.language)}</Typography>}</Stack>} secondary={conversation.last_message?.excerpt || t('MessagingList.NO_MESSAGES')} secondaryTypographyProps={{ noWrap: true }} />
+              <ListItemText primary={<Stack direction="row" spacing={1} justifyContent="space-between"><Typography component="span" fontWeight={unread ? 700 : 400} noWrap>{titleOf(conversation, t, resolveManagedLabel)}</Typography>{relativeTime(conversation.last_message_at, i18n?.language) && <Typography component="span" variant="caption" color="text.secondary" noWrap>{relativeTime(conversation.last_message_at, i18n?.language)}</Typography>}</Stack>} secondary={conversation.last_message?.excerpt || t('MessagingList.NO_MESSAGES')} secondaryTypographyProps={{ noWrap: true }} />
               <IconButton aria-label={t('MessagingList.ACTIONS')} onClick={(event) => { event.stopPropagation(); setMenuAnchor(event.currentTarget); setMenuConversation(conversation); }}><MoreVert /></IconButton>
             </ListItemButton>;
           })}

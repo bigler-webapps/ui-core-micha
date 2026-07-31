@@ -1,4 +1,4 @@
-import { Alert, Box, Button, CircularProgress, Divider, Stack, Typography } from '@mui/material';
+import { Alert, Badge, Box, Button, CircularProgress, Divider, Stack, Typography } from '@mui/material';
 import { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -9,6 +9,15 @@ import { ReadTicks } from './ReadTicks';
 
 function chronological(messages) { return [...messages].sort((left, right) => new Date(left.created_at || 0) - new Date(right.created_at || 0)); }
 function replyToId(message) { return message.reply_to_id ?? message.reply_to; }
+// last_reply_at/reply_count are viewer-independent (always on serialize_message);
+// thread_last_read_at is viewer-specific and REST-only (never on a frame — see
+// MessagingProvider.jsx's applyFrame merge-trap handling). A null receipt with
+// at least one reply counts as unread; no replies means no marker at all.
+function hasUnreadReplies(message) {
+  if (!message.reply_count) return false;
+  if (message.thread_last_read_at == null) return true;
+  return Boolean(message.last_reply_at) && new Date(message.last_reply_at) > new Date(message.thread_last_read_at);
+}
 // A still-pending optimistic row (chunk 4) has a fake `local-<requestId>` id
 // and no durable server row yet — mounting ReadTicks against it would fire a
 // getMessageReadStatus REST call for an id the server has never heard of.
@@ -92,7 +101,15 @@ export function Thread({ conversationId, onReplyTargetChange, canModerateMessage
         <Stack spacing={1}>{roots.map((message) => {
           const replies = chronological(Object.values(cache.messages).filter((item) => String(replyToId(item)) === String(message.id)));
           return <Stack key={message.id} spacing={0.75}><MessageBubble message={message} conversation={conversation} onReply={reply} onJumpToMessage={jumpToMessage} onAnnouncementLink={onAnnouncementLink} canModerateMessages={canModerateMessages}>{canShowReadTicks(message, user) && <ReadTicks messageId={message.id} conversation={conversation} />}</MessageBubble>
-            {(message.reply_count || replies.length) > 0 && <Button size="small" onClick={() => toggleReplies(message)}>{openThreads[message.id] ? t('MessagingThread.HIDE_REPLIES') : t('MessagingThread.SHOW_REPLIES', { count: message.reply_count || replies.length })}</Button>}
+            {(message.reply_count || replies.length) > 0 && (() => {
+              const unread = hasUnreadReplies(message);
+              const label = openThreads[message.id] ? t('MessagingThread.HIDE_REPLIES') : t('MessagingThread.SHOW_REPLIES', { count: message.reply_count || replies.length });
+              // MUI's Badge spreads unrecognized props (incl. aria-label) onto
+              // its own non-interactive wrapping span, not the inner control —
+              // a screen reader focuses the Button, so the accessible name
+              // must live there, not on the purely-visual dot.
+              return <Badge color="error" variant="dot" invisible={!unread}><Button size="small" aria-label={unread ? `${label} — ${t('MessagingThread.UNREAD_REPLIES')}` : undefined} onClick={() => toggleReplies(message)}>{label}</Button></Badge>;
+            })()}
             {openThreads[message.id] && <Stack spacing={0.75} sx={{ pl: 3, borderLeft: 2, borderColor: 'divider' }}>{replies.map((item) => <MessageBubble key={item.id} message={item} replyTo={message} conversation={conversation} onReply={reply} onJumpToMessage={jumpToMessage} onAnnouncementLink={onAnnouncementLink} canModerateMessages={canModerateMessages}>{canShowReadTicks(item, user) && <ReadTicks messageId={item.id} conversation={conversation} />}</MessageBubble>)}</Stack>}
             <Divider /></Stack>;
         })}</Stack>
