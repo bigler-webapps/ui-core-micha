@@ -97,4 +97,70 @@ publish**).
 
 ## Part B — Implementation map (Orchestrator)
 
-To be filled by the Orchestrator session on `git pull`, within the envelope above.
+### Target repo / working directory
+
+`C:\Users\biglmi\Documents\webapps\ui-core-micha` (repo root; package `@micha.bigler/ui-core-micha`,
+current published version 2.15.0 — **unchanged by this WO**, no publish).
+
+### Context package
+
+**Repo conventions to mirror:**
+- `package.json` — current `scripts`: `build` (`tsc -p tsconfig.build.json`), `test` (`vitest run`).
+  No `dev` script exists yet; add one. `peerDependencies`/`dependencies` must not change;
+  `devDependencies` gains Vite + `@vitejs/plugin-react` only (or whatever minimal set a Vite+React+JSX
+  dev server needs) — no UI-catalog framework, no Storybook.
+- `tsconfig.build.json` — `"include": ["src"]`, `rootDir: "./src"`, `outDir: "dist"`. The harness must
+  live **outside** `src/` (e.g. a top-level `dev/` directory) so it is never included by this config
+  and never emitted into `dist/`. Confirm after writing: `dist/` from a build with the harness present
+  must be byte-identical to a build from before this WO (no new/changed files under `dist/`).
+- `src/index.js` — the published barrel. Do not add anything here for the harness itself; the harness
+  imports FROM the barrel (or directly from component source, orchestrator's/Codex's call — importing
+  from source is likely simpler and avoids a dist rebuild loop during dev) but nothing is added TO it.
+- `tests/notificationsExports.test.js` — the existing exports-regression pattern to confirm still
+  passes untouched (proves the barrel didn't change).
+- `src/notifications/realtime.jsx` — `useRealtimeCore({ active, wsUrl })` returns `{ subscribe }`;
+  `RealtimeContext` is the context the mock realtime provider must satisfy so components under it can
+  call `useRealtime()` without throwing. The harness's mock realtime adapter should provide a
+  `RealtimeContext.Provider` with an injectable `subscribe` (e.g. a manual event-dispatch harness) so
+  a harness entry can simulate a WS frame arriving, without opening a real socket.
+- `src/notifications/NotificationsProvider.jsx` (read for the provider-wrapping pattern) — a
+  representative provider-consuming surface for the "at minimum one notifications surface" harness
+  entry requirement.
+- `src/i18n/notificationsTranslations.ts` / `src/i18n/chartsTranslations.ts` — the flat i18n key
+  pattern; the harness needs `react-i18next` wired with at least these (or a minimal fixture set) so
+  mounted components render translated text instead of raw keys.
+- Chart components (`ChartFrame`/`BarChart`/`LineChart`, per `tests/ChartFrame.test.jsx` etc.) — the
+  "at minimum one charts surface" harness entry.
+
+**Invariants:**
+- Zero new runtime dependencies (peer or direct) — Vite/plugin additions are dev-only.
+- Harness is not exported, not built, not tested for behavior (only the three "does not affect the
+  product" assertions in Required Tests below).
+- No change to the existing vitest test setup/config or any existing test file.
+- No CI wiring — this is a local dev tool.
+
+### Required tests
+
+Per envelope: extend/confirm the exports-regression test still passes with nothing new reachable from
+it; a `build` succeeds and diffing `dist/` before/after shows no harness files and no content change;
+inspect `package.json` to confirm `dependencies`/`peerDependencies` are byte-identical and only
+`devDependencies` gained entries.
+
+### Progress contract
+
+Narrate continuously: a `PLAN: <step1> | <step2> | …` line up front, then a single-line
+`PROGRESS: [<n>/<total>] <present-tense action>` before every relevant action (file opened, file
+edited, command/test run) and `PROGRESS: [<n>/<total>] done` on step completion, spaced so no gap
+exceeds ~2 min, stdout unbuffered, and exactly one final `RESULT: DONE|BLOCKED <reason>`.
+
+### Preamble (must be appended verbatim to the Codex prompt)
+
+The text above is the COMPLETE spec — read nearest `AGENTS.md`, `.codex/skills/<role>/SKILL.md` (if
+present), and this repo's `MEMORY.md` only for conventions; stay in scope; do not touch
+`peerDependencies`/`dependencies`, only `devDependencies`; do not touch `src/index.js`'s exports; do
+not update `MEMORY.md`; do NOT `git add`/`commit`/`push` — leave the change uncommitted in the working
+tree for the orchestrator's independent review. WRITE and RUN the three required checks (exports test,
+build + dist diff, package.json dependency diff) yourself to confirm — that is your only verification
+run: do NOT run the full vitest suite as a "review" and do NOT run any review; the orchestrator does
+both after you finish (though re-running `vitest run` in full is harmless and encouraged as a sanity
+check since it's the existing test command, just don't treat it as satisfying the review step).
