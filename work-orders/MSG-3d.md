@@ -1,6 +1,6 @@
 # MSG-3d — the last two blocked rows: unread-reply marker and managed-conversation identity
 
-Status: planned · Tier 1 · Target repo: `ui-core-micha` (main)
+Status: planned · Tier 2 · Target repo: `ui-core-micha` (main)
 **Binding spec:** `django-core-micha/docs/design/messaging-platform.md` — §"Thread reply state and
 managed-conversation identity" and §Realtime's consumer obligation. Extends the landed MSG-3c
 (published ucm 2.18.0), same convention as `MSG-2b` / `MSG-3b` / `MSG-3c`.
@@ -31,6 +31,14 @@ Checked in `django-core-micha` before this WO was written (`serializers.py`):
 replies means no toggle and no marker. `reply_count` gives the toggle its count without expanding the
 thread. Opening a thread marks it read and updates the receipt **from the REST response** to
 `POST messages/{root_id}/thread/read/` — not from a frame, which cannot carry it.
+
+**Live root update on an incoming reply.** A new reply arrives as a `message` frame carrying *the
+reply's* projection — its own `reply_count` is 0 and `last_reply_at` null. Nothing in the frame updates
+the **root's** counters, so without explicit handling the marker only appears after the next refetch.
+jg updates the root live (`Thread.jsx:1488-1537`: increments `reply_count` and marks the thread unread
+when the sender is someone else), so parity requires the same here: on a `message` frame whose
+`reply_to_id` names a cached root, increment that root's `reply_count` and advance its `last_reply_at`.
+This was a gap in the first draft of this envelope, surfaced by review — do not leave it to discovery.
 
 **Row 42 — distinguish managed conversations.** Surface `external_key` so a host can tell one managed
 conversation from another. **ucm must not know what the values mean.** `event_all` and `event_team` are
@@ -74,6 +82,9 @@ recorded as deliberate deviations.
   `reply_count == 0`.
 - **Read on open:** expanding a thread issues the REST read call and updates the receipt from its
   response.
+- **Live root update:** a server-shaped `message` frame carrying a `reply_to_id` for a cached root
+  raises that root's `reply_count` and advances `last_reply_at`, and the marker appears without a
+  refetch when the sender is not the viewer.
 - **Row 42:** two managed conversations with different `external_key` values are distinguishable through
   whatever the host supplies, and **no jg-specific string appears anywhere in `src/`** — assert that
   directly, it is the constraint most likely to be quietly violated.
@@ -93,7 +104,12 @@ output. Two separate defects in this workstream (`reply_to` vs `reply_to_id`, `l
 
 ### Reviews
 
-Independent `reviewer` (Tier 1 requires one) plus **`ui_reviewer`** at WO end: the marker is a visual
+**Tier 2, not Tier 1 — corrected on review.** The row count is small but the change lands in
+`MessagingProvider`'s frame-merge code, which is exactly where MSG-3c's Tier-2 pass found three shipped
+bugs, and this WO's own risk section calls its merge trap the most likely way it ships a regression.
+That is review-sensitive work by AGENTS.md's definition; size does not lower the tier.
+
+Independent `reviewer` plus **`ui_reviewer`** at WO end: the marker is a visual
 affordance and the harness exists to look at it. The `ui_reviewer` must also confirm the deviation doc
 reaches zero BLOCKED entries honestly — by delivery, not by deletion.
 
