@@ -218,3 +218,72 @@ review.
 
 **Mini-handover:** repo `C:\Users\biglmi\Documents\webapps\ui-core-micha`, branch `main`, WO
 `work-orders/MSG-3c.md` chunk 1 (Part B above). Follow `orchestrate-codex`.
+
+**Note on chunk 1's actual execution:** Codex reported `workspace is out of credits` on invocation
+(not a transient rate limit) — the orchestrator implemented chunk 1 directly per the Codex→Claude
+fallback rule, and an independent reviewer ran (mandatory once the orchestrator is the author). Chunks
+2/3 below should still attempt Codex first per the execution directive, but expect the same
+out-of-credits failure and fall back the same way if it recurs — don't loop retrying it.
+
+### Chunk 2 — poll rendering (rows 51-53)
+
+**Files:** `src/messaging/PollCard.jsx` (all three rows land here), new tests. `PollCard.jsx` was built
+in MSG-3 speculatively, before dcm's poll read contract existed — it guesses at field names, and two of
+those guesses are confirmed wrong against the real server shape.
+
+**Verified against dcm 2.37.0 (`django-core-micha/src/django_core_micha/messaging/serializers.py:52-64`,
+`views.py:32-36`):** `serialize_poll` returns `{id, question, allow_multiple, closed_at, created_by_id,
+options: [{id, text, order, vote_count, voters}]}` — `voters` is an array of user ids (row 52).
+`voted_option_ids` is added **only** by `_poll_response` (`views.py:32-36`), a view-level enrichment
+used **only** by the create/vote/close poll REST responses — it is never in `serialize_poll` itself,
+never in `serialize_message`'s embedded poll (message list/thread loads), and never in the
+`poll_updated` realtime frame. This is the WO's explicit "read `voted_option_ids` only from the three
+poll REST responses" instruction, now with the exact citations.
+
+**Two confirmed bugs in `PollCard.jsx` against this real shape — fix both:**
+1. `PollCard.jsx:18` — `const creatorId = poll.created_by?.id ?? poll.created_by;` assumes a
+   `created_by` object or scalar; the real field is `created_by_id` (a plain id, verified above).
+   `poll.created_by` is always `undefined` against the real server, so `creatorId` is always
+   `undefined`, so `canClose`'s only non-host-supplied fallback (`creatorId === currentUser?.id`,
+   `:19`) can never be true for a genuine creator — close is effectively broken for every poll unless a
+   host explicitly passes `canClose`. Fix: read `poll.created_by_id` directly.
+2. `PollCard.jsx:15` — `useEffect(() => setSelected((poll?.options || []).filter((option) =>
+   option.selected || option.voted)...` assumes per-option `selected`/`voted` flags that don't exist
+   anywhere in the real projection (verified above: options only ever have `{id, text, order,
+   vote_count, voters}`). Selection must instead derive from `poll.voted_option_ids` **when present**
+   (only true right after a create/vote/close REST call — the WO's explicit constraint) and otherwise
+   default to empty (a poll loaded via `listMessages`/`listThread`, or updated via a `poll_updated`
+   frame, correctly has no way to know the current viewer's vote state from that payload alone — do not
+   guess, do not carry over stale local state across a payload that structurally cannot contain the
+   answer).
+
+**Row 52 (voters) — not rendered at all today:** add voter identification per option. dcm only gives
+user **ids** (`option.voters: [user_id, ...]`), never names — there is no user-directory endpoint
+(same constraint already established for the DM candidate list in `MSG-3b`). Render what's actually
+available: a count (`voters.length`) is always correct; showing the *current viewer's own* vote as
+"you voted for this" is derivable from `voted_option_ids` after a REST action, or otherwise left
+unmarked. Do not invent a name lookup — this is a real, structural limit of the dcm contract, not
+something to work around client-side. If host-supplied user resolution is later wanted, that is a
+future WO's host-prop pattern, not this chunk's job.
+
+**Row 53 (closed state, voting disabled)** — `PollCard.jsx:17` (`const closed =
+Boolean(poll.closed_at)`) is already correct; verify the disabled-while-closed wiring on the vote
+controls (`:32`) still works once selection is correctly derived from `voted_option_ids`, and add
+coverage — this row was previously untested against a real payload shape too.
+
+**Required tests (chunk 2):**
+- Poll rendering against a genuinely server-shaped `serialize_poll` payload (all the real keys above,
+  not a client-invented one) — question, options, `vote_count`, some indication of `voters`.
+- `voted_option_ids` present only in the vote/create/close REST response correctly drives selection
+  state; a `poll_updated` frame carrying no `voted_option_ids` key must not clear or invert the
+  viewer's own already-known vote state (this is the WO's explicitly named required test).
+- Close permission: `created_by_id === currentUser.id` correctly enables the close control; a
+  non-creator without a host-supplied `canClose` override does not get it.
+- Closed poll disables voting.
+- Existing ucm suites (chunk 1 inclusive) stay green.
+
+**Progress contract / preamble:** identical to chunk 1's — `PLAN:`/`PROGRESS:`/`RESULT:` lines, no git
+operations, write-and-run-only-the-new-tests, leave the diff uncommitted for the orchestrator's review.
+
+**Mini-handover:** repo `C:\Users\biglmi\Documents\webapps\ui-core-micha`, branch `main`, WO
+`work-orders/MSG-3c.md` chunk 2 (Part B above, after chunk 1 is committed). Follow `orchestrate-codex`.
