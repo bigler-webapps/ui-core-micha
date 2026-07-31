@@ -144,4 +144,125 @@ independent review, `ui_reviewer` at WO end, one publish at WO end).
 
 ## Part B — Implementation map (Orchestrator)
 
-To be filled by the Orchestrator session on `git pull`, within the envelope above.
+**Single chunk** (the envelope's own framing: small WO, low complexity — Tier 2 for review rigor, not
+for decomposition). **Target repo working directory:** `C:\Users\biglmi\Documents\webapps\ui-core-micha`
+(repo root).
+
+**Verified against dcm 2.38.0 while scoping (do not re-derive):**
+- `serialize_message` (`django-core-micha/src/django_core_micha/messaging/serializers.py:80-95`) ALWAYS
+  includes `reply_count`/`last_reply_at` — annotated-queryset fast path when present
+  (`_with_reply_count`, `views.py:39-47`, used by `ConversationMessagesView`/`ThreadView`), a live
+  aggregate fallback otherwise (`_reply_stats`, `serializers.py:68-77`). Every `message`/`message_edited`
+  frame (built from `serialize_message` via `realtime.py`'s `publish_messaging_event`) therefore always
+  carries fresh, viewer-independent reply stats for that specific message.
+- `thread_last_read_at` is added **only** by `_message_response`/`_message_page_response`
+  (`views.py:50-74`) — REST-only, viewer-specific, from `MessageThreadReceipt`. `_with_reply_count`'s
+  list responses (`GET conversations/{id}/messages/`, `GET messages/{root_id}/thread/`) already attach
+  it per-row via one bulk query (not N+1) — so a normal `listMessages`/`listThread` load already gives
+  roots both their reply stats AND the viewer's own receipt in one response; no extra call needed on
+  mount.
+- `POST messages/{root_id}/thread/read/` (`views.py:342-347`, already wired as `markThreadRead` in
+  `api.js:41`) returns `{"last_read_at": ...}` — **note the field name differs from the cached message's
+  own `thread_last_read_at` key** — the provider action must map `last_read_at` from this response onto
+  the root message's `thread_last_read_at` cache field, they are not the same key name.
+- `serialize_conversation_core` (`serializers.py:107-115` area) now includes `external_key` (`null`
+  where the kind doesn't use one).
+
+**The merge trap — investigated, resolved by existing infrastructure, still needs its mandatory test:**
+`mergeById`/`reconcileMessage` (`MessagingProvider.jsx:45-79`) already do a **field-wise** merge
+(`{...previous, ...incoming}`), and neither the `message` nor `message_edited` `applyFrame` branches
+explicitly re-derive or strip `thread_last_read_at` the way the `reaction`/`poll_updated` branches used
+to explicitly recompute their own fields — so an incoming frame lacking `thread_last_read_at` (it always
+will) does NOT overwrite a previously-cached value through the current code path. This is a genuine
+finding from investigation, not an assumption: **do not skip the mandatory merge-trap test on the
+strength of this finding** — the WO requires it regardless, and any code added by this WO (the live
+root-update below in particular) must preserve this property rather than accidentally break it by
+constructing a replacement object that omits the key.
+
+**Row 27 implementation:**
+1. `MessagingProvider.jsx`'s `markReplyThreadRead` (currently `:262`,
+   `const markReplyThreadRead = useCallback((rootId, readAt) => api.markThreadRead(rootId, readAt),
+   [api]);`) fires the REST call and **discards the response** — nothing ever updates the cache, so the
+   receipt is never actually stored client-side today. Fix: on success, patch the root message's
+   `thread_last_read_at` from the response's `last_read_at` (field-name mapping per above).
+2. A marker component/affordance on the thread-toggle button (`Thread.jsx`'s existing
+   `toggleReplies`/reply-count button, around where `message.reply_count` is already read at `:93-96`
+   for the reply-count label) — show it when `message.last_reply_at > message.thread_last_read_at`, OR
+   when `message.thread_last_read_at` is `null`/absent and `message.reply_count > 0`. No marker at all
+   when `reply_count === 0` (matches the existing "no toggle button at all when there are no replies"
+   behavior — don't add a marker to a control that doesn't render). This belongs in `Thread.jsx` (or a
+   small collaborator it owns) — not a new top-level component, per the non-goals' "marker belongs to
+   whichever component owns the thread toggle."
+3. **Live root update on an incoming reply** — in `applyFrame`'s `message` case
+   (`MessagingProvider.jsx:126-143`): after the existing reply message itself is merged via
+   `reconcileMessage`, additionally check `message.reply_to_id` (server field name — reuse the pattern
+   already established, this is NOT the client-shaped `reply_to` used only by locally-built optimistic
+   rows) against `state.messages` for a cached root. If found, bump that root's `reply_count` by one and
+   set `last_reply_at` to the incoming message's `created_at`, via a **field-wise merge that explicitly
+   preserves the root's existing `thread_last_read_at`** (the exact discipline the merge-trap section
+   above is about — do this by spreading the previous root object and only overriding
+   `reply_count`/`last_reply_at`, never by constructing a fresh object from the frame's data). Apply this
+   unconditionally (regardless of who sent the reply) — `reply_count`/`last_reply_at` are
+   viewer-independent facts; do not add sender-based suppression logic that isn't explicitly required
+   (the required tests only ask for the "sender is not the viewer" case, the common path — don't invent
+   untested self-send special-casing beyond that).
+
+**Row 42 implementation:** `external_key` needs no new plumbing to reach the cache — `mergeById`/REST
+responses pass every field through transparently already. What's missing is a way for a host to render
+it. Add an optional host-supplied resolver prop to `ConversationList.jsx` (mirrors the existing
+`groupLaunchers`/`broadcastLauncher` host-supplied-data pattern already in this file) — e.g.
+`resolveManagedLabel(conversation)` — called instead of the existing `titleOf()` fallback specifically
+when `conversation.kind === 'managed'` and the prop is supplied; falls back to the existing `titleOf()`
+behavior otherwise (unset prop, or non-managed kind). **ucm must not hardcode or reference `event_all`/
+`event_team` or any other jg-specific vocabulary anywhere in `src/`** — the resolver receives the raw
+`conversation` object (including `external_key`) and the host owns all interpretation.
+
+**Deviation doc + conformance test:** move rows 27 and 42 from `BLOCKED` to their delivered outcome in
+`docs/messaging-deviations.md` (describe what was actually built, not a generic note, matching the
+established style from MSG-3c's rewrite). This leaves **zero** `BLOCKED` entries — verify
+`tests/messagingContractConformance.test.js`'s version-pin check (added in MSG-3c) still passes
+meaningfully against an empty set (i.e. `unpinnedBlockedLines()` naturally returns `[]` when there are no
+`**BLOCKED**` lines at all — confirm this is actually true of the regex-based approach, not just assumed
+because the test happens to pass; the WO's own text calls out the "passing vacuously for the wrong
+reason" risk explicitly).
+
+**Required tests to WRITE (all named explicitly in the WO's own "Required tests" section — treat that
+section as the checklist, not this paraphrase):**
+- The merge-trap test (load-bearing, per the WO: server-shaped `message` and `message_edited` frames,
+  copied from real `serialize_message` shape, must leave a previously-fetched
+  `thread_last_read_at` intact).
+- Marker visibility logic (shown/hidden/null-receipt/no-replies cases, all four named in the WO).
+- Read-on-open (expanding a thread issues the REST call and updates the receipt from its response).
+- Live root update (server-shaped `message` frame with `reply_to_id` raises the cached root's
+  `reply_count`/`last_reply_at`; marker appears without a refetch for the "sender is not the viewer"
+  case).
+- Row 42: two managed conversations with different `external_key` render distinguishable labels via a
+  host resolver; **a direct assertion that no jg-specific string (`event_all`, `event_team`) appears
+  anywhere in `src/`** — grep-based, mirroring the style of the existing contract-conformance test.
+- Deviation-doc/conformance: zero `BLOCKED` entries; the version-pin check's own logic still behaves
+  correctly against that empty set (not just "the real file happens to pass").
+- Existing ucm suites stay green.
+
+**Fixture rule (WO's own words, binding):** every payload in these tests is copied from actual dcm
+serializer output — this workstream has twice shipped a bug that survived only because a hand-written
+client-shaped fixture agreed with the client's own mistake (`reply_to` vs `reply_to_id`,
+`last_message.body` vs `.excerpt`). Do not hand-invent a payload shape without checking it against the
+serializer citations above first.
+
+**Invariants / do-not-break:** don't touch chunks/rows already delivered; keep the ~400 LOC soft trigger
+in mind for `Thread.jsx`/`ConversationList.jsx`/`MessagingProvider.jsx`; no new top-level component for
+the marker (lives in `Thread.jsx` or a small collaborator it owns); no new DX-1 harness entry needed
+unless a genuinely new independently-mountable component is added (it shouldn't be, per the above).
+
+**Progress contract / preamble:** `PLAN:`/`PROGRESS:`/`RESULT:` lines, no git operations, write-and-run-
+only-the-new-tests, leave the diff uncommitted for the orchestrator's review. Codex has been out of
+workspace credits recently across the last several WOs in this workstream — verify liveness before
+assuming success; if Codex fails (credits, quota, non-zero exit), the orchestrator implements directly
+per the fallback rule, which makes the orchestrator the author and independent review mandatory
+(not routine) — this has been true for every chunk of MSG-3c and should be expected here too.
+
+**Mini-handover:** repo `C:\Users\biglmi\Documents\webapps\ui-core-micha`, branch `main`, WO
+`work-orders/MSG-3d.md` (Part B above, single chunk). Follow `orchestrate-codex`. After the independent
+review and commit, run the WO-end `ui_reviewer` pass (per the WO's "Reviews" section — confirm the
+deviation doc reaches zero BLOCKED entries honestly, by delivery not deletion, and look at the marker
+as a rendered visual affordance via the DX-1 harness), then one version bump + npm publish.
