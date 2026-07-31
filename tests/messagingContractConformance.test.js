@@ -9,7 +9,6 @@ const messagingRoot = path.join(root, 'src', 'messaging');
 // their entries when they wire their existing adapters; the final three are
 // retained only if their stated product rationale still holds at WO close.
 const API_EXEMPTIONS = {
-  createDirectConversation: 'Chunk 4 wires the host-supplied recipient launcher.',
   createManagedConversation: 'No managed-conversation launcher is in the current public surface.',
   createObjectThreadConversation: 'Object-thread creation is host-owned routing/scope work.',
   getMessage: 'Timeline data is loaded through listMessages and listThread.',

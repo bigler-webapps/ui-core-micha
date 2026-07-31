@@ -4,6 +4,7 @@ import { AuthContext } from '../auth/AuthContext';
 import {
   archiveConversation,
   createBroadcastConversation,
+  createDirectConversation,
   createGroupConversation,
   getReadStatus,
   getUnreadCount,
@@ -34,7 +35,7 @@ export const MESSAGING_ENVELOPE = 'messaging';
 const EMPTY_CACHE = { conversations: {}, messages: {}, threads: {}, polls: {}, reactions: {}, receipts: {}, unread: { unread_count: 0, by_conversation: {} }, cursors: { conversations: null, messages: {}, threads: {} } };
 const DEFAULT_API = {
   listConversations, listMessages, listThread, getReadStatus, getUnreadCount, archiveConversation,
-  patchConversationPreferences, createGroupConversation, createBroadcastConversation,
+  patchConversationPreferences, createGroupConversation, createBroadcastConversation, createDirectConversation,
   markConversationRead, markThreadRead,
   createMessage, uploadAttachments, getAttachment, getAttachmentThumbnail,
   addReaction, removeReaction, createPoll, votePoll, closePoll, getConversationConfig, patchConversationConfig,
@@ -237,6 +238,10 @@ export function MessagingProvider({ children, filters = {}, activeConversationId
     const conversation = await api.createBroadcastConversation(payload);
     return updateConversation(conversation);
   }, [api, updateConversation]);
+  const openDirectConversation = useCallback(async (payload) => {
+    const conversation = await api.createDirectConversation(payload);
+    return updateConversation(conversation);
+  }, [api, updateConversation]);
   const sendMessage = useCallback(async (conversationId, payload, { clientRequestId, retry = false } = {}) => {
     const requestId = clientRequestId || payload.client_request_id;
     const optimistic = {
@@ -369,12 +374,12 @@ export function MessagingProvider({ children, filters = {}, activeConversationId
     cache, refresh, refreshConversations, refreshUnread, refreshThread, loadMoreMessages, loadThreadReplies, getMessageReadStatus, loadMoreConversations,
     setConversationArchived, setConversationPreferences, openGroupConversation,
     markConversationRead: markConversationAsRead, markThreadRead: markReplyThreadRead,
-    openBroadcastConversation, sendMessage, sendAttachments, editMessage, removeMessage, toggleReaction, createConversationPoll, castPollVote, closeConversationPoll,
+    openBroadcastConversation, openDirectConversation, sendMessage, sendAttachments, editMessage, removeMessage, toggleReaction, createConversationPoll, castPollVote, closeConversationPoll,
     loadConversationConfig, saveConversationConfig, currentUser: user, getAttachment: api.getAttachment,
     getAttachmentThumbnail: api.getAttachmentThumbnail, activeConversationId,
   }), [cache, refresh, refreshConversations, refreshUnread, refreshThread, loadMoreMessages, loadThreadReplies, getMessageReadStatus, loadMoreConversations,
     setConversationArchived, setConversationPreferences, openGroupConversation, markConversationAsRead, markReplyThreadRead,
-    openBroadcastConversation, sendMessage, sendAttachments, editMessage, removeMessage, toggleReaction, createConversationPoll, castPollVote, closeConversationPoll,
+    openBroadcastConversation, openDirectConversation, sendMessage, sendAttachments, editMessage, removeMessage, toggleReaction, createConversationPoll, castPollVote, closeConversationPoll,
     loadConversationConfig, saveConversationConfig, user, api.getAttachment, api.getAttachmentThumbnail, activeConversationId]);
   return <MessagingContext.Provider value={value}>{children}</MessagingContext.Provider>;
 }

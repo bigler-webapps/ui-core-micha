@@ -69,6 +69,7 @@ export * from './messaging/api';
 export { MessagingProvider, useMessaging } from './messaging/MessagingProvider';
 export { ConversationList } from './messaging/ConversationList';
 export { ConversationLaunchers } from './messaging/ConversationLaunchers';
+export { DirectMessageLauncher } from './messaging/DirectMessageLauncher';
 export { Thread } from './messaging/Thread';
 export { MessageBubble } from './messaging/MessageBubble';
 export { ReadTicks } from './messaging/ReadTicks';
