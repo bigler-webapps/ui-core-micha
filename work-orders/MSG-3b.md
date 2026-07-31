@@ -529,6 +529,17 @@ lines, no git operations, write-and-run-only-the-new-tests, leave the diff uncom
 **Mini-handover:** repo `C:\Users\biglmi\Documents\webapps\ui-core-micha`, branch `main`, WO
 `work-orders/MSG-3b.md` chunk 2 (Part B above, after chunk 1 is committed). Follow `orchestrate-codex`.
 
+**Chunk 2 outcome record — row 27 (unread-reply dot), for chunk 6's deviation-doc rewrite to copy
+verbatim:** **BLOCKED, not implemented.** Verified against dcm 2.36.1
+(`django-core-micha/src/django_core_micha/messaging/views.py:302-307`'s `ThreadReadView.post` only
+returns the actor's own just-written `last_read_at` from marking a thread read — there is no GET
+endpoint or `serialize_message`/`serialize_conversation` field (`serializers.py:60-79`) exposing a
+thread's prior receipt state to the client). No truthful unread-reply dot can be rendered — client or
+server — without dcm exposing thread receipt state to read, not just write. This is the same shape of
+gap as the checklist's already-BLOCKED rows (38, 51-53, 56-58), discovered during chunk 2 rather than
+scoped in advance; row 27 should be treated as `BLOCKED` alongside them for any future `MSG-2c`-style
+dcm work, not attempted client-side.
+
 ### Chunk 3 — message actions: menu, edit, delete, copy (rows 6-12, 16)
 
 **Target repo working directory:** `C:\Users\biglmi\Documents\webapps\ui-core-micha` (repo root). Runs

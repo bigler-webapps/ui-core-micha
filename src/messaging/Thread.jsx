@@ -8,6 +8,7 @@ import { useMessaging } from './MessagingProvider';
 import { ReadTicks } from './ReadTicks';
 
 function chronological(messages) { return [...messages].sort((left, right) => new Date(left.created_at || 0) - new Date(right.created_at || 0)); }
+function replyToId(message) { return message.reply_to_id ?? message.reply_to; }
 // A still-pending optimistic row (chunk 4) has a fake `local-<requestId>` id
 // and no durable server row yet — mounting ReadTicks against it would fire a
 // getMessageReadStatus REST call for an id the server has never heard of.
@@ -37,7 +38,7 @@ export function Thread({ conversationId, onReplyTargetChange }) {
   const [replyingTo, setReplyingTo] = useState(null);
   const [openThreads, setOpenThreads] = useState({});
   const conversation = cache.conversations[conversationId];
-  const roots = useMemo(() => chronological(Object.values(cache.messages).filter((message) => message.conversation_id === conversationId && !message.reply_to)), [cache.messages, conversationId]);
+  const roots = useMemo(() => chronological(Object.values(cache.messages).filter((message) => message.conversation_id === conversationId && !replyToId(message))), [cache.messages, conversationId]);
 
   useEffect(() => { if (conversationId != null) markConversationRead(conversationId).catch(() => {}); }, [conversationId, markConversationRead]);
 
@@ -47,6 +48,11 @@ export function Thread({ conversationId, onReplyTargetChange }) {
   }, [conversationId, loadMoreMessages, t]);
   const onScroll = () => { if (scrollRef.current?.scrollTop === 0 && cache.cursors.messages[conversationId] && !loadingOlder) loadOlder(); };
   const reply = (message) => { setReplyingTo(message); onReplyTargetChange?.(message); };
+  const jumpToMessage = (messageId) => {
+    const target = [...(scrollRef.current?.querySelectorAll('[data-message-id]') || [])]
+      .find((element) => String(element.dataset.messageId) === String(messageId));
+    target?.scrollIntoView?.({ block: 'center', behavior: 'smooth' });
+  };
   const toggleReplies = async (root) => {
     if (!openThreads[root.id]) {
       try { await loadThreadReplies(root.id); } catch { setError(t('MessagingThread.REPLIES_ERROR')); return; }
@@ -62,10 +68,10 @@ export function Thread({ conversationId, onReplyTargetChange }) {
         {cache.cursors.messages[conversationId] && <Box textAlign="center" py={1}><Button onClick={loadOlder} disabled={loadingOlder}>{loadingOlder ? <CircularProgress size={18} /> : t('MessagingThread.LOAD_OLDER')}</Button></Box>}
         {!roots.length && <Typography color="text.secondary" textAlign="center" py={4}>{t('MessagingThread.EMPTY')}</Typography>}
         <Stack spacing={1}>{roots.map((message) => {
-          const replies = chronological(Object.values(cache.messages).filter((item) => item.reply_to === message.id));
-          return <Stack key={message.id} spacing={0.75}><MessageBubble message={message} onReply={reply}>{canShowReadTicks(message, user) && <ReadTicks messageId={message.id} conversation={conversation} />}</MessageBubble>
+          const replies = chronological(Object.values(cache.messages).filter((item) => String(replyToId(item)) === String(message.id)));
+          return <Stack key={message.id} spacing={0.75}><MessageBubble message={message} onReply={reply} onJumpToMessage={jumpToMessage}>{canShowReadTicks(message, user) && <ReadTicks messageId={message.id} conversation={conversation} />}</MessageBubble>
             {(message.reply_count || replies.length) > 0 && <Button size="small" onClick={() => toggleReplies(message)}>{openThreads[message.id] ? t('MessagingThread.HIDE_REPLIES') : t('MessagingThread.SHOW_REPLIES', { count: message.reply_count || replies.length })}</Button>}
-            {openThreads[message.id] && <Stack spacing={0.75} sx={{ pl: 3, borderLeft: 2, borderColor: 'divider' }}>{replies.map((item) => <MessageBubble key={item.id} message={item} replyTo={message} onReply={reply}>{canShowReadTicks(item, user) && <ReadTicks messageId={item.id} conversation={conversation} />}</MessageBubble>)}</Stack>}
+            {openThreads[message.id] && <Stack spacing={0.75} sx={{ pl: 3, borderLeft: 2, borderColor: 'divider' }}>{replies.map((item) => <MessageBubble key={item.id} message={item} replyTo={message} onReply={reply} onJumpToMessage={jumpToMessage}>{canShowReadTicks(item, user) && <ReadTicks messageId={item.id} conversation={conversation} />}</MessageBubble>)}</Stack>}
             <Divider /></Stack>;
         })}</Stack>
       </Box>

@@ -28,6 +28,7 @@ export const messagingTranslations = {
   'MessagingThread.SHOW_REPLIES': { de: '{{count}} Antworten anzeigen', en: 'Show {{count}} replies', fr: 'Afficher {{count}} réponses' },
   'MessagingThread.HIDE_REPLIES': { de: 'Antworten ausblenden', en: 'Hide replies', fr: 'Masquer les réponses' },
   'MessagingThread.UNKNOWN_SENDER': { de: 'Unbekannte Person', en: 'Unknown person', fr: 'Personne inconnue' },
+  'MessagingThread.QUOTE_ATTACHMENT': { de: 'Anhang', en: 'Attachment', fr: 'Pièce jointe' },
   'MessagingReadTicks.ALL_READ': { de: 'Von allen gelesen', en: 'Read by everyone', fr: 'Lu par tout le monde' },
   'MessagingReadTicks.DELIVERED': { de: 'Zugestellt an {{count}}', en: 'Delivered to {{count}}', fr: 'Distribué à {{count}}' },
   'MessagingComposer.LABEL': { de: 'Nachricht verfassen', en: 'Compose message', fr: 'Rédiger un message' },
