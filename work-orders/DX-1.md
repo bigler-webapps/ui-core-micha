@@ -1,6 +1,9 @@
 # DX-1 — minimal Vite dev harness for ucm components
 
-Status: planned · Tier 1 (dev-only tooling; **adds devDependencies → approval-gated**) · Target repo: `ui-core-micha` (main)
+Status: done · **Tier 2** (dev-only tooling; **adds devDependencies → approval-gated**) · Target repo: `ui-core-micha` (main)
+*Reclassified 2026-08-01: labelled Tier 1 at authoring, but it adds dependencies in a shared-core
+repo — two binding Tier-2 surfaces per AGENTS.md's Tiering gate. A named independent `reviewer` did
+run (one P2 on the provider's own WebSocket), so only the label was wrong.*
 
 ---
 
