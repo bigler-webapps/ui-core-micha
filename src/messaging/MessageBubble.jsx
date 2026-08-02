@@ -129,8 +129,8 @@ export function MessageBubble({ message, replyTo, conversation, onReply, onJumpT
             {attachments.length > 0 && <AttachmentList attachments={attachments} />}
             {message.poll && <PollCard message={message} />}
           </Stack>}
-          {hasMeta && <Stack data-testid="message-meta" direction="row" spacing={0.5} justifyContent="flex-end" alignItems="center" sx={{ color: 'text.disabled', '& .MuiSvgIcon-root': { fontSize: '1rem' } }}>
-            {message.created_at && <Typography component="span" variant="caption" color="inherit">{new Date(message.created_at).toLocaleString()}</Typography>}
+          {hasMeta && <Stack data-testid="message-meta" direction="row" spacing={0.5} justifyContent="flex-end" alignItems="center" flexWrap="wrap" sx={{ color: 'text.disabled', minWidth: 0, '& .MuiSvgIcon-root': { fontSize: '1rem' } }}>
+            {message.created_at && <Typography component="span" variant="caption" color="inherit" sx={{ whiteSpace: 'nowrap' }}>{new Date(message.created_at).toLocaleString()}</Typography>}
             {message.edited_at && !deleted && <Typography component="span" variant="caption" color="inherit">{t('MessagingThread.EDITED')}</Typography>}
             {children}
           </Stack>}

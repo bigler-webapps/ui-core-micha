@@ -53,6 +53,32 @@ describe('ConversationList', () => {
     await waitFor(() => expect(screen.queryByRole('button', { name: 'Announcements' })).toBeNull());
   });
 
+  it('resolves a direct conversation\'s title via the host-supplied resolveDirectUserName, falling back to the generic label when absent', async () => {
+    api.listConversations.mockResolvedValueOnce({
+      results: [
+        { id: 6, kind: 'direct', other_user_id: 42, last_message: { excerpt: 'Hi' } },
+        { id: 7, kind: 'direct', other_user_id: 99, last_message: { excerpt: 'Hey' } },
+      ],
+      next_cursor: null,
+    });
+    const resolveDirectUserName = vi.fn((userId) => (userId === 42 ? 'Alex' : null));
+    renderList(api, { resolveDirectUserName });
+    await screen.findByText('Alex');
+    expect(resolveDirectUserName).toHaveBeenCalledWith(42);
+    expect(screen.getByText('MessagingList.UNTITLED')).toBeTruthy();
+  });
+
+  it('does not call resolveDirectUserName for non-direct conversations', async () => {
+    api.listConversations.mockResolvedValueOnce({
+      results: [{ id: 8, kind: 'group', title: 'Ops', other_user_id: 42, last_message: { excerpt: 'Hi' } }],
+      next_cursor: null,
+    });
+    const resolveDirectUserName = vi.fn(() => 'Should not be used');
+    renderList(api, { resolveDirectUserName });
+    await screen.findByText('Ops');
+    expect(resolveDirectUserName).not.toHaveBeenCalled();
+  });
+
   it('wires mute and archive through participant APIs', async () => {
     renderList(api);
     await screen.findByText('First');

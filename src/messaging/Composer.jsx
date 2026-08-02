@@ -23,8 +23,13 @@ function isImage(file) { return file.type?.startsWith('image/'); }
  * client only offers the affordance). `linkTarget`'s VALUE is inherently
  * app-specific navigation context (jg pre-fills it from the currently open
  * event-info section) that ucm cannot compute itself, so the host supplies it.
+ * Broadcasting to a 1:1 direct conversation is never meaningful regardless of
+ * what the host passes for `allowAnnouncement` (typically an event-manager
+ * permission check with no notion of the currently open conversation's kind),
+ * so this is excluded here rather than relying on every host to remember it.
  */
-export function Composer({ conversationId, replyTarget = null, onReplyTargetChange, allowAnnouncement = false, linkTarget }) {
+export function Composer({ conversationId, conversation, replyTarget = null, onReplyTargetChange, allowAnnouncement = false, linkTarget }) {
+  const canAnnounce = allowAnnouncement && conversation?.kind !== 'direct';
   const { t } = useTranslation();
   const { sendMessage, sendAttachments, createConversationPoll } = useMessaging();
   const [body, setBody] = useState('');
@@ -123,7 +128,7 @@ export function Composer({ conversationId, replyTarget = null, onReplyTargetChan
       <IconButton type="button" aria-label={t('MessagingComposer.ADD_ATTACHMENT')} onClick={() => inputRef.current?.click()}><AttachFileIcon /></IconButton>
       <IconButton type="button" aria-label={t('MessagingComposer.ADD_EMOJI')} onClick={(event) => setEmojiAnchor(event.currentTarget)}><EmojiEmotionsOutlinedIcon /></IconButton>
       <IconButton type="button" aria-label={t('MessagingPoll.CREATE')} disabled={pollOpen || files.some(isImage)} onClick={() => setPollOpen(true)}><PollOutlinedIcon /></IconButton>
-      {allowAnnouncement && <IconButton type="button" aria-label={t('MessagingAnnouncement.CREATE')} onClick={() => setAnnouncementOpen(true)}><CampaignOutlinedIcon /></IconButton>}
+      {canAnnounce && <IconButton type="button" aria-label={t('MessagingAnnouncement.CREATE')} onClick={() => setAnnouncementOpen(true)}><CampaignOutlinedIcon /></IconButton>}
       <TextField inputRef={messageInputRef} fullWidth multiline minRows={2} value={body} onChange={(event) => setBody(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing) { event.preventDefault(); submit(); } }} label={t('MessagingComposer.MESSAGE')} disabled={sending} />
       <Button type="submit" variant="contained" disabled={sending || (!body.trim() && !files.length)}>{t('MessagingComposer.SEND')}</Button>
     </Stack>
@@ -146,7 +151,7 @@ export function Composer({ conversationId, replyTarget = null, onReplyTargetChan
         <FormControlLabel control={<Checkbox checked={allowMultiple} onChange={(event) => setAllowMultiple(event.target.checked)} />} label={t('MessagingPoll.ALLOW_MULTIPLE')} />
       </Stack></DialogContent><DialogActions><Button onClick={() => setPollOpen(false)}>{t('MessagingPoll.CANCEL')}</Button><Button variant="contained" onClick={submitPoll} disabled={sending}>{t('MessagingPoll.CREATE')}</Button></DialogActions>
     </Dialog>
-    {allowAnnouncement && <Dialog open={announcementOpen} onClose={() => !sending && setAnnouncementOpen(false)} fullWidth maxWidth="sm">
+    {canAnnounce && <Dialog open={announcementOpen} onClose={() => !sending && setAnnouncementOpen(false)} fullWidth maxWidth="sm">
       <DialogTitle>{t('MessagingAnnouncement.CREATE')}</DialogTitle><DialogContent><Stack spacing={1} sx={{ pt: 1 }}>
         <TextField label={t('MessagingAnnouncement.TITLE')} value={announcementTitle} onChange={(event) => setAnnouncementTitle(event.target.value)} autoFocus />
         <TextField label={t('MessagingAnnouncement.BODY')} value={announcementBody} onChange={(event) => setAnnouncementBody(event.target.value)} multiline minRows={2} />

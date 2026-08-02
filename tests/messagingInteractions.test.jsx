@@ -92,6 +92,21 @@ describe('messaging reactions and polls', () => {
     expect(screen.queryByRole('button', { name: 'MessagingAnnouncement.CREATE' })).toBeNull();
   });
 
+  it('never offers announcement composing in a direct conversation, even when the host allows it', () => {
+    // A host's allowAnnouncement is typically an event-manager permission check
+    // with no notion of which conversation is currently open — broadcasting to
+    // a 1:1 direct chat is never meaningful regardless of that permission.
+    const api = baseApi();
+    render(<MessagingProvider api={api} active={false}><Composer conversationId={4} allowAnnouncement conversation={{ kind: 'direct' }} /></MessagingProvider>);
+    expect(screen.queryByRole('button', { name: 'MessagingAnnouncement.CREATE' })).toBeNull();
+  });
+
+  it('still offers announcement composing for a non-direct conversation when the host allows it', () => {
+    const api = baseApi();
+    render(<MessagingProvider api={api} active={false}><Composer conversationId={4} allowAnnouncement conversation={{ kind: 'group' }} /></MessagingProvider>);
+    expect(screen.getByRole('button', { name: 'MessagingAnnouncement.CREATE' })).toBeTruthy();
+  });
+
   it('disables the chip while pending, then rolls back and re-enables it on API failure', async () => {
     let rejectAdd; const api = baseApi(); api.addReaction.mockReturnValue(new Promise((_, reject) => { rejectAdd = reject; }));
     render(<MessagingProvider api={api} active={false}><ReactionBar message={{ id: 7, reactions: [{ emoji: '👍', count: 1, reacted: false }] }} /></MessagingProvider>);

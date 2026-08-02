@@ -95,10 +95,20 @@ export function Thread({ conversationId, onReplyTargetChange, canModerateMessage
     <Stack spacing={1} sx={{ minWidth: 0 }}>
       {error && <Alert severity="error" role="alert">{error}</Alert>}
       {replyingTo && <Alert severity="info" onClose={() => { setReplyingTo(null); onReplyTargetChange?.(null); }}>{t('MessagingThread.REPLYING_TO', { sender: replyingTo.sender?.display_name || t('MessagingThread.UNKNOWN_SENDER') })}</Alert>}
-      <Box ref={scrollRef} onScroll={onScroll} sx={{ maxHeight: 560, overflowY: 'auto', px: 0.5 }} aria-label={t('MessagingThread.TIMELINE')}>
+      <Box ref={scrollRef} onScroll={onScroll} sx={{ maxHeight: 560, overflowY: 'auto', overflowX: 'hidden', px: 0.5 }} aria-label={t('MessagingThread.TIMELINE')}>
         {cache.cursors.messages[conversationId] && <Box textAlign="center" py={1}><Button onClick={loadOlder} disabled={loadingOlder}>{loadingOlder ? <CircularProgress size={18} /> : t('MessagingThread.LOAD_OLDER')}</Button></Box>}
         {!roots.length && <Typography color="text.secondary" textAlign="center" py={4}>{t('MessagingThread.EMPTY')}</Typography>}
-        <Stack spacing={1}>{roots.map((message) => {
+        {/* pr wider than pl, on this Stack only (not the scroll container
+            above, which stays symmetric so the centered LOAD_OLDER button
+            isn't skewed): an own (right-aligned) bubble sits flush against
+            this Stack's right edge, and MessageBubble's hover/tap "more
+            actions" icon (MessageBubble.jsx, `top: -12, right: -12`) floats
+            12px past the bubble's own right edge — without enough padding to
+            absorb that overhang, the scroll container's overflowX: hidden
+            (the scrollbar fix above) would clip the icon whenever there's no
+            vertical scrollbar reserving extra width (a short conversation,
+            no vertical overflow). */}
+        <Stack spacing={1} sx={{ pr: 2 }}>{roots.map((message) => {
           const replies = chronological(Object.values(cache.messages).filter((item) => String(replyToId(item)) === String(message.id)));
           return <Stack key={message.id} spacing={0.75}><MessageBubble message={message} conversation={conversation} onReply={reply} onJumpToMessage={jumpToMessage} onAnnouncementLink={onAnnouncementLink} canModerateMessages={canModerateMessages}>{canShowReadTicks(message, user) && <ReadTicks messageId={message.id} conversation={conversation} />}</MessageBubble>
             {(message.reply_count || replies.length) > 0 && (() => {
