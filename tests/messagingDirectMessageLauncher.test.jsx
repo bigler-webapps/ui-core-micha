@@ -55,6 +55,47 @@ describe('DirectMessageLauncher', () => {
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
   });
 
+  it('uses the selected candidate scope over the launcher scope', () => {
+    const api = { createDirectConversation: vi.fn().mockResolvedValue({ id: 41, kind: 'direct' }) };
+    renderLauncher({
+      api,
+      candidates: [
+        { id: 2, display_name: 'Alex', scope: 'scope-a' },
+        { id: 3, display_name: 'Sam', scope: 'scope-b' },
+      ],
+      scope: 'scope-prop',
+    });
+    openPicker();
+    fireEvent.click(screen.getByText('Sam'));
+    fireEvent.click(screen.getByRole('button', { name: 'MessagingDirect.START' }));
+    expect(api.createDirectConversation).toHaveBeenCalledWith({ target_user_id: 3, scope: 'scope-b' });
+  });
+
+  it('falls back to the launcher scope when the selected candidate has none', () => {
+    const api = { createDirectConversation: vi.fn().mockResolvedValue({ id: 41, kind: 'direct' }) };
+    renderLauncher({
+      api,
+      candidates: [
+        { id: 2, display_name: 'Alex' },
+        { id: 3, display_name: 'Sam', scope: 'scope-b' },
+      ],
+      scope: 'scope-prop',
+    });
+    openPicker();
+    fireEvent.click(screen.getByText('Alex'));
+    fireEvent.click(screen.getByRole('button', { name: 'MessagingDirect.START' }));
+    expect(api.createDirectConversation).toHaveBeenCalledWith({ target_user_id: 2, scope: 'scope-prop' });
+  });
+
+  it('omits scope when neither the candidate nor launcher provides one', () => {
+    const api = { createDirectConversation: vi.fn().mockResolvedValue({ id: 41, kind: 'direct' }) };
+    renderLauncher({ api });
+    openPicker();
+    fireEvent.click(screen.getByText('Alex'));
+    fireEvent.click(screen.getByRole('button', { name: 'MessagingDirect.START' }));
+    expect(Object.keys(api.createDirectConversation.mock.calls[0][0])).toEqual(['target_user_id']);
+  });
+
   it('surfaces a policy rejection without closing the picker', async () => {
     const api = { createDirectConversation: vi.fn().mockRejectedValue({ response: { data: { detail: 'Direct messages are restricted.' } } }) };
     renderLauncher({ api });

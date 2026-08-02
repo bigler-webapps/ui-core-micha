@@ -1,4 +1,4 @@
-import { useId, useState } from 'react';
+import { useId, useMemo, useState } from 'react';
 import {
   Alert,
   Button,
@@ -32,6 +32,10 @@ export function DirectMessageLauncher({ candidates = [], scope, onOpen }) {
   const [starting, setStarting] = useState(false);
   const [error, setError] = useState(null);
   const titleId = useId();
+  const selectedCandidate = useMemo(
+    () => candidates.find((candidate) => candidate.id === selectedId) || null,
+    [candidates, selectedId],
+  );
 
   const showPicker = () => {
     setSelectedId(null);
@@ -46,9 +50,10 @@ export function DirectMessageLauncher({ candidates = [], scope, onOpen }) {
     setStarting(true);
     setError(null);
     try {
+      const effectiveScope = selectedCandidate?.scope ?? scope;
       const conversation = await openDirectConversation({
         target_user_id: selectedId,
-        ...(scope == null ? {} : { scope }),
+        ...(effectiveScope == null ? {} : { scope: effectiveScope }),
       });
       setOpen(false);
       onOpen?.(conversation);
