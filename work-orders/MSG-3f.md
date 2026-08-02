@@ -30,9 +30,12 @@ neutral surface. The bubble shrinks to its content and is capped at roughly thre
 width — not the current full-width outlined `Paper`. Exact radius, tint, and elevation are design-system
 choices, not fixed here; what is fixed is the alignment split and the shrink-to-content behaviour.
 
-**2. Inline meta — this is the line-count fix.** Timestamp and status icons sit **inside** the bubble at
-the bottom right, on the **same line as the last line of text** when it fits, wrapping only when it does
-not. This single change is what makes short messages one line; everything else is cosmetic by comparison.
+**2. Meta moves inside the bubble — this is the line-count fix.** Timestamp and status icons sit
+**inside** the bubble, bottom right, instead of being their own full-width sibling rows. Whether they
+share the last text line or occupy their own narrow trailing line is left to the implementation:
+riding the last line is nicer and welcome if it falls out naturally, but it is **explicitly not
+required** (operator decision, 2026-08-02 — "muss nicht perfekt sein"). Do not spend the WO fighting
+that CSS. What matters is that the meta is inside the bubble and right-aligned, not that it is inline.
 
 **3. Sender name.** Only for non-direct conversations, small, above the text, inside the bubble. Direct
 conversations show no sender at all (already the case today, keep it).
@@ -43,8 +46,24 @@ all-read, distinguished by tick count and emphasis. Own messages only; the exist
 
 **5. Actions collapse into one affordance.** No standalone reply button, no permanently rendered
 reaction row. One overflow affordance at the bubble's top edge opens a single menu carrying Reply,
-React, and the existing Edit / Delete / Copy entries. On touch, a long press on the bubble opens the same
-menu.
+React, and the existing Edit / Delete / Copy entries.
+
+How it is reached (operator decision, 2026-08-02 — **no long-press**):
+- **Desktop:** the affordance appears on hover, and on keyboard focus. The existing right-click
+  `onContextMenu` path stays.
+- **Touch:** a plain tap on the bubble reveals the affordance. No long-press, no swipe, no custom
+  pointer-event handling — the gesture edge cases (scroll conflict, text selection, iOS's own
+  context menu) are not worth their cost here.
+- **React** is a menu entry that expands the existing `ReactionBar` emoji row. Do **not** try to nest an
+  emoji picker inside the MUI `Menu` — MUI does not nest menus gracefully, and the existing expandable
+  row already works.
+
+**5b. The menu must open for messages the user cannot edit.** Today the whole menu is gated on `canAct`
+(own message, or moderator), because it only contained Edit / Delete / Copy. Once Reply lives there, an
+**incoming** message needs a menu too — you reply to other people's messages. So there are two variants:
+any message offers Reply / React / Copy; a message the user may act on additionally offers Edit /
+Delete. Getting this wrong makes replying to anyone else impossible, and it will not show up in a test
+fixture that only contains own messages.
 
 **6. Reactions.** Existing reaction chips render as a compact row overlapping the bubble's bottom edge,
 not as their own stacked row. Adding a reaction moves into the action menu.
@@ -57,10 +76,9 @@ today's full-width text `Button`. Clicking it must still jump to the quoted mess
 The operator supplied two WhatsApp screenshots as the reference. What they pin down beyond the points
 above:
 
-- **Multi-line bodies put the meta on the last line, not on a line of its own.** The reference shows a
-  two-line message whose timestamp sits at the right end of the *second* line. So the rule is "meta rides
-  the final line", not "meta rides the only line" — an implementation that special-cases short messages
-  and adds a trailing row for long ones has not met the spec.
+- In the reference, a two-line message has its timestamp at the right end of the *second* line — so
+  WhatsApp's own rule is "meta rides the final line". Per point 2 this is **not** binding here; it is
+  recorded so the implementation knows what the ideal looks like if it comes cheaply.
 - **Incoming messages carry no status icon at all** — not even a "sent" tick. Only own messages show
   status.
 - **At rest there is no visible action affordance whatsoever.** No reply control, no reaction button, no
@@ -75,9 +93,10 @@ requirement of this WO.
 
 ### Acceptance criterion
 
-A message with short text, no reactions, no attachments and no reply quote occupies **exactly one visual
-line**, timestamp and status icons included. Anything that still costs a second line for that case has
-not met this WO.
+A message with short text, no reactions, no attachments and no reply quote occupies **at most two visual
+lines** — the text and, at most, a narrow right-aligned meta line inside the bubble. One line if the meta
+lands inline without a fight. Today's six rows for that case is what this WO exists to kill; anything
+still costing a third line has not met it.
 
 ### Non-negotiable: the icons must keep their accessible names
 
@@ -89,8 +108,10 @@ announces "button" to a screen reader is a regression, not a redesign.
 
 Second, related trap: today's overflow menu is hover-only (`'& .message-actions': { opacity: 0 }`), which
 makes it unreachable on touch **and** invisible to keyboard users. This WO must not carry that forward.
-The affordance must be focusable and operable by keyboard without hover and without long-press. That this
-is a pre-existing defect does not make it acceptable to reproduce.
+The affordance must be focusable and operable by keyboard. Note that `opacity: 0` does **not** remove an
+element from the tab order — it is only invisible — so a `:focus-within` (or `:focus-visible`) rule that
+reveals it on keyboard focus closes the keyboard half cheaply. The touch half is point 5's tap-to-reveal.
+That this is a pre-existing defect does not make it acceptable to reproduce.
 
 ### Scope
 
@@ -102,8 +123,10 @@ looked at.
 
 ### Non-goals / do-not-touch
 
-- **No swipe-to-reply gesture.** WhatsApp has it; it is deferred. Touch gestures conflict with scrolling
-  and text selection, and none of it is needed for "compact". If the operator wants it, it is its own WO.
+- **No custom touch gestures at all** — no swipe-to-reply and, per point 5, **no long-press**. Both need
+  hand-rolled pointer handling whose real cost is the edge cases (scroll conflict, text selection, iOS's
+  own context menu), and neither is needed for "compact". Operator decision 2026-08-02. If either is
+  wanted later it is its own WO.
 - **No Composer change.** The screenshot that triggered this also shows a tall composer, but that is not
   what was asked. Raise it separately rather than folding it in.
 - **No change to `Thread`'s data flow**, pagination, reply-thread expansion, unread-reply marker
@@ -140,12 +163,12 @@ same line MSG-3d drew for `external_key` applies here.
 
 ### Risks
 
-- **The inline-meta pattern is the fiddly part.** Getting timestamp and ticks to sit on the last text
-  line, and to wrap cleanly when the text ends near the edge, is a known-awkward CSS problem (it usually
-  needs a reserved inline spacer or a floated meta element). Expect this to be where the time goes, and
-  expect the naive flexbox attempt to either overlap the text or force the second line back. Verify with
-  a text that ends exactly near the wrap point, not just with "Hallo".
-- **Long text, long words, RTL and zoom.** A shrink-to-content bubble with an absolutely-positioned meta
+- **Do not get drawn into the inline-meta CSS.** Placing timestamp and ticks on the last text line, and
+  wrapping cleanly when the text ends near the edge, is a known-awkward problem needing a reserved inline
+  spacer or a floated meta element. Point 2 deliberately does not require it. If a first attempt does not
+  fall out cleanly, take the trailing meta line and move on — this risk is listed to be avoided, not
+  managed.
+- **Long text, long words, RTL and zoom.** A shrink-to-content bubble with a right-aligned meta
   breaks in interesting ways with a single unbroken 60-character token, at 200% zoom, and in narrow
   mobile widths. Check those three explicitly.
 - **Losing an action.** Reply, React, Edit, Delete and Copy all currently exist. Collapsing them into one
@@ -158,7 +181,11 @@ same line MSG-3d drew for `external_key` applies here.
 ### Tests to WRITE (scoped — run only these)
 
 - a short own message renders its timestamp and status **inside** the bubble, not as a sibling row (the
-  acceptance criterion, asserted structurally rather than by pixel);
+  acceptance criterion, asserted structurally rather than by pixel — do not assert that the meta shares
+  the text's line, which point 2 leaves open);
+- the action menu opens for an **incoming** message and offers Reply, and offers Edit/Delete only where
+  `canAct` holds (point 5b — a fixture containing only own messages will not catch this);
+- the affordance is reachable on touch without a long press;
 - no standalone reply button and no permanently rendered reaction row exist in the DOM for a plain
   message;
 - own and incoming messages are distinguishable (alignment/styling hook), and the sender name renders for
