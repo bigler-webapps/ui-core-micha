@@ -223,6 +223,169 @@ short message — check it before declaring done.**
 
 ---
 
-## Part B — Implementation map
+## Part B — Implementation map (Orchestrator)
 
-Owned by the Orchestrator session, deliberately not written here.
+**Target repo working directory:** `C:\Users\Micha Bigler\Documents\webapps\ui-core-micha` (repo root; main
+branch). Work from this package; open only the named files to verify.
+
+### Current shape (verified while scoping — do not re-derive)
+
+**`src/messaging/MessageBubble.jsx`** (105 lines) — one `Paper` (`component="article"`, `:66`) wrapping a
+single `Stack spacing={0.75}` (`:67`) with, in row order: reply-quote `Button` (`:68-73`, only if `replyTo`),
+meta row — sender name (`conversation?.kind !== 'direct'`, `:75`) + `created_at` + "edited" caption
+(`:74-78`), announcement title/link (`:79-80`), error `Alert` (`:81`), body/edit-`TextField` (`:82`),
+`!deleted` wrapper with `AttachmentList` + `<ReactionBar message={message} />` + `PollCard` (`:83-87`),
+standalone "Antworten" reply `Button` (`:88`, **not** inside the existing `Menu` — reply is currently
+ungated by `canAct`, unlike edit/delete/copy), overflow `IconButton` (`:89`, `className="message-actions"`,
+`canAct`-gated), `{children}` (`:90` — this is where `Thread.jsx` injects `<ReadTicks>`, currently its own
+trailing row, not "inside the bubble"), then the edit/delete/copy `Menu` (`:92-96`) and delete-confirm
+`Dialog` (`:97-101`).
+
+- `canAct` (`:35-37`): `!deleted && message.kind !== 'poll' && ((Boolean(currentUser?.id) &&
+  message.sender?.id === currentUser?.id) || canModerateMessages)` — gates both `onContextMenu` (`:66`) and
+  the overflow `IconButton`. **No existing `isOwn`/alignment boolean** — the own-message check is inlined
+  into `canAct` only; introduce a named `isOwn` for the alignment split (same condition, without the
+  `!deleted`/`kind !== 'poll'` parts that are specific to action-gating, not alignment).
+- Hover-only CSS trap (`:66`, inline `sx` on the `Paper`): `'& .message-actions': { opacity: 0 },
+  '&:hover .message-actions': { opacity: 1 }` — pure `:hover`, no `:focus-within`/`:focus-visible` variant,
+  no touch/tap path. This is the exact defect the WO's "Non-negotiable" section calls out — fix it here
+  (add a focus-visible rule; touch is a tap-to-reveal state, not CSS-only).
+- `Thread.jsx:103` and `:113` are the two `<MessageBubble>` mount sites (root messages and nested replies
+  respectively), both passing `children={canShowReadTicks(message, user) && <ReadTicks .../>}`.
+  `canShowReadTicks` (`Thread.jsx:25-27`) duplicates (more strictly — adds a pending-optimistic-row guard)
+  the same own-message check as `canAct` — a third near-duplicate inline check. Consider factoring these
+  three (MessageBubble's `canAct`, Thread's `canShowReadTicks`, the new alignment `isOwn`) toward one
+  shared own-message predicate if it falls out cleanly; not required if it adds risk late in the WO.
+- Direct-vs-group signal: `conversation?.kind !== 'direct'`, exactly this string comparison, reused
+  identically at `MessageBubble.jsx:75` and `ReadTicks.jsx:21` — no enum, just keep using it.
+
+**`src/messaging/ReadTicks.jsx`** (25 lines) — fetch-per-message `useEffect` (`:13-17`,
+`getMessageReadStatus(messageId)` from `useMessaging()`). Only **two** states exist in the data today:
+`status.all_read` (bool) vs `status.delivered_count` (number) — **there is no third "sent, not yet
+delivered" state** in the current contract; do not invent one that the backend can't back. Map the two
+existing states to icon variants (e.g. a single check for "delivered", a double/colored check for
+"all read") — do not add a third tick state without a data source. `status.recipient_detail` (only present
+for non-direct conversations, `:21` comment already documents the DM carve-out) drives the existing
+clickable popover of names (`:24`) — keep that behavior, just change what triggers it from a text caption to
+an icon (`aria-haspopup="dialog"` must move with it). i18n keys already exist and are reusable as
+`aria-label`s: `MessagingReadTicks.ALL_READ`, `.DELIVERED` (`{{count}}`), `.RECIPIENTS`.
+
+**`src/messaging/ReactionBar.jsx`** (47 lines) — currently its own sibling row (`Stack`, `:32`), mounted
+inside MessageBubble's `!deleted` wrapper (`MessageBubble.jsx:85`). **Add-reaction already exists and is
+reusable as-is**: `:35`, an `IconButton` (`AddReactionOutlinedIcon`, `aria-label={t('MessagingReactions.ADD')}`)
+toggling local `expanded` state; when expanded, `:37-43` renders `QUICK_EMOJIS`
+(`['👍','❤️','😂','🎉','👀']`, `:8`) as `Chip`s — this is "the existing expandable row" the WO says already
+works; reuse it verbatim inside the action menu's React entry, don't rebuild it. `ReactionBar` takes only
+`message` as a prop today — no position/z-index hook back to the parent; if overlapping the bubble's bottom
+edge needs coordination (e.g. negative margin colliding with bubble padding), that's a MessageBubble-side
+CSS concern, only touch `ReactionBar`'s own layout if the compact-row placement itself needs to change (it
+likely does — from a full sibling row to a smaller overlapping one).
+
+### The new bubble shape — map the seams, not the CSS
+
+This WO is explicitly NOT asking for the inline-meta-shares-last-line CSS to be solved (Risks section, Part
+A) — implement the straightforward version (meta as its own narrow trailing line inside the bubble,
+right-aligned) and stop; do not spend cycles chasing the inline variant.
+
+1. **Alignment split**: introduce `isOwn` (own-message boolean, computed once, see above). Own → bubble
+   right-aligned on a tinted `Paper`; incoming → left-aligned, neutral surface. Shrink-to-content, capped at
+   ~75% of thread width (today's `maxWidth: 'min(100%, 680px)'`, `:66`, is a fixed cap regardless of
+   alignment — replace with a percentage-based cap and keep `min(...)` against a sane absolute ceiling for
+   very wide threads).
+2. **Meta moves inside**: move the timestamp + status-tick block from its own row into a small trailing
+   `Stack` inside the bubble's content area, right-aligned, "recessed" styling (smaller, lower-contrast —
+   Part A's confirmed-against-screenshots section). Sender name stays where it is conceptually (above text,
+   inside the bubble) but only for `conversation?.kind !== 'direct'` (unchanged condition).
+3. **Status as icons**: `ReadTicks.jsx` swaps its two `Typography` text branches for icon components
+   (`Done`/`DoneAll` from `@mui/icons-material`, following the repo's `Outlined`-variant convention where one
+   exists — check availability before picking exact icon names) with the existing i18n strings as
+   `aria-label`, own-messages-only (unchanged `canShowReadTicks` gate in `Thread.jsx`, do not touch it).
+4. **Actions collapse into one menu**: move the standalone reply `Button` (`:88`) INTO the existing `Menu`
+   (`:92-96`) as a new first entry, alongside React (opens `ReactionBar`'s existing `expanded` row — do not
+   nest an emoji picker inside the MUI `Menu`, per Part A) and the existing Edit/Delete/Copy entries. The
+   overflow `IconButton` (`:89`) becomes the single affordance — reuse the existing `MoreVertIcon` (already
+   the established overflow icon in this repo, `ConversationList.jsx` too), don't introduce a different one.
+5. **Two menu variants (5b — the easy-to-miss one)**: any message (own or incoming) gets Reply + React +
+   Copy; only a message where `canAct`-minus-the-reply-specific-parts holds (i.e. own message or moderator,
+   the existing author/moderator check) additionally gets Edit + Delete. This means the menu's visibility
+   condition changes from "`canAct` gates the whole menu" to "the menu is always offered when there's
+   anything to put in it (any message), but its CONTENTS vary" — restructure the render condition
+   accordingly; a fixture with only own messages will not catch a regression here (Part A's own warning).
+6. **Desktop hover+focus, touch tap**: fix the CSS trap directly — add a `&:focus-within .message-actions`
+   (or `:focus-visible`) rule alongside the existing `:hover` rule so keyboard Tab-focus reveals the
+   affordance (the element is already in the tab order, per Part A's analysis — `opacity:0` doesn't remove
+   it). For touch, add a tap-to-reveal state (e.g. local `actionsVisible` state toggled by a tap handler on
+   the bubble, independent of hover/focus) — no long-press, no swipe, no custom pointer-event tracking.
+7. **Reactions compact row**: `ReactionBar`'s existing-reactions row (not the add-reaction affordance, which
+   moves into the menu per point 4) becomes a compact row overlapping the bubble's bottom edge rather than a
+   full sibling Stack row — likely a negative top margin pulling it up into the bubble's bottom padding, or
+   an absolutely-positioned row anchored to the bubble. `ReactionBar`'s own `expanded`/`QUICK_EMOJIS` block
+   stays as-is; only its trigger changes (moves from `ReactionBar`'s own `AddReactionOutlinedIcon` button —
+   now redundant, since React lives in the menu — but the `expanded` row itself is unchanged).
+8. **Reply quote**: keep inside the bubble but restyle from a full-width `Button` (`:68-73`) to a tinted
+   block with a coloured leading border (e.g. `borderLeft`) — must still call `onJumpToMessage` on click
+   (existing prop, keep the click handler, only restyle the container).
+9. **Announcements/polls/attachments** (`:79-80`, `:83-87`): keep rendering inside the new bubble container;
+   check each in the harness (Part A's Risks section) since none of the four scoped test files assert on
+   their visual placement, only their data/behavior.
+
+### Verification harness — extend, don't just eyeball the diff
+
+`dev/entries.jsx:140-157` already has a `messaging-message-bubble` entry, but it mounts a single bubble with
+no `conversation` prop, no `currentUser` (so `canAct` is always false — no own-message demo), and no
+`replyTo`/`children`/ReadTicks wired in — **insufficient to visually verify this WO's acceptance criterion**.
+Either extend this entry with a currentUser matching one message's `sender.id` (for an own-message demo)
+plus a second incoming-message instance, a `replyTo` prop, and mock `ReadTicks` children — or, likely
+cleaner, extend the existing `messaging-thread` entry (`dev/entries.jsx:156`, `ThreadEntry` against
+`messagingHarnessApi`) which already exercises the real Thread→MessageBubble wiring with realistic
+`sender`/`reply_count`/replies data. Add fixture messages covering: a short own message (acceptance
+criterion — one/two lines), a short incoming message, a long-single-unbroken-token message, a message at
+200% zoom (use the harness's viewport toggle), a group-conversation message (sender name visible) vs a
+direct one (no sender name), an announcement, a poll, and an attachment. This is the actual verification
+step — visually confirm the acceptance criterion before reporting `RESULT: DONE`.
+
+### Invariants / do-not-touch
+
+- No Composer change (a different component, out of scope even though the triggering screenshot showed one).
+- No change to `Thread.jsx`'s data flow, pagination, reply-thread expansion, unread-reply marker (MSG-3d),
+  or the read-status REST contract (`getMessageReadStatus` shape stays exactly as-is — two states, no new
+  backend call).
+- No dcm change — the fan-out observation (one `getMessageReadStatus` call per own message) is a known,
+  pre-existing, and deliberately bounded cost; report the read-aggregate-on-`serialize_message` idea as a
+  dcm follow-up suggestion in the WO's own docs, do not implement it.
+- `MessageBubble`'s `children` contract stays: hosts (jg-ferien today) pass `ReadTicks` through it and must
+  keep working unchanged from the outside.
+- No new dependency — MUI plus `@mui/icons-material` is enough (both already used throughout `src/messaging/`).
+- Every icon this WO introduces keeps its text as an `aria-label` — no i18n key gets deleted because its
+  text stopped being visually displayed (Part A's "Non-negotiable" section).
+
+### Tests — see Part A's "Tests to WRITE" list verbatim
+
+Run: `pnpm vitest run tests/Thread.test.jsx tests/messagingMessageActions.test.jsx
+tests/messagingInteractions.test.jsx tests/messagingPollRendering.test.jsx` plus any new file for the new
+assertions (own/incoming alignment, menu-for-incoming-message, keyboard/touch affordance reachability,
+icon aria-labels). These four existing files assert on data/behavior (menu gating, reaction round-trips,
+poll rendering, ReadTicks own-message-only mounting), not DOM layout — good news for a redesign, but per
+Part A: **if several existing tests need rewriting (not just relocating an assertion), that's a signal the
+change went wider than the envelope — stop and report before proceeding**, don't just patch tests to match
+whatever the implementation produced.
+
+### Progress contract
+
+Emit a `PLAN: …` line first, then a single-line `PROGRESS: [n/total] <action>` before every relevant action
+and `… done` on completion, no gap > ~2 min, unbuffered stdout, and exactly one final
+`RESULT: DONE|BLOCKED <reason>`.
+
+### Constraints for the implementer
+
+The WO text (Part A + this Part B) is the COMPLETE spec. Read `AGENTS.md` and
+`.codex/skills/frontend-engineering` only for conventions. Stay in scope: `MessageBubble.jsx`,
+`ReadTicks.jsx`, `ReactionBar.jsx`, the small `Thread.jsx` slice that mounts them, their tests, the messaging
+i18n file if new labels are genuinely needed, and the `dev/` harness entry. Do not touch `Composer.jsx`,
+`ConversationList.jsx`, poll/attachment components' internals, or anything outside this list. Do not update
+`MEMORY.md`. **Do NOT `git add`/`commit`/`push`** — leave the diff for the Orchestrator's review; a prior WO
+in this campaign (`ui-core-micha` MSG-3e) had its implementer self-commit and self-publish against this same
+instruction — that was a governance breach, not a template to follow. **Do NOT bump the version or
+publish** — the Orchestrator owns the release. WRITE the tests specified in Part A and RUN ONLY the listed
+files plus any new ones — no full suite, no self-review; the Orchestrator owns the authoritative run, the
+independent review, AND the `ui_reviewer` harness pass, and those are the gate.
