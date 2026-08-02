@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import React from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 
 vi.mock('react-i18next', () => ({ useTranslation: () => ({ t: (key, options) => options?.emoji ? `${key}:${options.emoji}:${options.count}` : key }) }));
 
@@ -29,7 +29,7 @@ function baseApi(overrides = {}) {
 // a live-frame test must read the message back out of the cache.
 function ConnectedReactionBar({ messageId }) {
   const { cache } = useMessaging();
-  return <ReactionBar message={cache.messages[messageId]} />;
+  return <ReactionBar message={cache.messages[messageId]} expanded />;
 }
 
 afterEach(() => { cleanup(); realtimeSubscribers.clear(); });
@@ -54,9 +54,7 @@ describe('reaction frame/REST merge against the real aggregate-only contract', (
   it('the viewer\'s own optimistic reacted flag survives its own REST confirmation, which returns an aggregate-only shape', async () => {
     const api = baseApi({ addReaction: vi.fn().mockResolvedValue({ reactions: [{ emoji: '👍', count: 1 }] }) });
     render(<MessagingProvider api={api} active={false}><ConnectedReactionBar messageId="msg-1" /></MessagingProvider>);
-    dispatchMessagingFrame({ envelope: 'messaging', type: 'message', event_id: 'seed', conversation_id: 'conv-1', message: { id: 'msg-1', conversation_id: 'conv-1', body: 'Hi', reactions: [] } });
-    await waitFor(() => screen.getByLabelText('MessagingReactions.ADD'));
-    fireEvent.click(screen.getByLabelText('MessagingReactions.ADD'));
+    act(() => { dispatchMessagingFrame({ envelope: 'messaging', type: 'message', event_id: 'seed', conversation_id: 'conv-1', message: { id: 'msg-1', conversation_id: 'conv-1', body: 'Hi', reactions: [] } }); });
     fireEvent.click(screen.getByText('👍'));
     await waitFor(() => expect(api.addReaction).toHaveBeenCalledWith('msg-1', '👍'));
     await waitFor(() => {

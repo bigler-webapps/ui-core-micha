@@ -1,6 +1,7 @@
-import { Alert, Button, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, Menu, MenuItem, Paper, Stack, TextField, Typography } from '@mui/material';
+import { Alert, Box, Button, ButtonBase, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, Menu, MenuItem, Paper, Stack, TextField, Typography } from '@mui/material';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
-import { useEffect, useState } from 'react';
+import { alpha } from '@mui/material/styles';
+import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { AttachmentList } from './AttachmentList';
 import { extractApiErrorMessage, useOptionalMessaging } from './MessagingProvider';
@@ -34,19 +35,52 @@ export function MessageBubble({ message, replyTo, conversation, onReply, onJumpT
   const { currentUser, editMessage, removeMessage } = messaging || {};
   const deleted = Boolean(message.deleted_at);
   const attachments = message.attachments || [];
-  const canAct = !deleted && message.kind !== 'poll' && ((Boolean(currentUser?.id) && message.sender?.id === currentUser?.id) || canModerateMessages);
+  const isOwn = Boolean(currentUser?.id) && message.sender?.id === currentUser.id;
+  const canAct = !deleted && message.kind !== 'poll' && (isOwn || canModerateMessages);
+  const canOpenMenu = !deleted;
+  const reactions = message.reactions || [];
+  const hasMeta = Boolean(message.created_at || (message.edited_at && !deleted) || children);
   const [menuAnchor, setMenuAnchor] = useState(null);
+  const [actionsVisible, setActionsVisible] = useState(false);
+  const [reactionPickerVisible, setReactionPickerVisible] = useState(false);
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(message.body || '');
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
+  const bubbleRef = useRef(null);
   useEffect(() => {
-    if (deleted) { setEditing(false); setConfirmingDelete(false); setMenuAnchor(null); }
+    if (deleted) {
+      setEditing(false); setConfirmingDelete(false); setMenuAnchor(null); setReactionPickerVisible(false);
+    }
   }, [deleted]);
+  // The touch/tap reveal is a one-way state flip with no dismiss path of its
+  // own (unlike hover/focus, which un-reveal on mouseleave/blur automatically)
+  // — without this, any ordinary tap on the bubble (selecting text, opening a
+  // poll option, following the reply quote) would leave the overflow icon
+  // permanently visible, contradicting the at-rest "no visible affordance"
+  // requirement. Dismiss on any pointerdown outside this message's own DOM
+  // subtree (bubbleRef spans the Paper plus the reaction-picker sibling, so
+  // interacting with either never counts as "outside"); a pointerdown that
+  // lands on the Menu/Dialog portals does count as outside, but that's
+  // harmless — they already close themselves via their own handlers on the
+  // same interaction.
+  useEffect(() => {
+    if (!actionsVisible) return undefined;
+    const dismissIfOutside = (event) => {
+      if (bubbleRef.current && !bubbleRef.current.contains(event.target)) {
+        setActionsVisible(false);
+      }
+    };
+    document.addEventListener('pointerdown', dismissIfOutside, true);
+    return () => document.removeEventListener('pointerdown', dismissIfOutside, true);
+  }, [actionsVisible]);
   const closeMenu = () => setMenuAnchor(null);
-  const openMenu = (event) => { event.preventDefault(); setMenuAnchor(event.currentTarget); };
+  const revealActions = () => setActionsVisible(true);
+  const openMenu = (event) => { event.preventDefault(); revealActions(); setMenuAnchor(event.currentTarget); };
   const startEdit = () => { setDraft(message.body || ''); setEditing(true); closeMenu(); };
+  const startReply = () => { onReply?.(message); closeMenu(); };
+  const startReact = () => { setReactionPickerVisible(true); closeMenu(); };
   const saveEdit = async () => {
     setSaving(true); setError(null);
     try { await editMessage?.(message.id, { body: draft.trim() }); setEditing(false); }
@@ -63,35 +97,51 @@ export function MessageBubble({ message, replyTo, conversation, onReply, onJumpT
     catch (copyError) { setError(t('MessagingActions.COPY_ERROR', { message: extractApiErrorMessage(copyError) })); }
   };
   return (
-    <Paper component="article" variant="outlined" sx={{ p: 1.25, maxWidth: 'min(100%, 680px)', '& .message-actions': { opacity: 0 }, '&:hover .message-actions': { opacity: 1 } }} aria-label={t('MessagingThread.MESSAGE')} data-message-id={message.id} onContextMenu={canAct ? openMenu : undefined}>
-      <Stack spacing={0.75}>
-        {replyTo && <Button type="button" variant="text" size="small" onClick={() => onJumpToMessage?.(replyTo.id)} sx={{ justifyContent: 'flex-start', px: 0, textAlign: 'left', textTransform: 'none' }}>
-          <Stack spacing={0} alignItems="flex-start">
-            <Typography variant="caption" color="text.secondary">{t('MessagingThread.REPLY_TO', { sender: senderName(replyTo) || t('MessagingThread.UNKNOWN_SENDER') })}</Typography>
-            <Typography variant="caption" color="text.secondary">{quoteLabel(replyTo, t)}</Typography>
-          </Stack>
-        </Button>}
-        <Stack direction="row" spacing={1} alignItems="baseline">
+    <Box ref={bubbleRef} component="article" data-message-id={message.id} data-message-side={isOwn ? 'own' : 'incoming'} aria-label={t('MessagingThread.MESSAGE')} sx={{ alignSelf: isOwn ? 'flex-end' : 'flex-start', width: 'fit-content', maxWidth: 'min(75%, 680px)', minWidth: 0 }}>
+      <Paper
+        variant="outlined"
+        data-actions-visible={actionsVisible || undefined}
+        onClick={revealActions}
+        onContextMenu={canOpenMenu ? openMenu : undefined}
+        sx={{
+          position: 'relative', p: 1.25, minWidth: 0,
+          bgcolor: isOwn ? (theme) => alpha(theme.palette.primary.light, 0.24) : 'background.paper',
+          borderColor: isOwn ? (theme) => alpha(theme.palette.primary.main, 0.35) : 'divider',
+          overflowWrap: 'anywhere',
+          '& .message-actions': { opacity: 0, pointerEvents: 'none', transition: 'opacity 120ms ease-in-out' },
+          '&:hover .message-actions, &:focus-within .message-actions, &[data-actions-visible="true"] .message-actions': { opacity: 1, pointerEvents: 'auto' },
+        }}
+      >
+        {canOpenMenu && <IconButton className="message-actions" size="small" aria-label={t('MessagingActions.MENU')} onClick={openMenu} sx={{ position: 'absolute', top: -12, right: -12, bgcolor: 'background.paper', boxShadow: 1 }}><MoreVertIcon fontSize="small" /></IconButton>}
+        <Stack spacing={0.75}>
+          {replyTo && <ButtonBase type="button" onClick={() => onJumpToMessage?.(replyTo.id)} sx={{ display: 'block', width: '100%', px: 0.75, py: 0.5, textAlign: 'left', borderLeft: 3, borderColor: 'primary.main', bgcolor: 'action.hover', borderRadius: 0.5 }}>
+            <Stack spacing={0} alignItems="flex-start">
+              <Typography variant="caption" color="text.secondary">{t('MessagingThread.REPLY_TO', { sender: senderName(replyTo) || t('MessagingThread.UNKNOWN_SENDER') })}</Typography>
+              <Typography variant="caption" color="text.secondary">{quoteLabel(replyTo, t)}</Typography>
+            </Stack>
+          </ButtonBase>}
           {conversation?.kind !== 'direct' && <Typography variant="subtitle2">{senderName(message) || t('MessagingThread.UNKNOWN_SENDER')}</Typography>}
-          {message.created_at && <Typography variant="caption" color="text.secondary">{new Date(message.created_at).toLocaleString()}</Typography>}
-          {message.edited_at && !deleted && <Typography variant="caption" color="text.secondary">{t('MessagingThread.EDITED')}</Typography>}
+          {!deleted && message.kind === 'announcement' && message.title && <Typography variant="subtitle1" fontWeight={700}>{message.title}</Typography>}
+          {!deleted && message.kind === 'announcement' && message.link_target && onAnnouncementLink && <Button type="button" size="small" onClick={() => onAnnouncementLink(message.link_target)}>{t('MessagingAnnouncement.OPEN_LINK')}</Button>}
+          {error && <Alert severity="error" role="alert">{error}</Alert>}
+          {editing ? <Stack spacing={0.75}><TextField label={t('MessagingActions.EDIT')} value={draft} onChange={(event) => setDraft(event.target.value)} multiline minRows={2} autoFocus disabled={saving} /><Stack direction="row" spacing={1}><Button type="button" onClick={saveEdit} disabled={saving}>{t('MessagingActions.SAVE')}</Button><Button type="button" onClick={() => setEditing(false)} disabled={saving}>{t('MessagingActions.CANCEL')}</Button></Stack></Stack> : <Typography sx={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>{deleted ? t('MessagingThread.DELETED') : (message.kind === 'announcement' ? message.body : (message.body || message.title)) || ''}</Typography>}
+          {!deleted && <Stack spacing={0.75}>
+            {attachments.length > 0 && <AttachmentList attachments={attachments} />}
+            {message.poll && <PollCard message={message} />}
+          </Stack>}
+          {hasMeta && <Stack data-testid="message-meta" direction="row" spacing={0.5} justifyContent="flex-end" alignItems="center" sx={{ color: 'text.disabled', '& .MuiSvgIcon-root': { fontSize: '1rem' } }}>
+            {message.created_at && <Typography component="span" variant="caption" color="inherit">{new Date(message.created_at).toLocaleString()}</Typography>}
+            {message.edited_at && !deleted && <Typography component="span" variant="caption" color="inherit">{t('MessagingThread.EDITED')}</Typography>}
+            {children}
+          </Stack>}
         </Stack>
-        {!deleted && message.kind === 'announcement' && message.title && <Typography variant="subtitle1" fontWeight={700}>{message.title}</Typography>}
-        {!deleted && message.kind === 'announcement' && message.link_target && onAnnouncementLink && <Button type="button" size="small" onClick={() => onAnnouncementLink(message.link_target)}>{t('MessagingAnnouncement.OPEN_LINK')}</Button>}
-        {error && <Alert severity="error" role="alert">{error}</Alert>}
-        {editing ? <Stack spacing={0.75}><TextField label={t('MessagingActions.EDIT')} value={draft} onChange={(event) => setDraft(event.target.value)} multiline minRows={2} autoFocus disabled={saving} /><Stack direction="row" spacing={1}><Button type="button" onClick={saveEdit} disabled={saving}>{t('MessagingActions.SAVE')}</Button><Button type="button" onClick={() => setEditing(false)} disabled={saving}>{t('MessagingActions.CANCEL')}</Button></Stack></Stack> : <Typography sx={{ whiteSpace: 'pre-wrap' }}>{deleted ? t('MessagingThread.DELETED') : (message.kind === 'announcement' ? message.body : (message.body || message.title)) || ''}</Typography>}
-        {!deleted && <Stack spacing={0.75}>
-          {attachments.length > 0 && <AttachmentList attachments={attachments} />}
-          <ReactionBar message={message} />
-          {message.poll && <PollCard message={message} />}
-        </Stack>}
-        {!deleted && onReply && <Button type="button" size="small" onClick={() => onReply(message)}>{t('MessagingThread.REPLY')}</Button>}
-        {canAct && <IconButton className="message-actions" size="small" aria-label={t('MessagingActions.MENU')} onClick={openMenu}><MoreVertIcon /></IconButton>}
-        {children}
-      </Stack>
+      </Paper>
+      {!deleted && (reactions.length > 0 || reactionPickerVisible) && <ReactionBar message={message} expanded={reactionPickerVisible} onExpandedChange={setReactionPickerVisible} sx={{ mt: -0.5, ml: 0.75, position: 'relative', zIndex: 1 }} />}
       <Menu anchorEl={menuAnchor} open={Boolean(menuAnchor)} onClose={closeMenu}>
-        <MenuItem onClick={startEdit}>{t('MessagingActions.EDIT')}</MenuItem>
-        <MenuItem onClick={() => { setConfirmingDelete(true); closeMenu(); }}>{t('MessagingActions.DELETE')}</MenuItem>
+        <MenuItem onClick={startReply}>{t('MessagingThread.REPLY')}</MenuItem>
+        <MenuItem onClick={startReact}>{t('MessagingReactions.ADD')}</MenuItem>
+        {canAct && <MenuItem onClick={startEdit}>{t('MessagingActions.EDIT')}</MenuItem>}
+        {canAct && <MenuItem onClick={() => { setConfirmingDelete(true); closeMenu(); }}>{t('MessagingActions.DELETE')}</MenuItem>}
         <MenuItem onClick={copyMessage}>{t('MessagingActions.COPY')}</MenuItem>
       </Menu>
       <Dialog open={confirmingDelete} onClose={() => !saving && setConfirmingDelete(false)}>
@@ -99,6 +149,6 @@ export function MessageBubble({ message, replyTo, conversation, onReply, onJumpT
         <DialogContent>{t('MessagingActions.DELETE_CONFIRM_BODY')}</DialogContent>
         <DialogActions><Button onClick={() => setConfirmingDelete(false)} disabled={saving}>{t('MessagingActions.CANCEL')}</Button><Button onClick={confirmDelete} disabled={saving} color="error">{t('MessagingActions.DELETE')}</Button></DialogActions>
       </Dialog>
-    </Paper>
+    </Box>
   );
 }

@@ -62,7 +62,7 @@ const messagingHarnessApi = {
   listConversations: async ({ cursor } = {}) => cursor
     ? ({ results: [{ id: 13, title: 'Archived planning', last_message_at: '2026-07-30T09:00:00Z' }], next_cursor: null })
     : ({ results: [
-        { id: 12, title: 'Support group', unread_count: 1, last_message_at: '2026-07-31T09:00:00Z', last_message: { excerpt: 'Can someone help?' } },
+        { id: 12, kind: 'group', title: 'Support group', unread_count: 1, last_message_at: '2026-07-31T09:00:00Z', last_message: { excerpt: 'Can someone help?' } },
         // Row 42 (MSG-3d): two managed conversations, distinguishable only via
         // external_key — ucm renders whatever ConversationListEntry's
         // resolveManagedLabel resolver below returns, never the raw value.
@@ -74,8 +74,15 @@ const messagingHarnessApi = {
   // reply_count with no thread_last_read_at (MSG-3d row 27): the unread-reply
   // marker on the thread toggle should render visibly by default here.
   listMessages: async (conversationId, { cursor } = {}) => cursor
-    ? ({ results: [{ id: 42, conversation_id: conversationId, body: 'An older message', created_at: '2026-07-30T09:00:00Z' }], next_cursor: null })
-    : ({ results: [{ id: 44, conversation_id: conversationId, body: 'Initial message', created_at: '2026-07-31T09:00:00Z', sender: { display_name: 'Alex' }, reply_count: 1, last_reply_at: '2026-07-31T09:05:00Z', thread_last_read_at: null }], next_cursor: 'signed-older-page' }),
+    ? ({ results: [{ id: 42, conversation_id: conversationId, body: 'An older message', created_at: '2026-07-30T09:00:00Z', sender: { id: 2, display_name: 'Alex' } }], next_cursor: null })
+    : ({ results: [
+        { id: 44, conversation_id: conversationId, body: 'Hallo', created_at: '2026-07-31T09:00:00Z', sender: { id: 1, display_name: 'Harness user' }, reply_count: 1, last_reply_at: '2026-07-31T09:05:00Z', thread_last_read_at: null },
+        { id: 46, conversation_id: conversationId, body: 'A short incoming message', created_at: '2026-07-31T09:01:00Z', sender: { id: 2, display_name: 'Alex' } },
+        { id: 47, conversation_id: conversationId, body: 'averylongunbrokensinglemessagetokenthatshouldwrapcleanlyonasmallviewportandatbrowserzoomwithoutforcingthebubblepastitscap', created_at: '2026-07-31T09:02:00Z', sender: { id: 2, display_name: 'Alex' } },
+        { id: 48, conversation_id: conversationId, kind: 'announcement', title: 'Schedule update', body: 'The meeting starts at 18:30.', link_target: '/events/12', created_at: '2026-07-31T09:03:00Z', sender: { id: 2, display_name: 'Alex' } },
+        { id: 49, conversation_id: conversationId, kind: 'poll', body: 'Poll', poll: { id: 8, question: 'Where should we meet?', options: [{ id: 1, text: 'Library', vote_count: 2 }, { id: 2, text: 'Café', vote_count: 3 }], allow_multiple: false }, created_at: '2026-07-31T09:04:00Z', sender: { id: 2, display_name: 'Alex' } },
+        { id: 50, conversation_id: conversationId, body: 'Attached notes', attachments: [{ id: 5, filename: 'notes.pdf', content_type: 'application/pdf' }], created_at: '2026-07-31T09:05:00Z', sender: { id: 1, display_name: 'Harness user' } },
+      ], next_cursor: 'signed-older-page' }),
   listThread: async (rootId) => ({ results: [{ id: 45, reply_to: rootId, body: 'A reply', created_at: '2026-07-31T09:05:00Z', sender: { display_name: 'Sam' } }], next_cursor: null }),
   getReadStatus: async () => ({ all_read: false, delivered_count: 2 }),
   getUnreadCount: async () => ({ unread_count: 1, by_conversation: { 12: 1 } }),
@@ -136,8 +143,8 @@ function ConversationListEntry() {
   );
 }
 
-function ThreadEntry() { return <MessagingProvider api={messagingHarnessApi} activeConversationId={12}><Thread conversationId={12} /></MessagingProvider>; }
-function MessageBubbleEntry() { return <MessagingProvider api={messagingHarnessApi} active={false}><MessageBubble message={{ id: 44, body: 'Standalone bubble mount', sender: { display_name: 'Alex' }, created_at: '2026-07-31T09:00:00Z', reactions: [{ emoji: '👍', count: 1, reacted: false }] }} onReply={() => window.alert('Reply requested')} /></MessagingProvider>; }
+function ThreadEntry() { return <AuthContext.Provider value={{ user: { id: 1, display_name: 'Harness user' } }}><MessagingProvider api={messagingHarnessApi} activeConversationId={12}><Thread conversationId={12} onAnnouncementLink={(target) => window.alert(`Open ${target}`)} /></MessagingProvider></AuthContext.Provider>; }
+function MessageBubbleEntry() { return <AuthContext.Provider value={{ user: { id: 1, display_name: 'Harness user' } }}><MessagingProvider api={messagingHarnessApi} active={false}><Stack spacing={1} alignItems="stretch"><MessageBubble message={{ id: 44, body: 'Hallo', sender: { id: 1, display_name: 'Harness user' }, created_at: '2026-07-31T09:00:00Z', reactions: [{ emoji: '👍', count: 1, reacted: false }] }} conversation={{ kind: 'group' }} onReply={() => window.alert('Reply requested')}><ReadTicks messageId={44} conversation={{ kind: 'group' }} /></MessageBubble><MessageBubble message={{ id: 45, body: 'Incoming direct message', sender: { id: 2, display_name: 'Alex' }, created_at: '2026-07-31T09:01:00Z' }} conversation={{ kind: 'direct' }} onReply={() => window.alert('Reply requested')} /></Stack></MessagingProvider></AuthContext.Provider>; }
 function ConversationLaunchersEntry() { return <MessagingProvider api={messagingHarnessApi} active={false}><ConversationLaunchers groupLaunchers={[{ id: 'volunteers', label: 'Open volunteers group', payload: { title: 'Volunteers', participant_ids: [1, 2] } }]} broadcastLauncher={{ label: 'Open announcements', payload: { scope: { kind: 'global' } } }} onOpen={(conversation) => window.alert(`Opened: ${conversation.title}`)} /></MessagingProvider>; }
 function DirectMessageLauncherEntry() { return <MessagingProvider api={messagingHarnessApi} active={false}><DirectMessageLauncher candidates={[{ id: 2, display_name: 'Alex' }, { id: 3, display_name: 'Sam' }]} onOpen={(conversation) => window.alert(`Opened: ${conversation.title}`)} /></MessagingProvider>; }
 function ReadTicksEntry() { return <MessagingProvider api={messagingHarnessApi} active={false}><ReadTicks messageId={44} conversation={{ id: 12, kind: 'group' }} /></MessagingProvider>; }

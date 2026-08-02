@@ -68,7 +68,8 @@ describe('messaging threading and quoting', () => {
     api.deleteMessage = vi.fn().mockResolvedValue({});
     render(<AuthContext.Provider value={{ user: { id: 1 } }}><MessagingProvider api={api} activeConversationId={1}><Thread conversationId={1} /></MessagingProvider></AuthContext.Provider>);
     await screen.findByText('Reply target');
-    fireEvent.click(screen.getByRole('button', { name: /MessagingThread\.REPLY\b/ }));
+    fireEvent.click(screen.getByRole('button', { name: /MessagingActions\.MENU/ }));
+    fireEvent.click(screen.getByRole('menuitem', { name: /MessagingThread\.REPLY\b/ }));
     expect(screen.getByText(/MessagingThread\.REPLYING_TO/)).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: /MessagingActions\.MENU/ }));
     fireEvent.click(screen.getByRole('menuitem', { name: /MessagingActions\.DELETE/ }));
