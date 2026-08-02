@@ -40,11 +40,12 @@ function canShowReadTicks(message, user) {
 export function Thread({ conversationId, onReplyTargetChange, canModerateMessages = false, onAnnouncementLink }) {
   const { t } = useTranslation();
   const { user } = useContext(AuthContext) || {};
-  const { cache, loadMoreMessages, loadThreadReplies, markConversationRead, markThreadRead } = useMessaging();
+  const { cache, loadMoreMessages, loadThreadReplies, markConversationRead, markThreadRead, refreshThread } = useMessaging();
   const scrollRef = useRef(null);
   const wasNearBottomRef = useRef(true);
   const messageCountRef = useRef(0);
   const [loadingOlder, setLoadingOlder] = useState(false);
+  const [loadingInitial, setLoadingInitial] = useState(false);
   const [error, setError] = useState(null);
   const [replyingTo, setReplyingTo] = useState(null);
   const [openThreads, setOpenThreads] = useState({});
@@ -54,6 +55,27 @@ export function Thread({ conversationId, onReplyTargetChange, canModerateMessage
 
   useEffect(() => { if (conversationId != null) markConversationRead(conversationId).catch(() => {}); }, [conversationId, markConversationRead]);
   useEffect(() => { wasNearBottomRef.current = true; messageCountRef.current = 0; }, [conversationId]);
+  // Nothing else in this component ever fetches messages for the conversation
+  // actually being opened — `cache.messages` is otherwise only populated by a
+  // live realtime frame arriving while mounted, or this browser's own
+  // optimistic send. A conversation whose history predates this session (the
+  // common case — every DM someone didn't have open when a message arrived)
+  // rendered as permanently empty despite the conversation list correctly
+  // showing a last-message preview, which comes from a completely different
+  // request. Fetch on open, every time — a stale first page is worse than a
+  // redundant one.
+  useEffect(() => {
+    if (conversationId == null) return undefined;
+    let cancelled = false;
+    setLoadingInitial(true);
+    setError(null);
+    refreshThread(conversationId)
+      .catch(() => { if (!cancelled) setError(t('MessagingThread.LOAD_ERROR')); })
+      .finally(() => { if (!cancelled) setLoadingInitial(false); });
+    return () => { cancelled = true; };
+    // `t` deliberately not in deps: a language switch mid-flight must not re-trigger the fetch.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [conversationId, refreshThread]);
   useEffect(() => {
     if (replyingTo && cache.messages[replyingTo.id]?.deleted_at) {
       setReplyingTo(null);
@@ -97,7 +119,13 @@ export function Thread({ conversationId, onReplyTargetChange, canModerateMessage
       {replyingTo && <Alert severity="info" onClose={() => { setReplyingTo(null); onReplyTargetChange?.(null); }}>{t('MessagingThread.REPLYING_TO', { sender: replyingTo.sender?.display_name || t('MessagingThread.UNKNOWN_SENDER') })}</Alert>}
       <Box ref={scrollRef} onScroll={onScroll} sx={{ maxHeight: 560, overflowY: 'auto', overflowX: 'hidden', px: 0.5 }} aria-label={t('MessagingThread.TIMELINE')}>
         {cache.cursors.messages[conversationId] && <Box textAlign="center" py={1}><Button onClick={loadOlder} disabled={loadingOlder}>{loadingOlder ? <CircularProgress size={18} /> : t('MessagingThread.LOAD_OLDER')}</Button></Box>}
-        {!roots.length && <Typography color="text.secondary" textAlign="center" py={4}>{t('MessagingThread.EMPTY')}</Typography>}
+        {/* Only show the initial-load spinner when there's nothing to show yet
+            — re-opening a conversation whose messages are already cached (an
+            earlier visit this session, or a realtime frame that arrived while
+            a different conversation was open) still re-fetches in the
+            background, but the already-visible messages must not be replaced
+            by a spinner while that redundant refetch is in flight. */}
+        {loadingInitial && !roots.length ? <Box textAlign="center" py={4}><CircularProgress size={20} /></Box> : (!roots.length && <Typography color="text.secondary" textAlign="center" py={4}>{t('MessagingThread.EMPTY')}</Typography>)}
         {/* pr wider than pl, on this Stack only (not the scroll container
             above, which stays symmetric so the centered LOAD_OLDER button
             isn't skewed): an own (right-aligned) bubble sits flush against

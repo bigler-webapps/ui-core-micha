@@ -21,10 +21,16 @@ function makeApi() {
     getReadStatus: vi.fn().mockResolvedValue({ all_read: false, delivered_count: 2 }),
   };
 }
+// No `activeConversationId` on the provider: this matches how jg-ferien
+// actually mounts it (the provider sits above the page that tracks which
+// conversation is open, with no way to keep that prop in sync) — `Thread`'s
+// own conversationId-driven fetch is the one exercised here, not the
+// provider's separate activeConversationId-driven mount fetch (that path has
+// its own dedicated coverage in MessagingProvider.test.jsx).
 function renderThread(api, { userId = 9 } = {}) {
   return render(
     <AuthContext.Provider value={{ user: { id: userId } }}>
-      <MessagingProvider api={api} activeConversationId={1}><Thread conversationId={1} /></MessagingProvider>
+      <MessagingProvider api={api}><Thread conversationId={1} /></MessagingProvider>
     </AuthContext.Provider>,
   );
 }
@@ -96,5 +102,49 @@ describe('messaging Thread surfaces', () => {
     cleanup();
     render(<MessagingProvider api={api} active={false}><ReadTicks messageId={2} conversation={{ id: 1, kind: 'group' }} /></MessagingProvider>);
     await waitFor(() => expect(screen.getByLabelText('MessagingReadTicks.DELIVERED:2')).toBeTruthy());
+  });
+
+  it('fetches and shows a conversation\'s historical messages on open, with no realtime frame or optimistic send involved', async () => {
+    // The bug this pins: nothing else in Thread/MessagingProvider ever calls
+    // listMessages for the conversation actually opened when the host (like
+    // jg-ferien) never wires `activeConversationId` into the provider itself
+    // — cache.messages was otherwise only ever populated by a live frame or
+    // this browser's own optimistic send, so any conversation whose only
+    // messages predate the current session rendered as permanently empty
+    // despite the conversation list correctly showing a last-message preview.
+    renderThread(api);
+    expect(await screen.findByText('Visible message')).toBeTruthy();
+    expect(screen.queryByText('MessagingThread.EMPTY')).toBeNull();
+    expect(api.listMessages).toHaveBeenCalledWith(1);
+  });
+
+  it('does not flash the empty state while the initial fetch is still pending', async () => {
+    let resolveMessages;
+    api.listMessages.mockReturnValueOnce(new Promise((resolve) => { resolveMessages = resolve; }));
+    renderThread(api);
+    expect(screen.queryByText('MessagingThread.EMPTY')).toBeNull();
+    resolveMessages({ results: [{ id: 2, conversation_id: 1, body: 'Visible message' }], next_cursor: null });
+    await screen.findByText('Visible message');
+  });
+
+  it('does not cover already-cached messages with the initial-load spinner while a redundant re-fetch is in flight', async () => {
+    function Switcher({ conversationId }) {
+      return <AuthContext.Provider value={{ user: { id: 9 } }}><MessagingProvider api={api}><Thread conversationId={conversationId} /></MessagingProvider></AuthContext.Provider>;
+    }
+    // First open (conversation 1): messages load and cache normally.
+    const { rerender } = render(<Switcher conversationId={1} />);
+    await screen.findByText('Visible message');
+    // Switch away, then back to conversation 1 — the effect re-fires (a real
+    // "close and reopen" or focus-regain), triggering a redundant re-fetch
+    // against a cache that already has this conversation's messages. Make
+    // that second fetch (the one for the switch BACK to 1) hang so the
+    // assertion below is meaningful.
+    rerender(<Switcher conversationId={2} />);
+    let resolveSecondFetch;
+    api.listMessages.mockImplementationOnce(() => new Promise((resolve) => { resolveSecondFetch = resolve; }));
+    rerender(<Switcher conversationId={1} />);
+    expect(screen.getByText('Visible message')).toBeTruthy();
+    resolveSecondFetch({ results: [{ id: 2, conversation_id: 1, body: 'Visible message' }], next_cursor: null });
+    await waitFor(() => expect(screen.getByText('Visible message')).toBeTruthy());
   });
 });
