@@ -12,7 +12,7 @@ import { MessagingProvider } from '../src/messaging/MessagingProvider';
 import { ReadTicks } from '../src/messaging/ReadTicks';
 
 const api = () => ({
-  getReadStatus: vi.fn().mockResolvedValue({ all_read: false, delivered_count: 2 }),
+  getReadStatus: vi.fn().mockResolvedValue({ all_read: false }),
   getAttachment: vi.fn(), getAttachmentThumbnail: vi.fn(), addReaction: vi.fn(), removeReaction: vi.fn(),
   votePoll: vi.fn(), closePoll: vi.fn(),
 });
@@ -24,8 +24,8 @@ afterEach(cleanup);
 
 describe('compact message bubbles', () => {
   it('keeps the timestamp and own-message status icon inside the bubble and has no standalone plain-message controls', async () => {
-    const { container } = renderBubble({ id: 1, body: 'Hallo', sender: { id: 1, display_name: 'Me' }, created_at: '2026-08-02T10:00:00Z' }, { child: <ReadTicks messageId={1} conversation={{ kind: 'group' }} /> });
-    const tick = await screen.findByLabelText('MessagingReadTicks.DELIVERED:2');
+    const { container } = renderBubble({ id: 1, body: 'Hallo', sender: { id: 1, display_name: 'Me' }, created_at: '2026-08-02T10:00:00Z' }, { child: <ReadTicks messageId={1} conversation={{ kind: 'direct' }} /> });
+    const tick = await screen.findByLabelText('MessagingReadTicks.SENT');
     const paper = container.querySelector('[data-message-id="1"] .MuiPaper-root');
     expect(paper.contains(tick)).toBe(true);
     expect(paper.querySelector('[data-testid="message-meta"]')).toBeTruthy();

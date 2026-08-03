@@ -3,9 +3,14 @@ import React from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 
-let frameHandler;
+// Thread.jsx (MSG-6f scope C) now subscribes to the messaging envelope
+// independently of MessagingProvider's own subscription -- a Set of handlers,
+// not a single captured variable, so frameHandler(...) still reaches every
+// current subscriber, matching the real registry's multi-handler support.
+let frameHandlers;
+function frameHandler(frame) { frameHandlers.forEach((handler) => handler(frame)); }
 vi.mock('react-i18next', () => ({ useTranslation: () => ({ t: (key, options) => options?.count != null ? `${key}:${options.count}` : key, i18n: { language: 'en' } }) }));
-vi.mock('../src/notifications/realtime', () => ({ useRealtime: () => ({ subscribe: (_envelope, handler) => { frameHandler = handler; return () => {}; }, onReconnect: () => () => {} }) }));
+vi.mock('../src/notifications/realtime', () => ({ useRealtime: () => ({ subscribe: (_envelope, handler) => { frameHandlers.add(handler); return () => frameHandlers.delete(handler); }, onReconnect: () => () => {} }) }));
 
 import { Composer } from '../src/messaging/Composer';
 import { ConversationList } from '../src/messaging/ConversationList';
@@ -20,14 +25,15 @@ function makeApi(overrides = {}) {
     listMessages: vi.fn().mockResolvedValue({ results: [] }),
     listThread: vi.fn().mockResolvedValue({ results: [] }),
     getUnreadCount: vi.fn().mockResolvedValue({ unread_count: 0, by_conversation: {} }),
-    getReadStatus: vi.fn().mockResolvedValue({ all_read: false, delivered_count: 2 }),
+    getReadStatus: vi.fn().mockResolvedValue({ all_read: false }),
     markConversationRead: vi.fn().mockResolvedValue({}), markThreadRead: vi.fn().mockResolvedValue({}),
     createPoll: vi.fn().mockResolvedValue({}),
     ...overrides,
   };
 }
 
-afterEach(() => { cleanup(); vi.useRealTimers(); vi.restoreAllMocks(); frameHandler = undefined; });
+beforeEach(() => { frameHandlers = new Set(); });
+afterEach(() => { cleanup(); vi.useRealTimers(); vi.restoreAllMocks(); frameHandlers = new Set(); });
 
 describe('MSG-3b chunk 6', () => {
   it('renders localized relative list timestamps for now, minutes, hours, and days', async () => {
@@ -84,16 +90,17 @@ describe('MSG-3b chunk 6', () => {
     expect(screen.queryByText('Ava')).toBeNull();
   });
 
-  it('opens receipt recipients by click for non-direct conversations and never exposes direct details', async () => {
-    const api = makeApi({ getReadStatus: vi.fn().mockResolvedValue({ all_read: false, delivered_count: 2, recipient_detail: [{ display_name: 'Ava' }] }) });
+  it('opens receipt recipients by click for non-direct conversations with counts, and never exposes direct details', async () => {
+    const api = makeApi({ getReadStatus: vi.fn().mockResolvedValue({ all_read: false, read_count: 1, recipient_count: 2, recipient_detail: [{ display_name: 'Ava' }] }) });
     const view = render(<MessagingProvider api={api} active={false}><ReadTicks messageId={7} conversation={{ kind: 'group' }} /></MessagingProvider>);
-    const detail = await screen.findByRole('button', { name: 'MessagingReadTicks.DELIVERED:2' });
+    const detail = await screen.findByRole('button', { name: 'MessagingReadTicks.READ_RATIO' });
     fireEvent.click(detail);
     expect(await screen.findByText('Ava')).toBeTruthy();
     view.unmount();
+    api.getReadStatus.mockResolvedValue({ all_read: false, recipient_detail: [{ display_name: 'Ava' }] });
     render(<MessagingProvider api={api} active={false}><ReadTicks messageId={7} conversation={{ kind: 'direct' }} /></MessagingProvider>);
-    await screen.findByLabelText('MessagingReadTicks.DELIVERED:2');
-    expect(screen.queryByRole('button', { name: 'MessagingReadTicks.DELIVERED:2' })).toBeNull();
+    await screen.findByLabelText('MessagingReadTicks.SENT');
+    expect(screen.queryByRole('button', { name: 'MessagingReadTicks.READ_RATIO' })).toBeNull();
     expect(screen.queryByText('Ava')).toBeNull();
   });
 

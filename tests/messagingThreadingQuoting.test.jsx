@@ -19,7 +19,7 @@ function makeApi(messages = []) {
     getUnreadCount: vi.fn().mockResolvedValue({ unread_count: 0, by_conversation: {} }),
     markConversationRead: vi.fn().mockResolvedValue({}),
     markThreadRead: vi.fn().mockResolvedValue({}),
-    getReadStatus: vi.fn().mockResolvedValue({ all_read: false, delivered_count: 0 }),
+    getReadStatus: vi.fn().mockResolvedValue({ all_read: false }),
   };
 }
 function renderBubble(ui) {

@@ -7,14 +7,22 @@ import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/re
 
 vi.mock('react-i18next', () => ({ useTranslation: () => ({ t: (key, options) => options?.count !== undefined ? `${key}:${options.count}` : key, i18n: { language: 'en' } }) }));
 
+// Thread.jsx (MSG-6f scope C) now subscribes to the messaging envelope
+// independently of MessagingProvider's own subscription -- a Set of handlers
+// per envelope, not one handler per envelope, so a dispatched frame still
+// reaches every current subscriber, matching the real registry's multi-handler support.
 const realtimeSubscribers = new Map();
 vi.mock('../src/notifications/realtime', () => ({
   useRealtime: () => ({
-    subscribe: (envelope, handler) => { realtimeSubscribers.set(envelope, handler); return () => realtimeSubscribers.delete(envelope); },
+    subscribe: (envelope, handler) => {
+      if (!realtimeSubscribers.has(envelope)) realtimeSubscribers.set(envelope, new Set());
+      realtimeSubscribers.get(envelope).add(handler);
+      return () => realtimeSubscribers.get(envelope)?.delete(handler);
+    },
     onReconnect: () => () => {},
   }),
 }));
-function dispatchMessagingFrame(frame) { realtimeSubscribers.get('messaging')?.(frame); }
+function dispatchMessagingFrame(frame) { realtimeSubscribers.get('messaging')?.forEach((handler) => handler(frame)); }
 
 import { ConversationList } from '../src/messaging/ConversationList';
 import { Thread } from '../src/messaging/Thread';

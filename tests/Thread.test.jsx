@@ -18,7 +18,7 @@ function makeApi() {
     getUnreadCount: vi.fn().mockResolvedValue({ unread_count: 0, by_conversation: {} }),
     listMessages: vi.fn().mockResolvedValue({ results: [{ id: 2, conversation_id: 1, body: 'Visible message', created_at: '2026-07-31T10:00:00Z' }], next_cursor: 'signed-opaque-cursor' }),
     listThread: vi.fn().mockResolvedValue({ results: [] }),
-    getReadStatus: vi.fn().mockResolvedValue({ all_read: false, delivered_count: 2 }),
+    getReadStatus: vi.fn().mockResolvedValue({ all_read: false }),
   };
 }
 // No `activeConversationId` on the provider: this matches how jg-ferien
@@ -56,17 +56,17 @@ describe('messaging Thread surfaces', () => {
     expect(screen.queryByText('Stale secret')).toBeNull();
   });
 
-  it('renders aggregate read state and never exposes supplied recipient details for a direct conversation', async () => {
-    api.getReadStatus.mockResolvedValue({ all_read: false, delivered_count: 2, recipient_detail: [{ display_name: 'Private recipient' }] });
+  it('renders the two-state direct tick and never exposes supplied recipient details for a direct conversation', async () => {
+    api.getReadStatus.mockResolvedValue({ all_read: false, recipient_detail: [{ display_name: 'Private recipient' }] });
     render(<MessagingProvider api={api} active={false}><ReadTicks messageId={2} conversation={{ id: 1, kind: 'direct' }} /></MessagingProvider>);
-    await screen.findByLabelText('MessagingReadTicks.DELIVERED:2');
+    await screen.findByLabelText('MessagingReadTicks.SENT');
     expect(screen.queryByText('Private recipient')).toBeNull();
   });
 
-  it('renders supplied recipient detail for a non-direct conversation (the permitted case)', async () => {
-    api.getReadStatus.mockResolvedValue({ all_read: false, delivered_count: 2, recipient_detail: [{ display_name: 'Visible recipient' }] });
+  it('renders supplied recipient detail for a non-direct conversation with counts (the permitted case)', async () => {
+    api.getReadStatus.mockResolvedValue({ all_read: false, read_count: 1, recipient_count: 2, recipient_detail: [{ display_name: 'Visible recipient' }] });
     render(<MessagingProvider api={api} active={false}><ReadTicks messageId={2} conversation={{ id: 1, kind: 'group' }} /></MessagingProvider>);
-    const tick = await screen.findByLabelText('MessagingReadTicks.DELIVERED:2');
+    const tick = await screen.findByLabelText('MessagingReadTicks.READ_RATIO');
     fireEvent.click(tick);
     await screen.findByText('Visible recipient');
   });
@@ -100,8 +100,9 @@ describe('messaging Thread surfaces', () => {
     renderThread(api);
     await screen.findByLabelText('MessagingThread.TIMELINE');
     cleanup();
+    api.getReadStatus.mockResolvedValue({ all_read: false, read_count: 0, recipient_count: 3 });
     render(<MessagingProvider api={api} active={false}><ReadTicks messageId={2} conversation={{ id: 1, kind: 'group' }} /></MessagingProvider>);
-    await waitFor(() => expect(screen.getByLabelText('MessagingReadTicks.DELIVERED:2')).toBeTruthy());
+    await waitFor(() => expect(screen.getByLabelText('MessagingReadTicks.READ_RATIO')).toBeTruthy());
   });
 
   it('fetches and shows a conversation\'s historical messages on open, with no realtime frame or optimistic send involved', async () => {

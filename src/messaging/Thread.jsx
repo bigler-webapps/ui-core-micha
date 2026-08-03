@@ -4,8 +4,9 @@ import { useTranslation } from 'react-i18next';
 
 import { AuthContext } from '../auth/AuthContext';
 import { MessageBubble } from './MessageBubble';
-import { useMessaging } from './MessagingProvider';
+import { MESSAGING_ENVELOPE, useMessaging } from './MessagingProvider';
 import { ReadTicks } from './ReadTicks';
+import { useRealtime } from '../notifications/realtime';
 
 function chronological(messages) { return [...messages].sort((left, right) => new Date(left.created_at || 0) - new Date(right.created_at || 0)); }
 function replyToId(message) { return message.reply_to_id ?? message.reply_to; }
@@ -42,6 +43,7 @@ export function Thread({ conversationId, onReplyTargetChange, canModerateMessage
   const { t, i18n } = useTranslation();
   const { user } = useContext(AuthContext) || {};
   const { cache, loadMoreMessages, loadThreadReplies, markConversationRead, markThreadRead, refreshThread } = useMessaging();
+  const { subscribe } = useRealtime();
   const scrollRef = useRef(null);
   const wasNearBottomRef = useRef(true);
   const messageCountRef = useRef(0);
@@ -56,6 +58,27 @@ export function Thread({ conversationId, onReplyTargetChange, canModerateMessage
   const datedRoots = useMemo(() => roots.map((message, index) => ({ message, showDateSeparator: index > 0 && new Date(roots[index - 1].created_at).toDateString() !== new Date(message.created_at).toDateString() })), [roots]);
 
   useEffect(() => { if (conversationId != null) markConversationRead(conversationId).catch(() => {}); }, [conversationId, markConversationRead]);
+  // Re-mark read when a live message frame arrives for the conversation
+  // currently open -- without this, `read_count` biases downward for the
+  // person paying the most attention: the mount-effect above only fires once
+  // per open, so a viewer already sitting in the thread when a new message
+  // lands is recorded as "not read" until they navigate away and back.
+  // Subscribes independently of MessagingProvider's own subscription to the
+  // same envelope (the registry supports multiple handlers per envelope) so
+  // this stays a Thread-local concern, not a MessagingProvider reducer change.
+  // No sender check needed: dcm's `resolve_live_recipients(sender=actor)`
+  // already excludes the sender from the live fan-out, so a `message` frame
+  // for this conversation structurally cannot be the viewer's own send.
+  useEffect(() => {
+    if (conversationId == null) return undefined;
+    return subscribe(MESSAGING_ENVELOPE, (frame) => {
+      if (frame.type !== 'message') return;
+      const frameConversationId = frame.conversation_id ?? frame.message?.conversation_id;
+      if (String(frameConversationId) !== String(conversationId)) return;
+      if (document.visibilityState === 'hidden') return;
+      markConversationRead(conversationId).catch(() => {});
+    });
+  }, [conversationId, markConversationRead, subscribe]);
   useEffect(() => { wasNearBottomRef.current = true; messageCountRef.current = 0; }, [conversationId]);
   // Nothing else in this component ever fetches messages for the conversation
   // actually being opened — `cache.messages` is otherwise only populated by a

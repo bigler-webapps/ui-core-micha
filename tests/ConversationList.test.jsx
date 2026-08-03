@@ -79,6 +79,58 @@ describe('ConversationList', () => {
     expect(resolveDirectUserName).not.toHaveBeenCalled();
   });
 
+  it('calls resolveManagedLabel for a broadcast conversation, not just managed -- must fail against the kind-gated code (MSG-6f scope A)', async () => {
+    api.listConversations.mockResolvedValueOnce({
+      results: [{ id: 9, kind: 'broadcast', external_key: 'broadcast', title: null, last_message: { excerpt: 'Hi all' } }],
+      next_cursor: null,
+    });
+    const resolveManagedLabel = vi.fn((conversation) => (conversation.kind === 'broadcast' ? 'Event-Ankündigungen' : null));
+    renderList(api, { resolveManagedLabel });
+    await screen.findByText('Event-Ankündigungen');
+    expect(resolveManagedLabel).toHaveBeenCalledWith(expect.objectContaining({ id: 9, kind: 'broadcast' }));
+  });
+
+  it('falls through to the existing title chain unchanged when resolveManagedLabel returns null, for any kind', async () => {
+    api.listConversations.mockResolvedValueOnce({
+      results: [{ id: 10, kind: 'broadcast', title: null, last_message: { excerpt: 'Hi' } }],
+      next_cursor: null,
+    });
+    const resolveManagedLabel = vi.fn(() => null);
+    renderList(api, { resolveManagedLabel });
+    await screen.findByText('MessagingList.UNTITLED');
+    expect(resolveManagedLabel).toHaveBeenCalled();
+  });
+
+  it('a truthy resolveManagedLabel wins over resolveDirectUserName for a direct conversation -- documents the new precedence, not previously reachable when the gate excluded every kind but managed', async () => {
+    api.listConversations.mockResolvedValueOnce({
+      results: [{ id: 12, kind: 'direct', other_user_id: 42, title: null, last_message: { excerpt: 'Hi' } }],
+      next_cursor: null,
+    });
+    const resolveManagedLabel = vi.fn(() => 'Host label wins');
+    const resolveDirectUserName = vi.fn(() => 'Alex');
+    renderList(api, { resolveManagedLabel, resolveDirectUserName });
+    await screen.findByText('Host label wins');
+    // resolveManagedLabel is checked first, unconditionally -- a host whose
+    // resolver ever returns non-null for kind: 'direct' pre-empts the
+    // id-based resolveDirectUserName lookup entirely. Deliberate per the
+    // WO's delegation contract (a host is trusted to return null for kinds
+    // it doesn't handle), but was structurally impossible before this WO
+    // (the old kind === 'managed' gate excluded every other kind), so it is
+    // now a real, if host-controlled, precedence a resolver author must know.
+    expect(resolveDirectUserName).not.toHaveBeenCalled();
+  });
+
+  it('keeps managed event_all/event_team labelling unchanged (regression guard)', async () => {
+    api.listConversations.mockResolvedValueOnce({
+      results: [{ id: 11, kind: 'managed', external_key: 'event_all', title: null, last_message: { excerpt: 'Hi' } }],
+      next_cursor: null,
+    });
+    const resolveManagedLabel = vi.fn((conversation) => (conversation.external_key === 'event_all' ? 'Alle - Sommerlager' : null));
+    renderList(api, { resolveManagedLabel });
+    await screen.findByText('Alle - Sommerlager');
+    expect(resolveManagedLabel).toHaveBeenCalledWith(expect.objectContaining({ id: 11, kind: 'managed', external_key: 'event_all' }));
+  });
+
   it('wires mute and archive through participant APIs', async () => {
     renderList(api);
     await screen.findByText('First');

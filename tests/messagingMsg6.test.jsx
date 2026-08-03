@@ -1,11 +1,16 @@
 // @vitest-environment jsdom
 import React from 'react';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 
-let frameHandler;
+// Thread.jsx (MSG-6f scope C) now subscribes to the messaging envelope
+// independently of MessagingProvider's own subscription -- a Set of handlers,
+// not a single captured variable, so frameHandler(...) still reaches every
+// current subscriber, matching the real registry's multi-handler support.
+let frameHandlers;
+function frameHandler(frame) { frameHandlers.forEach((handler) => handler(frame)); }
 vi.mock('react-i18next', () => ({ useTranslation: () => ({ t: (key, options) => options?.count != null ? `${key}:${options.count}` : key, i18n: { language: 'de-DE' } }) }));
-vi.mock('../src/notifications/realtime', () => ({ useRealtime: () => ({ subscribe: (_envelope, handler) => { frameHandler = handler; return () => {}; }, onReconnect: () => () => {} }) }));
+vi.mock('../src/notifications/realtime', () => ({ useRealtime: () => ({ subscribe: (_envelope, handler) => { frameHandlers.add(handler); return () => frameHandlers.delete(handler); }, onReconnect: () => () => {} }) }));
 
 import { MessageBubble } from '../src/messaging/MessageBubble';
 import { ConversationList } from '../src/messaging/ConversationList';
@@ -15,8 +20,9 @@ import { Thread } from '../src/messaging/Thread';
 import { messagingTranslations } from '../src/i18n/messagingTranslations';
 import { AuthContext } from '../src/auth/AuthContext';
 
-const api = (overrides = {}) => ({ listConversations: vi.fn().mockResolvedValue({ results: [{ id: 'c1', kind: 'group' }] }), listMessages: vi.fn().mockResolvedValue({ results: [] }), listThread: vi.fn().mockResolvedValue({ results: [] }), getUnreadCount: vi.fn().mockResolvedValue({ unread_count: 0, by_conversation: {} }), getReadStatus: vi.fn().mockResolvedValue({ all_read: false, delivered_count: 1, recipient_detail: [{ user_id: 'u2', display_name: 'Ava' }] }), markConversationRead: vi.fn().mockResolvedValue({}), ...overrides });
+const api = (overrides = {}) => ({ listConversations: vi.fn().mockResolvedValue({ results: [{ id: 'c1', kind: 'group' }] }), listMessages: vi.fn().mockResolvedValue({ results: [] }), listThread: vi.fn().mockResolvedValue({ results: [] }), getUnreadCount: vi.fn().mockResolvedValue({ unread_count: 0, by_conversation: {} }), getReadStatus: vi.fn().mockResolvedValue({ all_read: false, read_count: 0, recipient_count: 1, recipient_detail: [{ user_id: 'u2', display_name: 'Ava' }] }), markConversationRead: vi.fn().mockResolvedValue({}), ...overrides });
 const state = () => ({ conversations: {}, messages: {}, threads: {}, polls: {}, reactions: {}, receipts: {}, unread: { unread_count: 0, by_conversation: {} }, cursors: { conversations: null, messages: {}, threads: {} } });
+beforeEach(() => { frameHandlers = new Set(); });
 afterEach(cleanup);
 
 function PollHarness() { const { createConversationPoll, cache } = useMessaging(); return <><button onClick={() => createConversationPoll('c1', { question: 'Q' })}>create</button><output>{JSON.stringify(cache.messages)}</output></>; }
@@ -44,21 +50,30 @@ describe('MSG-6 messaging regressions', () => {
     expect(screen.getAllByTestId('day-separator')).toHaveLength(1);
   });
 
-  it('applies read and thread-read frames to cache and lets ReadTicks change without another REST call', async () => {
+  it('applies read frames to cache (for the per-person popover) but the group read ratio stays dcm\'s own numbers, not recomputed', async () => {
     const client = api();
     render(<MessagingProvider api={client} active={false}><ReadTicks messageId="m1" conversation={{ id: 'c1', kind: 'group' }} /></MessagingProvider>);
-    await screen.findByLabelText('MessagingReadTicks.DELIVERED:1');
+    const tick = await screen.findByLabelText('MessagingReadTicks.READ_RATIO');
+    expect(tick.textContent).toBe('0/1');
     act(() => frameHandler({ type: 'read_state', conversation_id: 'c1', user_id: 'u2', last_read_at: '2026-08-03T10:00:00Z' }));
-    await screen.findByLabelText('MessagingReadTicks.ALL_READ');
+    // Deliberate, documented trade-off (see ReadTicks.jsx): the numeric ratio
+    // is dcm's own read_count/recipient_count verbatim, never recomputed from
+    // recipientDetail -- recipientDetail has no way to threshold against
+    // this specific message's created_at, only dcm's own aggregate does.
+    // So a read_state frame updates the *popover's* per-person list (proven
+    // by the receipts assertion below) but the ratio digits only change on
+    // the next read-status fetch, same as before this frame arrived.
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    expect(screen.getByLabelText('MessagingReadTicks.READ_RATIO').textContent).toBe('0/1');
     expect(client.getReadStatus).toHaveBeenCalledTimes(1);
     const next = applyFrame(state(), { type: 'thread_read_state', root_id: 'root-1', user_id: 'u2', last_read_at: '2026-08-03T10:00:00Z' });
     expect(next.receipts['thread:root-1:u2'].last_read_at).toBe('2026-08-03T10:00:00Z');
   });
 
   it('updates direct-conversation ReadTicks from a read frame without another REST call', async () => {
-    const client = api();
+    const client = api({ getReadStatus: vi.fn().mockResolvedValue({ all_read: false }) });
     render(<MessagingProvider api={client} active={false}><ReadTicks messageId="m1" conversation={{ id: 'c1', kind: 'direct', other_user_id: 'u2' }} /></MessagingProvider>);
-    await screen.findByLabelText('MessagingReadTicks.DELIVERED:1');
+    await screen.findByLabelText('MessagingReadTicks.SENT');
     act(() => frameHandler({ type: 'read_state', conversation_id: 'c1', user_id: 'u2', last_read_at: '2026-08-03T10:00:00Z' }));
     await screen.findByLabelText('MessagingReadTicks.ALL_READ');
     expect(client.getReadStatus).toHaveBeenCalledTimes(1);

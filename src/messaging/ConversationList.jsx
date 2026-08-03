@@ -15,7 +15,14 @@ import { ConversationLaunchers } from './ConversationLaunchers';
 // name — so a direct conversation's counterpart name is host-supplied, exactly
 // like a managed conversation's label above.
 function titleOf(conversation, t, resolveManagedLabel, resolveDirectUserName) {
-  if (conversation.kind === 'managed' && resolveManagedLabel) {
+  // Not gated on kind === 'managed': a host resolver already returns null to
+  // mean "I have no label for this conversation" (the delegation contract
+  // this comment block describes above), so gating here duplicated a
+  // decision that belongs to the host and silently made the resolver
+  // unreachable for any kind the host later decided to label (found live:
+  // jg-ferien's resolver was taught to handle 'broadcast' too, but never got
+  // a chance to run because this gate excluded it).
+  if (resolveManagedLabel) {
     const label = resolveManagedLabel(conversation);
     if (label) return label;
   }
