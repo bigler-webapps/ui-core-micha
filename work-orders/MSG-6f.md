@@ -63,27 +63,85 @@ So the UI states "Zugestellt an 0" — simultaneously claiming a delivery and re
 nobody — on a single outlined check that reads as WhatsApp's delivered-tick. There is no delivery
 signal behind it at all.
 
-**Recommended resolution (needs the operator's confirmation before implementing):** keep two states and
-make the vocabulary honest.
+**Resolution (operator-directed, 2026-08-03): show a read PROPORTION in group and broadcast, keep a
+two-state tick in DMs.**
 
-| State | Icon | Label |
-|---|---|---|
-| not yet read by everyone | `DoneOutlinedIcon` | **"Gesendet"** |
-| `all_read` | `DoneAllOutlinedIcon`, `primary` | "Von allen gelesen" (unchanged) |
+The operational need in a camp is *"did a relevant share of the group read this?"* — a leader posting
+"bus leaves at 14:00" to forty participants needs a number, not a checkmark. `all_read` is the wrong
+measurement, not a useless feature: in any group it is essentially never true, so a boolean pins the
+indicator to its first state precisely where the information matters most.
 
-Retire the `MessagingReadTicks.DELIVERED` key and its `{{count}}` interpolation entirely — it has no
-data source. That also removes the last un-pluralised `{{count}}` string MSG-6e scope E had to leave in
-place pending this decision.
+| Conversation kind | Display |
+|---|---|
+| `direct` | two-state tick — `DoneOutlinedIcon` "Gesendet" → `DoneAllOutlinedIcon` `primary` "Gelesen". A 1-of-1 ratio is noise, and the WhatsApp metaphor fits a two-party chat. |
+| `group`, `broadcast`, `managed` | a **ratio**: "18/40 gelesen". Numeric, not an icon ladder. |
+| per-recipient detail | unchanged — already correctly gated (see below). |
 
-**Why not implement real delivery tracking instead** (wiring `mark_delivered` from a client ack, now
-technically possible since dcm MSG-8 made WS frames actually arrive): in a browser app "delivered" can
-only ever mean "a tab had the socket open at that moment". For any recipient who is simply not online
-the indicator would sit at the first state indefinitely — replacing "looks always delivered" with
-"looks permanently stuck", plus a write per received message. It only becomes meaningful with
-guaranteed device-level push. **If the operator wants it, it is a feature WO, not this one.**
+**The server already has the number and throws it away.** `read_status` (`services.py:344-347`) computes
+`all_read` from exactly the queryset that yields the count:
+`participants.filter(last_read_at__gte=message.created_at).count()` — the same shape as the
+`delivered_count` that had no writer. **A `read_count` + `recipient_count` pair is the counter
+`delivered_count` should have been.**
 
-Also drop `last_delivered_at` from what `ReadTicks` reads out of `recipient_detail` if it is only used
-for the retired label — dcm still returns the field but it is now always `null`.
+Adding them is a `django-core-micha` change, not ucm's: **this scope is blocked on a dcm WO that adds
+`read_count` and `recipient_count` to the `read-status` response.** Keep `all_read` — the DM branch
+still uses it. Do not compute the ratio client-side from `recipient_detail`: that field is
+manager-gated, so an ordinary sender would get no ratio at all.
+
+Retire `MessagingReadTicks.DELIVERED` and its `{{count}}` regardless — the new ratio string is a
+different key with different semantics, and reusing "Zugestellt" would carry the false claim forward.
+Also stop reading the now-always-`null` `last_delivered_at` out of `recipient_detail`.
+
+**Per-recipient detail stays as it is.** `services.py:340` already gates it on
+`kind != DIRECT and "read_receipt_detail" in rights` (in jg: `MANAGER_RIGHTS`), and DMs never expose it
+even to moderators — a documented design invariant. This WO does not touch that; the popover keeps
+working for managers.
+
+**Why not implement delivery tracking as well** (wiring `mark_delivered` from a client ack, technically
+possible since dcm MSG-8 made WS frames arrive): in a browser app "delivered" can only mean "a tab had
+the socket open at that moment". For a recipient who is simply not online it would sit at the first
+state indefinitely — replacing "looks always delivered" with "looks permanently stuck", plus a write per
+received message. It only becomes meaningful with guaranteed device-level push. A read ratio answers the
+real question without that ambiguity. **If the operator wants delivery too, it is a feature WO.**
+
+**C. The read signal misses the most attentive reader — fix this or the ratio understates.**
+
+What `read_count` actually measures must be stated plainly, because it is weaker than "read":
+`mark_read` (`dcm services.py:288-294`) sets `ConversationParticipant.last_read_at` to *now*, and after
+MSG-6e scope D there is exactly **one** caller — `Thread.jsx:58`, a `useEffect` keyed on
+`[conversationId, markConversationRead]`. So the recorded fact is **"opened this conversation"**, and
+`read_count` counts participants who opened it at some point after the message was posted.
+
+It is not tab-open, not socket-connected, not per-message interaction, not viewport visibility.
+
+Two asymmetries follow. The first is acceptable, the second is a defect:
+
+1. Opening a conversation marks its **entire** history read in one stroke. Someone who opens it and
+   leaves immediately counts as having read a 200-message backlog. This is the universal convention
+   (WhatsApp behaves the same) — accept it, do not try to fix it here.
+2. **A participant already sitting in the open conversation when the message arrives is NOT counted.**
+   The effect is keyed on `conversationId`, so it does not re-fire when a new message lands. The person
+   who saw it in real time is recorded as not having read it, until they navigate away and back.
+
+Asymmetry 2 is newly common and newly consequential: before dcm MSG-8 no frame was ever delivered, so
+no thread ever updated live and this case did not arise. Now it is the *normal* case for anyone
+actually paying attention — and it biases the ratio **downward**, which is the wrong direction for a
+leader deciding whether to chase people about the bus time.
+
+**Fix: re-mark read when a new message arrives in the conversation currently open.** Trigger on the
+incoming `message` frame for the active conversation, not on a timer. Guard it: do not fire for the
+viewer's **own** send (dcm already excludes the sender from the fan-out, so no frame arrives — verify
+rather than assume), and do not fire when the thread is mounted but the document is hidden
+(`document.visibilityState`), or a background tab would report reads nobody performed. `mark_read` is
+already idempotent — it only writes when the new timestamp is later (`services.py:291`) — so a
+redundant call is cheap, but a *wrong* one is not.
+
+**Known cost, do not silently ignore:** `Thread` mounts `ReadTicks` per own message and each instance
+fires its own `read-status` request — O(n) for a sender with many messages in a thread, which is exactly
+the broadcast-heavy leader this feature serves. A batch endpoint (message ids → counts) is the natural
+answer and belongs in the same dcm WO. Do **not** fold the counts into `serialize_message` instead:
+`views.py:50-54` documents why viewer-specific read state must stay out of it — it would leak into the
+`message`/`message_edited` realtime frames, the same trap `thread_last_read_at` was kept out of.
 
 ## NON-GOALS / DO NOT TOUCH
 - Do not reintroduce `delivered_count` on either side.
@@ -112,7 +170,7 @@ Narrow and behavioural. Do NOT run the full suite.
 2. **A:** a host resolver returning `null` still falls through to the existing chain unchanged
    (regression guard for the delegation contract).
 3. **A:** the existing `managed` / `event_all` / `event_team` behaviour is unchanged.
-4. **B:** a message that is not `all_read` renders the "Gesendet" label — assert the string, and assert
+4. **B:** in a `direct` conversation, a not-yet-read message renders "Gesendet" and a read one renders the double check; in a `group`/`broadcast`, the ratio string is rendered instead of any icon ladder. Assert that no label containing the word "Zugestellt" is produced anywhere in `ReadTicks`.
    that **no** label containing a `{{count}}`-derived number is produced anywhere in `ReadTicks`.
 5. **B:** `all_read` still renders the double check in `primary` with the unchanged label.
 
