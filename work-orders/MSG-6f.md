@@ -101,10 +101,14 @@ tick; else → render nothing*. Do not branch on roles or capabilities in ucm.
 `delivered_count` that had no writer. **A `read_count` + `recipient_count` pair is the counter
 `delivered_count` should have been.**
 
-Adding them is a `django-core-micha` change, not ucm's: **this scope is blocked on a dcm WO that adds
-`read_count` and `recipient_count` to the `read-status` response.** Keep `all_read` — the DM branch
-still uses it. Do not compute the ratio client-side from `recipient_detail`: that field is
-manager-gated, so an ordinary sender would get no ratio at all.
+Adding them is a `django-core-micha` change, not ucm's: **this scope is blocked on `django-core-micha`
+MSG-9**, which adds `read_count` and `recipient_count` inside the existing `read_receipt_detail`-gated
+block. Keep `all_read` — the DM branch still uses it.
+
+Do not derive the ratio client-side by counting `recipient_detail` yourself. It would happen to work
+(both are gated on the same right), but it re-implements a server aggregate in the client and would
+silently produce a wrong denominator the moment dcm's participant filtering changes. Read the counts
+dcm sends, or render nothing.
 
 Retire `MessagingReadTicks.DELIVERED` and its `{{count}}` regardless — the new ratio string is a
 different key with different semantics, and reusing "Zugestellt" would carry the false claim forward.
