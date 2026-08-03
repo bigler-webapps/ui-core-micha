@@ -61,10 +61,18 @@ Apply the same scrutiny to `castPollVote`/`closePoll` (`:407+`), which use the s
 once on mount (`ReadTicks.jsx:15-19`) and never re-fetching, a receipt can **never** update within a
 session.
 
-**Ordering caveat, read before starting C:** jg MSG-9 finding 1 (live WS push arriving ~10 minutes late)
-is still undiagnosed. Handling frames that do not arrive fixes nothing observable. **Do C last, and
-report if finding 1 is still open** — the Orchestrator may defer it to the next release rather than ship
-an unverifiable change.
+**Ordering, updated 2026-08-03 — the earlier caveat here is resolved.** jg MSG-9 finding 1 is now
+diagnosed as `django-core-micha` MSG-8: `push_to_users` feeds raw `datetime` objects into a msgpack
+channel layer, `group_send` raises, the exception is swallowed as a warning, and the frame is dropped
+(measured 16/16 failures). **C is therefore worth doing and no longer speculative.**
+
+Two concrete implications:
+
+- `read_state`, `delivered` and `thread_read_state` build their payloads with an explicit
+  `.isoformat()`, so **those three frames arrive today** — C is verifiable right now, before MSG-8
+  lands.
+- `message` / `message_edited` / `conversation_upsert` frames start arriving only once MSG-8 ships. Do
+  not conclude from "no message frame appears" that C is broken; check MSG-8's status first.
 
 **D. Stop double-firing `markConversationRead` (finding 13, ucm half).**
 Both `Thread.jsx:55` (a `useEffect` on `conversationId`) and `ConversationList.jsx:77` (the row's
