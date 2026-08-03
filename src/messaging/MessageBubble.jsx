@@ -30,7 +30,7 @@ function quoteLabel(message, t) {
 
 /** Provider-backed timeline collaborator, including per-message mutations. */
 export function MessageBubble({ message, replyTo, conversation, onReply, onJumpToMessage, onAnnouncementLink, canModerateMessages = false, children }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const messaging = useOptionalMessaging();
   const { currentUser, editMessage, removeMessage } = messaging || {};
   const deleted = Boolean(message.deleted_at);
@@ -130,7 +130,7 @@ export function MessageBubble({ message, replyTo, conversation, onReply, onJumpT
             {message.poll && <PollCard message={message} />}
           </Stack>}
           {hasMeta && <Stack data-testid="message-meta" direction="row" spacing={0.5} justifyContent="flex-end" alignItems="center" flexWrap="wrap" sx={{ color: 'text.disabled', minWidth: 0, '& .MuiSvgIcon-root': { fontSize: '1rem' } }}>
-            {message.created_at && <Typography component="span" variant="caption" color="inherit" sx={{ whiteSpace: 'nowrap' }}>{new Date(message.created_at).toLocaleString()}</Typography>}
+            {message.created_at && <Typography component="span" variant="caption" color="inherit" sx={{ whiteSpace: 'nowrap' }}>{new Date(message.created_at).toLocaleTimeString(i18n?.language, { hour: '2-digit', minute: '2-digit' })}</Typography>}
             {message.edited_at && !deleted && <Typography component="span" variant="caption" color="inherit">{t('MessagingThread.EDITED')}</Typography>}
             {children}
           </Stack>}

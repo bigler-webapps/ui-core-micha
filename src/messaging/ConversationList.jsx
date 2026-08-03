@@ -47,7 +47,7 @@ function KindIcon({ conversation }) {
 /** A standalone, provider-backed list; scope picker metadata is supplied as launcher props. */
 export function ConversationList({ onOpen, groupLaunchers, broadcastLauncher, autoOpenBroadcast = false, includeArchived = false, resolveManagedLabel, resolveDirectUserName }) {
   const { t, i18n } = useTranslation();
-  const { cache, activeConversationId, loadMoreConversations, setConversationArchived, setConversationPreferences, markConversationRead } = useMessaging();
+  const { cache, activeConversationId, loadMoreConversations, setConversationArchived, setConversationPreferences } = useMessaging();
   const [menuConversation, setMenuConversation] = useState(null);
   const [menuAnchor, setMenuAnchor] = useState(null);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -82,7 +82,7 @@ export function ConversationList({ onOpen, groupLaunchers, broadcastLauncher, au
           {conversations.map((conversation) => {
             const unread = unreadFor(conversation);
             const archived = Boolean(conversation.archived || conversation.archived_at);
-            return <ListItemButton key={conversation.id} selected={conversation.id === activeConversationId} onClick={() => { markConversationRead(conversation.id).catch(() => {}); onOpen?.(conversation); }} sx={{ minHeight: 64, opacity: archived ? 0.6 : 1 }}>
+            return <ListItemButton key={conversation.id} selected={conversation.id === activeConversationId} onClick={() => onOpen?.(conversation)} sx={{ minHeight: 64, opacity: archived ? 0.6 : 1 }}>
               <Badge color="error" badgeContent={unread || null} max={99} sx={{ mr: 2 }}>
                 {archived ? <Archive fontSize="small" color="disabled" /> : <KindIcon conversation={conversation} />}
               </Badge>

@@ -207,6 +207,21 @@ export function applyFrame(state, frame, activeConversationId = null) {
       : incomingPoll;
     return { ...state, messages: mergeById(state.messages, { ...previous, poll }), polls: mergeById(state.polls, poll) };
   }
+  if (frame.type === 'read_state') {
+    const userId = frame.user_id ?? payload.user_id;
+    const lastReadAt = frame.last_read_at ?? payload.last_read_at;
+    if (conversationId == null || userId == null || lastReadAt == null) return state;
+    const key = `${conversationId}:${userId}`;
+    return { ...state, receipts: { ...state.receipts, [key]: { ...state.receipts[key], conversation_id: conversationId, user_id: userId, last_read_at: lastReadAt } } };
+  }
+  if (frame.type === 'thread_read_state') {
+    const rootId = frame.root_id ?? payload.root_id;
+    const userId = frame.user_id ?? payload.user_id;
+    const lastReadAt = frame.last_read_at ?? payload.last_read_at;
+    if (rootId == null || userId == null || lastReadAt == null) return state;
+    const key = `thread:${rootId}:${userId}`;
+    return { ...state, receipts: { ...state.receipts, [key]: { ...state.receipts[key], root_id: rootId, user_id: userId, last_read_at: lastReadAt } } };
+  }
   if (frame.type === 'message_deleted') {
     const previous = state.messages[frame.message_id] || {};
     return { ...state, messages: { ...state.messages, [frame.message_id]: { ...previous, id: frame.message_id, deleted_at: frame.deleted_at, deleted_by: frame.deleted_by, body: null, title: null, link_target: null } } };
@@ -400,8 +415,9 @@ export function MessagingProvider({ children, filters = {}, activeConversationId
   }, [api, cache.messages, patchMessage]);
   const createConversationPoll = useCallback(async (conversationId, payload, { clientRequestId } = {}) => {
     const poll = await api.createPoll(conversationId, { ...payload, client_request_id: clientRequestId }, { idempotencyKey: clientRequestId });
-    const message = poll?.message || poll;
-    if (message?.id != null) patchMessage({ ...message, conversation_id: message.conversation_id ?? conversationId, poll: message.poll || poll.poll || poll });
+    const messageId = poll?.message_id;
+    if (messageId == null) throw new Error('Poll response is missing message_id');
+    patchMessage({ id: messageId, conversation_id: poll.conversation_id ?? conversationId, created_at: new Date().toISOString(), kind: 'poll', poll });
     return poll;
   }, [api, patchMessage]);
   const castPollVote = useCallback(async (messageId, poll, optionIds) => {

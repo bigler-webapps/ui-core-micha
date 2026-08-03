@@ -34,7 +34,7 @@ import {
 } from '../auth/authApi';
 
 export function SupportRecoveryRequestsTab() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { user } = useContext(AuthContext);
   const canManageAgents = Boolean(user?.is_superuser || user?.can_manage_support_agents);
 
@@ -365,7 +365,7 @@ export function SupportRecoveryRequestsTab() {
                 <TableRow key={req.id}>
                   <TableCell>
                     {req.created_at
-                      ? new Date(req.created_at).toLocaleString()
+                      ? new Date(req.created_at).toLocaleString(i18n?.language)
                       : '-'}
                   </TableCell>
                   <TableCell>{req.user_email || req.user}</TableCell>
@@ -407,7 +407,7 @@ export function SupportRecoveryRequestsTab() {
                   {t('Support.RECOVERY_REVIEW_CREATED', 'Requested at')}:
                 </strong>{' '}
                 {selectedRequest.created_at
-                  ? new Date(selectedRequest.created_at).toLocaleString()
+                  ? new Date(selectedRequest.created_at).toLocaleString(i18n?.language)
                   : '-'}
               </Typography>
               <Typography variant="body2" sx={{ mb: 1 }}>

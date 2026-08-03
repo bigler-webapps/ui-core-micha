@@ -13,10 +13,11 @@ function replyToId(message) { return message.reply_to_id ?? message.reply_to; }
 // thread_last_read_at is viewer-specific and REST-only (never on a frame — see
 // MessagingProvider.jsx's applyFrame merge-trap handling). A null receipt with
 // at least one reply counts as unread; no replies means no marker at all.
-function hasUnreadReplies(message) {
+function hasUnreadReplies(message, receipts, userId) {
   if (!message.reply_count) return false;
-  if (message.thread_last_read_at == null) return true;
-  return Boolean(message.last_reply_at) && new Date(message.last_reply_at) > new Date(message.thread_last_read_at);
+  const lastReadAt = receipts[`thread:${message.id}:${userId}`]?.last_read_at ?? message.thread_last_read_at;
+  if (lastReadAt == null) return true;
+  return Boolean(message.last_reply_at) && new Date(message.last_reply_at) > new Date(lastReadAt);
 }
 // A still-pending optimistic row (chunk 4) has a fake `local-<requestId>` id
 // and no durable server row yet — mounting ReadTicks against it would fire a
@@ -38,7 +39,7 @@ function canShowReadTicks(message, user) {
  * message shown, not one per message in the conversation.
  */
 export function Thread({ conversationId, onReplyTargetChange, canModerateMessages = false, onAnnouncementLink }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { user } = useContext(AuthContext) || {};
   const { cache, loadMoreMessages, loadThreadReplies, markConversationRead, markThreadRead, refreshThread } = useMessaging();
   const scrollRef = useRef(null);
@@ -52,6 +53,7 @@ export function Thread({ conversationId, onReplyTargetChange, canModerateMessage
   const conversation = cache.conversations[conversationId];
   const conversationMessages = useMemo(() => chronological(Object.values(cache.messages).filter((message) => message.conversation_id === conversationId)), [cache.messages, conversationId]);
   const roots = useMemo(() => chronological(Object.values(cache.messages).filter((message) => message.conversation_id === conversationId && !replyToId(message))), [cache.messages, conversationId]);
+  const datedRoots = useMemo(() => roots.map((message, index) => ({ message, showDateSeparator: index > 0 && new Date(roots[index - 1].created_at).toDateString() !== new Date(message.created_at).toDateString() })), [roots]);
 
   useEffect(() => { if (conversationId != null) markConversationRead(conversationId).catch(() => {}); }, [conversationId, markConversationRead]);
   useEffect(() => { wasNearBottomRef.current = true; messageCountRef.current = 0; }, [conversationId]);
@@ -136,11 +138,11 @@ export function Thread({ conversationId, onReplyTargetChange, canModerateMessage
             (the scrollbar fix above) would clip the icon whenever there's no
             vertical scrollbar reserving extra width (a short conversation,
             no vertical overflow). */}
-        <Stack spacing={1} sx={{ pr: 2 }}>{roots.map((message) => {
+        <Stack spacing={1} sx={{ pr: 2 }}>{datedRoots.map(({ message, showDateSeparator }) => {
           const replies = chronological(Object.values(cache.messages).filter((item) => String(replyToId(item)) === String(message.id)));
-          return <Stack key={message.id} spacing={0.75}><MessageBubble message={message} conversation={conversation} onReply={reply} onJumpToMessage={jumpToMessage} onAnnouncementLink={onAnnouncementLink} canModerateMessages={canModerateMessages}>{canShowReadTicks(message, user) && <ReadTicks messageId={message.id} conversation={conversation} />}</MessageBubble>
+          return <Stack key={message.id} spacing={0.75}>{showDateSeparator && <Stack data-testid="day-separator" direction="row" alignItems="center" spacing={1}><Divider sx={{ flex: 1 }} /><Typography variant="caption" color="text.secondary">{new Date(message.created_at).toLocaleDateString(i18n?.language)}</Typography><Divider sx={{ flex: 1 }} /></Stack>}<MessageBubble message={message} conversation={conversation} onReply={reply} onJumpToMessage={jumpToMessage} onAnnouncementLink={onAnnouncementLink} canModerateMessages={canModerateMessages}>{canShowReadTicks(message, user) && <ReadTicks messageId={message.id} conversation={conversation} />}</MessageBubble>
             {(message.reply_count || replies.length) > 0 && (() => {
-              const unread = hasUnreadReplies(message);
+              const unread = hasUnreadReplies(message, cache.receipts, user?.id);
               const label = openThreads[message.id] ? t('MessagingThread.HIDE_REPLIES') : t('MessagingThread.SHOW_REPLIES', { count: message.reply_count || replies.length });
               // MUI's Badge spreads unrecognized props (incl. aria-label) onto
               // its own non-interactive wrapping span, not the inner control —

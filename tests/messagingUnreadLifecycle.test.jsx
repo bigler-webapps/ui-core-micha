@@ -23,9 +23,21 @@ function makeApi(overrides = {}) {
 afterEach(cleanup);
 
 describe('messaging unread lifecycle', () => {
-  it('marks the selected conversation read', async () => {
+  it('marks the selected conversation read once its thread mounts', async () => {
+    // MSG-6e made `Thread`'s mount effect the sole owner of marking a
+    // conversation read (`ConversationList`'s own onClick no longer does it,
+    // to stop the double `POST .../read/` this test used to mask) — so the
+    // realistic host wiring (onOpen mounts Thread) is what's under test here,
+    // not a click on ConversationList in isolation.
     const api = makeApi({ listConversations: vi.fn().mockResolvedValue({ results: [{ id: 12, title: 'Support' }] }) });
-    render(<MessagingProvider api={api}><ConversationList /></MessagingProvider>);
+    function Surface() {
+      const [conversationId, setConversationId] = React.useState(null);
+      return <>
+        <ConversationList onOpen={(conversation) => setConversationId(conversation.id)} />
+        {conversationId != null && <Thread conversationId={conversationId} />}
+      </>;
+    }
+    render(<MessagingProvider api={api}><Surface /></MessagingProvider>);
     fireEvent.click(await screen.findByRole('button', { name: /Support/ }));
     await waitFor(() => expect(api.markConversationRead).toHaveBeenCalledWith(12, undefined));
   });
