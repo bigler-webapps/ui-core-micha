@@ -126,7 +126,9 @@ Narrow and behavioural. Do NOT run the full suite.
 4. D: opening a conversation issues exactly **one** `markConversationRead` call, via both entry paths
    (list click and direct mount).
 5. E: `SHOW_REPLIES` at `count: 1` renders the singular in **de, en and fr**.
-6. C (if implemented): a `read_state` frame updates the cached receipt without a REST round-trip.
+6. C: a `read_state` frame and a `thread_read_state` frame each update the cached receipt `ReadTicks`
+   actually renders, without a REST round-trip. No test asserts a `delivered` frame does anything — it
+   should not (dcm MSG-7 retires that frame's only publisher in this same run).
 
 **Non-vacuity:** each test must fail with its fix reverted. Test 1 in particular must fail against
 today's `|| poll` fallback — if it passes on the unmodified code, it is not testing the defect.
@@ -135,9 +137,22 @@ today's `|| poll` fallback — if it passes on the unmodified code, it is not te
 The messaging test files plus whatever covers `SupportRecoveryRequestsTab`. Not the full suite.
 
 ## OPERATOR DECISIONS (this run)
-- **Scope C is deferred — do NOT implement it in this pass.** jg MSG-9 finding 1 (live WS push not
-  arriving) is still undiagnosed; handling frames that never arrive proves nothing. Implement A, B, D, E
-  only. Note scope C as an open item in your final report so it can be tracked in `WORK_ORDERS.md`.
+- **Scope C — superseded below.** The envelope above was updated after the original defer decision was
+  made (finding 1 is now diagnosed as `django-core-micha` MSG-8, not still-open); the instruction that
+  follows replaces the earlier "defer all of C" call.
+- **Implement C narrowly: `read_state` and `thread_read_state` only. Do NOT add a `delivered` frame
+  handler.** The envelope's update confirms these three frames already carry an explicit `.isoformat()`
+  and arrive today, independent of MSG-8 (which only gates `message`/`message_edited`/`conversation_upsert`).
+  But `delivered` is the one exception: dcm MSG-7 (this same run, scope C there) **deletes `mark_delivered`**
+  — the only production code that ever published a `delivered` frame — as part of retiring delivery
+  tracking down to an honest two-state receipt (`all_read` only). Adding a `delivered` handler in
+  `applyFrame` here would be live-testable today (against the pre-MSG-7 backend) but dead on arrival the
+  moment MSG-7 ships, and contradicts the product decision behind it. In `applyFrame`
+  (`MessagingProvider.jsx:123ff`), add `read_state`/`thread_read_state` branches that merge the received
+  `last_read_at` (and for `thread_read_state`, the `root_id`) into the relevant cached receipt/message so
+  `ReadTicks`/thread-unread state updates without a REST round-trip — do not add a third branch for
+  `delivered`. Required test 6 covers `read_state`; add the equivalent for `thread_read_state`, do not add
+  one for `delivered`.
 - **Scope B's root cause is now confirmed and fixed at the source, in parallel, by `django-core-micha`
   MSG-7 scope F (operator-approved extension, running concurrently in this session):** dcm's poll REST
   response (`_poll_response` / `serialize_poll`) previously had no `message_id` at all — verified by
@@ -198,6 +213,27 @@ The messaging test files plus whatever covers `SupportRecoveryRequestsTab`. Not 
 - `ConversationList.jsx:85` — the `ListItemButton`'s `onClick` also calls `markConversationRead(...)`.
 - Keep `Thread.jsx:56`; remove the call from `ConversationList.jsx:85`'s `onClick` (keep `onOpen?.(conversation)`
   itself — only drop the `markConversationRead` call and its `.catch`).
+
+**C — wiring gap you must close, not just `applyFrame` (`src/messaging/MessagingProvider.jsx`, `src/messaging/ReadTicks.jsx`)**
+- `EMPTY_CACHE` (`:35`) already declares a `receipts: {}` slot — unused today, no reducer case writes to
+  it and nothing reads from it. This is almost certainly the intended home for what `read_state`/
+  `thread_read_state` frames should update. Add reducer cases in `applyFrame` (`:123ff`, alongside the
+  existing `message`/`reaction`/`poll_updated`/etc. branches) for `frame.type === 'read_state'` and
+  `'thread_read_state'` that merge into `state.receipts`, keyed so `ReadTicks` can look itself up (e.g. by
+  `conversation_id` + `user_id` for `read_state`, by `root_id` + `user_id` for `thread_read_state` — the
+  payload shapes are `{"user_id", "last_read_at"}` and `{"user_id", "root_id", "last_read_at"}`
+  respectively, per dcm `services.py:293`/`:312`).
+- **Writing to `cache.receipts` alone does not satisfy required test 6** ("updates the cached receipt
+  without a REST round-trip") unless something actually reads it. `ReadTicks.jsx` (`:10-19`) today only
+  ever calls `getMessageReadStatus(messageId)` once on mount via `useEffect`, into its own local `status`
+  state — it has no path back to `cache` at all. You need `ReadTicks` to react to the relevant slice of
+  `cache.receipts` (via `useMessaging()`) so a frame arriving after the initial REST fetch actually updates
+  what's rendered — e.g. merge a fresher `cache.receipts` entry over the REST-derived `status` state, or
+  derive `all_read` from the participant set + `cache.receipts` entries you have instead of holding a
+  second independent read of the same fact. Use your judgment on the exact merge (a full redesign of
+  `ReadTicks`' data source is not required — the REST fetch stays as the initial/fallback source of truth,
+  e.g. for `recipient_detail`, which no frame carries), but the frame update must be observable in what
+  `ReadTicks` renders, not just in an otherwise-unread part of `cache`.
 
 **E — plural forms (`src/i18n/messagingTranslations.ts`)**
 - `MessagingThread.SHOW_REPLIES` (`:32`): convert to i18next `_one`/`_other` keys (de/en/fr), all three —
