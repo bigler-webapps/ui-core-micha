@@ -124,3 +124,115 @@ those consuming steps have actually landed**, not merely published.
 Emit `PLAN: <steps>` up front, then a single-line `PROGRESS: [<n>/<total>] <action>` before every
 relevant action and `PROGRESS: [<n>/<total>] done` on completion, spaced so no gap exceeds ~2 min,
 stdout unbuffered, and exactly one final `RESULT: DONE|BLOCKED <reason>`.
+
+---
+
+## Part B — Implementation map (Orchestrator) / as-built record
+
+**Codex was unavailable (out of credits) — implemented directly by the Orchestrator.**
+
+### Scope A — `src/messaging/AttachmentList.jsx` (full rewrite)
+
+- Each attachment is now a 64×64 `ButtonBase` tile (not a full-width text button): an image
+  attachment shows its existing thumbnail fetch (unchanged `getAttachmentThumbnail` `useEffect`,
+  reused verbatim); a non-image attachment shows a generic file icon +
+  filename (`InsertDriveFileOutlinedIcon`).
+- Click: image → `openLightbox` (fetches the full-resolution blob via the existing `getAttachment`,
+  cached per-attachment in a `fullUrlCacheRef` so a re-open within the same mount doesn't re-fetch);
+  non-image → `download` (unchanged logic, just relocated).
+- Right-click (`onContextMenu`): opens a MUI `Menu` (anchored to click position) with one Download
+  item, for both image and non-image attachments. `event.stopPropagation()` inside the handler stops
+  it from also reaching `MessageBubble.jsx`'s own bubble-level `onContextMenu` (verified with a
+  dedicated regression test, item 5 below).
+- Lightbox: a MUI `Dialog` with the full image + a close `IconButton` (also closes via the Dialog's
+  own backdrop-click/Escape handling, native to MUI).
+- `nameOf(attachment)` unchanged in shape (`filename || name || id`), now actually resolves to a real
+  name once the host's dcm pin includes `MSG-12`; falls back to `id` for an older pin (test 4).
+- 3 new i18n keys: `MessagingAttachments.PREVIEW`, `.CLOSE_PREVIEW`, `.DOWNLOAD_ACTION`. Existing
+  `.LABEL`/`.DOWNLOAD` kept — `.DOWNLOAD` is now also the accessible name for a non-image tile (no
+  visible "Download X" text on it any more, per the new compact-tile design — updated one pre-existing
+  test in `messagingCompactBubble.test.jsx` that asserted on the old visible text).
+
+### Scope B — `src/messaging/MessageBubble.jsx:139`
+
+- `ReactionBar`'s `sx` changed from `{ mt: -0.5, ml: 0.75, position: 'relative', zIndex: 1 }` to
+  `{ mt: 0.5, ml: 0.75 }` — a small **positive** gap instead of the negative-margin "peek from the
+  bubble's bottom edge" trick. That trick pulled the chip up into whatever sits immediately above it
+  in normal document flow, which used to always be plain text or the compact meta row; since MSG-6g
+  added poll bars and this WO's own gallery redesign changed the attachment row's height/borders, the
+  fixed offset started visually cutting into bordered, boxier content instead of text. Also dropped
+  `position: relative` / `zIndex: 1`, no longer needed without the overlap.
+- **Not independently visually re-verified against the operator's original staging screenshot** — no
+  staging credentials this round (same limitation noted when the ucm pin bump was last reported). The
+  fix is a conservative, low-risk "stop overlapping anything" change; flagging per the WO's own
+  instruction to say so rather than claim a live-confirmed fix.
+
+### Tests
+`tests/messagingMsg6h.test.jsx` (new) — the 5 WO-required cases. `tests/messagingCompactBubble.test.jsx`
+updated (pre-existing test asserted on now-removed visible DOWNLOAD text). No other existing test
+needed a change (`messagingComposer.test.jsx`'s AttachmentList smoke test only checked the outer
+`aria-label`, unaffected).
+
+### Verification (pre-review)
+Full suite 241 → 246 (5 new), `tsc` clean.
+
+### Independent review: `reviewer` + `ui_reviewer`, both mandatory (author = Orchestrator, not Codex)
+
+Both reviews converged on the same core gap from different angles — fixed together in one pass.
+
+**`reviewer` — 3 findings:**
+- **R1 (P2, real regression):** the pre-diff design let every attachment (image or not) download via a
+  direct click/Enter/Space on a plain `Button`. The redesign made an image's click open the lightbox
+  instead, which had only a Close button — the *only* way left to download an image was a real mouse
+  right-click, unreachable by keyboard or (with no long-press) touch. **Fixed**: the lightbox now has
+  its own Download `IconButton`, so download is reachable via click, Tab+Enter, or touch, without ever
+  needing the context menu.
+- **R2 (P2):** the new lightbox fetch had no loading or error state — a click gave no feedback until
+  the network round trip resolved, and a failure silently no-opped. **Fixed**: `lightbox.status`
+  (`'loading' | 'ready' | 'error'`) drives a `CircularProgress` while fetching and an `Alert` on
+  failure; a stale in-flight fetch (opened, then a *different* attachment opened before the first
+  resolves) is guarded by comparing the resolved attachment's id against the current lightbox state
+  before applying the result.
+- **R3 (P3):** the lightbox `Dialog` had no accessible name. **Fixed**: `aria-label` on the `Dialog`
+  itself, set to the previewed attachment's name.
+
+Verified correct, no bug: object-URL lifecycle (no leak/double-revoke/revoke-while-displayed), the
+context-menu `stopPropagation` (traced against React's synthetic event dispatch + the dedicated test),
+no stale-closure risk in the menu's download handler, `fullUrlCacheRef` can't go stale across messages
+(`Thread.jsx` keys `MessageBubble` by `message.id`, always unmounts on swap), i18n coverage.
+
+**`ui_reviewer` — 6 findings:**
+- **U1 (P1, same root cause as R1):** touch users had no way to download an image at all (no
+  long-press implemented, lightbox had no download control). **Fixed by the same lightbox Download
+  button as R1** — one fix closes both findings.
+- **U2 (P2):** no visual affordance signals a tile is right-clickable, and right-click-for-download is
+  a non-obvious pattern without a fallback for a mouse user who doesn't know it. **Resolved by the R1/U1
+  fix, not a separate change**: right-click is no longer the *only* path to anything — an image is
+  fully reachable via primary click → lightbox → visible Download button, and a non-image already
+  downloads on primary click. Right-click remains a discoverable-if-you-know-it shortcut, not a
+  required, hidden one; adding a second, redundant hover-reveal affordance on top of an already-fully-
+  reachable primary interaction would be scope creep past what the finding's own root concern requires.
+- **U3 (P2):** a non-image tile's filename truncates in a 64px box with no way to recover the full name
+  before downloading. **Fixed**: `title={nameOf(attachment)}` on the tile (native browser tooltip on
+  hover).
+- **U4 (P3):** the French `PREVIEW` translation (`'Aperçu de {{name}}'`, noun-first) broke grammatical
+  parallelism with the sibling `DOWNLOAD`/`DOWNLOAD_ACTION` (verb-first). **Fixed**: `'Prévisualiser
+  {{name}}'`.
+- **U5 (P3):** the lightbox close button omitted the `boxShadow` the codebase's analogous floating-icon
+  pattern (`MessageBubble.jsx`'s hover-revealed `MoreVertIcon`) uses for contrast. **Fixed**: both the
+  new Download button and the Close button now carry `boxShadow: 1`.
+- **U6 (P3, not fixed, disclosed):** `openLightbox`'s failure path is a silent no-op if `getAttachment`
+  is bypassed some other way — the reviewer themselves noted this mirrors `download()`'s own
+  pre-existing silent-failure shape, not a new defect class. Left as-is, consistent with that existing
+  convention elsewhere in this component; R2's loading/error state above already covers the actual
+  reachable failure path (a real fetch rejection).
+
+### Not independently visually re-verified
+Scope B's `ReactionBar` spacing fix (`MessageBubble.jsx:145`) was not confirmed against the operator's
+original staging screenshot — no staging credentials this round. Both reviewers examined it by static
+code reading only and found the fix low-risk (a strict `mt` sign flip, no z-stacking or other side
+effect traced), but this is a judgment call, not a live-rendered confirmation. Flagging per the WO's
+own instruction rather than claiming a visual fix I have not actually seen.
+
+### Re-verification after all fixes
+Full suite 241 → 249 (8 new: 5 original + 3 closing R1/R2), `tsc` clean.

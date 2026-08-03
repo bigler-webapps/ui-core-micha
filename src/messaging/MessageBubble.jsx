@@ -136,7 +136,13 @@ export function MessageBubble({ message, replyTo, conversation, onReply, onJumpT
           </Stack>}
         </Stack>
       </Paper>
-      {!deleted && (reactions.length > 0 || reactionPickerVisible) && <ReactionBar message={message} expanded={reactionPickerVisible} onExpandedChange={setReactionPickerVisible} sx={{ mt: -0.5, ml: 0.75, position: 'relative', zIndex: 1 }} />}
+      {/* A small positive gap, not the negative-margin "peek from the bottom
+          edge" trick this used to have -- that pull was tuned against a
+          plain text line and read as an unnatural collision once the
+          bubble's actual bottom content became variable (an attachment
+          row's bordered Button, or MSG-6g's poll bars), both visually
+          boxier than text and closer to the bubble's edge. */}
+      {!deleted && (reactions.length > 0 || reactionPickerVisible) && <ReactionBar message={message} expanded={reactionPickerVisible} onExpandedChange={setReactionPickerVisible} sx={{ mt: 0.5, ml: 0.75 }} />}
       <Menu anchorEl={menuAnchor} open={Boolean(menuAnchor)} onClose={closeMenu}>
         <MenuItem onClick={startReply}>{t('MessagingThread.REPLY')}</MenuItem>
         <MenuItem onClick={startReact}>{t('MessagingReactions.ADD')}</MenuItem>

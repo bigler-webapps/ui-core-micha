@@ -56,7 +56,9 @@ describe('compact message bubbles', () => {
     rerender(<AuthContext.Provider value={{ user: { id: 1 } }}><MessagingProvider api={api()} active={false}><MessageBubble message={{ id: 7, kind: 'poll', body: 'Poll', sender: { id: 1 }, poll: { id: 1, question: 'Where?', options: [], allow_multiple: false } }} conversation={{ kind: 'group' }} /></MessagingProvider></AuthContext.Provider>);
     expect(container.querySelector('.MuiPaper-root').contains(screen.getByText('Where?'))).toBe(true);
     rerender(<AuthContext.Provider value={{ user: { id: 1 } }}><MessagingProvider api={api()} active={false}><MessageBubble message={{ id: 8, body: 'File', sender: { id: 1 }, attachments: [{ id: 1, filename: 'notes.pdf', content_type: 'application/pdf' }] }} conversation={{ kind: 'group' }} /></MessagingProvider></AuthContext.Provider>);
-    await waitFor(() => expect(screen.getByText(/MessagingAttachments\.DOWNLOAD/)).toBeTruthy());
-    expect(container.querySelector('.MuiPaper-root').contains(screen.getByText(/MessagingAttachments\.DOWNLOAD/))).toBe(true);
+    // MSG-6h: a non-image attachment's visible content is now its filename +
+    // a file icon (the download semantics live in the accessible name).
+    await waitFor(() => expect(screen.getByText('notes.pdf')).toBeTruthy());
+    expect(container.querySelector('.MuiPaper-root').contains(screen.getByText('notes.pdf'))).toBe(true);
   });
 });
