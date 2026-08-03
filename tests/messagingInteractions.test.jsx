@@ -28,12 +28,19 @@ describe('messaging reactions and polls', () => {
     fireEvent.click(screen.getByRole('button', { name: 'MessagingReactions.TOGGLE' })); await waitFor(() => expect(api.removeReaction).toHaveBeenCalledWith(7, '👍'));
   });
 
-  it('uses single selection for a single poll and preserves selections for a multi poll', async () => {
+  it('taps vote immediately (no submit step): single-choice uses radios and only ever sends the last-tapped option, multi-select uses checkboxes and accumulates', async () => {
+    // MSG-6g: tap-to-vote, no separate "Abstimmen" button.
     const single = baseApi(); single.votePoll.mockResolvedValue({ poll: { id: 1, options: [] } });
     const { unmount } = render(<MessagingProvider api={single} active={false}><PollCard message={{ id: 7, poll: { id: 1, question: 'One', options: [{ id: 1, text: 'A' }, { id: 2, text: 'B' }], allow_multiple: false }}} /></MessagingProvider>);
-    const choices = screen.getAllByRole('checkbox'); fireEvent.click(choices[0]); fireEvent.click(choices[1]); fireEvent.click(screen.getByRole('button', { name: 'MessagingPoll.VOTE' })); await waitFor(() => expect(single.votePoll).toHaveBeenCalledWith(1, [2])); unmount();
+    const radios = screen.getAllByRole('radio');
+    fireEvent.click(radios[0]); await waitFor(() => expect(single.votePoll).toHaveBeenCalledWith(1, [1]));
+    fireEvent.click(radios[1]); await waitFor(() => expect(single.votePoll).toHaveBeenCalledWith(1, [2]));
+    expect(single.votePoll).toHaveBeenCalledTimes(2);
+    unmount();
     const multiple = baseApi(); multiple.votePoll.mockResolvedValue({ poll: { id: 2, options: [] } }); render(<MessagingProvider api={multiple} active={false}><PollCard message={{ id: 8, poll: { id: 2, question: 'Many', options: [{ id: 1, text: 'A' }, { id: 2, text: 'B' }], allow_multiple: true }}} /></MessagingProvider>);
-    const multiChoices = screen.getAllByRole('checkbox'); fireEvent.click(multiChoices[0]); fireEvent.click(multiChoices[1]); fireEvent.click(screen.getByRole('button', { name: 'MessagingPoll.VOTE' })); await waitFor(() => expect(multiple.votePoll).toHaveBeenCalledWith(2, [1, 2]));
+    const multiChoices = screen.getAllByRole('checkbox');
+    fireEvent.click(multiChoices[0]); await waitFor(() => expect(multiple.votePoll).toHaveBeenCalledWith(2, [1]));
+    fireEvent.click(multiChoices[1]); await waitFor(() => expect(multiple.votePoll).toHaveBeenCalledWith(2, [1, 2]));
   });
 
   it('only exposes close to the creator/capability and surfaces a forbidden close', async () => {

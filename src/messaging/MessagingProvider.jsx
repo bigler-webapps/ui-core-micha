@@ -47,6 +47,30 @@ function mergeById(slice, item) { const id = idOf(item); return id == null ? sli
 function resultsOf(response) { return response?.results || []; }
 function clientRequestIdOf(message) { return message?.client_request_id; }
 
+// Optimistic vote-count/voters projection for MSG-6g tap-to-vote -- only options whose
+// membership in the vote actually changed get their count/voters adjusted, so an
+// unrelated option's tally is never nudged by someone else's concurrent vote landing in
+// cache between taps.
+function applyOptimisticVote(poll, previousSelectedIds, nextSelectedIds, userId) {
+  const previousSet = new Set(previousSelectedIds || []);
+  const nextSet = new Set(nextSelectedIds || []);
+  const options = (poll.options || []).map((option) => {
+    const wasSelected = previousSet.has(option.id);
+    const isSelected = nextSet.has(option.id);
+    if (wasSelected === isSelected) return option;
+    const delta = isSelected ? 1 : -1;
+    // userId can be undefined for a brief window if AuthContext hasn't
+    // populated `user` yet -- never push a literal `undefined` into the
+    // voters array (the reconcile/revert below overwrites it regardless,
+    // but the optimistic window must not carry a bogus entry).
+    const voters = Array.isArray(option.voters) && userId != null
+      ? (isSelected ? [...option.voters, userId] : option.voters.filter((voter) => voter !== userId))
+      : option.voters;
+    return { ...option, vote_count: Math.max(0, (option.vote_count ?? option.voters?.length ?? 0) + delta), voters };
+  });
+  return { ...poll, options, voted_option_ids: nextSelectedIds };
+}
+
 /**
  * dcm's DRF validation errors aren't always {detail}: ConversationAttachmentView
  * translates a rejected upload into a field-keyed {"files": [...]} body (the
@@ -245,6 +269,10 @@ export function MessagingProvider({ children, filters = {}, activeConversationId
   const activeIdRef = useRef(activeConversationId);
   const seenEventsRef = useRef(new Set());
   const filtersRef = useRef(filters);
+  // Per-poll "latest tap wins" token: rapid successive taps race, and a stale
+  // response (revert on failure, or reconcile on success) must not clobber a
+  // newer optimistic state that has already superseded it.
+  const pollVoteTokensRef = useRef({});
   activeIdRef.current = activeConversationId;
   filtersRef.current = filters;
 
@@ -421,11 +449,38 @@ export function MessagingProvider({ children, filters = {}, activeConversationId
     return poll;
   }, [api, patchMessage]);
   const castPollVote = useCallback(async (messageId, poll, optionIds) => {
-    const result = await api.votePoll(poll.id, optionIds);
-    const nextPoll = { ...poll, ...(result?.poll || result) };
-    patchMessage({ ...(cache.messages[messageId] || { id: messageId }), poll: nextPoll });
-    return result;
-  }, [api, cache.messages, patchMessage]);
+    // Optimistic tap-to-vote (MSG-6g), following the same immediate-patch /
+    // reconcile-or-revert shape `toggleReaction` already uses. The previous poll
+    // (pre-tap) is captured up front so a failure can revert to it exactly, not to
+    // whatever `cache.messages` happens to hold when the error arrives.
+    const message = cache.messages[messageId] || { id: messageId };
+    const previousPoll = message.poll || poll;
+    // Project from `previousPoll` (the freshest known state in the shared cache),
+    // never from the caller-supplied `poll` param -- `PollCard` is a "dumb",
+    // prop-driven component that may still be holding the pre-first-tap `poll`
+    // it was originally passed when a second rapid tap fires, and projecting
+    // counts from that stale baseline would compute a wrong transient
+    // vote_count/voters in the SHARED cache (visible to every consumer, not
+    // just this component's own render).
+    const optimisticPoll = applyOptimisticVote(previousPoll, previousPoll.voted_option_ids, optionIds, user?.id);
+    const token = {};
+    pollVoteTokensRef.current[poll.id] = token;
+    patchMessage({ ...message, poll: optimisticPoll });
+    try {
+      const result = await api.votePoll(poll.id, optionIds);
+      // A newer tap already started (and will reconcile/revert for itself) --
+      // applying this now-stale response would stomp on it.
+      if (pollVoteTokensRef.current[poll.id] !== token) return result;
+      const nextPoll = { ...poll, ...(result?.poll || result) };
+      patchMessage({ ...(cache.messages[messageId] || { id: messageId }), poll: nextPoll });
+      return result;
+    } catch (error) {
+      if (pollVoteTokensRef.current[poll.id] === token) {
+        patchMessage({ ...(cache.messages[messageId] || { id: messageId }), poll: previousPoll });
+      }
+      throw error;
+    }
+  }, [api, cache.messages, patchMessage, user]);
   const closeConversationPoll = useCallback(async (messageId, poll) => {
     const result = await api.closePoll(poll.id);
     const nextPoll = { ...poll, ...(result?.poll || result), closed_at: result?.poll?.closed_at || result?.closed_at || new Date().toISOString() };

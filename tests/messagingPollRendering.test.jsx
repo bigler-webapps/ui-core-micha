@@ -3,7 +3,7 @@ import React from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 
-vi.mock('react-i18next', () => ({ useTranslation: () => ({ t: (key, options) => options?.message ? `${key}:${options.message}` : key }) }));
+vi.mock('react-i18next', () => ({ useTranslation: () => ({ t: (key, options) => options && Object.keys(options).length ? `${key}:${JSON.stringify(options)}` : key }) }));
 
 const realtimeSubscribers = new Map();
 vi.mock('../src/notifications/realtime', () => ({
@@ -55,20 +55,29 @@ function ConnectedPollCard({ messageId }) {
 afterEach(() => { cleanup(); realtimeSubscribers.clear(); });
 
 describe('poll rendering against the real server contract', () => {
-  it('renders question, options, vote counts and per-option voters from a server-shaped payload', () => {
+  it('renders question, options and proportional vote counts from a server-shaped payload', () => {
+    // totalVotes = 2 + 1 = 3 -> Library 67%, Cafe 33%.
     render(<MessagingProvider api={baseApi()} active={false}><PollCard message={{ id: 'msg-1', poll: serverPoll() }} /></MessagingProvider>);
     expect(screen.getByText('Where should we meet?')).toBeTruthy();
-    expect(screen.getByText(/Library \(2\)/)).toBeTruthy();
-    expect(screen.getByText(/Cafe \(1\)/)).toBeTruthy();
+    expect(screen.getByText('Library')).toBeTruthy();
+    expect(screen.getByText(/MessagingPoll\.OPTION_RESULT.*"count":2.*"percent":67/)).toBeTruthy();
+    expect(screen.getByText('Cafe')).toBeTruthy();
+    expect(screen.getByText(/MessagingPoll\.OPTION_RESULT.*"count":1.*"percent":33/)).toBeTruthy();
   });
 
   it('derives selection from voted_option_ids (REST-only) and marks the viewer\'s own vote', () => {
+    // Single-choice (allow_multiple: false) renders radios, not checkboxes --
+    // native radio semantics match the WO's "tapping a different option moves
+    // the vote, tapping the same one is a no-op" design directly.
     const poll = serverPoll({ voted_option_ids: ['opt-a'] });
     render(<MessagingProvider api={baseApi()} active={false}><PollCard message={{ id: 'msg-1', poll }} /></MessagingProvider>);
-    const checkboxes = screen.getAllByRole('checkbox');
-    expect(checkboxes[0].checked).toBe(true);
-    expect(checkboxes[1].checked).toBe(false);
-    expect(screen.getByText(/Library.*MessagingPoll\.YOU_VOTED/)).toBeTruthy();
+    const radios = screen.getAllByRole('radio');
+    expect(radios[0].checked).toBe(true);
+    expect(radios[1].checked).toBe(false);
+    // Count/percent and the viewer's own vote both live in the accessible
+    // name, not conveyed by the bar's width alone (WO accessibility risk).
+    expect(radios[0].getAttribute('aria-label')).toMatch(/Library.*MessagingPoll\.OPTION_RESULT.*MessagingPoll\.YOU_VOTED/);
+    expect(radios[1].getAttribute('aria-label')).not.toMatch(/YOU_VOTED/);
   });
 
   it('does not clear or invert the viewer\'s own vote when a poll_updated frame carries no voted_option_ids', async () => {
@@ -80,7 +89,7 @@ describe('poll rendering against the real server contract', () => {
     // own castPollVote reconciliation would leave it — not a static prop the
     // component can never observe a later frame update against.
     dispatchMessagingFrame({ envelope: 'messaging', type: 'message', event_id: 'seed', conversation_id: 'conv-1', message: { id: 'msg-1', conversation_id: 'conv-1', kind: 'poll', poll: votedPoll } });
-    await waitFor(() => expect(screen.getAllByRole('checkbox')[0].checked).toBe(true));
+    await waitFor(() => expect(screen.getAllByRole('radio')[0].checked).toBe(true));
     // The real poll_updated frame shape: payload.poll is a bare serialize_poll
     // result (verified against services.py's _poll_updated_payload) — never
     // carries voted_option_ids. A vote_count bump from another viewer must
@@ -89,10 +98,10 @@ describe('poll rendering against the real server contract', () => {
       envelope: 'messaging', type: 'poll_updated', event_id: 'evt-1', conversation_id: 'conv-1', message_id: 'msg-1', poll_id: 'poll-1',
       poll: { ...serverPoll(), options: [{ id: 'opt-a', text: 'Library', order: 0, vote_count: 3, voters: ['user-1', 'user-2', 'user-4'] }, { id: 'opt-b', text: 'Cafe', order: 1, vote_count: 1, voters: ['user-3'] }] },
     });
-    await waitFor(() => expect(screen.getByText(/Library \(3\)/)).toBeTruthy());
+    await waitFor(() => expect(screen.getByText(/MessagingPoll\.OPTION_RESULT.*"count":3/)).toBeTruthy());
     // The frame carries no voted_option_ids at all — the viewer's REST-known
     // vote must be carried forward, not wiped, by this update.
-    expect(screen.getAllByRole('checkbox')[0].checked).toBe(true);
+    expect(screen.getAllByRole('radio')[0].checked).toBe(true);
   });
 
   it('grants close only to the poll creator (created_by_id) or a host override, never a guess from an object shape', () => {
@@ -105,11 +114,12 @@ describe('poll rendering against the real server contract', () => {
     expect(screen.getByRole('button', { name: 'MessagingPoll.CLOSE' })).toBeTruthy();
   });
 
-  it('disables voting once the poll is closed', () => {
+  it('disables voting once the poll is closed and shows a closed indicator, not merely a missing button', () => {
+    // With no separate submit button (MSG-6g), "closed" can no longer be
+    // inferred from its absence -- must be an explicit, visible indicator.
     const poll = serverPoll({ closed_at: '2026-07-31T10:00:00Z' });
     render(<MessagingProvider api={baseApi()} active={false}><PollCard message={{ id: 'msg-1', poll }} /></MessagingProvider>);
-    screen.getAllByRole('checkbox').forEach((checkbox) => expect(checkbox.disabled).toBe(true));
-    expect(screen.getByRole('button', { name: 'MessagingPoll.VOTE' }).disabled).toBe(true);
+    screen.getAllByRole('radio').forEach((radio) => expect(radio.disabled).toBe(true));
     expect(screen.getByText('MessagingPoll.CLOSED')).toBeTruthy();
   });
 });
