@@ -268,3 +268,41 @@ django-core-micha MSG-7, and bumping one without the other leaves the surface ha
 Emit `PLAN: <steps>` up front, then a single-line `PROGRESS: [<n>/<total>] <action>` before every
 relevant action and `PROGRESS: [<n>/<total>] done` on completion, spaced so no gap exceeds ~2 min,
 stdout unbuffered, and exactly one final `RESULT: DONE|BLOCKED <reason>`.
+
+## FIX ROUND 1 (Orchestrator, post-review — read this if you are resuming this WO)
+
+Your prior chunk (`RESULT: DONE`) is already in the working tree, uncommitted: the orchestrator
+independently confirmed 221/221 tests pass (41 files, up from a 215/40 baseline) and `tsc` is clean. Do
+NOT redo or re-verify what already works. The orchestrator also fixed one pre-existing test itself
+(`tests/messagingUnreadLifecycle.test.jsx`'s "marks the selected conversation read" — it rendered
+`ConversationList` alone with no `Thread`, which your scope D change legitimately broke since `Thread`'s
+mount effect is now sole owner; already corrected and re-verified green, no action needed from you on
+that file). Fix only the following, then re-run your test scope and report `RESULT: DONE` again.
+
+**[P1, blocking — confirmed by the independent `reviewer`] Scope C's fix does not actually work for
+direct (1:1) conversations — the single most common case.** `ReadTicks.jsx`'s merge of `cache.receipts`
+over the REST-fetched `status` only takes effect through `recipientDetail` (derived from
+`status.recipient_detail`). But per this repo's own established server contract
+(`work-orders/MSG-3f.md:267`: `recipient_detail` is only present for non-direct conversations — dcm's
+`read_status` never returns it for a `kind: 'direct'` conversation, by design, per the DM-privacy
+carve-out). So for a DM: `applyFrame` correctly writes the incoming `read_state` frame into
+`cache.receipts`, but `ReadTicks` never looks at `cache.receipts` for that case — `recipientDetail` stays
+`undefined`, and `allRead` falls back to the stale `status.all_read` from the one-time REST fetch. The
+defect this scope exists to fix ("a receipt can never update within a session", WO finding 7) is therefore
+still present for every 1:1 conversation. Your own new test (`tests/messagingMsg6.test.jsx`, the
+`read_state` test) only exercises `conversation: { kind: 'group' }` — write a DM-scoped equivalent that
+would have caught this.
+
+Fix: for a direct conversation, derive the receipt from `cache.receipts` keyed by the conversation's
+counterpart, not from `recipient_detail` (which will never be populated for DMs — do not wait for it).
+`conversation.other_user_id` (dcm's bare-id field for a direct conversation's counterpart, added in a
+prior WO) is what you need: look up `cache.receipts[\`${conversation.id}:${conversation.other_user_id}\`]`
+directly when `conversation?.kind === 'direct'`, and treat its `last_read_at` presence as `all_read` for
+that case (a DM has exactly one other participant, so "all read" and "counterpart has read" are the same
+fact — no `.every()` needed, unlike the group/managed case). Keep the existing `recipient_detail`-based
+path for non-direct conversations unchanged. Add a test mirroring the existing group-conversation
+`read_state` test but with `conversation: { id: 'c1', kind: 'direct', other_user_id: 'u2' }`, asserting the
+label flips from `DELIVERED` to `ALL_READ` after the frame arrives, with no additional REST call.
+
+Re-run your test scope (the messaging test files plus whatever covers `SupportRecoveryRequestsTab`) after
+this change. Do not touch anything outside `ReadTicks.jsx` and the one new/extended test.
