@@ -126,6 +126,95 @@ today's `|| poll` fallback — if it passes on the unmodified code, it is not te
 ## TEST SCOPE FOR THE GATE (orchestrator)
 The messaging test files plus whatever covers `SupportRecoveryRequestsTab`. Not the full suite.
 
+## OPERATOR DECISIONS (this run)
+- **Scope C is deferred — do NOT implement it in this pass.** jg MSG-9 finding 1 (live WS push not
+  arriving) is still undiagnosed; handling frames that never arrive proves nothing. Implement A, B, D, E
+  only. Note scope C as an open item in your final report so it can be tracked in `WORK_ORDERS.md`.
+- **Scope B's root cause is now confirmed and fixed at the source, in parallel, by `django-core-micha`
+  MSG-7 scope F (operator-approved extension, running concurrently in this session):** dcm's poll REST
+  response (`_poll_response` / `serialize_poll`) previously had no `message_id` at all — verified by
+  reading dcm's `views.py`/`serializers.py`/`models.py` directly, not assumed. It now returns
+  `message_id` (a string, dcm's UUID-as-string convention) on create/vote/close. **Do not re-derive or
+  re-verify dcm's fix — build against the assumption that `poll.message_id` is present** on the response
+  object `createConversationPoll`/`castPollVote`/`closeConversationPoll` receive. If your local dcm
+  checkout does not yet have `message_id` on that response when you test, that is a sequencing problem to
+  report, not a signal to invent a fallback in ucm.
+
+## IMPLEMENTATION MAP (Orchestrator)
+
+### Context package
+
+**A — timestamps (`src/messaging/MessageBubble.jsx`, `src/components/SupportRecoveryRequestsTab.jsx`)**
+- `MessageBubble.jsx:133` — `{new Date(message.created_at).toLocaleString()}` inside the `hasMeta` block
+  (`:132-136`). Change to render `HH:MM` only, with the active i18next locale, e.g.
+  `new Date(message.created_at).toLocaleTimeString(i18n.language, { hour: '2-digit', minute: '2-digit' })`
+  — `useTranslation()` is already destructured as `{ t }` at `:33`; add `i18n` to that destructure.
+- The day-separator is `Thread`'s job (it has the neighbouring message), not `MessageBubble`'s. In
+  `Thread.jsx`, the render loop over `roots` (`:139-153`, `roots.map((message) => { ... })`) and the
+  nested `replies.map` (`:151`) only ever see one message at a time inside the callback — you need the
+  previous rendered root's date to compare against. Track it across iterations (e.g. reduce over `roots`
+  building an array of `{ message, showDateSeparator }` before rendering, rather than mutating a ref
+  inside `.map`, which fires render-order-dependent and is fragile under React StrictMode's double-invoke).
+  Insert a separator row (a `Divider`-adjacent `Typography` with the formatted date, locale-aware, e.g. via
+  `toLocaleDateString(i18n.language)`) when the day changes. `chronological()` (`Thread.jsx:10`) already
+  guarantees ascending order, so a simple previous-vs-current day comparison suffices — no need to
+  re-sort.
+- `ConversationList.jsx`'s `relativeTime(value, locale)` (`:31-36`) is the existing pattern for threading
+  `i18n?.language` through a date formatter (called at `:89` with `i18n?.language`) — follow that shape,
+  don't invent a second convention.
+- `SupportRecoveryRequestsTab.jsx:368` and `:410` (both bare `new Date(...).toLocaleString()`) — same fix,
+  same locale-threading. Check whether that component already has `i18n` from `useTranslation()`; if not,
+  destructure it there too.
+
+**B — poll cache key (`src/messaging/MessagingProvider.jsx`)**
+- `createConversationPoll` (`:401-406`): replace `const message = poll?.message || poll;` — dcm never
+  sends a `message` object, only the flat poll projection now carrying `message_id` (see Operator
+  Decisions above). Resolve the message id from `poll.message_id` explicitly; if absent, treat it as a
+  real error (don't silently fall back to `poll.id`). Something like:
+  ```js
+  const messageId = poll?.message_id;
+  if (messageId != null) patchMessage({ id: messageId, conversation_id: poll.conversation_id ?? conversationId, created_at: poll.created_at ?? new Date().toISOString(), poll });
+  ```
+  — note dcm's poll object itself carries no `created_at` either (check `serialize_poll`); you likely need
+  to accept that a freshly created poll message has no server `created_at` until the next fetch/frame, OR
+  confirm whether the realtime `poll_updated` frame (which does carry a full conversation/message context
+  via `_poll_updated_payload`) arrives fast enough in practice to backfill it. Investigate `serialize_poll`'s
+  actual returned keys yourself (do not assume) and choose the least-guessy option; state your reasoning.
+- `castPollVote` (`:407-412`) / `closeConversationPoll` (`:413-418`) use `cache.messages[messageId]` where `messageId` is already
+  passed in by the caller (not derived from the poll response) — these two are likely already correct
+  today (the bug is specific to *creation*, where the id doesn't exist in cache yet). Verify, don't assume;
+  the WO's instruction to apply "the same scrutiny" to these means check-first, not change-by-default.
+
+**D — double `markConversationRead` (`src/messaging/Thread.jsx`, `src/messaging/ConversationList.jsx`)**
+- `Thread.jsx:56` — `useEffect(() => { if (conversationId != null) markConversationRead(conversationId)...`
+- `ConversationList.jsx:85` — the `ListItemButton`'s `onClick` also calls `markConversationRead(...)`.
+- Keep `Thread.jsx:56`; remove the call from `ConversationList.jsx:85`'s `onClick` (keep `onOpen?.(conversation)`
+  itself — only drop the `markConversationRead` call and its `.catch`).
+
+**E — plural forms (`src/i18n/messagingTranslations.ts`)**
+- `MessagingThread.SHOW_REPLIES` (`:32`): convert to i18next `_one`/`_other` keys (de/en/fr), all three —
+  `Thread.jsx:144` already calls `t('MessagingThread.SHOW_REPLIES', { count: ... })`, i18next resolves the
+  plural key automatically once `_one`/`_other` exist; no call-site change needed.
+- Audit found two more `{{count}}` strings with no plural variants: `MessagingComposer.FILES_SELECTED`
+  (`:64`) and `MessagingReactions.TOGGLE` (`:72`) — fix both the same way. `MessagingPoll.OPTION` (`:85`,
+  `"Option {{count}}"`) is an ordinal label, not a plural noun phrase — it reads correctly at every count
+  in all three languages as-is; leave it alone.
+- `MessagingReadTicks.DELIVERED` (`:57`) — **do not add plural forms for it.** Per the WO's own conditional
+  ("if it survives dcm MSG-7 scope C"): it does not survive — dcm MSG-7 removes `delivered_count` from
+  `read_status` this same run (operator-approved), so `ReadTicks.jsx:21`'s
+  `status.delivered_count || 0` will render `0` from now on for a different reason (`undefined` instead of
+  an always-NULL field) but with **no change in rendered output** — it already always showed "0" before
+  this run. This is a pre-existing, unrelated-to-this-WO UX rough edge (a two-state receipt showing a
+  meaningless count); flag it as a follow-up in your final report, do not fix `ReadTicks.jsx` here — that
+  is out of this WO's scope A-E.
+
+### Do-not-touch reminders (from the envelope, restated)
+No change to `isOwn`/`canShowReadTicks`/`senderName`/ownership derivation (that's dcm MSG-7's job) or to
+`reconcileMessage`'s merge semantics or `useRealtimeCore`.
+
+### Target repo working directory
+`C:\Users\biglmi\Documents\webapps\ui-core-micha`
+
 ## TARGET REPO
 `C:\Users\biglmi\Documents\webapps\ui-core-micha`. Branch `main` (or `develop` if present). Publish per
 the repo's release flow; **jg's pin bump is a separate step and NOT part of this WO** — jg also needs
