@@ -71,11 +71,29 @@ The operational need in a camp is *"did a relevant share of the group read this?
 measurement, not a useless feature: in any group it is essentially never true, so a boolean pins the
 indicator to its first state precisely where the information matters most.
 
-| Conversation kind | Display |
-|---|---|
-| `direct` | two-state tick — `DoneOutlinedIcon` "Gesendet" → `DoneAllOutlinedIcon` `primary` "Gelesen". A 1-of-1 ratio is noise, and the WhatsApp metaphor fits a two-party chat. |
-| `group`, `broadcast`, `managed` | a **ratio**: "18/40 gelesen". Numeric, not an icon ladder. |
-| per-recipient detail | unchanged — already correctly gated (see below). |
+Operator decision, 2026-08-03:
+
+| Conversation kind | Viewer | Display |
+|---|---|---|
+| `direct` | sender | two-state tick — `DoneOutlinedIcon` **light grey** "Gesendet" → `DoneAllOutlinedIcon` **dark blue** "Gelesen" |
+| `group`, `broadcast`, `managed` | team member | a **ratio**: "18/40" (read / members). Numeric, no icon ladder. |
+| `group`, `broadcast`, `managed` | ordinary participant | **nothing** — render no indicator at all |
+| per-recipient detail | team member | unchanged — already correctly gated (see below) |
+
+**The contrast between the two DM states must be clearly stronger than today.** Currently
+`color={status.all_read ? 'primary' : 'inherit'}`, and `inherit` inside the meta `Stack` resolves to
+`text.disabled` — the two states are barely distinguishable. Use an explicit light grey and an explicit
+dark blue rather than `inherit`/`primary`, and verify the difference is obvious at the rendered
+`1rem` icon size in both light and dark theme. The icon shape already differs (`Done` vs `DoneAll`), so
+the distinction does not rest on colour alone — keep it that way.
+
+**"nothing" for an ordinary participant in a group is deliberate, not an oversight.** A permanently
+grey tick — which is what `all_read` would produce in any real group — is the "looks stuck" failure this
+scope exists to remove. No indicator is better than a misleading one.
+
+**No client-side permission logic.** dcm MSG-9 returns the counts only to viewers holding
+`read_receipt_detail`, so the rule is purely shape-driven: *counts present → ratio; else `direct` →
+tick; else → render nothing*. Do not branch on roles or capabilities in ucm.
 
 **The server already has the number and throws it away.** `read_status` (`services.py:344-347`) computes
 `all_read` from exactly the queryset that yields the count:
@@ -170,7 +188,7 @@ Narrow and behavioural. Do NOT run the full suite.
 2. **A:** a host resolver returning `null` still falls through to the existing chain unchanged
    (regression guard for the delegation contract).
 3. **A:** the existing `managed` / `event_all` / `event_team` behaviour is unchanged.
-4. **B:** in a `direct` conversation, a not-yet-read message renders "Gesendet" and a read one renders the double check; in a `group`/`broadcast`, the ratio string is rendered instead of any icon ladder. Assert that no label containing the word "Zugestellt" is produced anywhere in `ReadTicks`.
+4. **B:** `direct` renders the two-state tick and the two states use visibly different explicit colours (assert the resolved colours differ, not just that a colour prop is set); a `group` WITH counts renders the ratio; a `group` WITHOUT counts renders **no** indicator. Assert no label containing "Zugestellt" is produced anywhere in `ReadTicks`.
    that **no** label containing a `{{count}}`-derived number is produced anywhere in `ReadTicks`.
 5. **B:** `all_read` still renders the double check in `primary` with the unchanged label.
 
