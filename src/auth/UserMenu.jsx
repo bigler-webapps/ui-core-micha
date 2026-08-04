@@ -70,7 +70,13 @@ export function UserMenu({ resolveLink, items = [], profileLink = '/account', av
       >
         <Box sx={{ minWidth: 240, px: 2, py: 1 }}>
           <Typography variant="subtitle1" noWrap>{getDisplayName(user)}</Typography>
-          <Typography variant="body2" color="text.secondary" noWrap>{user?.email}</Typography>
+          {/* A user with no first/last name falls back to username as the
+              display name above — some hosts' usernames are the email
+              address itself, which would otherwise repeat the same text
+              on both lines. */}
+          {user?.email && user.email !== getDisplayName(user) && (
+            <Typography variant="body2" color="text.secondary" noWrap>{user.email}</Typography>
+          )}
         </Box>
         <Divider />
         <MenuItem onClick={handleProfile}>{t('UserMenu.PROFILE')}</MenuItem>

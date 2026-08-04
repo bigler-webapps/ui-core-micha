@@ -115,6 +115,15 @@ describe('UserMenu', () => {
     });
   });
 
+  it('does not repeat the email when it is also the display name (no first/last name, username === email)', () => {
+    const user = { username: 'ada@example.com', email: 'ada@example.com' };
+    renderUserMenu({ user });
+
+    fireEvent.click(screen.getByRole('button', { name: 'translated:UserMenu.TITLE' }));
+
+    expect(screen.getAllByText('ada@example.com')).toHaveLength(1);
+  });
+
   it('avatar renders correct initials, falling back to username when names are absent', () => {
     renderUserMenu({ user: { first_name: 'Ada', last_name: 'Lovelace', username: 'ada' } });
     expect(screen.getByText('AL')).toBeTruthy();
