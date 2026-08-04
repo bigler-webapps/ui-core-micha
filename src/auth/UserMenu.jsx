@@ -57,7 +57,7 @@ export function UserMenu({ resolveLink, items = [], profileLink = '/account', av
         color="inherit"
         onClick={(event) => setAnchorEl(event.currentTarget)}
       >
-        <Avatar src={avatarSrc} sx={{ width: 32, height: 32 }}>
+        <Avatar src={avatarSrc} sx={{ width: 32, height: 32, fontSize: '0.8rem' }}>
           {avatarSrc ? null : getInitials(user)}
         </Avatar>
       </IconButton>
