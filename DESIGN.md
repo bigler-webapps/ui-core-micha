@@ -26,7 +26,9 @@ These principles are the spec a **prototype** encodes and the implementation mat
 
 10. **Prototype = spec, parity = guardrail.** Purely visual/UX — function stays. **"No behaviour / permission / data-contract change"** is the hard condition that goes into the WO.
 11. **Align to the shipped reality.** When related features land, pull the prototype onto them so it is a truthful spec, not a contradicting vision.
-12. **Avoid the generic "AI look"; take details seriously.** No cream / serif / neon default; embed the real font (CSP-safe as a data-URI, not a silent-fallback risk); `tabular-nums` for aligned numbers; a11y (role/aria on chart regions, focusable info).
+12. **Avoid the generic "AI look"; take details seriously.** No cream / serif / neon default; embed the real font (CSP-safe as a data-URI, not a silent-fallback risk); `tabular-nums` for aligned numbers; a11y (role/aria on chart regions, focusable info). **Template tells to CUT** (unless the app's design system genuinely specifies them): monospace-uppercase **eyebrow / kicker labels** (e.g. `IMARA · ADVANCING RESILIENT HEALTH SYSTEMS`), decorative **pills / badges**, `FIG. 01 ·` / `F.01` **figure captions**, `↳`-prefixed **micro-links**, **oversized display** headlines, **sketchy / hand-drawn** styling, and **explanatory paragraphs that restate the UI** (help is on-demand — see #6). Restraint is the default; each of these is added only with a real reason.
+
+For **brand / marketing / artifact** output, use the `swisstph-design` skill (real Swiss TPH brand — an Anthropic-provided skill, still active) rather than an ad-hoc look — and these same restraint tells still apply there.
 
 ## Also — structural dimensions
 
