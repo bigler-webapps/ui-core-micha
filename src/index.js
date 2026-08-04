@@ -2,6 +2,7 @@
 
 // --- 1. Auth Context (Essentiell für den Wrapper) ---
 export { AuthContext, AuthProvider } from './auth/AuthContext';
+export { UserMenu } from './auth/UserMenu';
 
 export {
   default as apiClient,
@@ -54,6 +55,7 @@ export {
 
 // --- 7. Translations ---
 export { authTranslations } from './i18n/authTranslations';
+export { userMenuTranslations } from './i18n/userMenuTranslations';
 
 // --- 8. Notifications ---
 export { NotificationSettings } from './notifications/NotificationSettings';
