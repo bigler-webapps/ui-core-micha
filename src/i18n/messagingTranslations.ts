@@ -1,5 +1,6 @@
 export const messagingTranslations = {
   'MessagingComposer.ADD_EMOJI': { de: 'Emoji hinzufügen', en: 'Add emoji', fr: 'Ajouter un emoji' },
+  'MessagingComposer.EMOJI_PICKER': { de: 'Emoji auswählen', en: 'Choose an emoji', fr: 'Choisir un emoji' },
   'MessagingComposer.STAGED_FILES': { de: 'Vorgemerkte Anhänge', en: 'Staged attachments', fr: 'Pièces jointes préparées' },
   'MessagingComposer.REMOVE_ATTACHMENT': { de: '{{name}} entfernen', en: 'Remove {{name}}', fr: 'Supprimer {{name}}' },
   'MessagingComposer.UPLOADING': { de: 'Anhänge werden hochgeladen…', en: 'Uploading attachments…', fr: 'Téléversement des pièces jointes…' },

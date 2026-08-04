@@ -1,4 +1,4 @@
-import { Alert, Box, Button, Checkbox, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle, FormControlLabel, IconButton, LinearProgress, Menu, MenuItem, Stack, TextField, Typography } from '@mui/material';
+import { Alert, Box, Button, Checkbox, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle, FormControlLabel, IconButton, LinearProgress, Popover, Stack, TextField, Typography } from '@mui/material';
 import AttachFileIcon from '@mui/icons-material/AttachFile';
 import CampaignOutlinedIcon from '@mui/icons-material/CampaignOutlined';
 import CloseIcon from '@mui/icons-material/Close';
@@ -9,7 +9,18 @@ import { useTranslation } from 'react-i18next';
 
 import { compressImageForUpload } from './composerImageCompression';
 import { extractApiErrorMessage, useMessaging } from './MessagingProvider';
-import { QUICK_EMOJIS } from './ReactionBar';
+
+// A wider, Composer-only set (MSG-6i) -- deliberately separate from
+// ReactionBar's own QUICK_EMOJIS (5, curated for fast reactions). Mobile
+// users already have a full native emoji keyboard for free-form text; this
+// exists for desktop, where that's far less discoverable. Not a search
+// picker -- a fixed curated grid, easy to extend later.
+const COMPOSER_EMOJIS = [
+  '😀', '😂', '😊', '😍', '😉', '😢', '😮', '😡',
+  '👍', '👎', '👏', '🙏', '💪', '🤝', '✌️', '👋',
+  '❤️', '💕', '🔥', '🎉', '🎈', '⭐', '✅', '❌',
+  '☀️', '🌧️', '⚽', '🍕',
+];
 
 function newRequestId() { return globalThis.crypto?.randomUUID?.() || `message-${Date.now()}-${Math.random().toString(36).slice(2)}`; }
 function isImage(file) { return file.type?.startsWith('image/'); }
@@ -140,9 +151,28 @@ export function Composer({ conversationId, conversation, replyTarget = null, onR
       {uploadProgress != null && <LinearProgress variant="determinate" value={uploadProgress} />}
     </Stack>}
     {failed && <Button type="button" onClick={() => submit(failed.requestId, true)} disabled={sending}>{t('MessagingComposer.RETRY')}</Button>}
-    <Menu anchorEl={emojiAnchor} open={Boolean(emojiAnchor)} onClose={() => setEmojiAnchor(null)}>
-      {QUICK_EMOJIS.map((emoji) => <MenuItem key={emoji} onClick={() => insertEmoji(emoji)}>{emoji}</MenuItem>)}
-    </Menu>
+    <Popover
+      anchorEl={emojiAnchor}
+      open={Boolean(emojiAnchor)}
+      onClose={() => setEmojiAnchor(null)}
+      anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
+      transformOrigin={{ vertical: 'top', horizontal: 'left' }}
+    >
+      {/*
+        A Popover, not a Menu: this is a grid of plain buttons, not a linear
+        list of menuitems, so MUI's Menu/MenuList roving-tabindex arrow-key
+        navigation does not apply here and (via role="menu") would advertise
+        semantics the grid can't deliver. Popover leaves keyboard traversal to
+        the browser's native Tab order, which does work for a button grid.
+      */}
+      <Box role="group" aria-label={t('MessagingComposer.EMOJI_PICKER')} sx={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 0.25, p: 0.5, maxWidth: 280 }}>
+        {COMPOSER_EMOJIS.map((emoji) => (
+          <IconButton key={emoji} type="button" size="small" onClick={() => insertEmoji(emoji)} sx={{ fontSize: '1.15rem' }}>
+            {emoji}
+          </IconButton>
+        ))}
+      </Box>
+    </Popover>
     <Dialog open={pollOpen} onClose={() => !sending && setPollOpen(false)} fullWidth maxWidth="sm">
       <DialogTitle>{t('MessagingPoll.CREATE')}</DialogTitle><DialogContent><Stack spacing={1} sx={{ pt: 1 }}>
         <TextField label={t('MessagingPoll.QUESTION')} value={pollQuestion} onChange={(event) => setPollQuestion(event.target.value)} autoFocus />

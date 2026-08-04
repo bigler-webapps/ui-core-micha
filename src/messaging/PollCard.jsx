@@ -45,7 +45,18 @@ export function PollCard({ message, canClose: canCloseProp }) {
   const closed = Boolean(poll.closed_at);
   const creatorId = poll.created_by_id ?? poll.created_by?.id ?? poll.created_by;
   const canClose = canCloseProp ?? poll.can_close ?? message?.can_close ?? message?.permissions?.can_close ?? (creatorId != null && creatorId === currentUser?.id);
-  const totalVotes = (poll.options || []).reduce((sum, option) => sum + (option.vote_count ?? option.voters?.length ?? 0), 0);
+  // Percentage denominator (MSG-6i): the number of distinct people who
+  // answered this poll, not sum(vote_count) across options. For a
+  // multi-select poll one person can vote for several options, so summing
+  // vote_count can exceed the actual respondent count -- dividing by that
+  // inflated sum understated everyone's percentage and the bars didn't sum
+  // to a sensible 100%. dcm's serialize_poll always includes each option's
+  // `voters` (a list of user ids, ungated -- unlike messaging read
+  // receipts); the union across all options is exactly "everyone who
+  // answered", computed client-side, no backend change. This deliberately
+  // reverses MSG-6g's own explicit non-goal ("denominator = votes cast, not
+  // participant count") -- an operator-confirmed correction, not a revert.
+  const respondentCount = new Set((poll.options || []).flatMap((option) => option.voters || [])).size;
 
   const tap = async (id) => {
     if (closed) return;
@@ -87,25 +98,29 @@ export function PollCard({ message, canClose: canCloseProp }) {
     // is no user-directory endpoint (same structural limit already
     // established for the DM candidate list).
     const voteCount = option.vote_count ?? option.voters?.length ?? 0;
-    const percent = totalVotes > 0 ? Math.round((voteCount / totalVotes) * 100) : 0;
+    const percent = respondentCount > 0 ? Math.round((voteCount / respondentCount) * 100) : 0;
     const votedByMe = selected.includes(option.id);
     const resultText = t('MessagingPoll.OPTION_RESULT', { count: voteCount, percent });
     // The bar is decorative; count/percent live in the accessible name (via
     // aria-label on the control itself) as well as in adjacent visible text —
     // width alone must never be the only signal (WO risk note).
     const accessibleLabel = `${option.text || option.label}, ${resultText}${votedByMe ? `, ${t('MessagingPoll.YOU_VOTED')}` : ''}`;
-    const richLabel = <Stack sx={{ flex: 1, minWidth: 0, opacity: pending.has(option.id) ? 0.6 : 1 }} spacing={0.25}>
+    // MSG-6i scope B: "airier, not wider" (operator, after seeing a
+    // screenshot of the checkbox/text/percent squeezed onto one tight line
+    // with a thin bar close to the text) -- more internal spacing/a taller
+    // bar, not a wider bubble (MessageBubble.jsx's maxWidth is untouched).
+    const richLabel = <Stack sx={{ flex: 1, minWidth: 0, opacity: pending.has(option.id) ? 0.6 : 1 }} spacing={0.75}>
       <Stack direction="row" justifyContent="space-between">
         <Typography variant="body2" noWrap>{option.text || option.label}</Typography>
         <Typography variant="caption" color="text.secondary">{resultText}</Typography>
       </Stack>
-      <LinearProgress variant="determinate" value={percent} sx={{ borderRadius: 1, height: 6 }} color={votedByMe ? 'primary' : 'inherit'} />
+      <LinearProgress variant="determinate" value={percent} sx={{ borderRadius: 1, height: 8 }} color={votedByMe ? 'primary' : 'inherit'} />
     </Stack>;
     return { accessibleLabel, richLabel };
   };
   const formControlSx = { width: '100%', m: 0, alignItems: 'flex-start' };
 
-  return <Paper variant="outlined" sx={{ p: 1 }} aria-label={t('MessagingPoll.LABEL')}><Stack spacing={0.75}>
+  return <Paper variant="outlined" sx={{ p: 1.5 }} aria-label={t('MessagingPoll.LABEL')}><Stack spacing={1.5}>
     <Typography variant="subtitle2">{poll.question}</Typography>
     {poll.allow_multiple
       ? (poll.options || []).map((option) => {

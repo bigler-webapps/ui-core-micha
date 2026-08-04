@@ -139,10 +139,21 @@ export function Thread({ conversationId, onReplyTargetChange, canModerateMessage
     setOpenThreads((current) => ({ ...current, [root.id]: !current[root.id] }));
   };
   return (
-    <Stack spacing={1} sx={{ minWidth: 0 }}>
+    // flex: 1, minHeight: 0 (here and on the scroll Box below): lets Thread
+    // shrink to fit when a host embeds it inside a fixed-height flex-column
+    // layout (e.g. header + Thread + Composer all fitting one screen, no
+    // page-level scroll) -- a flex item's default min-height is 'auto',
+    // which refuses to shrink below content size without this. Both
+    // properties are no-ops outside a flex context, so a host that doesn't
+    // flex-wrap Thread sees no behaviour change at all; maxHeight below
+    // still caps growth the same as before for that case (MSG-18, found
+    // while investigating why jg-ferien's Composer rendered behind its
+    // mobile bottom nav -- Thread's own fixed 560px cap never shrank for a
+    // short mobile viewport, no matter how the host's own layout was fixed).
+    <Stack spacing={1} sx={{ minWidth: 0, flex: 1, minHeight: 0 }}>
       {error && <Alert severity="error" role="alert">{error}</Alert>}
       {replyingTo && <Alert severity="info" onClose={() => { setReplyingTo(null); onReplyTargetChange?.(null); }}>{t('MessagingThread.REPLYING_TO', { sender: replyingTo.sender?.display_name || t('MessagingThread.UNKNOWN_SENDER') })}</Alert>}
-      <Box ref={scrollRef} onScroll={onScroll} sx={{ maxHeight: 560, overflowY: 'auto', overflowX: 'hidden', px: 0.5 }} aria-label={t('MessagingThread.TIMELINE')}>
+      <Box ref={scrollRef} onScroll={onScroll} sx={{ flex: 1, minHeight: 0, maxHeight: 560, overflowY: 'auto', overflowX: 'hidden', px: 0.5 }} aria-label={t('MessagingThread.TIMELINE')}>
         {cache.cursors.messages[conversationId] && <Box textAlign="center" py={1}><Button onClick={loadOlder} disabled={loadingOlder}>{loadingOlder ? <CircularProgress size={18} /> : t('MessagingThread.LOAD_OLDER')}</Button></Box>}
         {/* Only show the initial-load spinner when there's nothing to show yet
             — re-opening a conversation whose messages are already cached (an

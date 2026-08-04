@@ -90,10 +90,13 @@ describe('Composer chunk 5 behavior', () => {
   });
 
   it('inserts the selected emoji at the current cursor position', async () => {
+    // MSG-6i: the Composer's own picker is now a wider curated grid
+    // (IconButton per emoji), decoupled from ReactionBar's 5-entry
+    // QUICK_EMOJIS -- role is "button", not "menuitem".
     renderComposer(); fireEvent.change(messageInput(), { target: { value: 'abCD' } });
     messageInput().setSelectionRange(2, 2);
     fireEvent.click(screen.getByRole('button', { name: 'MessagingComposer.ADD_EMOJI' }));
-    fireEvent.click(await screen.findByRole('menuitem', { name: '👍' }));
+    fireEvent.click(await screen.findByRole('button', { name: '👍' }));
     await waitFor(() => expect(messageInput().value).toBe('ab👍CD'));
   });
 

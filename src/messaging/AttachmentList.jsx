@@ -98,12 +98,15 @@ export function AttachmentList({ attachments = [] }) {
             onClick={() => (image ? openLightbox(attachment) : download(attachment))}
             onContextMenu={(event) => openMenu(event, attachment)}
             aria-label={label}
-            sx={{ width: 64, height: 64, borderRadius: 1, overflow: 'hidden', border: '1px solid', borderColor: 'divider', display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: 'action.hover' }}
+            sx={{ width: 120, height: 120, borderRadius: 1, overflow: 'hidden', border: '1px solid', borderColor: 'divider', display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: 'action.hover' }}
           >
             {image && preview
               ? <Box component="img" src={preview} alt="" sx={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-              : <Stack alignItems="center" spacing={0.25} sx={{ px: 0.5, maxWidth: '100%' }}>
-                  <InsertDriveFileOutlinedIcon fontSize="small" />
+              : <Stack alignItems="center" spacing={0.75} sx={{ px: 1, maxWidth: '100%' }}>
+                  {/* Icon scaled up from `small` -- 120px tile (was 64px) made
+                      the original small icon+caption pairing read sparse/
+                      undersized against the much larger tile (MSG-6i). */}
+                  <InsertDriveFileOutlinedIcon fontSize="large" />
                   <Typography variant="caption" noWrap sx={{ maxWidth: '100%' }}>{nameOf(attachment)}</Typography>
                 </Stack>}
           </ButtonBase>

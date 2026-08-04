@@ -146,3 +146,126 @@ session: publish alone is not delivery).
 Emit `PLAN: <steps>` up front, then a single-line `PROGRESS: [<n>/<total>] <action>` before every
 relevant action and `PROGRESS: [<n>/<total>] done` on completion, spaced so no gap exceeds ~2 min,
 stdout unbuffered, and exactly one final `RESULT: DONE|BLOCKED <reason>`.
+
+---
+
+## Part B — Implementation map (Orchestrator) / as-built record
+
+**Codex was unavailable (out of credits) — implemented directly by the Orchestrator.**
+
+### Scope A — `AttachmentList.jsx`
+Tile `sx={{ width: 64, height: 64, ... }}` → `120, 120`. Non-image tile's icon bumped
+`fontSize="small"` → `"large"` and its `Stack` spacing `0.25` → `0.75` — the original
+small icon+caption pairing read sparse against the much larger tile.
+
+### Scope B — `PollCard.jsx` spacing
+Outer `Paper` padding `p: 1` → `1.5`; outer `Stack` (question/options/close-row) spacing
+`0.75` → `1.5`; per-option `richLabel` `Stack` spacing `0.25` → `0.75`; `LinearProgress`
+`height: 6` → `8`. No exact values were specified by the operator beyond "airier, not
+wider" (confirmed via a screenshot of the cramped original) — **not independently
+visually re-verified against a fresh screenshot before closing** (no staging/live
+credentials for this specific check this round); flagging per the same disclosed-
+limitation pattern as MSG-6h's reaction-spacing fix.
+
+### Scope C — `PollCard.jsx` percentage denominator
+`totalVotes = sum(option.vote_count)` replaced with
+`respondentCount = new Set(options.flatMap(option => option.voters || [])).size` — the
+count of distinct people who voted for *any* option, computed client-side from data
+already present in the response (`voters` arrays, already used for the viewer's-own-vote
+marking). `percent` now divides by `respondentCount`.
+
+### Scope D — `Composer.jsx` emoji picker
+New `COMPOSER_EMOJIS` (28 entries) defined locally in `Composer.jsx`, rendered as a
+7-column CSS grid of `IconButton`s inside the existing `Menu` (replacing the old
+`QUICK_EMOJIS.map(... <MenuItem>...)` vertical list — `MenuItem` import removed, now
+unused). `ReactionBar.jsx`'s own `QUICK_EMOJIS` (5, curated) untouched.
+
+### Companion fix found and fixed — `Thread.jsx` (not in this WO's original scope)
+Discovered while live-verifying jg-ferien's `MSG-18` (mobile Composer hidden behind the
+fixed bottom nav) in the *same* browser session as this WO's own work: after fixing every
+jg-side layout offset, the Composer was **still** rendering behind the nav. Root cause
+traced into this package: `Thread.jsx`'s root `<Stack>` had no `flex`/`minHeight`, and its
+scroll `Box` used a **hardcoded `maxHeight: 560`** — neither participates in a host's
+flex-column layout at all, so on a short mobile viewport the thread never shrinks to fit,
+regardless of how correctly the *host* sizes its own containers. Fixed: both the root
+`Stack` and the scroll `Box` gained `flex: 1, minHeight: 0` (the classic flex-item
+`min-height: auto` trap — a flex item won't shrink below its content's natural size
+without this). `maxHeight: 560` kept as an upper-bound fallback, so a host that does
+**not** embed `Thread` in a flex-column context sees **zero behaviour change** (both new
+properties are no-ops outside a flex context). Live-verified end-to-end (see MSG-18's own
+as-built record in jg-ferien for the full trace): the composer moved from `top: 742`
+(inside the fixed nav's own `740–812` range) to `top: 629.5` (a clean 64px gap above the
+nav at `740`), by locally building this package's `dist/` and patching it into jg's
+`node_modules` for verification — no publish needed to prove the fix, but IS needed to
+actually ship it (bundled into this same release, not deferred).
+
+### Tests
+`tests/messagingMsg6i.test.jsx` (new) — 7 tests: all 5 WO-required cases, one extra
+(emoji-insertion behaviour still works from the new grid), plus a 6th added post-review
+(see R3 below) asserting `Thread.jsx`'s `flex`/`minHeight` are actually applied.
+
+### Verification (pre-review)
+Full suite 249 → 255 (6 new), `tsc` clean.
+
+### Independent review — `reviewer` + `ui_reviewer`, both run in parallel, findings + fixes
+
+Both reviewers independently converged on the same P2 keyboard-navigation regression
+(scope D) — treated as one finding below (R1/U1).
+
+- **R1/U1 (P2, confirmed by both reviewers) — Composer's emoji grid broke MUI `Menu`'s
+  arrow-key roving-focus.** Nesting the 28 `IconButton`s inside an intervening
+  `<Box role="group">` meant `MenuList`'s `moveFocus` (which only traverses **direct**
+  children) saw a single non-tabbable child, so ArrowDown/Up/Home/End all became dead —
+  none of the 28 buttons reachable via the menu's own keyboard model, and nesting
+  `role="button"` descendants under `role="menu"` isn't a conformant ARIA pattern either.
+  **Fixed**: swapped `<Menu>` for `<Popover>` (`Composer.jsx`) — a grid of plain buttons
+  was never actually a linear menu, so this stops advertising semantics it can't deliver
+  and leaves keyboard traversal to the browser's native Tab order, which does reach every
+  button. Replicated Menu's default `anchorOrigin`/`transformOrigin`
+  (`{vertical:'bottom',horizontal:'left'}` / `{vertical:'top',horizontal:'left'}`) so the
+  picker's on-screen position is unchanged.
+- **R2 (P2, `reviewer`) — optimistic vote could desync `vote_count` from `voters`.**
+  `MessagingProvider.applyOptimisticVote` bumped `vote_count` unconditionally but only
+  updated `voters` when `userId` was known (a documented "brief window" before
+  `AuthContext` populates `user` — in practice also the default state for any host/test
+  that doesn't wrap `MessagingProvider` in `AuthContext` at all, confirmed while fixing
+  this). Scope C's new `respondentCount` denominator reads only from `voters`, so that
+  window could show a transiently inconsistent/>-100% percentage. **Fixed**: added a
+  sentinel (`OPTIMISTIC_ANONYMOUS_VOTER`, a space-prefixed string no real UUID can match)
+  used in place of `userId` in `voters` when it's unknown, so `vote_count` and `voters`
+  move together in every case — the real vote still overwrites this on
+  reconcile/revert. Re-ran every existing poll-vote test
+  (`messagingMsg6g/Interactions/PollRendering/CompactBubble/Api`) to confirm the
+  already-tested optimistic-count behaviour (which relies on the no-`AuthContext` test
+  shape) still holds — it does.
+- **R3 (P2, `reviewer`) — `Thread.jsx`'s flex/minHeight companion fix had zero regression
+  coverage**, and the "not meaningfully assertable via jsdom" justification didn't hold up
+  (this WO's own tile-size test already proves resolved `sx` values ARE readable via
+  `getComputedStyle` without real layout). **Fixed**: added test 6 to
+  `tests/messagingMsg6i.test.jsx`, asserting `flexGrow`/`minHeight` on both `Thread`'s
+  root `Stack` and scroll `Box`, plus that `maxHeight: 560` is still present as the
+  fallback cap.
+- **U2 (P3, `ui_reviewer`) — hardcoded `fontSize: '1.15rem'`** on the per-emoji
+  `IconButton`. No existing theme/typography token covers emoji-glyph sizing (checked
+  `ReactionBar.jsx`'s own emoji rendering for precedent — none exists there either).
+  **Not fixed** — P3, no clear correct token to switch to; noted here rather than
+  silently dropped.
+- **U3 (P3, `ui_reviewer`) — the emoji grid reused `MessagingComposer.ADD_EMOJI`** as its
+  `role="group"` `aria-label`, identical to the trigger button's own label, so a screen
+  reader announces "Add emoji" twice back-to-back. **Fixed**: added a dedicated
+  `MessagingComposer.EMOJI_PICKER` key ("Choose an emoji" / "Emoji auswählen" / "Choisir
+  un emoji") for the grid.
+- **R4 (P3, `reviewer`) — test 4b's assertion (`input.value.length > 2`) didn't prove
+  cursor-position insertion**, only that something got appended. **Fixed**: rewrote it to
+  match the exact expected string at a mid-string cursor position (same shape as the
+  pre-existing `messagingComposerChunk5.test.jsx` assertion).
+- **R5 (P3, `reviewer`) — residual, not fixed**: the 120px tile stretches whatever
+  `getAttachmentThumbnail` returns via `objectFit: cover`; if that thumbnail is
+  server-sized for the old 64px target, the larger tile could show blur. Not verifiable
+  from this repo (backend-controlled, untouched by this WO) — flagged as disclosed
+  residual risk, consistent with scope B's own "no live screenshot check this round" note.
+
+### Verification (post-review)
+Full suite (single-forked to avoid an unrelated vitest worker-pool timeout seen under the
+default parallel pool): **45 test files, 256/256 passed** (255 + 1 new). `tsc -p
+tsconfig.build.json --noEmit` clean.
