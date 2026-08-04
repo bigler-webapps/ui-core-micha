@@ -114,6 +114,74 @@ same corner of ucm and the same release.
 Depends on dcm publishing the preference field first. **If it has not landed, ship A–D without E and
 say so** — do not block the menu on it.
 
+## CONTEXT PACKAGE — verified current state (Orchestrator, Implementation map)
+
+Work from this package; do not explore broadly from scratch — open only the named files to verify.
+If you must dig deeper, delegate to a read-only Explore sub-agent (Haiku).
+
+**New file: `src/auth/UserMenu.jsx`.** Sits with `AuthContext.jsx` (identity/auth surface), not
+`notifications/` — this is not a notification. Export it in `src/index.js` next to the existing auth
+block (`export { AuthContext, AuthProvider } from './auth/AuthContext';` at `:4`) — add
+`export { UserMenu } from './auth/UserMenu';` there, not in the notifications block at `:59-65`.
+
+**Menu pattern to mirror — `src/notifications/NotificationBell.jsx` (whole file, 85 lines), exactly:**
+- `resolveLink` prop shape (`:19`): `export function NotificationBell({ resolveLink }) { … }`. The
+  handler calls `resolveLink(someLinkString)` conditionally (`:31`) — same contract `UserMenu` must
+  use: `resolveLink('/account')` for Profil, `resolveLink(item.onSelect...)` is wrong per spec —
+  re-read scope C: host items use `onSelect` (a callback), NOT `resolveLink` — `resolveLink` is only
+  for ucm's own Profil navigation. Two distinct mechanisms coexist here (ucm's own nav via
+  `resolveLink`, host items via their own `onSelect`) and that is correct, not a violation of "one
+  action mechanism" (point C.3 bars the host from having *two* ways — `onSelect` is the host's one way).
+- Trigger + `Menu` scaffold (`:36-51`): `IconButton` with `aria-label`, `onClick={(e) =>
+  setAnchorEl(e.currentTarget)}`, then MUI `<Menu anchorEl={anchorEl} open={Boolean(anchorEl)}
+  onClose={() => setAnchorEl(null)} anchorOrigin={{horizontal:'right',vertical:'bottom'}}
+  transformOrigin={{horizontal:'right',vertical:'top'}}>`. **MUI `Menu` handles Escape and
+  click-outside natively via its built-in focus trap** (`onClose` fires for both) — no custom
+  keyboard/focus-trap code needed; `ui_reviewer`'s RISKS check is about *not breaking* this default,
+  not building one. Focus returns to the trigger `IconButton` automatically on close (MUI default);
+  verify this in the required test rather than assuming it.
+- Item click closes the menu (`setAnchorEl(null)`) before/alongside the action (`:28-32`) — Abmelden
+  and Profil and each host item must all close the menu on click.
+
+**Identity data — `src/auth/AuthContext.jsx`:**
+- `mapUserFromApi` (`:41-73`) is where `user.first_name`, `user.last_name`, `user.username`,
+  `user.email` land — confirmed present on every `user` object in every app (already relied on by
+  `AccountPage`). Avatar initials: prefer `first_name[0]+last_name[0]`, fall back to `username[0]`
+  when names are absent (per scope B) — no other field exists to derive from.
+- `logout` (`:132-141`): `const logout = async () => { try { await logoutSession(); } catch (e) {
+  console.error(...) } finally { setUser(null); } }`, already exposed on the context value (`:150`).
+- **No `useAuth` hook exists in this repo** — every consumer does `useContext(AuthContext)` directly
+  (`AuthContext` exported at `:15`, `createContext(null)`). `UserMenu` must do the same — do not
+  invent a `useAuth` hook as part of this WO, that would be scope creep beyond the menu itself.
+- Do not touch any line in this file (NON-GOALS already says so) — `UserMenu` only *reads*
+  `user`/`logout` off the context.
+
+**Avatar:** no existing ucm `Avatar` component (verified — only bare MUI `<Avatar>` usage inside
+`ConversationList`, nothing reusable). Build it inline in `UserMenu.jsx` or as a small
+`src/auth/UserAvatar.jsx` sibling — implementer's call; MUI's `<Avatar>{initials}</Avatar>` for the
+no-image case, `<Avatar src={overrideImageUrl} />` when a host passes one (scope B: "Allow a host
+override for a real image").
+
+**i18n — new file `src/i18n/userMenuTranslations.ts`**, same shape as the existing four
+(`src/i18n/notificationsTranslations.ts` is the closest analog, e.g. its `:1-4`): a flat object,
+keys like `'UserMenu.PROFILE'`/`'UserMenu.LOGOUT'`, each `{ de, fr, en, sw }`. **No existing
+`UserMenu.*` or reusable `Profil`/`Abmelden` key exists yet** — `authTranslations.ts` has
+`Account.TAB_PROFILE` (`:1616-1619`, "Profil"/"Profile") which is close but is the *account page
+tab* label, a different UI surface; do not reuse it silently — either add fresh `UserMenu.*` keys
+(recommended, keeps this component's translations self-contained and independently consumable) or
+explicitly reuse `Account.TAB_PROFILE` if the copy is identical — state which was chosen. Then export
+`userMenuTranslations` from `src/index.js` next to `authTranslations` (`:56`)/`notificationsTranslations`.
+Per scope C.2, host-supplied `items[].label` are already-resolved strings — `UserMenu` must NOT run
+them through `t()`.
+
+**Package/test conventions:** flat package, `src/` at repo root (no `frontend/` subdir), React 19 +
+MUI 7 as peer deps (`package.json`), Vitest + `@testing-library/react`. New test file
+`tests/UserMenu.test.jsx` mirroring `tests/NotificationBell.test.jsx`'s shape: `vi.hoisted()` mocks,
+stub `react-i18next`'s `useTranslation` with a **stable** `t` reference (module-level, not recreated
+per render — the NOTIF-14 postmortem in this repo's own `WORK_ORDERS.md` documents exactly this
+class of bug: an unstable mocked `t` retriggers effects and clobbers state in tests), and
+`afterEach(cleanup)`.
+
 ## NON-GOALS / DO NOT TOUCH
 - **No context or structure picker**, in any form, including read-only display of the current context.
   ucm cannot know whether the unit is a school, an event, a course or a department.
