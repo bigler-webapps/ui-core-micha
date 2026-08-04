@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import React from 'react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 
 const notificationsApi = vi.hoisted(() => ({
   getNotificationPreferences: vi.fn(),
@@ -13,7 +13,12 @@ const notificationsApi = vi.hoisted(() => ({
 }));
 
 vi.mock('../src/notifications/api', () => notificationsApi);
-vi.mock('react-i18next', () => ({ useTranslation: () => ({ t: (key) => key }) }));
+// A stable `t` reference, matching real react-i18next (which memoizes it) -- an unstable
+// mock `t` would re-trigger the component's `useEffect(..., [t])` on every render and
+// re-fetch preferences, clobbering any state update made in between (e.g. a toggle's
+// optimistic-from-response update racing against a stale refetch).
+const stableT = (key) => key;
+vi.mock('react-i18next', () => ({ useTranslation: () => ({ t: stableT }) }));
 
 import { NotificationSettings } from '../src/notifications/NotificationSettings';
 
@@ -31,6 +36,11 @@ function installPushEnvironment(subscription) {
   Object.defineProperty(window, 'PushManager', { value: class PushManager {}, configurable: true });
   return registration;
 }
+
+afterEach(() => {
+  cleanup();
+  vi.unstubAllGlobals();
+});
 
 describe('NotificationSettings push toggle', () => {
   beforeEach(() => {
@@ -78,5 +88,84 @@ describe('NotificationSettings push toggle', () => {
     await waitFor(() => expect(subscription.unsubscribe).toHaveBeenCalledOnce());
     expect(notificationsApi.removePushSubscription).toHaveBeenCalledWith({ endpoint: subscription.endpoint });
     expect(notificationsApi.patchNotificationPreferences).not.toHaveBeenCalled();
+  });
+});
+
+describe('NotificationSettings push preview toggle', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    notificationsApi.getVapidPublicKey.mockResolvedValue('AQID');
+  });
+
+  it('renders checked when the preference is explicitly on', async () => {
+    notificationsApi.getNotificationPreferences.mockResolvedValue({
+      email_opt_in: false, push_opt_in: true, push_preview_opt_in: true,
+    });
+
+    render(<NotificationSettings />);
+
+    const toggle = await screen.findByRole('switch', { name: /PUSH_PREVIEW_LABEL/ });
+    expect(toggle.checked).toBe(true);
+  });
+
+  it('renders checked when the preference is absent entirely (default-on, not Boolean(undefined))', async () => {
+    // Regression test for NOTIF-14: a naive `Boolean(preferences?.push_preview_opt_in)`
+    // reads a missing field as false, misrepresenting the backend's true default. Must
+    // fail against that implementation.
+    notificationsApi.getNotificationPreferences.mockResolvedValue({ email_opt_in: false, push_opt_in: true });
+
+    render(<NotificationSettings />);
+
+    const toggle = await screen.findByRole('switch', { name: /PUSH_PREVIEW_LABEL/ });
+    expect(toggle.checked).toBe(true);
+  });
+
+  it('renders unchecked when the preference is explicitly off', async () => {
+    notificationsApi.getNotificationPreferences.mockResolvedValue({
+      email_opt_in: false, push_opt_in: true, push_preview_opt_in: false,
+    });
+
+    render(<NotificationSettings />);
+
+    const toggle = await screen.findByRole('switch', { name: /PUSH_PREVIEW_LABEL/ });
+    expect(toggle.checked).toBe(false);
+  });
+
+  it('toggling calls patchNotificationPreferences with push_preview_opt_in and re-renders from the response', async () => {
+    notificationsApi.getNotificationPreferences.mockResolvedValue({
+      email_opt_in: false, push_opt_in: true, push_preview_opt_in: true,
+    });
+    notificationsApi.patchNotificationPreferences.mockResolvedValue({
+      email_opt_in: false, push_opt_in: true, push_preview_opt_in: false,
+    });
+
+    render(<NotificationSettings />);
+    const toggle = await screen.findByRole('switch', { name: /PUSH_PREVIEW_LABEL/ });
+    fireEvent.click(toggle);
+
+    await waitFor(() => expect(notificationsApi.patchNotificationPreferences).toHaveBeenCalledWith({ push_preview_opt_in: false }));
+    await waitFor(() => expect(toggle.checked).toBe(false));
+  });
+
+  it('is disabled when push notifications are not opted in for this account', async () => {
+    notificationsApi.getNotificationPreferences.mockResolvedValue({
+      email_opt_in: false, push_opt_in: false, push_preview_opt_in: true,
+    });
+
+    render(<NotificationSettings />);
+
+    const toggle = await screen.findByRole('switch', { name: /PUSH_PREVIEW_LABEL/ });
+    expect(toggle.disabled).toBe(true);
+  });
+
+  it('is enabled when push notifications are opted in for this account', async () => {
+    notificationsApi.getNotificationPreferences.mockResolvedValue({
+      email_opt_in: false, push_opt_in: true, push_preview_opt_in: true,
+    });
+
+    render(<NotificationSettings />);
+
+    const toggle = await screen.findByRole('switch', { name: /PUSH_PREVIEW_LABEL/ });
+    expect(toggle.disabled).toBe(false);
   });
 });

@@ -38,6 +38,7 @@ export function NotificationSettings() {
   const [loading, setLoading] = useState(true);
   const [savingEmail, setSavingEmail] = useState(false);
   const [savingPush, setSavingPush] = useState(false);
+  const [savingPreview, setSavingPreview] = useState(false);
   const [pushSubscribed, setPushSubscribed] = useState(false);
   const [error, setError] = useState('');
   const [conflict, setConflict] = useState('');
@@ -123,6 +124,20 @@ export function NotificationSettings() {
     }
   };
 
+  const handlePreviewToggle = async (event) => {
+    const push_preview_opt_in = event.target.checked;
+    setSavingPreview(true);
+    setError('');
+    try {
+      const updated = await patchNotificationPreferences({ push_preview_opt_in });
+      setPreferences(updated);
+    } catch {
+      setError(t('NotificationSettings.SAVE_ERROR'));
+    } finally {
+      setSavingPreview(false);
+    }
+  };
+
   const handleDisablePush = async () => {
     setSavingPush(true);
     setError('');
@@ -184,6 +199,18 @@ export function NotificationSettings() {
           label={<Box><Typography variant="body1">{t('NotificationSettings.PUSH_LABEL')}</Typography><Typography variant="caption" color="text.secondary">{t('NotificationSettings.PUSH_HINT')}</Typography></Box>}
           labelPlacement="end"
           sx={{ alignItems: 'flex-start', ml: 0 }}
+        />
+        <FormControlLabel
+          control={(
+            <Switch
+              checked={preferences?.push_preview_opt_in !== false}
+              onChange={handlePreviewToggle}
+              disabled={savingPreview || !preferences?.push_opt_in}
+            />
+          )}
+          label={<Box><Typography variant="body1">{t('NotificationSettings.PUSH_PREVIEW_LABEL')}</Typography><Typography variant="caption" color="text.secondary">{t('NotificationSettings.PUSH_PREVIEW_HINT')}</Typography></Box>}
+          labelPlacement="end"
+          sx={{ alignItems: 'flex-start', ml: 0, mt: 1.5 }}
         />
       </Box>
     </Box>
