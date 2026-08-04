@@ -35,4 +35,40 @@ export const chartsTranslations = {
     en: 'The chart could not be exported.',
     sw: 'Chati haikuweza kuhamishwa.',
   },
+  'TimeSeriesChart.RANGE_LABEL': {
+    de: 'Zeitraum',
+    fr: 'Période',
+    en: 'Range',
+    sw: 'Kipindi',
+  },
+  'TimeSeriesChart.RANGE_1_DAY': {
+    de: '1 Tag',
+    fr: '1 jour',
+    en: '1 day',
+    sw: 'Siku 1',
+  },
+  'TimeSeriesChart.RANGE_1_WEEK': {
+    de: '1 Woche',
+    fr: '1 semaine',
+    en: '1 week',
+    sw: 'Wiki 1',
+  },
+  'TimeSeriesChart.RANGE_1_MONTH': {
+    de: '1 Monat',
+    fr: '1 mois',
+    en: '1 month',
+    sw: 'Mwezi 1',
+  },
+  'TimeSeriesChart.RANGE_1_YEAR': {
+    de: '1 Jahr',
+    fr: '1 an',
+    en: '1 year',
+    sw: 'Mwaka 1',
+  },
+  'TimeSeriesChart.SERIES_LABEL': {
+    de: 'Serien',
+    fr: 'Séries',
+    en: 'Series',
+    sw: 'Mfululizo',
+  },
 };

@@ -44,6 +44,7 @@ export { QrSignupManager } from './components/QrSignupManager';
 export { ChartFrame } from './components/charts/ChartFrame';
 export { BarChart } from './components/charts/BarChart';
 export { LineChart } from './components/charts/LineChart';
+export { TimeSeriesChart } from './components/charts/TimeSeriesChart';
 export { getNeutralChartPalette, useNeutralChartPalette } from './components/charts/palette';
 export {
   formatPercentage,
