@@ -122,4 +122,21 @@ describe('poll rendering against the real server contract', () => {
     screen.getAllByRole('radio').forEach((radio) => expect(radio.disabled).toBe(true));
     expect(screen.getByText('MessagingPoll.CLOSED')).toBeTruthy();
   });
+
+  it('gives the card a minimum width so a short question/option set is not squeezed narrower than comfortable (MSG-6j)', () => {
+    render(<MessagingProvider api={baseApi()} active={false}><PollCard message={{ id: 'msg-1', poll: serverPoll() }} /></MessagingProvider>);
+    const card = screen.getByLabelText('MessagingPoll.LABEL');
+    expect(getComputedStyle(card).minWidth).toBe('260px');
+  });
+
+  it('keeps a real gap between an option label and its vote-count/percent text, not merely space-between with nothing to distribute (MSG-6j)', () => {
+    // Regression test for the reported bug: `justifyContent: 'space-between'` alone only
+    // distributes LEFTOVER width, and this row sits inside a `width: fit-content` bubble
+    // sized around this exact content -- there is never leftover width, so space-between
+    // reserved a zero-width gap and the option text ran directly into "2 (100 %)". Must
+    // fail if the row's own `spacing` is removed.
+    render(<MessagingProvider api={baseApi()} active={false}><PollCard message={{ id: 'msg-1', poll: serverPoll() }} /></MessagingProvider>);
+    const resultText = screen.getByText(/MessagingPoll\.OPTION_RESULT.*"count":2.*"percent":67/);
+    expect(getComputedStyle(resultText).marginLeft).not.toBe('0px');
+  });
 });

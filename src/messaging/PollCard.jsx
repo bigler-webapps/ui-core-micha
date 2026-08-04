@@ -110,7 +110,13 @@ export function PollCard({ message, canClose: canCloseProp }) {
     // with a thin bar close to the text) -- more internal spacing/a taller
     // bar, not a wider bubble (MessageBubble.jsx's maxWidth is untouched).
     const richLabel = <Stack sx={{ flex: 1, minWidth: 0, opacity: pending.has(option.id) ? 0.6 : 1 }} spacing={0.75}>
-      <Stack direction="row" justifyContent="space-between">
+      {/* MSG-6j: `justifyContent: 'space-between'` only distributes LEFTOVER width -- but
+          this row sits inside a `MessageBubble` sized `width: fit-content` around this exact
+          content, so there is by construction no leftover width, and space-between alone
+          reserved a zero-width gap (the reported bug: label text ran directly into the
+          vote-count/percent text). `spacing` adds a real minimum gap via margin, independent
+          of justify-content, so the two never touch regardless of available width. */}
+      <Stack direction="row" justifyContent="space-between" spacing={1}>
         <Typography variant="body2" noWrap>{option.text || option.label}</Typography>
         <Typography variant="caption" color="text.secondary">{resultText}</Typography>
       </Stack>
@@ -120,7 +126,11 @@ export function PollCard({ message, canClose: canCloseProp }) {
   };
   const formControlSx = { width: '100%', m: 0, alignItems: 'flex-start' };
 
-  return <Paper variant="outlined" sx={{ p: 1.5 }} aria-label={t('MessagingPoll.LABEL')}><Stack spacing={1.5}>
+  // MSG-6j: a short question/option set could otherwise pull the whole `MessageBubble`
+  // (`width: fit-content`) in tighter than comfortable to read. 260px stays under the
+  // bubble's own `maxWidth: min(75%, 680px)` ceiling even at a 375px viewport (75% = 281px)
+  // -- verified at that width, not just desktop.
+  return <Paper variant="outlined" sx={{ p: 1.5, minWidth: 260 }} aria-label={t('MessagingPoll.LABEL')}><Stack spacing={1.5}>
     <Typography variant="subtitle2">{poll.question}</Typography>
     {poll.allow_multiple
       ? (poll.options || []).map((option) => {
