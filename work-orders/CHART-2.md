@@ -33,9 +33,20 @@ emitting the selected range to the host. The host owns fetching; the picker owns
 
 The range must also carry the **granularity** the consumer should request — dcm ACT-1's query endpoint
 aggregates server-side, and a year of 4-hour buckets is ~2190 points, which no chart can render
-usefully. **Map each preset to a sensible granularity and state the mapping.** A picker that only
-changes the window and not the resolution reproduces exactly the unreadable-density problem this WO
-exists to fix.
+usefully. A picker that changes the window but not the resolution reproduces exactly the
+unreadable-density problem this WO exists to fix.
+
+**The range-to-granularity mapping (operator, 2026-08-04) — implement exactly this:**
+
+| Range | Granularity | Points |
+|---|---|---|
+| 1 week | 4 hours | ~42 |
+| 1 month | 1 day | ~30 |
+| 1 year | 1 month | 12 |
+
+Every preset lands between roughly a dozen and fifty points, which is what keeps the chart readable at
+any range. The resolution follows the window; it is not an independent control.
+
 
 **B. Series toggles for the toolbar slot.** Check/uncheck each series independently.
 
