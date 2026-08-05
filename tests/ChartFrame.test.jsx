@@ -115,6 +115,51 @@ describe('ChartFrame', () => {
     await vi.waitFor(() => expect(onExportPng).toHaveBeenCalledOnce());
   });
 
+  it('keeps the controls row rendered in the loading, error and empty states', () => {
+    const controls = <button type="button">View selector</button>;
+
+    const loading = renderFrame({ controls, loading: true });
+    expect(screen.getByRole('button', { name: 'View selector' })).toBeTruthy();
+    loading.unmount();
+
+    const empty = renderFrame({ controls, isEmpty: true });
+    expect(screen.getByRole('button', { name: 'View selector' })).toBeTruthy();
+    expect(screen.queryByTestId('chart-body')).toBeNull();
+    empty.unmount();
+
+    renderFrame({ controls, error: 'Failure' });
+    expect(screen.getByRole('button', { name: 'View selector' })).toBeTruthy();
+  });
+
+  it('renders the meta foot row alongside the export controls when meta is set', () => {
+    renderFrame({ meta: 'Morris screening · 19 parameters · 2 regimes', exportOptions: true });
+
+    const metaNode = screen.getByText('Morris screening · 19 parameters · 2 regimes');
+    expect(metaNode).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Export SVG' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Export PNG' })).toBeTruthy();
+    // meta and the exports share one bordered foot row rather than stacking
+    const foot = metaNode.parentElement;
+    expect(foot.contains(screen.getByRole('button', { name: 'Export SVG' }))).toBe(true);
+    expect(window.getComputedStyle(foot).justifyContent).toBe('space-between');
+    expect(window.getComputedStyle(foot).borderTopStyle).toBe('solid');
+  });
+
+  it('leaves the export-only layout structurally untouched when meta is omitted', () => {
+    renderFrame({ exportOptions: true });
+
+    const paper = document.querySelector('.MuiPaper-root');
+    const stack = screen.getByRole('button', { name: 'Export SVG' }).closest('[class*="MuiStack"]');
+
+    // The export Stack must remain a DIRECT child of the Paper -- the meta foot row introduces a
+    // wrapper Box, and 16 existing panels render this no-meta path.
+    expect(stack.parentElement).toBe(paper);
+    const stackStyle = window.getComputedStyle(stack);
+    expect(stackStyle.borderTopStyle).not.toBe('solid');
+    expect(stackStyle.justifyContent).not.toBe('space-between');
+    expect(paper.textContent).not.toContain('undefined');
+  });
+
   it('uses resolved i18n strings for its own empty state', () => {
     renderFrame({ isEmpty: true }, 'fr');
     expect(screen.getByText('Aucune donnée disponible.')).toBeTruthy();
