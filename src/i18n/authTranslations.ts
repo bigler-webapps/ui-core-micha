@@ -927,6 +927,24 @@ export const authTranslations = {
     "en": "The passwords do not match.",
     "sw": "Manenosiri hayalingani."
   },
+  "Auth.PASSWORD_RULES_HINT": {
+    "de": "Mindestens 8 Zeichen, nicht nur Zahlen, kein gängiges Passwort.",
+    "fr": "Au moins 8 caractères, pas uniquement des chiffres, pas un mot de passe courant.",
+    "en": "At least 8 characters, not entirely numeric, not a commonly used password.",
+    "sw": "Angalau herufi 8, si tarakimu tu, si nenosiri linalotumika sana."
+  },
+  "Auth.PASSWORD_TOO_SHORT_LOCAL": {
+    "de": "Das Passwort muss mindestens 8 Zeichen lang sein.",
+    "fr": "Le mot de passe doit contenir au moins 8 caractères.",
+    "en": "The password must be at least 8 characters long.",
+    "sw": "Nenosiri linahitajika kuwa na angalau herufi 8."
+  },
+  "Auth.PASSWORD_NUMERIC_LOCAL": {
+    "de": "Das Passwort darf nicht nur aus Zahlen bestehen.",
+    "fr": "Le mot de passe ne peut pas être uniquement composé de chiffres.",
+    "en": "The password cannot be entirely numeric.",
+    "sw": "Nenosiri haliwezi kuwa na tarakimu tu."
+  },
   "Auth.PROFILE_LOAD_FAILED": {
     "de": "Profil konnte nicht geladen werden.",
     "fr": "Le profil n’a pas pu être chargé.",
@@ -1853,5 +1871,81 @@ export const authTranslations = {
     "fr": "Le mot de passe est incorrect.",
     "en": "The password is incorrect.",
     "sw": "Nenosiri si sahihi."
+  },
+
+  // Raw backend auth error codes (allauth-headless + Django password validators).
+  // Keyed by the exact code string so the existing `t(err.code)` call sites resolve
+  // as a drop-in, without any component change. See AUTH-2.
+  "email_password_mismatch": {
+    "de": "E-Mail-Adresse oder Passwort ist falsch.",
+    "fr": "Adresse e-mail ou mot de passe incorrect.",
+    "en": "Email address or password is incorrect.",
+    "sw": "Barua pepe au nenosiri sio sahihi."
+  },
+  "username_password_mismatch": {
+    "de": "Benutzername oder Passwort ist falsch.",
+    "fr": "Nom d'utilisateur ou mot de passe incorrect.",
+    "en": "Username or password is incorrect.",
+    "sw": "Jina la mtumiaji au nenosiri sio sahihi."
+  },
+  "phone_password_mismatch": {
+    "de": "Telefonnummer oder Passwort ist falsch.",
+    "fr": "Numéro de téléphone ou mot de passe incorrect.",
+    "en": "Phone number or password is incorrect.",
+    "sw": "Nambari ya simu au nenosiri sio sahihi."
+  },
+  "too_many_login_attempts": {
+    "de": "Zu viele fehlgeschlagene Anmeldeversuche. Bitte versuchen Sie es später erneut.",
+    "fr": "Trop de tentatives de connexion échouées. Veuillez réessayer plus tard.",
+    "en": "Too many failed login attempts. Please try again later.",
+    "sw": "Majaribio mengi ya kuingia yameshindwa. Tafadhali jaribu tena baadaye."
+  },
+  "invalid_login": {
+    "de": "Ungültige Anmeldedaten.",
+    "fr": "Données de connexion invalides.",
+    "en": "Invalid login credentials.",
+    "sw": "Taarifa za kuingia si sahihi."
+  },
+  "account_inactive": {
+    "de": "Dieses Konto ist derzeit inaktiv.",
+    "fr": "Ce compte est actuellement inactif.",
+    "en": "This account is currently inactive.",
+    "sw": "Akaunti hii haitumiki kwa sasa."
+  },
+  "enter_current_password": {
+    "de": "Das aktuelle Passwort ist falsch.",
+    "fr": "Le mot de passe actuel est incorrect.",
+    "en": "The current password is incorrect.",
+    "sw": "Nenosiri la sasa si sahihi."
+  },
+  "password_too_short": {
+    "de": "Das Passwort muss mindestens 8 Zeichen lang sein.",
+    "fr": "Le mot de passe doit contenir au moins 8 caractères.",
+    "en": "The password must be at least 8 characters long.",
+    "sw": "Nenosiri linahitajika kuwa na angalau herufi 8."
+  },
+  "password_too_common": {
+    "de": "Dieses Passwort ist zu gängig und leicht zu erraten.",
+    "fr": "Ce mot de passe est trop courant et facile à deviner.",
+    "en": "This password is too common and easy to guess.",
+    "sw": "Nenosiri hili linatumika sana na ni rahisi kubashiri."
+  },
+  "password_entirely_numeric": {
+    "de": "Das Passwort darf nicht nur aus Zahlen bestehen.",
+    "fr": "Le mot de passe ne peut pas être uniquement composé de chiffres.",
+    "en": "The password cannot be entirely numeric.",
+    "sw": "Nenosiri haliwezi kuwa na tarakimu tu."
+  },
+  "password_too_similar": {
+    "de": "Das Passwort ist Ihren persönlichen Daten zu ähnlich.",
+    "fr": "Le mot de passe est trop similaire à vos informations personnelles.",
+    "en": "The password is too similar to your personal information.",
+    "sw": "Nenosiri linafanana sana na taarifa zako binafsi."
+  },
+  "incorrect_code": {
+    "de": "Der eingegebene Code ist falsch.",
+    "fr": "Le code saisi est incorrect.",
+    "en": "The code you entered is incorrect.",
+    "sw": "Msimbo uliouweka si sahihi."
   }
 };

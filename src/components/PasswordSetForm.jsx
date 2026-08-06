@@ -7,7 +7,13 @@ import { useTranslation } from 'react-i18next';
  * Simple form to set a new password (once, with confirmation).
  * Caller passes onSubmit(newPassword) and handles redirect / API call.
  */
-export function PasswordSetForm({ onSubmit, submitting = false }) {
+export function PasswordSetForm({
+  onSubmit,
+  submitting = false,
+  passwordRulesHint,
+  minPasswordLength = 8,
+  allowNumericPassword = false,
+}) {
   const { t } = useTranslation();
 
   const [password1, setPassword1] = useState('');
@@ -25,6 +31,16 @@ export function PasswordSetForm({ onSubmit, submitting = false }) {
 
     if (password1 !== password2) {
       setLocalErrorKey('Auth.PASSWORD_SET_LOCAL_MISMATCH');
+      return;
+    }
+
+    if (minPasswordLength > 0 && password1.length < minPasswordLength) {
+      setLocalErrorKey('Auth.PASSWORD_TOO_SHORT_LOCAL');
+      return;
+    }
+
+    if (!allowNumericPassword && /^\d+$/.test(password1)) {
+      setLocalErrorKey('Auth.PASSWORD_NUMERIC_LOCAL');
       return;
     }
 
@@ -53,6 +69,7 @@ export function PasswordSetForm({ onSubmit, submitting = false }) {
         value={password1}
         onChange={(e) => setPassword1(e.target.value)}
         disabled={submitting}
+        helperText={passwordRulesHint || t('Auth.PASSWORD_RULES_HINT')}
       />
 
       <TextField
