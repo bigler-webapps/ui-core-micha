@@ -125,6 +125,23 @@ describe('TimeSeriesChart', () => {
     expect(screen.getByLabelText('Loading chart.')).toBeTruthy();
   });
 
+  // CHART-4 regression: neither ChartFrame nor BarChart ever received a
+  // height, so MUI X-Charts' responsive container measured a zero-height
+  // parent and drew no bars/axes (only the legend, sized by its own content,
+  // showed) -- confirmed live in production. A structural/rendered-size
+  // assertion in jsdom is NOT reliable here (verified: it stays green even
+  // without the fix, since jsdom's ResizeObserver handling doesn't reflect
+  // the real zero-height-parent browser behaviour) -- this asserts directly
+  // on the wiring instead: BarChart must receive a real, non-zero `height`,
+  // matching the confirmed-working dev/entries.jsx BarChartEntry reference
+  // (MUI's own native height prop, forwarded via BarChart's ...chartProps).
+  it('CHART-4: passes a real, non-zero height through to the underlying MUI BarChart', () => {
+    renderChart();
+
+    const props = chartSpy.mock.calls.at(-1)[0];
+    expect(props.height).toBeGreaterThan(0);
+  });
+
   // CHART-3 regression: visibleKeys must not be captured only at first mount.
   // Reproduces the live bug — host mounts with empty data, fetches
   // asynchronously, then rerenders with real data. Before the fix this stayed

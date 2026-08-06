@@ -15,6 +15,23 @@ import { useNeutralChartPalette } from './palette';
 // Fixed platform-wide range -> granularity mapping (operator decision, CHART-2 /
 // dcm ACT-1) — the resolution follows the window and is never an independent
 // caller-supplied control. Every preset lands between a dozen and fifty points.
+// Preset default height (CHART-4): MUI X-Charts' responsive container
+// measures its actual parent height via ResizeObserver and draws nothing
+// if that parent has none — ChartFrame's flex-centered content Box does
+// NOT stretch its child to fill available height (alignItems: 'center'),
+// so BarChart needs its own explicit size, not just ChartFrame's.
+// `height` forwards straight to MuiBarChart's own native height prop
+// (bypassing ResizeObserver-based measurement entirely), matching the
+// confirmed-working dev/entries.jsx BarChartEntry reference.
+// Deliberate, known exception to DESIGN.md #14 ("responsive = container-
+// sized, not fixed px"): width stays responsive (unset, still auto-
+// measured), only height is fixed, and only because MUI X-Charts' own
+// ResizeObserver-based height measurement is what silently produced a
+// zero-height chart in the first place (CHART-4). Do not "fix" this back
+// to a responsive/aspect-ratio height without re-verifying the underlying
+// MUI measurement bug is actually resolved.
+const CHART_HEIGHT = 320;
+
 const RANGE_OPTIONS = [
   { key: '1d', granularity: 'hour', labelKey: 'TimeSeriesChart.RANGE_1_DAY' },
   { key: '1w', granularity: '4hour', labelKey: 'TimeSeriesChart.RANGE_1_WEEK' },
@@ -155,6 +172,7 @@ export function TimeSeriesChart({
       loading={loading}
       error={error}
       isEmpty={isDataEmpty}
+      minHeight={CHART_HEIGHT}
     >
       {!isDataEmpty && (
         <BarChart
@@ -163,6 +181,7 @@ export function TimeSeriesChart({
           xAxis={[{ data: data?.xLabels || [] }]}
           series={visibleSeries.map((series) => ({ data: series.data, label: series.label }))}
           palette={visiblePalette}
+          height={CHART_HEIGHT}
         />
       )}
     </ChartFrame>
