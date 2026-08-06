@@ -52,11 +52,34 @@ export function TimeSeriesChart({
   const seriesConfig = data?.series || [];
 
   const [range, setRange] = useState(defaultRange);
-  // Series identity (keys) is assumed stable for a given chart instance — the
-  // toggle set is initialized once from the first data the chart receives.
-  const [visibleKeys, setVisibleKeys] = useState(
-    () => new Set(seriesConfig.map((series) => series.key)),
-  );
+  // Series identity (keys) is NOT assumed stable at mount: the host commonly
+  // mounts with empty data and fills it asynchronously (fetch-after-mount),
+  // so visibleKeys must sync as new keys appear rather than being captured
+  // once. seenKeys tracks every key ever observed so that a key present in
+  // seriesConfig but absent from visibleKeys is recognized as a deliberate
+  // user toggle-off (stays off) rather than treated as new (defaulted
+  // visible) on the next data update. Both are plain state (not a ref) and
+  // updated together in the render body — React's documented pattern for
+  // syncing derived state from props — so an interrupted/discarded render
+  // (concurrent features) rolls both back together instead of leaving
+  // seenKeys mutated while the paired visibleKeys update is dropped.
+  const [seenKeys, setSeenKeys] = useState(() => new Set());
+  const [visibleKeys, setVisibleKeys] = useState(() => new Set());
+
+  const currentKeys = seriesConfig.map((series) => series.key);
+  const newKeys = currentKeys.filter((key) => !seenKeys.has(key));
+  if (newKeys.length > 0) {
+    setSeenKeys((previous) => {
+      const next = new Set(previous);
+      newKeys.forEach((key) => next.add(key));
+      return next;
+    });
+    setVisibleKeys((previous) => {
+      const next = new Set(previous);
+      newKeys.forEach((key) => next.add(key));
+      return next;
+    });
+  }
 
   const handleRangeChange = (event) => {
     const nextRange = event.target.value;

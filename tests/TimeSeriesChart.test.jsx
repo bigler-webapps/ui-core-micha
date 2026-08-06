@@ -38,19 +38,15 @@ const SAMPLE_DATA = {
 function renderChart(props = {}) {
   const i18n = i18next.createInstance();
   i18n.init({ lng: 'en', resources, interpolation: { escapeValue: false } });
-  return render(
+  const wrap = (chartProps) => (
     <ThemeProvider theme={createTheme()}>
       <I18nextProvider i18n={i18n}>
-        <TimeSeriesChart
-          title="Activity"
-          xAxisLabel="Day"
-          yAxisLabel="Count"
-          data={SAMPLE_DATA}
-          {...props}
-        />
+        <TimeSeriesChart title="Activity" xAxisLabel="Day" yAxisLabel="Count" data={SAMPLE_DATA} {...chartProps} />
       </I18nextProvider>
-    </ThemeProvider>,
+    </ThemeProvider>
   );
+  const view = render(wrap(props));
+  return { ...view, rerenderWith: (nextProps) => view.rerender(wrap(nextProps)) };
 }
 
 describe('TimeSeriesChart', () => {
@@ -127,5 +123,64 @@ describe('TimeSeriesChart', () => {
   it('range picker and series toggles pass through loading and error to ChartFrame', () => {
     renderChart({ loading: true });
     expect(screen.getByLabelText('Loading chart.')).toBeTruthy();
+  });
+
+  // CHART-3 regression: visibleKeys must not be captured only at first mount.
+  // Reproduces the live bug — host mounts with empty data, fetches
+  // asynchronously, then rerenders with real data. Before the fix this stayed
+  // on ChartFrame's empty state forever even with real series present.
+  it('CHART-3: renders the chart once data arrives after an empty-data mount', () => {
+    const { rerenderWith } = renderChart({ data: { xLabels: [], series: [] } });
+    expect(screen.getByText('No data available.')).toBeTruthy();
+    expect(screen.queryByTestId('mui-bar-chart')).toBeNull();
+
+    rerenderWith({ data: SAMPLE_DATA });
+
+    expect(screen.queryByText('No data available.')).toBeNull();
+    const props = chartSpy.mock.calls.at(-1)[0];
+    expect(props.series).toHaveLength(2);
+  });
+
+  it('CHART-3: preserves a manual toggle-off across a data update that keeps the same key', () => {
+    const { rerenderWith } = renderChart({ data: SAMPLE_DATA });
+
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Users' }));
+    let props = chartSpy.mock.calls.at(-1)[0];
+    expect(props.series.map((series) => series.label)).toEqual(['Presence hours']);
+
+    rerenderWith({
+      data: {
+        xLabels: ['Mon', 'Tue', 'Wed', 'Thu'],
+        series: [
+          { key: 'users', label: 'Users', data: [1, 2, 3, 4] },
+          { key: 'presence', label: 'Presence hours', data: [4, 5, 6, 7] },
+        ],
+      },
+    });
+
+    props = chartSpy.mock.calls.at(-1)[0];
+    expect(props.series.map((series) => series.label)).toEqual(['Presence hours']);
+  });
+
+  it('CHART-3: a series key appearing later defaults to visible while an earlier toggle-off survives', () => {
+    const { rerenderWith } = renderChart({
+      data: { xLabels: ['Mon'], series: [{ key: 'users', label: 'Users', data: [1] }] },
+    });
+
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Users' }));
+    expect(screen.getByText('No data available.')).toBeTruthy();
+
+    rerenderWith({
+      data: {
+        xLabels: ['Mon'],
+        series: [
+          { key: 'users', label: 'Users', data: [1] },
+          { key: 'presence', label: 'Presence hours', data: [2] },
+        ],
+      },
+    });
+
+    const props = chartSpy.mock.calls.at(-1)[0];
+    expect(props.series.map((series) => series.label)).toEqual(['Presence hours']);
   });
 });
