@@ -2,6 +2,7 @@ import apiClient from '../auth/apiClient';
 
 const PREFERENCES_URL = '/api/notifications/preferences/';
 const PUSH_SUBSCRIPTION_URL = `${PREFERENCES_URL}push-subscription/`;
+const SUBSCRIPTIONS_URL = `${PREFERENCES_URL}subscriptions/`;
 
 export async function getNotificationPreferences() {
   const response = await apiClient.get(PREFERENCES_URL);
@@ -10,6 +11,11 @@ export async function getNotificationPreferences() {
 
 export async function patchNotificationPreferences(patch) {
   const response = await apiClient.patch(PREFERENCES_URL, patch);
+  return response.data;
+}
+
+export async function setNotificationCategorySubscription(category, subscribed) {
+  const response = await apiClient.post(SUBSCRIPTIONS_URL, { category, subscribed });
   return response.data;
 }
 

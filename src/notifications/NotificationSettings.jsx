@@ -14,8 +14,23 @@ import {
   patchNotificationPreferences,
   removePushSubscription,
   savePushSubscription,
+  setNotificationCategorySubscription,
   urlBase64ToUint8Array,
 } from './api';
+
+function reachLabelKey(notificationType) {
+  const noActiveChannel = notificationType.active && notificationType.has_active_channel === false;
+  if (notificationType.active && notificationType.passive) {
+    // Scope C's bounded fallback: a "both" type still reaches the user passively
+    // (chip) when no active channel is configured -- it is not undelivered, so it
+    // must not show the "does not reach you" warning meant for active-only types.
+    return noActiveChannel ? 'NotificationSettings.REACH_PASSIVE' : 'NotificationSettings.REACH_BOTH';
+  }
+  if (notificationType.active) {
+    return noActiveChannel ? 'NotificationSettings.REACH_NO_ACTIVE_CHANNEL' : 'NotificationSettings.REACH_ACTIVE';
+  }
+  return 'NotificationSettings.REACH_PASSIVE';
+}
 
 function getPushSupport() {
   return typeof navigator !== 'undefined'
@@ -42,6 +57,7 @@ export function NotificationSettings() {
   const [pushSubscribed, setPushSubscribed] = useState(false);
   const [error, setError] = useState('');
   const [conflict, setConflict] = useState('');
+  const [savingSubscription, setSavingSubscription] = useState(null);
 
   const pushSupported = getPushSupport();
   const iosNeedsInstall = getIosInstallState();
@@ -138,6 +154,29 @@ export function NotificationSettings() {
     }
   };
 
+  const handleSubscriptionToggle = async (category, event) => {
+    const requested = event.target.checked;
+    setSavingSubscription(category);
+    setError('');
+    try {
+      const result = await setNotificationCategorySubscription(category, requested);
+      // Reflect what the server actually recorded, not the checkbox's optimistic
+      // value -- a 2xx response with a different `subscribed` (e.g. a server-side
+      // clamp) must not be silently overridden by what the user clicked.
+      const confirmed = result?.subscribed ?? requested;
+      setPreferences((current) => ({
+        ...current,
+        subscribable_categories: current.subscribable_categories.map((row) => (
+          row.category === category ? { ...row, subscribed: confirmed } : row
+        )),
+      }));
+    } catch {
+      setError(t('NotificationSettings.SUBSCRIPTION_ERROR'));
+    } finally {
+      setSavingSubscription(null);
+    }
+  };
+
   const handleDisablePush = async () => {
     setSavingPush(true);
     setError('');
@@ -213,6 +252,62 @@ export function NotificationSettings() {
           sx={{ alignItems: 'flex-start', ml: 0, mt: 1.5 }}
         />
       </Box>
+
+      {preferences?.notification_types?.length > 0 && (
+        <>
+          <Divider />
+          <Box sx={{ py: 2 }}>
+            <Typography variant="subtitle2" gutterBottom>{t('NotificationSettings.REACH_TITLE')}</Typography>
+            {preferences.notification_types.map((notificationType) => {
+              const labelKey = reachLabelKey(notificationType);
+              const reachText = t(labelKey);
+              // Reserve Alert (a colored banner) for the one case that is actually a
+              // warning -- an active-only type nobody can currently reach. Routine
+              // reach description is static settings copy, not a status message.
+              if (labelKey === 'NotificationSettings.REACH_NO_ACTIVE_CHANNEL') {
+                return (
+                  <Alert key={notificationType.key} severity="warning" sx={{ mb: 1 }}>
+                    <strong>{notificationType.label}</strong> — {reachText}
+                  </Alert>
+                );
+              }
+              return (
+                <Box key={notificationType.key} sx={{ py: 0.5 }}>
+                  <Typography variant="body2">{notificationType.label}</Typography>
+                  <Typography variant="caption" color="text.secondary">{reachText}</Typography>
+                </Box>
+              );
+            })}
+          </Box>
+        </>
+      )}
+
+      {preferences?.subscribable_categories?.length > 0 && (
+        <>
+          <Divider />
+          <Box sx={{ py: 2 }}>
+            <Typography variant="subtitle2" gutterBottom>{t('NotificationSettings.SUBSCRIPTIONS_TITLE')}</Typography>
+            <Typography variant="body2" color="text.secondary" gutterBottom>
+              {t('NotificationSettings.SUBSCRIPTIONS_SUBTITLE')}
+            </Typography>
+            {preferences.subscribable_categories.map((row) => (
+              <FormControlLabel
+                key={row.category}
+                control={(
+                  <Switch
+                    checked={Boolean(row.subscribed)}
+                    onChange={(event) => handleSubscriptionToggle(row.category, event)}
+                    disabled={savingSubscription === row.category}
+                  />
+                )}
+                label={row.label}
+                labelPlacement="end"
+                sx={{ alignItems: 'center', ml: 0, display: 'flex' }}
+              />
+            ))}
+          </Box>
+        </>
+      )}
     </Box>
   );
 }

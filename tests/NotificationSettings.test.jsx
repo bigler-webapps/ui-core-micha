@@ -9,6 +9,7 @@ const notificationsApi = vi.hoisted(() => ({
   patchNotificationPreferences: vi.fn(),
   removePushSubscription: vi.fn(),
   savePushSubscription: vi.fn(),
+  setNotificationCategorySubscription: vi.fn(),
   urlBase64ToUint8Array: vi.fn(() => new Uint8Array([1, 2, 3])),
 }));
 
@@ -167,5 +168,109 @@ describe('NotificationSettings push preview toggle', () => {
 
     const toggle = await screen.findByRole('switch', { name: /PUSH_PREVIEW_LABEL/ });
     expect(toggle.disabled).toBe(false);
+  });
+});
+
+describe('NotificationSettings reach axis (NOTIF-26)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    notificationsApi.getVapidPublicKey.mockResolvedValue('AQID');
+  });
+
+  it('renders no reach or subscriptions sections when the server reports none (no new props)', async () => {
+    notificationsApi.getNotificationPreferences.mockResolvedValue({
+      email_opt_in: false, push_opt_in: false, notification_types: [], subscribable_categories: [],
+    });
+
+    render(<NotificationSettings />);
+    await screen.findByRole('switch', { name: /EMAIL_LABEL/ });
+
+    expect(screen.queryByText('NotificationSettings.REACH_TITLE')).toBeNull();
+    expect(screen.queryByText('NotificationSettings.SUBSCRIPTIONS_TITLE')).toBeNull();
+  });
+
+  it('shows the both-reach message for a type that is active and passive', async () => {
+    notificationsApi.getNotificationPreferences.mockResolvedValue({
+      email_opt_in: true, push_opt_in: false,
+      notification_types: [{ key: 'status.deploy_failed', category: 'status', label: 'Deploy failed', active: true, passive: true, has_active_channel: true }],
+    });
+
+    render(<NotificationSettings />);
+
+    expect(await screen.findByText('Deploy failed')).toBeTruthy();
+    expect(await screen.findByText('NotificationSettings.REACH_BOTH')).toBeTruthy();
+  });
+
+  it('shows the passive-only message for a type with no active reach', async () => {
+    notificationsApi.getNotificationPreferences.mockResolvedValue({
+      email_opt_in: false, push_opt_in: false,
+      notification_types: [{ key: 'status.deploy_recovered', category: 'status', label: 'Deploy recovered', active: false, passive: true, has_active_channel: null }],
+    });
+
+    render(<NotificationSettings />);
+
+    expect(await screen.findByText('NotificationSettings.REACH_PASSIVE')).toBeTruthy();
+  });
+
+  it('shows the no-active-channel warning for an active-only type the user cannot currently be reached on (scope C)', async () => {
+    notificationsApi.getNotificationPreferences.mockResolvedValue({
+      email_opt_in: false, push_opt_in: false,
+      notification_types: [{ key: 'app.messaging.new_message', category: 'messaging', label: 'New messages', active: true, passive: false, has_active_channel: false }],
+    });
+
+    render(<NotificationSettings />);
+
+    expect(await screen.findByText(/NotificationSettings\.REACH_NO_ACTIVE_CHANNEL/)).toBeTruthy();
+    expect(await screen.findByText(/New messages/)).toBeTruthy();
+  });
+
+  it('shows the passive fallback (not the undelivered warning) for a both-type with no active channel configured', async () => {
+    // Regression: scope C's bounded fallback means a both-type still reaches the
+    // user passively (chip) with no active channel -- it must not be shown as
+    // undelivered, which is reserved for active-only types.
+    notificationsApi.getNotificationPreferences.mockResolvedValue({
+      email_opt_in: false, push_opt_in: false,
+      notification_types: [{ key: 'status.deploy_failed', category: 'status', label: 'Deploy failed', active: true, passive: true, has_active_channel: false }],
+    });
+
+    render(<NotificationSettings />);
+
+    expect(await screen.findByText('NotificationSettings.REACH_PASSIVE')).toBeTruthy();
+    expect(screen.queryByText(/NotificationSettings\.REACH_NO_ACTIVE_CHANNEL/)).toBeNull();
+  });
+
+  it('renders server-reported subscribable categories and toggles a subscription', async () => {
+    notificationsApi.getNotificationPreferences.mockResolvedValue({
+      email_opt_in: false, push_opt_in: false,
+      subscribable_categories: [{ category: 'ops', label: 'Operations', subscribed: false }],
+    });
+    notificationsApi.setNotificationCategorySubscription.mockResolvedValue({ category: 'ops', subscribed: true });
+
+    render(<NotificationSettings />);
+    const toggle = await screen.findByRole('switch', { name: 'Operations' });
+    expect(toggle.checked).toBe(false);
+
+    fireEvent.click(toggle);
+
+    await waitFor(() => expect(notificationsApi.setNotificationCategorySubscription).toHaveBeenCalledWith('ops', true));
+    await waitFor(() => expect(toggle.checked).toBe(true));
+  });
+
+  it('reflects the server response, not the clicked checkbox value, when they disagree', async () => {
+    // Regression: a 2xx response reporting a different `subscribed` (e.g. a
+    // server-side clamp) must win over what the user clicked.
+    notificationsApi.getNotificationPreferences.mockResolvedValue({
+      email_opt_in: false, push_opt_in: false,
+      subscribable_categories: [{ category: 'ops', label: 'Operations', subscribed: false }],
+    });
+    notificationsApi.setNotificationCategorySubscription.mockResolvedValue({ category: 'ops', subscribed: false });
+
+    render(<NotificationSettings />);
+    const toggle = await screen.findByRole('switch', { name: 'Operations' });
+
+    fireEvent.click(toggle);
+
+    await waitFor(() => expect(notificationsApi.setNotificationCategorySubscription).toHaveBeenCalledWith('ops', true));
+    await waitFor(() => expect(toggle.checked).toBe(false));
   });
 });
