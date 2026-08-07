@@ -4,6 +4,7 @@ import { Box, Button, Stack, Typography } from '@mui/material';
 import { AuthContext } from '../src/auth/AuthContext';
 import { BarChart } from '../src/components/charts/BarChart';
 import { ChartFrame } from '../src/components/charts/ChartFrame';
+import { TimeSeriesChart } from '../src/components/charts/TimeSeriesChart';
 import { NotificationBell } from '../src/notifications/NotificationBell';
 import { NotificationsProvider } from '../src/notifications/NotificationsProvider';
 import { useRealtime } from '../src/notifications/realtime';
@@ -37,6 +38,34 @@ function BarChartEntry() {
     <ChartFrame title="Monthly cases" subtitle="Standalone BarChart entry" minHeight={360}>
       <BarChart {...barChartFixture} xAxisLabel="Month" yAxisLabel="Cases" height={320} />
     </ChartFrame>
+  );
+}
+
+function TimeSeriesChartEntry() {
+  // Mirrors the live jg-ferien Aktivität bug: 24 hourly buckets (1-day
+  // range), distinct_users (integer) on primary, presence_hours
+  // (fractional) on a CHART-5 secondary axis.
+  const buckets = Array.from({ length: 24 }, (_, hour) => ({
+    hour,
+    distinct_users: [0, 1, 1, 2, 2, 1, 1, 1, 2, 1, 1, 1, 0, 0, 1, 1, 0, 1, 2, 1, 0, 1, 1, 1][hour],
+    presence_hours: [0, 0.02, 0.09, 1.8, 0.85, 0.55, 0.52, 0, 0.3, 0.1, 0.05, 0.02, 0, 0, 0.12, 0.08, 0, 0.02, 1.1, 0.4, 0, 0.1, 0.12, 0.22][hour],
+  }));
+  const data = {
+    xLabels: buckets.map((b) => `${String(b.hour).padStart(2, '0')}:00`),
+    series: [
+      { key: 'distinct_users', label: 'Eindeutige Nutzer', data: buckets.map((b) => b.distinct_users) },
+      { key: 'presence_hours', label: 'Anwesenheitszeit (Std.)', data: buckets.map((b) => b.presence_hours), axis: 'secondary' },
+    ],
+  };
+  return (
+    <TimeSeriesChart
+      title="Aktivität"
+      xAxisLabel="Zeit"
+      yAxisLabel="Anzahl"
+      secondaryYAxisLabel="Stunden"
+      data={data}
+      defaultRange="1d"
+    />
   );
 }
 
@@ -157,6 +186,7 @@ function MessagingScopeConfigEntry() { return <MessagingProvider api={messagingH
 export const entries = [
   { id: 'notification-bell', label: 'Notifications / Bell', Component: NotificationBellEntry },
   { id: 'bar-chart', label: 'Charts / BarChart', Component: BarChartEntry },
+  { id: 'time-series-chart', label: 'Charts / TimeSeriesChart', Component: TimeSeriesChartEntry },
   { id: 'realtime-adapter', label: 'Transport / Realtime adapter', Component: RealtimeAdapterEntry },
   { id: 'messaging-provider', label: 'Messaging / Provider state', Component: MessagingProviderEntry },
   { id: 'messaging-conversation-list', label: 'Messaging / Conversation list', Component: ConversationListEntry },

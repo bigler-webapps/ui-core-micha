@@ -254,6 +254,32 @@ describe('TimeSeriesChart', () => {
     expect(presenceSeries.yAxisId).toBe('secondary');
   });
 
+  // CHART-5 (found live via the ui-core-micha dev harness -- MUI defaultizes
+  // every yAxis entry after the first to `position: 'none'` unless told
+  // otherwise, per node_modules/@mui/x-charts/internals/.../defaultizeAxis.js
+  // (`defaultPosition = index === 0 ? 'left' : 'none'`), so the secondary
+  // axis never actually rendered in a real browser despite chartSpy's mocked
+  // props looking correct -- a class of bug no mocked-BarChart test in this
+  // file can catch by construction (the mock doesn't run MUI's own
+  // defaulting logic). Left here as the one explicit prop-shape assertion
+  // that would have caught it, plus the note above for future readers.
+  it('CHART-5: dual axis entries explicitly set position (left/right), not just id/label', () => {
+    const data = {
+      xLabels: ['Mon', 'Tue', 'Wed'],
+      series: [
+        { key: 'users', label: 'Users', data: [1, 2, 3] },
+        { key: 'presence', label: 'Presence hours', data: [4.5, 5.2, 6.1], axis: 'secondary' },
+      ],
+    };
+    renderChart({ data, secondaryYAxisLabel: 'Hours' });
+
+    const props = chartSpy.mock.calls.at(-1)[0];
+    const primaryAxis = props.yAxis.find((axis) => axis.id === 'primary');
+    const secondaryAxis = props.yAxis.find((axis) => axis.id === 'secondary');
+    expect(primaryAxis.position).toBe('left');
+    expect(secondaryAxis.position).toBe('right');
+  });
+
   it('CHART-5: dual axis applies the integer formatter only to the axis that is actually all-integer', () => {
     const data = {
       xLabels: ['Mon', 'Tue', 'Wed'],

@@ -177,11 +177,18 @@ export function TimeSeriesChart({
       {
         id: 'primary',
         label: yAxisLabel,
+        // MUI defaultizes an axis with no explicit `position` to 'left' ONLY
+        // for the first entry in the array -- every subsequent entry
+        // defaults to 'none' (never drawn) unless given one explicitly.
+        // Both are set here, not just 'secondary', so this stays correct
+        // even if the array order ever changes.
+        position: 'left',
         ...(isIntegerAxis(primaryVisibleSeries) ? { valueFormatter: integerTickFormatter } : {}),
       },
       {
         id: 'secondary',
         label: secondaryYAxisLabel,
+        position: 'right',
         ...(isIntegerAxis(secondaryVisibleSeries) ? { valueFormatter: integerTickFormatter } : {}),
       },
     ]
