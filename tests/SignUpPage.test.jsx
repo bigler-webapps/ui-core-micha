@@ -136,3 +136,49 @@ describe('SignUpPage Turnstile integration', () => {
     expect(window.turnstile.render).not.toHaveBeenCalled();
   });
 });
+
+describe('SignUpPage — success message reflects the backend response, not a hardcoded mode', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  afterEach(() => {
+    cleanup();
+  });
+
+  async function submit(mode) {
+    renderSignUp({ signupModes: [mode] });
+    fireEvent.change(screen.getByRole('textbox', { name: /Auth\.EMAIL_LABEL/ }), {
+      target: { value: 'ada@example.com' },
+    });
+    if (mode === 'self_signup_access_code') {
+      fireEvent.change(screen.getByRole('textbox', { name: /Auth\.ACCESS_CODE_LABEL/ }), {
+        target: { value: 'some-code' },
+      });
+    }
+    fireEvent.click(screen.getByRole('button', { name: 'Auth.SIGNUP_SUBMIT' }));
+    await waitFor(() => expect(authApi.submitRegistrationRequest).toHaveBeenCalled());
+  }
+
+  it('shows the backend-provided code for open self-signup, not the access-code-specific message', async () => {
+    authApi.submitRegistrationRequest.mockResolvedValue({ code: 'Auth.INVITE_SENT', email: 'ada@example.com', mode: 'self_signup_open' });
+    await submit('self_signup_open');
+
+    await waitFor(() => expect(screen.getByText('Auth.INVITE_SENT')).toBeTruthy());
+    expect(screen.queryByText('Auth.INVITE_REQUEST_SUCCESS')).toBeNull();
+  });
+
+  it('shows the backend-provided code for access-code self-signup too', async () => {
+    authApi.submitRegistrationRequest.mockResolvedValue({ code: 'Auth.INVITE_SENT', email: 'ada@example.com', mode: 'self_signup_access_code' });
+    await submit('self_signup_access_code');
+
+    await waitFor(() => expect(screen.getByText('Auth.INVITE_SENT')).toBeTruthy());
+  });
+
+  it('falls back to Auth.INVITE_SENT if the backend response carries no code', async () => {
+    authApi.submitRegistrationRequest.mockResolvedValue({});
+    await submit('self_signup_open');
+
+    await waitFor(() => expect(screen.getByText('Auth.INVITE_SENT')).toBeTruthy());
+  });
+});

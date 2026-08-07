@@ -123,14 +123,18 @@ export function SignUpPage() {
 
     setSubmitting(true);
     try {
-      await submitRegistrationRequest({
+      const res = await submitRegistrationRequest({
         email,
         mode,
         accessCode,
         registrationContextToken: mode === 'self_signup_qr' ? tokenFromUrl : null,
         turnstileToken: turnstileRequired ? turnstileToken : undefined,
       });
-      setSuccessKey('Auth.INVITE_REQUEST_SUCCESS');
+      // The backend's own response code is already mode-agnostic and accurate
+      // (Auth.INVITE_SENT). Falling back to the access-code-specific "if valid,
+      // an invite was sent" wording here was wrong for open/email-domain/QR
+      // signup, which have no code whose validity needs hiding.
+      setSuccessKey(res?.code || 'Auth.INVITE_SENT');
     } catch (err) {
       setErrorKey(err.code || 'Auth.INVITE_FAILED');
       if (turnstileRequired) {

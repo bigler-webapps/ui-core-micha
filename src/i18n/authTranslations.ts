@@ -100,10 +100,10 @@ export const authTranslations = {
   },
 
   "Auth.INVITE_SENT": {
-    "de": "Die Einladung wurde versendet.",
-    "fr": "L'invitation a été envoyée.",
-    "en": "The invitation has been sent.",
-    "sw": "Mwaliko umetumwa."
+    "de": "Die Einladung wurde an {{email}} gesendet.",
+    "fr": "L'invitation a été envoyée à {{email}}.",
+    "en": "The invitation has been sent to {{email}}.",
+    "sw": "Mwaliko umetumwa kwa {{email}}."
   },
 
   "Auth.RESET_REQUEST_ACCEPTED": {
