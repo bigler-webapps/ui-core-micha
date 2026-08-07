@@ -42,16 +42,35 @@ function BarChartEntry() {
 }
 
 function TimeSeriesChartEntry() {
-  // Mirrors the live jg-ferien Aktivität bug: 24 hourly buckets (1-day
-  // range), distinct_users (integer) on primary, presence_hours
-  // (fractional) on a CHART-5 secondary axis.
-  const buckets = Array.from({ length: 24 }, (_, hour) => ({
-    hour,
-    distinct_users: [0, 1, 1, 2, 2, 1, 1, 1, 2, 1, 1, 1, 0, 0, 1, 1, 0, 1, 2, 1, 0, 1, 1, 1][hour],
-    presence_hours: [0, 0.02, 0.09, 1.8, 0.85, 0.55, 0.52, 0, 0.3, 0.1, 0.05, 0.02, 0, 0, 0.12, 0.08, 0, 0.02, 1.1, 0.4, 0, 0.1, 0.12, 0.22][hour],
-  }));
+  // Real API response from the live jg-ferien Aktivität bug (1-week range,
+  // 4h granularity), pasted verbatim by the operator -- reproducing the
+  // exact bucket_start/distinct_users/presence_hours combination.
+  const buckets = [
+    { bucket_start: '2026-08-05T08:00:00+00:00', distinct_users: 1, presence_hours: 0.0 },
+    { bucket_start: '2026-08-05T12:00:00+00:00', distinct_users: 1, presence_hours: 0.0 },
+    { bucket_start: '2026-08-05T16:00:00+00:00', distinct_users: 2, presence_hours: 0.17 },
+    { bucket_start: '2026-08-05T20:00:00+00:00', distinct_users: 2, presence_hours: 0.09 },
+    { bucket_start: '2026-08-06T04:00:00+00:00', distinct_users: 1, presence_hours: 0.05 },
+    { bucket_start: '2026-08-06T08:00:00+00:00', distinct_users: 1, presence_hours: 0.05 },
+    { bucket_start: '2026-08-06T12:00:00+00:00', distinct_users: 2, presence_hours: 0.01 },
+    { bucket_start: '2026-08-06T20:00:00+00:00', distinct_users: 1, presence_hours: 0.01 },
+    { bucket_start: '2026-08-07T00:00:00+00:00', distinct_users: 1, presence_hours: 0.01 },
+    { bucket_start: '2026-08-07T04:00:00+00:00', distinct_users: 1, presence_hours: 0.03 },
+    { bucket_start: '2026-08-07T08:00:00+00:00', distinct_users: 1, presence_hours: 0.03 },
+  ];
+  // Short, time-only labels: a verbose format (e.g. "08/05, 10:00 AM") can
+  // trip a known, unfixed MUI X-Charts bug where insufficient measured
+  // space collapses the ENTIRE tick label to an empty string instead of a
+  // shortened one (mui/mui-x#18768, duplicate of #18399) -- confirmed live
+  // in jg-ferien with its real DM Sans font metrics. Keep consumer labels
+  // short regardless of range/granularity.
+  function formatBucketLabel(value) {
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return value;
+    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  }
   const data = {
-    xLabels: buckets.map((b) => `${String(b.hour).padStart(2, '0')}:00`),
+    xLabels: buckets.map((b) => formatBucketLabel(b.bucket_start)),
     series: [
       { key: 'distinct_users', label: 'Eindeutige Nutzer', data: buckets.map((b) => b.distinct_users) },
       { key: 'presence_hours', label: 'Anwesenheitszeit (Std.)', data: buckets.map((b) => b.presence_hours), axis: 'secondary' },
@@ -64,7 +83,7 @@ function TimeSeriesChartEntry() {
       yAxisLabel="Anzahl"
       secondaryYAxisLabel="Stunden"
       data={data}
-      defaultRange="1d"
+      defaultRange="1w"
     />
   );
 }
