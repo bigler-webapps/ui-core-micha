@@ -32,6 +32,47 @@ import { useNeutralChartPalette } from './palette';
 // MUI measurement bug is actually resolved.
 const CHART_HEIGHT = 320;
 
+// CHART-5: how many x-axis tick labels to show, evenly spread across
+// data.xLabels, regardless of container width or label length. Replaces
+// MUI's own collision-based tick filtering (which, given enough densely
+// packed categories, can end up hiding every single label — confirmed live
+// with 24 hourly buckets) with a deterministic guarantee that some labels
+// always render. See makeTickLabelInterval below.
+const MAX_X_TICKS = 8;
+
+function makeTickLabelInterval(labelCount) {
+  const step = Math.max(1, Math.ceil(labelCount / MAX_X_TICKS));
+  const lastIndex = labelCount - 1;
+  // `index % step === 0` alone systematically drops the final bucket unless
+  // it happens to land exactly on a step boundary (e.g. 24 labels / step 3
+  // covers indices 0..21, never 23) -- the most recent time bucket is
+  // usually the one that matters most, so it is always force-included.
+  return (_value, index) => index % step === 0 || index === lastIndex;
+}
+
+// CHART-5: a y-axis is "integer" when every value across its currently
+// visible series is a whole number — re-evaluated on every toggle (an axis
+// can flip from fractional to integer, or vice versa, as series are shown/
+// hidden). Empty (no visible series on this axis) is deliberately NOT
+// integer: there's nothing to format, and treating an empty list as
+// vacuously "all integer" would apply the formatter to an axis with no data.
+function isIntegerAxis(seriesList) {
+  return seriesList.length > 0 && seriesList.every(
+    (series) => (series.data || []).every((value) => Number.isInteger(value)),
+  );
+}
+
+// Blanks the tick label for a non-integer value on an axis whose visible
+// series are otherwise all whole numbers -- a deterministic backstop since
+// d3's own "nice tick" choice for a small integer domain can still land on
+// a fractional position (e.g. domain [0,3] ticking at 0, 1.5, 3). Tooltip/
+// legend formatting (a different `location`) is left untouched -- only the
+// on-axis tick text is ever blanked.
+function integerTickFormatter(value, context) {
+  if (context?.location !== 'tick') return String(value);
+  return Number.isInteger(value) ? String(value) : '';
+}
+
 const RANGE_OPTIONS = [
   { key: '1d', granularity: 'hour', labelKey: 'TimeSeriesChart.RANGE_1_DAY' },
   { key: '1w', granularity: '4hour', labelKey: 'TimeSeriesChart.RANGE_1_WEEK' },
@@ -48,16 +89,18 @@ const RANGE_OPTIONS = [
  * owns fetching; this component owns which range is selected and which
  * series are visible, telling the host what changed via `onRangeChange`.
  *
- * No second y-axis: the series toggles (not a second axis) are the chosen
- * fix for two series sharing one y-axis at very different scales — toggling
- * one off rescales the axis and makes the other readable. This was a
- * deliberate choice, not an oversight (CHART-2 scope B).
+ * Second y-axis is opt-in per series (CHART-5, reversing CHART-2's original
+ * "toggles only" choice on operator instruction): a series with
+ * `axis: 'secondary'` plots against a second, independently-scaled y-axis
+ * (requires `secondaryYAxisLabel`). Omit `axis` (or set it to `'primary'`)
+ * on every series for today's single-shared-axis behaviour, unchanged.
  */
 export function TimeSeriesChart({
   title,
   subtitle,
   xAxisLabel,
   yAxisLabel,
+  secondaryYAxisLabel,
   data,
   loading = false,
   error = false,
@@ -123,6 +166,27 @@ export function TimeSeriesChart({
   );
   const isDataEmpty = seriesConfig.length === 0 || visibleSeries.length === 0;
 
+  const hasSecondaryAxis = seriesConfig.some((series) => series.axis === 'secondary');
+  if (hasSecondaryAxis && !secondaryYAxisLabel) {
+    throw new Error('TimeSeriesChart requires secondaryYAxisLabel when a series uses axis: "secondary".');
+  }
+  const primaryVisibleSeries = visibleSeries.filter((series) => series.axis !== 'secondary');
+  const secondaryVisibleSeries = visibleSeries.filter((series) => series.axis === 'secondary');
+  const yAxis = hasSecondaryAxis
+    ? [
+      {
+        id: 'primary',
+        label: yAxisLabel,
+        ...(isIntegerAxis(primaryVisibleSeries) ? { valueFormatter: integerTickFormatter } : {}),
+      },
+      {
+        id: 'secondary',
+        label: secondaryYAxisLabel,
+        ...(isIntegerAxis(secondaryVisibleSeries) ? { valueFormatter: integerTickFormatter } : {}),
+      },
+    ]
+    : (isIntegerAxis(primaryVisibleSeries) ? [{ valueFormatter: integerTickFormatter }] : undefined);
+
   const toolbar = (
     <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 3, alignItems: 'center' }}>
       <RadioGroup
@@ -178,8 +242,16 @@ export function TimeSeriesChart({
         <BarChart
           xAxisLabel={xAxisLabel}
           yAxisLabel={yAxisLabel}
-          xAxis={[{ data: data?.xLabels || [] }]}
-          series={visibleSeries.map((series) => ({ data: series.data, label: series.label }))}
+          xAxis={[{
+            data: data?.xLabels || [],
+            tickLabelInterval: makeTickLabelInterval((data?.xLabels || []).length),
+          }]}
+          yAxis={yAxis}
+          series={visibleSeries.map((series) => ({
+            data: series.data,
+            label: series.label,
+            ...(hasSecondaryAxis && series.axis === 'secondary' ? { yAxisId: 'secondary' } : {}),
+          }))}
           palette={visiblePalette}
           height={CHART_HEIGHT}
         />

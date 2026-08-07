@@ -34,7 +34,7 @@ describe('BarChart preset', () => {
   it.each([
     ['grouped', [{ data: [1] }, { data: [2] }], undefined],
     ['stacked', [{ data: [1], stack: 'total' }, { data: [2], stack: 'total' }], undefined],
-    ['dual axis', [{ data: [1], yAxisKey: 'secondary' }, { data: [2] }], [{ id: 'primary' }, { id: 'secondary' }]],
+    ['dual axis', [{ data: [1], yAxisId: 'secondary' }, { data: [2] }], [{ id: 'primary' }, { id: 'secondary' }]],
   ])('renders the %s variant with a legend for multiple series', (_name, series, yAxis) => {
     renderChart({ series, yAxis });
     const props = chartSpy.mock.calls.at(-1)[0];

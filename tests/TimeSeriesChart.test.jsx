@@ -200,4 +200,129 @@ describe('TimeSeriesChart', () => {
     const props = chartSpy.mock.calls.at(-1)[0];
     expect(props.series.map((series) => series.label)).toEqual(['Presence hours']);
   });
+
+  // CHART-5: second y-axis (opt-in per series via `axis: 'secondary'`),
+  // auto-detected integer-only tick formatting per axis, and a deterministic
+  // x-axis tickLabelInterval. Learned from CHART-4's own history in this
+  // file: assertions here are on the captured functions/props passed to the
+  // mocked MuiBarChart, never on real jsdom-rendered tick visibility/position
+  // (proven vacuous for that in CHART-4 -- jsdom's layout/ResizeObserver
+  // handling doesn't reproduce real-browser collision behaviour).
+  const MIXED_DATA = {
+    xLabels: ['Mon', 'Tue', 'Wed'],
+    series: [
+      { key: 'users', label: 'Users', data: [1, 2, 3] },
+      { key: 'presence', label: 'Presence hours', data: [4.5, 5.2, 6.1] },
+    ],
+  };
+
+  it('CHART-5: no custom yAxis when the shared single axis is not all-integer (today\'s real case)', () => {
+    renderChart({ data: MIXED_DATA });
+
+    const props = chartSpy.mock.calls.at(-1)[0];
+    expect(props.yAxis).toHaveLength(1);
+    expect(props.yAxis[0].valueFormatter).toBeUndefined();
+    expect(props.yAxis[0].label).toBe('Count');
+  });
+
+  it('CHART-5: auto-applies an integer tick formatter to a single shared axis that is all-integer', () => {
+    renderChart(); // SAMPLE_DATA: both series are whole numbers
+
+    const props = chartSpy.mock.calls.at(-1)[0];
+    expect(props.yAxis).toHaveLength(1);
+    expect(typeof props.yAxis[0].valueFormatter).toBe('function');
+  });
+
+  it('CHART-5: dual axis activates with two labelled yAxis entries and correct yAxisId wiring', () => {
+    const data = {
+      xLabels: ['Mon', 'Tue', 'Wed'],
+      series: [
+        { key: 'users', label: 'Users', data: [1, 2, 3] },
+        { key: 'presence', label: 'Presence hours', data: [4.5, 5.2, 6.1], axis: 'secondary' },
+      ],
+    };
+    renderChart({ data, secondaryYAxisLabel: 'Hours' });
+
+    const props = chartSpy.mock.calls.at(-1)[0];
+    expect(props.yAxis).toEqual([
+      expect.objectContaining({ id: 'primary', label: 'Count' }),
+      expect.objectContaining({ id: 'secondary', label: 'Hours' }),
+    ]);
+    const usersSeries = props.series.find((series) => series.label === 'Users');
+    const presenceSeries = props.series.find((series) => series.label === 'Presence hours');
+    expect(usersSeries.yAxisId).toBeUndefined();
+    expect(presenceSeries.yAxisId).toBe('secondary');
+  });
+
+  it('CHART-5: dual axis applies the integer formatter only to the axis that is actually all-integer', () => {
+    const data = {
+      xLabels: ['Mon', 'Tue', 'Wed'],
+      series: [
+        { key: 'users', label: 'Users', data: [1, 2, 3], axis: 'primary' },
+        { key: 'presence', label: 'Presence hours', data: [4.5, 5.2, 6.1], axis: 'secondary' },
+      ],
+    };
+    renderChart({ data, secondaryYAxisLabel: 'Hours' });
+
+    const props = chartSpy.mock.calls.at(-1)[0];
+    const primaryAxis = props.yAxis.find((axis) => axis.id === 'primary');
+    const secondaryAxis = props.yAxis.find((axis) => axis.id === 'secondary');
+    expect(typeof primaryAxis.valueFormatter).toBe('function');
+    expect(secondaryAxis.valueFormatter).toBeUndefined();
+  });
+
+  it('CHART-5: throws when a series declares axis "secondary" without secondaryYAxisLabel', () => {
+    const data = {
+      xLabels: ['Mon'],
+      series: [{ key: 'presence', label: 'Presence hours', data: [4.5], axis: 'secondary' }],
+    };
+    expect(() => renderChart({ data })).toThrow(
+      'TimeSeriesChart requires secondaryYAxisLabel when a series uses axis: "secondary".',
+    );
+  });
+
+  it('CHART-5: the integer tick formatter blanks non-integer tick labels but not tooltip/legend values', () => {
+    renderChart(); // SAMPLE_DATA, single all-integer axis
+
+    const { valueFormatter } = chartSpy.mock.calls.at(-1)[0].yAxis[0];
+    expect(valueFormatter(2, { location: 'tick' })).toBe('2');
+    expect(valueFormatter(2.5, { location: 'tick' })).toBe('');
+    expect(valueFormatter(2.5, { location: 'tooltip' })).toBe('2.5');
+  });
+
+  it('CHART-5: toggling the non-integer series off switches the shared axis to integer-formatted', () => {
+    renderChart({ data: MIXED_DATA });
+    expect(chartSpy.mock.calls.at(-1)[0].yAxis[0].valueFormatter).toBeUndefined();
+
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Presence hours' }));
+
+    const props = chartSpy.mock.calls.at(-1)[0];
+    expect(typeof props.yAxis[0].valueFormatter).toBe('function');
+  });
+
+  it('CHART-5: x-axis tickLabelInterval guarantees some labels always show, evenly spread', () => {
+    const manyLabels = Array.from({ length: 24 }, (_, i) => `Bucket ${i}`);
+    const data = { ...SAMPLE_DATA, xLabels: manyLabels, series: [SAMPLE_DATA.series[0]] };
+    renderChart({ data });
+
+    const { tickLabelInterval } = chartSpy.mock.calls.at(-1)[0].xAxis[0];
+    expect(typeof tickLabelInterval).toBe('function');
+
+    const visibleIndices = manyLabels.map((_, index) => index).filter((index) => tickLabelInterval(manyLabels[index], index));
+    expect(visibleIndices.length).toBeGreaterThanOrEqual(3);
+    expect(visibleIndices).toContain(0);
+  });
+
+  // CHART-5 (found by ui_reviewer): `index % step === 0` alone systematically
+  // drops the FINAL bucket unless it happens to land on a step boundary --
+  // e.g. 24 labels / step 3 covers 0..21, never 23. The most recent time
+  // bucket is usually the one that matters most on a time-series chart.
+  it.each([24, 12, 7, 1])('CHART-5: tickLabelInterval always includes the last bucket (labelCount=%i)', (labelCount) => {
+    const manyLabels = Array.from({ length: labelCount }, (_, i) => `Bucket ${i}`);
+    const data = { ...SAMPLE_DATA, xLabels: manyLabels, series: [SAMPLE_DATA.series[0]] };
+    renderChart({ data });
+
+    const { tickLabelInterval } = chartSpy.mock.calls.at(-1)[0].xAxis[0];
+    expect(tickLabelInterval(manyLabels.at(-1), labelCount - 1)).toBe(true);
+  });
 });

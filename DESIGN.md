@@ -19,7 +19,8 @@ These principles are the spec a **prototype** encodes and the implementation mat
 
 ## Charts (read by humans, executed by code)
 
-8. **Every chart earns:** axis labels (with units), a legend only when >1 series, a tooltip, theme-token colours, container-responsive sizing, and empty/loading states. **Single-hue for magnitude; diverging (blue/red around zero) ONLY for signed data. Never dual-axis.** The concrete data palette is per-app / the `ui-core-micha` chart kit — this states the rules, not a fixed palette.
+8. **Every chart earns:** axis labels (with units), a legend only when >1 series, a tooltip, theme-token colours, container-responsive sizing, and empty/loading states. **Single-hue for magnitude; diverging (blue/red around zero) ONLY for signed data.** The concrete data palette is per-app / the `ui-core-micha` chart kit — this states the rules, not a fixed palette.
+   **Dual-axis is a default-off exception, opt-in only** (CHART-5, operator decision): the shared `TimeSeriesChart` preset supports a second y-axis via a per-series `axis: 'secondary'` field specifically for two series sharing one axis at very different scales/units (e.g. a user count vs. hours) where series-toggles alone leave one series unreadable. Reach for it only under that same condition, not as a general layout choice — a single shared axis (or toggles) stays the default everywhere else.
 9. **Ground it in the real subject matter.** Faithful structures from the real panels (hram: Morris-tornado, Pareto/knee, CI-strip, allocation-scatter with shape-encoded sources) — no lorem, no generic charts. Hence: **scout the real subject before building.**
 
 ## Craft
