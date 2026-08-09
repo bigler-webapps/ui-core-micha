@@ -30,7 +30,7 @@
   --control-border-hover: rgba(33,37,41,0.65);
   --control-border-focus: #3D5A99;
   --control-border-error: #BF3227;
-  --bg-page:#FCFBF9; --bg-surface:#FFFFFF;
+  --bg-page:#FAFAFA; --bg-surface:#FFFFFF;
 
   --success:#357A4A; --success-bg:#E5F4E9;
   --success-fill:#1B8038; --success-fill-text:#FFFFFF;
@@ -97,7 +97,7 @@
 .th-mui{
   --ink-1: rgba(0,0,0,0.87); --ink-2: rgba(0,0,0,0.6); --ink-3: rgba(0,0,0,0.38);
   --border-c: rgba(0,0,0,0.12);
-  --bg-page:#FAFAFA; --bg-surface:#FFFFFF;
+  --bg-page:#FFFFFF; --bg-surface:#FFFFFF;
 
   --success:#2E7D32; --success-bg:#EDF7ED;
   --warning:#663C00; --warning-bg:#FFF4E5;
@@ -402,24 +402,24 @@ section.doc-section code{ font-family:ui-monospace,Consolas,monospace; font-size
         <tr><td><code>ink.secondary</code></td><td><span class="token-swatch" style="background:#5B6670"></span><code>#5B6670</code></td><td>subtitle2, secondary text</td>
           <td><span class="ratio-badge" data-fg="#5B6670" data-bg="#FFFFFF" data-min="4.5"></span></td><td class="note">unchanged</td></tr>
         <tr><td><code>ink.muted</code></td><td><span class="token-swatch" style="background:#6A7178"></span><code>#6A7178</code></td><td>captions, meta text</td>
-          <td><span class="ratio-badge" data-fg="#6A7178" data-bg="#FFFFFF" data-min="4.6"></span> <span class="ratio-badge" data-fg="#6A7178" data-bg="#FAF9F7" data-min="4.6"></span> <span class="ratio-badge" data-fg="#6A7178" data-bg="#F8F7F4" data-min="4.6"></span></td>
+          <td><span class="ratio-badge" data-fg="#6A7178" data-bg="#FFFFFF" data-min="4.6"></span> <span class="ratio-badge" data-fg="#6A7178" data-bg="#FAFAFA" data-min="4.6"></span> <span class="ratio-badge" data-fg="#6A7178" data-bg="#FAFAFA" data-min="4.6"></span></td>
           <td class="note">was #6F777E (4.549:1 on white, but only 4.247:1 against the new palest page candidate — round 2 fixed white only). Darkened further this round to clear 4.6:1 against white, the working page bg, and the palest candidate alike — see "Page background — candidate strip" above.</td></tr>
         <tr><td><code>divider</code></td><td><span class="token-swatch" style="background:#e9e9ea"></span><code>rgba(33,37,41,.10)</code></td><td>decorative separators, card outline</td>
           <td><span class="ratio-badge" data-fg="rgba(33,37,41,0.10)" data-bg="#FFFFFF" data-min="3"></span></td><td class="note">not a component-identification boundary — WCAG 1.4.11 non-text contrast is explicitly exempt here. Renamed from the single <code>border</code> token this round, split against <code>controlBorder</code> below.</td></tr>
         <tr><td><code>controlBorder</code> (rest)</td><td><span class="token-swatch" style="background:#909294"></span><code>rgba(33,37,41,.50)</code></td><td>TextField/Select rest, Checkbox box, outlined Button/Chip</td>
-          <td><span class="ratio-badge" data-fg="rgba(33,37,41,0.50)" data-bg="#FFFFFF" data-min="3"></span> <span class="ratio-badge" data-fg="rgba(33,37,41,0.50)" data-bg="#F8F7F4" data-min="3"></span></td>
+          <td><span class="ratio-badge" data-fg="rgba(33,37,41,0.50)" data-bg="#FFFFFF" data-min="3"></span> <span class="ratio-badge" data-fg="rgba(33,37,41,0.50)" data-bg="#FAFAFA" data-min="3"></span></td>
           <td class="note">new — supersedes <code>input.border</code> (<code>rgba(33,37,41,.23)</code>), which measured <span class="ratio-badge" data-fg="rgba(33,37,41,0.23)" data-bg="#FFFFFF" data-min="3"></span> and never cleared 3:1, flagged unfixed in round 2. Same ink hue, higher opacity.</td></tr>
         <tr><td><code>controlBorder-hover</code></td><td><span class="token-swatch" style="background:#7a7c7f"></span><code>rgba(33,37,41,.65)</code></td><td>control outline on hover</td>
-          <td><span class="ratio-badge" data-fg="rgba(33,37,41,0.65)" data-bg="#FFFFFF" data-min="3"></span> <span class="ratio-badge" data-fg="rgba(33,37,41,0.65)" data-bg="#F8F7F4" data-min="3"></span></td>
+          <td><span class="ratio-badge" data-fg="rgba(33,37,41,0.65)" data-bg="#FFFFFF" data-min="3"></span> <span class="ratio-badge" data-fg="rgba(33,37,41,0.65)" data-bg="#FAFAFA" data-min="3"></span></td>
           <td class="note">supersedes <code>input.border-hover</code> (<code>rgba(33,37,41,.45)</code>, 2.72:1, also sub-3:1)</td></tr>
         <tr><td><code>controlBorder-focus</code></td><td><em>derived from the app's <code>primary</code></em>, auto-darkened until it clears 3:1 against the surface (MUI <code>getContrastRatio</code>/<code>darken</code>). No fixed hex — the baseline defines no <code>primary</code>. Ratios for the four real estate accents &rarr;</td><td>control outline on focus</td>
           <td style="line-height:1.9">hram <code>#468AB2</code> <span class="ratio-badge" data-fg="#468AB2" data-bg="#FCFBF9" data-min="3"></span><br>spesix <code>#1B8FD8</code> <span class="ratio-badge" data-fg="#1B8FD8" data-bg="#FCFBF9" data-min="3"></span><br>fm <code>#0F62FE</code> <span class="ratio-badge" data-fg="#0F62FE" data-bg="#FCFBF9" data-min="3"></span><br>survey <code>#432CA1</code> <span class="ratio-badge" data-fg="#432CA1" data-bg="#FCFBF9" data-min="3"></span></td>
           <td class="note">new — reuses the existing primary hue rather than introducing another colour</td></tr>
         <tr><td><code>controlBorder-error</code></td><td><span class="token-swatch" style="background:#BF3227"></span><code>#BF3227</code></td><td>control outline in error state</td>
-          <td><span class="ratio-badge" data-fg="#BF3227" data-bg="#FFFFFF" data-min="3"></span> <span class="ratio-badge" data-fg="#BF3227" data-bg="#F8F7F4" data-min="3"></span></td>
+          <td><span class="ratio-badge" data-fg="#BF3227" data-bg="#FFFFFF" data-min="3"></span> <span class="ratio-badge" data-fg="#BF3227" data-bg="#FAFAFA" data-min="3"></span></td>
           <td class="note">new — reuses the existing critical hue</td></tr>
-        <tr><td><code>bg.page</code></td><td><span class="token-swatch" style="background:#FAF9F7"></span><code>#FAF9F7</code></td><td>app canvas / page background</td><td>—</td>
-          <td class="note">was #F7F6F3 (too warm per operator review). Now candidate B of a 3-value strip (A #FCFBF9 closest to white, C #F8F7F4 furthest) — see "Page background — candidate strip" above; still R-highest (warm) but far subtler.</td></tr>
+        <tr><td><code>bg.page</code></td><td><span class="token-swatch" style="background:#FAFAFA"></span><code>#FAFAFA</code></td><td>app canvas / page background</td><td>—</td>
+          <td class="note">neutral, no colour cast — MUI grey[50]. Fourth value in the chain: #F5F7F8 (cool) → #F7F6F3 → #FCFBF9 (both too warm) → #FAFAFA. A lightness step off white, not a hue.</td></tr>
         <tr><td><code>bg.surface</code></td><td><span class="token-swatch" style="background:#FFFFFF"></span><code>#FFFFFF</code></td><td>Paper/Card/Table/Dialog</td><td>—</td><td class="note">unchanged</td></tr>
 
         <tr class="group-row"><td colspan="5">Status — success</td></tr>
@@ -516,7 +516,7 @@ section.doc-section code{ font-family:ui-monospace,Consolas,monospace; font-size
     <p class="section-note">Operator verdict on round 2's <code>#F7F6F3</code>: <strong>far too warm — bring it much closer to white.</strong> Still not pure white, and still very slightly warm (R the highest channel) — just far subtler. Three candidates below, at increasing distance from white. Each card shows a real <code>#FFFFFF</code> surface sitting on the candidate (so page↔card separation stays visible), body text and a muted caption rendered directly on the bare page, and the <em>current</em> muted-ink tone's live contrast against that candidate — this is what motivates the re-verification below, not the already-fixed tone.</p>
     <div class="bg-strip">
       <div class="bg-card">
-        <div class="bg-card-label">Candidate A — #FCFBF9 <span style="color:#3D5A99">— CHOSEN (operator, 2026-08-09)</span></div>
+        <div class="bg-card-label">Candidate A — #FCFBF9 <span style="opacity:.7">— superseded, still too warm</span></div>
         <div class="bg-card-val">closest to white</div>
         <div style="background:#FCFBF9; border-radius:8px; padding:12px">
           <div class="bg-card-surface"><p class="bg-card-text">Card on candidate A</p><p class="bg-card-caption">body text inside a white surface</p></div>
@@ -546,7 +546,7 @@ section.doc-section code{ font-family:ui-monospace,Consolas,monospace; font-size
         <div class="bg-delta">Δ from white (R,G,B): <code>7, 8, 11</code> · warm cast (R−B): <code>+4</code></div>
       </div>
     </div>
-    <p class="section-note" style="margin:14px 0 0"><strong>A (<code>#FCFBF9</code>) is the chosen <code>bg.page</code></strong> — operator decision 2026-08-09, the closest of the three to white while keeping a warm (R-highest) cast. The strip is kept as provenance: <code>#F5F7F8</code> (cool, round 1) &rarr; <code>#F7F6F3</code> (rejected as far too warm) &rarr; <code>#FCFBF9</code>.</p>
+    <p class="section-note" style="margin:14px 0 0"><strong><code>#FAFAFA</code> is the chosen <code>bg.page</code></strong> — operator decision 2026-08-09, after all three warm candidates read as too warm. The correction: <em>&ldquo;warmer&rdquo; against a blue-cast value meant NEUTRAL, not yellow</em>, and the requirement is a lightness step off white to take the glare out, not a hue. <code>#FAFAFA</code> is MUI's own <code>grey[50]</code> and carries no cast. The strip below is kept as provenance of the four-step path: <code>#F5F7F8</code> (cool, round&nbsp;1) &rarr; <code>#F7F6F3</code> (far too warm) &rarr; <code>#FCFBF9</code> (still too warm) &rarr; <code>#FAFAFA</code>. Three of the six estate apps (hram, fitness-monitor, innoservice) use pure <code>#FFFFFF</code> today and will change visibly on adoption; jg-ferien (<code>#eceae2</code>) and spesix (<code>#EEF4FA</code>) override for identity.</p>
     <p class="section-note" style="margin:10px 0 0"><strong>Muted ink re-verified against the new band — and it doesn't clear 4.5:1 anywhere close to white anymore.</strong> The badges above use the <em>current</em> tone, <code>#6F777E</code>: 4.549:1 on pure white (barely — 0.049 of headroom over the 4.5 floor) but a <strong>failing</strong> 4.399 / 4.324 / 4.247 :1 on candidates A / B / C. A value that passes at 4.55 was already fragile; against a near-white page it fails outright. Darkened minimally along the same hue to <strong><code>#6A7178</code></strong>: <span class="ratio-badge" data-fg="#6A7178" data-bg="#FFFFFF" data-min="4.6"></span> on white, <span class="ratio-badge" data-fg="#6A7178" data-bg="#F8F7F4" data-min="4.6"></span> on the palest candidate (C) — cleared against a 4.6:1 target with real headroom, not just nudged over the 4.5:1 floor. This is the tone now used everywhere <code>ink.muted</code> appears in this document, including the token table below.</p>
   </section>
 
@@ -578,7 +578,7 @@ section.doc-section code{ font-family:ui-monospace,Consolas,monospace; font-size
           <div class="swatch"><div class="swatch-chip" style="background:var(--ink-2)"></div><div class="swatch-name">ink.secondary</div><div class="swatch-val">#5B6670</div>
             <div class="ratio-row"><span class="ratio-badge" data-fg="#5B6670" data-bg="#FFFFFF" data-min="4.5"></span></div></div>
           <div class="swatch"><div class="swatch-chip" style="background:var(--ink-3)"></div><div class="swatch-name">ink.muted</div><div class="swatch-val">#6A7178 <span style="text-decoration:line-through;opacity:.6">#6F777E</span></div>
-            <div class="ratio-row"><span class="ratio-badge" data-fg="#6A7178" data-bg="#FFFFFF" data-min="4.6"></span><span class="ratio-label">on page bg (B):</span><span class="ratio-badge" data-fg="#6A7178" data-bg="#FAF9F7" data-min="4.6"></span><span class="ratio-label">on palest candidate (C):</span><span class="ratio-badge" data-fg="#6A7178" data-bg="#F8F7F4" data-min="4.6"></span></div></div>
+            <div class="ratio-row"><span class="ratio-badge" data-fg="#6A7178" data-bg="#FFFFFF" data-min="4.6"></span><span class="ratio-label">on page bg (B):</span><span class="ratio-badge" data-fg="#6A7178" data-bg="#FAFAFA" data-min="4.6"></span><span class="ratio-label">on palest candidate (C):</span><span class="ratio-badge" data-fg="#6A7178" data-bg="#FAFAFA" data-min="4.6"></span></div></div>
           <div class="swatch"><div class="swatch-chip" style="background:var(--bg-page); border:1px solid var(--border-c)"></div><div class="swatch-name">bg.page</div><div class="swatch-val">#FAF9F7 <span style="text-decoration:line-through;opacity:.6">#F7F6F3</span></div></div>
           <div class="swatch"><div class="swatch-chip" style="background:var(--border-c)"></div><div class="swatch-name">divider</div><div class="swatch-val">rgba(33,37,41,.10)</div>
             <div class="ratio-row"><span class="ratio-badge" data-fg="rgba(33,37,41,0.10)" data-bg="#FFFFFF" data-min="3"></span><span class="ratio-label">decorative — 1.4.11-exempt, see below</span></div></div>
@@ -591,16 +591,16 @@ section.doc-section code{ font-family:ui-monospace,Consolas,monospace; font-size
     <div class="swatch-row">
       <div class="swatch"><div class="swatch-chip" style="border:2px solid var(--control-border); background:#fff"></div><div class="swatch-name">controlBorder (rest)</div><div class="swatch-val">rgba(33,37,41,.50)</div>
         <div class="ratio-row"><span class="ratio-badge" data-fg="rgba(33,37,41,0.50)" data-bg="#FFFFFF" data-min="3"></span></div>
-        <div class="ratio-row"><span class="ratio-badge" data-fg="rgba(33,37,41,0.50)" data-bg="#F8F7F4" data-min="3"></span><span class="ratio-label">on C</span></div></div>
+        <div class="ratio-row"><span class="ratio-badge" data-fg="rgba(33,37,41,0.50)" data-bg="#FAFAFA" data-min="3"></span><span class="ratio-label">on C</span></div></div>
       <div class="swatch"><div class="swatch-chip" style="border:2px solid var(--control-border-hover); background:#fff"></div><div class="swatch-name">controlBorder (hover)</div><div class="swatch-val">rgba(33,37,41,.65)</div>
         <div class="ratio-row"><span class="ratio-badge" data-fg="rgba(33,37,41,0.65)" data-bg="#FFFFFF" data-min="3"></span></div>
-        <div class="ratio-row"><span class="ratio-badge" data-fg="rgba(33,37,41,0.65)" data-bg="#F8F7F4" data-min="3"></span><span class="ratio-label">on C</span></div></div>
+        <div class="ratio-row"><span class="ratio-badge" data-fg="rgba(33,37,41,0.65)" data-bg="#FAFAFA" data-min="3"></span><span class="ratio-label">on C</span></div></div>
       <div class="swatch"><div class="swatch-chip" style="border:2px solid var(--control-border-focus); background:#fff"></div><div class="swatch-name">controlBorder (focus)</div><div class="swatch-val">#3D5A99 (primary)</div>
         <div class="ratio-row"><span class="ratio-badge" data-fg="#3D5A99" data-bg="#FFFFFF" data-min="3"></span></div>
-        <div class="ratio-row"><span class="ratio-badge" data-fg="#3D5A99" data-bg="#F8F7F4" data-min="3"></span><span class="ratio-label">on C</span></div></div>
+        <div class="ratio-row"><span class="ratio-badge" data-fg="#3D5A99" data-bg="#FAFAFA" data-min="3"></span><span class="ratio-label">on C</span></div></div>
       <div class="swatch"><div class="swatch-chip" style="border:2px solid var(--control-border-error); background:#fff"></div><div class="swatch-name">controlBorder (error)</div><div class="swatch-val">#BF3227 (critical)</div>
         <div class="ratio-row"><span class="ratio-badge" data-fg="#BF3227" data-bg="#FFFFFF" data-min="3"></span></div>
-        <div class="ratio-row"><span class="ratio-badge" data-fg="#BF3227" data-bg="#F8F7F4" data-min="3"></span><span class="ratio-label">on C</span></div></div>
+        <div class="ratio-row"><span class="ratio-badge" data-fg="#BF3227" data-bg="#FAFAFA" data-min="3"></span><span class="ratio-label">on C</span></div></div>
     </div>
 
     <h3>TextField / Select — rest, hover, focus, error</h3>
