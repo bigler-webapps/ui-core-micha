@@ -245,20 +245,12 @@ section.doc-section code{ font-family:ui-monospace,Consolas,monospace; font-size
    "before" comparison value (they measured under 3:1 and are superseded). */
 .sf-field{ display:flex; flex-direction:column; gap:4px; }
 .sf-field-label{ font-size:11px; font-weight:600; color:var(--ink-2); }
-.sf-select, .sf-input{ font-family:var(--font-family); font-size:14px; color:var(--ink-1); height:var(--control-h);
+.sf-ph{ color:var(--ink-3); }
+.sf-caret{ margin-left:auto; color:var(--ink-2); flex:none; }
+.sf-select, .sf-input{ display:flex; align-items:center; gap:8px; font-family:var(--font-family); font-size:14px; color:var(--ink-1); height:var(--control-h);
   border:1px solid var(--control-border); border-radius:var(--radius-control); padding:0 12px; background:var(--bg-surface);
   min-width:170px; }
 .sf-select.state-hover, .sf-input.state-hover{ border-color:var(--control-border-hover); }
-.sf-input:-webkit-autofill, .sf-input:-webkit-autofill:hover, .sf-input:-webkit-autofill:focus,
-.sf-select:-webkit-autofill, .sf-select:-webkit-autofill:hover, .sf-select:-webkit-autofill:focus{
-  -webkit-box-shadow: 0 0 0 100px var(--bg-surface) inset;
-  -webkit-text-fill-color: var(--ink-1);
-  caret-color: var(--ink-1);
-  transition: background-color 9999s ease-in-out 0s;
-}
-/* .th-mui is deliberately NOT given this override — the comparison column must show
-   what MUI actually does today, which is nothing: Chrome paints autofilled fields
-   its own pale yellow, straight through the app's theme. */
 .sf-select.state-focus, .sf-input.state-focus{ border-color:var(--control-border-focus); box-shadow:0 0 0 3px rgba(61,90,153,0.16); outline:none; }
 .sf-select.state-error, .sf-input.state-error{ border-color:var(--control-border-error); }
 .th-mui .sf-select, .th-mui .sf-input{ border-color:rgba(0,0,0,0.23); }
@@ -423,7 +415,7 @@ section.doc-section code{ font-family:ui-monospace,Consolas,monospace; font-size
           <td><span class="ratio-badge" data-fg="rgba(33,37,41,0.65)" data-bg="#FFFFFF" data-min="3"></span> <span class="ratio-badge" data-fg="rgba(33,37,41,0.65)" data-bg="#FAFAFA" data-min="3"></span></td>
           <td class="note">supersedes <code>input.border-hover</code> (<code>rgba(33,37,41,.45)</code>, 2.72:1, also sub-3:1)</td></tr>
         <tr><td><code>control.autofill</code></td><td>surface inset shadow + <code>-webkit-text-fill-color</code> = <code>ink.primary</code></td><td>autofilled input/select background and text</td>
-          <td class="note">not a contrast pair — a suppression</td><td class="note"><strong>MUI has no autofill styling at all</strong>, so Chrome's pale yellow paints straight through every app's theme on login and form screens. Found by clicking a field in this sheet. The <code>.th-mui</code> column deliberately keeps the unstyled behaviour so the gap stays visible.</td></tr>
+          <td class="note">not a contrast pair — a suppression</td><td class="note"><strong>MUI has no autofill styling, and the browsers disagree loudly:</strong> the same field rendered yellow in a Chromium browser, dark grey in Opera and dark blue in Firefox (operator, 2026-08-09). <code>:-webkit-autofill</code> alone is not enough — the standard <code>:autofill</code> selector is needed for Firefox. <strong>This sheet no longer demonstrates it:</strong> its inputs and selects were converted to inert styled markup, because a specimen sheet shows appearance, not behaviour, and real form controls drag in per-browser native chrome that pollutes every comparison next to them. The gap is real for the apps and belongs in the factory regardless.</td></tr>
         <tr><td><code>controlBorder-focus</code></td><td><em>derived from the app's <code>primary</code></em>, auto-darkened until it clears 3:1 against the surface (MUI <code>getContrastRatio</code>/<code>darken</code>). No fixed hex — the baseline defines no <code>primary</code>. Ratios for the four real estate accents &rarr;</td><td>control outline on focus</td>
           <td style="line-height:1.9">hram <code>#468AB2</code> <span class="ratio-badge" data-fg="#468AB2" data-bg="#FCFBF9" data-min="3"></span><br>spesix <code>#1B8FD8</code> <span class="ratio-badge" data-fg="#1B8FD8" data-bg="#FCFBF9" data-min="3"></span><br>fm <code>#0F62FE</code> <span class="ratio-badge" data-fg="#0F62FE" data-bg="#FCFBF9" data-min="3"></span><br>survey <code>#432CA1</code> <span class="ratio-badge" data-fg="#432CA1" data-bg="#FCFBF9" data-min="3"></span></td>
           <td class="note">new — reuses the existing primary hue rather than introducing another colour</td></tr>
@@ -635,27 +627,27 @@ section.doc-section code{ font-family:ui-monospace,Consolas,monospace; font-size
       <div class="col th-mui">
         <div class="col-label">MUI raw default <span class="tag mui">MUI</span></div>
         <div class="stack">
-          <div class="row"><div class="sf-outlined-wrap"><span class="float-label">Rest</span><input class="sf-input" placeholder="hram…" /></div><span class="ratio-badge" data-fg="rgba(0,0,0,0.23)" data-bg="#FFFFFF" data-min="3"></span></div>
-          <div class="row"><div class="sf-outlined-wrap"><span class="float-label">Hover</span><input class="sf-input state-hover" placeholder="hram…" /></div><span class="ratio-badge" data-fg="rgba(0,0,0,0.87)" data-bg="#FFFFFF" data-min="3"></span></div>
-          <div class="row"><div class="sf-outlined-wrap"><span class="float-label">Focus</span><input class="sf-input state-focus" placeholder="hram…" /></div><span class="ratio-badge" data-fg="#1976d2" data-bg="#FFFFFF" data-min="3"></span></div>
-          <div class="row"><div class="sf-outlined-wrap"><span class="float-label">Error</span><input class="sf-input state-error" placeholder="hram…" /></div><span class="ratio-badge" data-fg="#d32f2f" data-bg="#FFFFFF" data-min="3"></span></div>
-          <div class="row" style="margin-top:6px"><select class="sf-select"><option>Select — rest</option></select><span class="ratio-badge" data-fg="rgba(0,0,0,0.23)" data-bg="#FFFFFF" data-min="3"></span></div>
-          <div class="row"><select class="sf-select state-hover"><option>Select — hover</option></select><span class="ratio-badge" data-fg="rgba(0,0,0,0.87)" data-bg="#FFFFFF" data-min="3"></span></div>
-          <div class="row"><select class="sf-select state-focus"><option>Select — focus</option></select><span class="ratio-badge" data-fg="#1976d2" data-bg="#FFFFFF" data-min="3"></span></div>
-          <div class="row"><select class="sf-select state-error"><option>Select — error</option></select><span class="ratio-badge" data-fg="#d32f2f" data-bg="#FFFFFF" data-min="3"></span></div>
+          <div class="row"><div class="sf-outlined-wrap"><span class="float-label">Rest</span><div class="sf-input" aria-hidden="true"><span class="sf-ph">hram…</span></div></div><span class="ratio-badge" data-fg="rgba(0,0,0,0.23)" data-bg="#FFFFFF" data-min="3"></span></div>
+          <div class="row"><div class="sf-outlined-wrap"><span class="float-label">Hover</span><div class="sf-input state-hover" aria-hidden="true"><span class="sf-ph">hram…</span></div></div><span class="ratio-badge" data-fg="rgba(0,0,0,0.87)" data-bg="#FFFFFF" data-min="3"></span></div>
+          <div class="row"><div class="sf-outlined-wrap"><span class="float-label">Focus</span><div class="sf-input state-focus" aria-hidden="true"><span class="sf-ph">hram…</span></div></div><span class="ratio-badge" data-fg="#1976d2" data-bg="#FFFFFF" data-min="3"></span></div>
+          <div class="row"><div class="sf-outlined-wrap"><span class="float-label">Error</span><div class="sf-input state-error" aria-hidden="true"><span class="sf-ph">hram…</span></div></div><span class="ratio-badge" data-fg="#d32f2f" data-bg="#FFFFFF" data-min="3"></span></div>
+          <div class="row" style="margin-top:6px"><div class="sf-select" aria-hidden="true"><span>Select — rest</span><svg class="sf-caret" viewBox="0 0 10 6" width="10" height="6"><polyline points="1,1 5,5 9,1" fill="none" stroke="currentColor" stroke-width="1.5"/></svg></div><span class="ratio-badge" data-fg="rgba(0,0,0,0.23)" data-bg="#FFFFFF" data-min="3"></span></div>
+          <div class="row"><div class="sf-select state-hover" aria-hidden="true"><span>Select — hover</span><svg class="sf-caret" viewBox="0 0 10 6" width="10" height="6"><polyline points="1,1 5,5 9,1" fill="none" stroke="currentColor" stroke-width="1.5"/></svg></div><span class="ratio-badge" data-fg="rgba(0,0,0,0.87)" data-bg="#FFFFFF" data-min="3"></span></div>
+          <div class="row"><div class="sf-select state-focus" aria-hidden="true"><span>Select — focus</span><svg class="sf-caret" viewBox="0 0 10 6" width="10" height="6"><polyline points="1,1 5,5 9,1" fill="none" stroke="currentColor" stroke-width="1.5"/></svg></div><span class="ratio-badge" data-fg="#1976d2" data-bg="#FFFFFF" data-min="3"></span></div>
+          <div class="row"><div class="sf-select state-error" aria-hidden="true"><span>Select — error</span><svg class="sf-caret" viewBox="0 0 10 6" width="10" height="6"><polyline points="1,1 5,5 9,1" fill="none" stroke="currentColor" stroke-width="1.5"/></svg></div><span class="ratio-badge" data-fg="#d32f2f" data-bg="#FFFFFF" data-min="3"></span></div>
         </div>
       </div>
       <div class="col th-candidate">
         <div class="col-label">Baseline candidate — controlBorder <span class="tag cand">DS2</span></div>
         <div class="stack">
-          <div class="row"><div class="sf-outlined-wrap"><span class="float-label">Rest</span><input class="sf-input" placeholder="hram…" /></div><span class="ratio-badge" data-fg="rgba(33,37,41,0.50)" data-bg="#FFFFFF" data-min="3"></span></div>
-          <div class="row"><div class="sf-outlined-wrap"><span class="float-label">Hover</span><input class="sf-input state-hover" placeholder="hram…" /></div><span class="ratio-badge" data-fg="rgba(33,37,41,0.65)" data-bg="#FFFFFF" data-min="3"></span></div>
-          <div class="row"><div class="sf-outlined-wrap"><span class="float-label">Focus</span><input class="sf-input state-focus" placeholder="hram…" /></div><span class="ratio-badge" data-fg="#3D5A99" data-bg="#FFFFFF" data-min="3"></span></div>
-          <div class="row"><div class="sf-outlined-wrap"><span class="float-label">Error</span><input class="sf-input state-error" placeholder="hram…" /></div><span class="ratio-badge" data-fg="#BF3227" data-bg="#FFFFFF" data-min="3"></span></div>
-          <div class="row" style="margin-top:6px"><select class="sf-select"><option>Select — rest</option></select><span class="ratio-badge" data-fg="rgba(33,37,41,0.50)" data-bg="#FFFFFF" data-min="3"></span></div>
-          <div class="row"><select class="sf-select state-hover"><option>Select — hover</option></select><span class="ratio-badge" data-fg="rgba(33,37,41,0.65)" data-bg="#FFFFFF" data-min="3"></span></div>
-          <div class="row"><select class="sf-select state-focus"><option>Select — focus</option></select><span class="ratio-badge" data-fg="#3D5A99" data-bg="#FFFFFF" data-min="3"></span></div>
-          <div class="row"><select class="sf-select state-error"><option>Select — error</option></select><span class="ratio-badge" data-fg="#BF3227" data-bg="#FFFFFF" data-min="3"></span></div>
+          <div class="row"><div class="sf-outlined-wrap"><span class="float-label">Rest</span><div class="sf-input" aria-hidden="true"><span class="sf-ph">hram…</span></div></div><span class="ratio-badge" data-fg="rgba(33,37,41,0.50)" data-bg="#FFFFFF" data-min="3"></span></div>
+          <div class="row"><div class="sf-outlined-wrap"><span class="float-label">Hover</span><div class="sf-input state-hover" aria-hidden="true"><span class="sf-ph">hram…</span></div></div><span class="ratio-badge" data-fg="rgba(33,37,41,0.65)" data-bg="#FFFFFF" data-min="3"></span></div>
+          <div class="row"><div class="sf-outlined-wrap"><span class="float-label">Focus</span><div class="sf-input state-focus" aria-hidden="true"><span class="sf-ph">hram…</span></div></div><span class="ratio-badge" data-fg="#3D5A99" data-bg="#FFFFFF" data-min="3"></span></div>
+          <div class="row"><div class="sf-outlined-wrap"><span class="float-label">Error</span><div class="sf-input state-error" aria-hidden="true"><span class="sf-ph">hram…</span></div></div><span class="ratio-badge" data-fg="#BF3227" data-bg="#FFFFFF" data-min="3"></span></div>
+          <div class="row" style="margin-top:6px"><div class="sf-select" aria-hidden="true"><span>Select — rest</span><svg class="sf-caret" viewBox="0 0 10 6" width="10" height="6"><polyline points="1,1 5,5 9,1" fill="none" stroke="currentColor" stroke-width="1.5"/></svg></div><span class="ratio-badge" data-fg="rgba(33,37,41,0.50)" data-bg="#FFFFFF" data-min="3"></span></div>
+          <div class="row"><div class="sf-select state-hover" aria-hidden="true"><span>Select — hover</span><svg class="sf-caret" viewBox="0 0 10 6" width="10" height="6"><polyline points="1,1 5,5 9,1" fill="none" stroke="currentColor" stroke-width="1.5"/></svg></div><span class="ratio-badge" data-fg="rgba(33,37,41,0.65)" data-bg="#FFFFFF" data-min="3"></span></div>
+          <div class="row"><div class="sf-select state-focus" aria-hidden="true"><span>Select — focus</span><svg class="sf-caret" viewBox="0 0 10 6" width="10" height="6"><polyline points="1,1 5,5 9,1" fill="none" stroke="currentColor" stroke-width="1.5"/></svg></div><span class="ratio-badge" data-fg="#3D5A99" data-bg="#FFFFFF" data-min="3"></span></div>
+          <div class="row"><div class="sf-select state-error" aria-hidden="true"><span>Select — error</span><svg class="sf-caret" viewBox="0 0 10 6" width="10" height="6"><polyline points="1,1 5,5 9,1" fill="none" stroke="currentColor" stroke-width="1.5"/></svg></div><span class="ratio-badge" data-fg="#BF3227" data-bg="#FFFFFF" data-min="3"></span></div>
         </div>
       </div>
     </div>
@@ -953,7 +945,7 @@ section.doc-section code{ font-family:ui-monospace,Consolas,monospace; font-size
         <div class="col-sub">control 56px · cell pad 16px · radius 4/4</div>
         <div class="stack">
           <button class="sf-btn sf-btn--contained">Save</button>
-          <select class="sf-select"><option>Select…</option></select>
+          <div class="sf-select" aria-hidden="true"><span>Select…</span><svg class="sf-caret" viewBox="0 0 10 6" width="10" height="6"><polyline points="1,1 5,5 9,1" fill="none" stroke="currentColor" stroke-width="1.5"/></svg></div>
           <div class="sf-chip">Chip</div>
           <div class="sf-paper sf-paper--outlined" style="width:140px"><div class="sf-card-title">Card</div><div class="sf-card-body">radius 4</div></div>
         </div>
@@ -963,7 +955,7 @@ section.doc-section code{ font-family:ui-monospace,Consolas,monospace; font-size
         <div class="col-sub">control 40px · cell pad 10/16 · radius 3/8</div>
         <div class="stack">
           <button class="sf-btn sf-btn--contained">Save</button>
-          <select class="sf-select"><option>Select…</option></select>
+          <div class="sf-select" aria-hidden="true"><span>Select…</span><svg class="sf-caret" viewBox="0 0 10 6" width="10" height="6"><polyline points="1,1 5,5 9,1" fill="none" stroke="currentColor" stroke-width="1.5"/></svg></div>
           <div class="sf-chip">Chip</div>
           <div class="sf-paper sf-paper--outlined" style="width:140px"><div class="sf-card-title">Card</div><div class="sf-card-body">radius 8</div></div>
         </div>
@@ -973,7 +965,7 @@ section.doc-section code{ font-family:ui-monospace,Consolas,monospace; font-size
         <div class="col-sub">control 44px via @media (pointer: coarse)</div>
         <div class="stack">
           <button class="sf-btn sf-btn--contained">Save</button>
-          <select class="sf-select"><option>Select…</option></select>
+          <div class="sf-select" aria-hidden="true"><span>Select…</span><svg class="sf-caret" viewBox="0 0 10 6" width="10" height="6"><polyline points="1,1 5,5 9,1" fill="none" stroke="currentColor" stroke-width="1.5"/></svg></div>
           <div class="sf-chip">Chip</div>
           <div class="sf-paper sf-paper--outlined" style="width:140px"><div class="sf-card-title">Card</div><div class="sf-card-body">radius 8</div></div>
         </div>
@@ -1062,7 +1054,7 @@ section.doc-section code{ font-family:ui-monospace,Consolas,monospace; font-size
       <div class="col th-mui">
         <div class="col-label">MUI raw default <span class="tag mui">MUI</span></div>
         <div class="stack">
-          <select class="sf-select"><option>Select an app…</option></select>
+          <div class="sf-select" aria-hidden="true"><span>Select an app…</span><svg class="sf-caret" viewBox="0 0 10 6" width="10" height="6"><polyline points="1,1 5,5 9,1" fill="none" stroke="currentColor" stroke-width="1.5"/></svg></div>
           <label class="sf-fcl"><span class="sf-checkbox checked"></span> Notify on failure</label>
           <label class="sf-fcl"><span class="sf-checkbox"></span> Include archived</label>
         </div>
@@ -1070,7 +1062,7 @@ section.doc-section code{ font-family:ui-monospace,Consolas,monospace; font-size
       <div class="col th-candidate">
         <div class="col-label">Baseline candidate <span class="tag cand">DS2</span></div>
         <div class="stack">
-          <select class="sf-select"><option>Select an app…</option></select>
+          <div class="sf-select" aria-hidden="true"><span>Select an app…</span><svg class="sf-caret" viewBox="0 0 10 6" width="10" height="6"><polyline points="1,1 5,5 9,1" fill="none" stroke="currentColor" stroke-width="1.5"/></svg></div>
           <label class="sf-fcl"><span class="sf-checkbox checked"></span> Notify on failure</label>
           <label class="sf-fcl"><span class="sf-checkbox"></span> Include archived</label>
         </div>
@@ -1081,11 +1073,11 @@ section.doc-section code{ font-family:ui-monospace,Consolas,monospace; font-size
     <div class="cols">
       <div class="col th-mui">
         <div class="col-label">MUI raw default <span class="tag mui">MUI</span></div>
-        <div class="sf-outlined-wrap"><span class="float-label">Search apps</span><input class="sf-input" placeholder="hram…" /></div>
+        <div class="sf-outlined-wrap"><span class="float-label">Search apps</span><div class="sf-input" aria-hidden="true"><span class="sf-ph">hram…</span></div></div>
       </div>
       <div class="col th-candidate">
         <div class="col-label">Baseline candidate <span class="tag cand">DS2</span></div>
-        <div class="sf-outlined-wrap"><span class="float-label">Search apps</span><input class="sf-input" placeholder="hram…" /></div>
+        <div class="sf-outlined-wrap"><span class="float-label">Search apps</span><div class="sf-input" aria-hidden="true"><span class="sf-ph">hram…</span></div></div>
       </div>
     </div>
 
@@ -1171,9 +1163,7 @@ section.doc-section code{ font-family:ui-monospace,Consolas,monospace; font-size
           <div class="phone-inner th-candidate" style="padding:14px">
             <div class="stack">
               <button class="sf-btn sf-btn--contained" style="width:100%">Deploy to staging</button>
-              <select class="sf-select" style="width:100%">
-                <option>Filter by app…</option>
-              </select>
+              <div class="sf-select" style="width:100%" aria-hidden="true"><span class="sf-ph">Filter by app…</span><svg class="sf-caret" viewBox="0 0 10 6" width="10" height="6"><polyline points="1,1 5,5 9,1" fill="none" stroke="currentColor" stroke-width="1.5"/></svg></div>
               <div class="row"><div class="sf-chip">hram</div><div class="sf-chip">jg-ferien</div><div class="sf-chip outlined">+3</div></div>
             </div>
           </div>
