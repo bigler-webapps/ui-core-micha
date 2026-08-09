@@ -28,13 +28,14 @@
   --control-border: rgba(33,37,41,0.50);
   --control-border-hover: rgba(33,37,41,0.65);
   --control-border-focus: #3D5A99;
+  --focus-ring: #3D5A99; --focus-ring-width: 2px;
   --control-border-error: #BF3227;
   --bg-page:#FAFAFA; --bg-surface:#FFFFFF;
 
-  --success:#357A4A; --success-bg:#E5F4E9;
+  --success:#35794A; --success-bg:#E5F4E9;
   --success-fill:#1B8038; --success-fill-text:#FFFFFF;
 
-  --warning:#A36800; --warning-bg:#FBF0DC;
+  --warning:#976100; --warning-bg:#FBF0DC;
   --warning-fill:#C08A2C; --warning-fill-text:#212529;
 
   --stale:#5B6B7D;   --stale-bg:#EAEDF1;
@@ -78,8 +79,11 @@
 }
 
 /* 40px is the desktop/mouse control height; bump to the 44px touch
-   guideline under a coarse pointer. Real rule: @media (pointer: coarse). */
-@media (pointer: coarse) {
+   guideline under a coarse pointer. any-pointer, not pointer, so hybrid devices with
+   both a mouse and a touchscreen are covered. NOTE: 44px is WCAG 2.5.5 (AAA) and an
+   INTERNAL principle here -- the AA floor is 24x24 (2.5.8). Visual size may stay
+   smaller than 44; the HIT AREA must reach it. */
+@media (any-pointer: coarse) {
   :root{ --control-h: 44px; }
 }
 
@@ -159,30 +163,30 @@ section.doc-section code{ font-family:ui-monospace,Consolas,monospace; font-size
 /* ---- column grid ---- */
 .cols{ display:flex; gap:18px; align-items:flex-start; flex-wrap:wrap; }
 .col{ background:var(--bg-page); border:1px solid #E1E5E9; border-radius:10px; padding:16px; flex:1 1 260px; min-width:230px; }
-.col-label{ font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:0.5px; color:#6F777E;
+.col-label{ font-size:11.5px; font-weight:700; text-transform:uppercase; letter-spacing:0.5px; color:#6A7178;
   display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; }
 .col-label .tag{ font-size:9.5px; font-weight:700; padding:1px 6px; border-radius:8px; text-transform:none; letter-spacing:0.2px; }
 .col-label .tag.mui{ background:#FCE9E7; color:#8B2E23; }
 .col-label .tag.cand{ background:#E5F4E9; color:#1E6B32; }
-.col-sub{ font-size:10.5px; color:#6F777E; margin:-8px 0 12px; font-weight:400; text-transform:none; letter-spacing:0; }
+.col-sub{ font-size:11.5px; color:#6A7178; margin:-8px 0 12px; font-weight:400; text-transform:none; letter-spacing:0; }
 
 .stack{ display:flex; flex-direction:column; gap:10px; }
 .row{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
 
 /* ---- computed contrast badges (see inline script at end of body) ---- */
-.ratio-badge{ display:inline-flex; align-items:center; gap:4px; font-size:10.5px; font-weight:700;
+.ratio-badge{ display:inline-flex; align-items:center; gap:4px; font-size:11.5px; font-weight:700;
   padding:2px 8px; border-radius:20px; font-family:ui-monospace,Consolas,monospace; margin-left:6px;
   white-space:nowrap; vertical-align:middle; }
 .ratio-badge.pass{ background:#E5F4E9; color:#1E6B32; }
 .ratio-badge.fail{ background:#FBEAE8; color:#8B2E23; }
 .ratio-row{ display:flex; align-items:center; flex-wrap:wrap; gap:4px; margin-top:4px; }
-.ratio-row .ratio-label{ font-size:10.5px; color:#8A949C; }
+.ratio-row .ratio-label{ font-size:11.5px; color:#6A7178; }
 
 /* ============================================================
    TYPOGRAPHY SPECIMENS
    ============================================================ */
 .type-line{ font-family:var(--font-family); color:var(--ink-1); margin:0 0 10px; }
-.type-line .tag{ font-size:9.5px; font-weight:600; color:#6F777E; margin-left:8px; vertical-align:middle; }
+.type-line .tag{ font-size:9.5px; font-weight:600; color:#6A7178; margin-left:8px; vertical-align:middle; }
 .t-h1{ font-size:var(--fs-h1); font-weight:var(--fw-h1); line-height:var(--lh-h1); }
 .t-h2{ font-size:var(--fs-h2); font-weight:var(--fw-h2); line-height:var(--lh-h2); }
 .t-h3{ font-size:var(--fs-h3); font-weight:var(--fw-h3); line-height:var(--lh-h3); }
@@ -250,7 +254,7 @@ section.doc-section code{ font-family:ui-monospace,Consolas,monospace; font-size
   border:1px solid var(--control-border); border-radius:var(--radius-control); padding:0 12px; background:var(--bg-surface);
   min-width:170px; }
 .sf-select.state-hover, .sf-input.state-hover{ border-color:var(--control-border-hover); }
-.sf-select.state-focus, .sf-input.state-focus{ border-color:var(--control-border-focus); box-shadow:0 0 0 3px rgba(61,90,153,0.16); outline:none; }
+.sf-select.state-focus, .sf-input.state-focus{ border-color:var(--control-border-focus); box-shadow:0 0 0 var(--focus-ring-width) var(--focus-ring); outline:none; }
 .sf-select.state-error, .sf-input.state-error{ border-color:var(--control-border-error); }
 .th-mui .sf-select, .th-mui .sf-input{ border-color:rgba(0,0,0,0.23); }
 .th-mui .sf-select.state-hover, .th-mui .sf-input.state-hover{ border-color:rgba(0,0,0,0.87); }
@@ -318,11 +322,11 @@ section.doc-section code{ font-family:ui-monospace,Consolas,monospace; font-size
 .swatch{ width:158px; }
 .swatch-chip{ height:52px; border-radius:8px; border:1px solid rgba(0,0,0,0.06); margin-bottom:6px; position:relative; }
 .swatch-name{ font-size:12px; font-weight:600; color:#14181c; }
-.swatch-val{ font-size:11px; color:#6F777E; font-family:ui-monospace,monospace; }
+.swatch-val{ font-size:11px; color:#6A7178; font-family:ui-monospace,monospace; }
 
 /* Greyscale (data-series) check */
 .gray-swatch{ height:52px; border-radius:8px; border:1px solid rgba(0,0,0,0.06); margin-bottom:6px; background:#ccc; position:relative; }
-.gray-value{ font-size:11px; color:#6F777E; font-family:ui-monospace,monospace; }
+.gray-value{ font-size:11px; color:#6A7178; font-family:ui-monospace,monospace; }
 /* second-channel glyph overlaid on a ramp/greyscale chip — the same marker
    shape used for that series in the line chart below, so identity survives
    desaturation instead of relying on hue alone */
@@ -333,7 +337,7 @@ section.doc-section code{ font-family:ui-monospace,Consolas,monospace; font-size
 .chart-pair{ display:flex; gap:20px; flex-wrap:wrap; align-items:flex-start; margin-top:12px; }
 .chart-box{ flex:1 1 320px; min-width:300px; }
 .chart-box.desat svg{ filter:grayscale(1); }
-.chart-box-label{ font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:0.5px; color:#6F777E; margin-bottom:8px; }
+.chart-box-label{ font-size:11.5px; font-weight:700; text-transform:uppercase; letter-spacing:0.5px; color:#6A7178; margin-bottom:8px; }
 .chart-box svg{ width:100%; height:auto; display:block; background:#fff; border:1px solid var(--border-c); border-radius:8px; }
 .legend-row{ display:flex; flex-wrap:wrap; gap:14px 20px; margin-top:12px; }
 .legend-item{ display:flex; align-items:center; gap:8px; font-size:12px; color:var(--ink-2); font-family:var(--font-family); }
@@ -344,11 +348,11 @@ section.doc-section code{ font-family:ui-monospace,Consolas,monospace; font-size
 .bg-strip{ display:flex; gap:16px; flex-wrap:wrap; }
 .bg-card{ flex:1 1 220px; min-width:210px; border-radius:10px; border:1px solid #E1E5E9; padding:14px; }
 .bg-card-label{ font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.4px; color:#3A4552; margin-bottom:2px; }
-.bg-card-val{ font-size:10.5px; color:#6F777E; font-family:ui-monospace,monospace; margin-bottom:10px; }
+.bg-card-val{ font-size:11.5px; color:#6A7178; font-family:ui-monospace,monospace; margin-bottom:10px; }
 .bg-card-surface{ background:#fff; border:1px solid rgba(0,0,0,0.08); border-radius:8px; padding:10px; margin-bottom:10px; box-shadow:0 1px 2px rgba(20,26,31,0.05); }
 .bg-card-surface .t-cap{ margin:0; }
 .bg-card-text{ font-size:12.5px; color:#212529; margin:0 0 4px; }
-.bg-card-caption{ font-size:11px; color:#6F777E; margin:0; }
+.bg-card-caption{ font-size:11px; color:#6A7178; margin:0; }
 .bg-delta{ font-size:11px; color:#3A4552; margin-top:10px; line-height:1.5; }
 .bg-delta code{ font-family:ui-monospace,Consolas,monospace; background:#F0F2F4; padding:1px 4px; border-radius:3px; }
 .bg-card.chosen{ border-color:#3D5A99; box-shadow:0 0 0 2px rgba(61,90,153,0.18); }
@@ -361,19 +365,32 @@ section.doc-section code{ font-family:ui-monospace,Consolas,monospace; font-size
 /* canonical token table + assertion list */
 .token-table{ width:100%; border-collapse:collapse; font-family:var(--font-family); background:var(--bg-surface);
   border:1px solid var(--border-c); border-radius:10px; overflow:hidden; font-size:12.5px; }
-.token-table th{ text-align:left; font-size:11px; text-transform:uppercase; letter-spacing:0.3px; font-weight:700; color:#6F777E;
+.token-table th{ text-align:left; font-size:11px; text-transform:uppercase; letter-spacing:0.3px; font-weight:700; color:#6A7178;
   padding:8px 12px; border-bottom:1px solid var(--border-c); background:var(--bg-page); }
 .token-table td{ padding:7px 12px; border-bottom:1px solid var(--border-c); color:var(--ink-1); vertical-align:top; }
 .token-table tr:last-child td{ border-bottom:none; }
 .token-table tr.group-row td{ background:#F0F2F4; font-weight:700; font-size:11px; text-transform:uppercase; letter-spacing:0.4px; color:#3A4552; padding:6px 12px; }
 .token-table code{ font-family:ui-monospace,Consolas,monospace; font-size:11.5px; background:#F0F2F4; padding:1px 5px; border-radius:4px; }
-.token-table .note{ color:#6F777E; font-size:11.5px; }
+.token-table .note{ color:#6A7178; font-size:11.5px; }
 .token-swatch{ display:inline-block; width:14px; height:14px; border-radius:3px; border:1px solid rgba(0,0,0,0.12); vertical-align:-2px; margin-right:6px; }
 
 .decision-item{ display:flex; gap:12px; padding:12px 0; border-bottom:1px solid #EEF1F3; }
 .decision-item:last-child{ border-bottom:none; }
-.decision-num{ width:24px; height:24px; border-radius:50%; background:#3D5A99; color:#fff; font-size:12px; font-weight:700;
-  display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+.doc-summary{ border:1px solid var(--border-c); border-radius:8px; padding:14px 16px; margin:14px 0 22px;
+  background:var(--bg-surface); }
+.doc-summary-title{ font-size:11.5px; font-weight:700; text-transform:uppercase; letter-spacing:0.4px;
+  color:var(--ink-3); margin-bottom:8px; }
+.doc-summary ul{ margin:0; padding-left:18px; }
+.doc-summary li{ font-size:13px; line-height:1.55; color:var(--ink-2); margin-bottom:5px; }
+.doc-summary li strong{ color:var(--ink-1); }
+.doc-nav{ margin-top:10px; padding-top:10px; border-top:1px solid var(--border-c); font-size:12px; line-height:1.9; color:var(--ink-3); }
+.doc-nav a{ color:var(--focus-ring); text-decoration:none; }
+.doc-nav a:hover{ text-decoration:underline; }
+.appendix-h{ font-size:13px; text-transform:uppercase; letter-spacing:0.5px; color:var(--ink-3);
+  border-top:1px solid var(--border-c); padding-top:16px; margin:28px 0 0; }
+.decision-num{ flex:none; align-self:flex-start; padding:2px 8px; border-radius:999px;
+  background:var(--primary-tint,#EDF1F8); color:#2C4470; font-size:11.5px; font-weight:700;
+  letter-spacing:0.2px; white-space:nowrap; text-transform:uppercase; }
 .decision-txt strong{ color:#14181c; }
 .decision-txt{ font-size:13px; color:#3A4552; line-height:1.55; }
 
@@ -387,85 +404,46 @@ section.doc-section code{ font-family:ui-monospace,Consolas,monospace; font-size
   <h1 class="doc-title">DS2 — shared MUI theme baseline, acceptance &amp; verification sheet (Musterbogen)</h1>
   <p class="doc-sub">The candidate baseline from round 1 is now decided. This sheet is no longer a chooser between variants — it is the <strong>acceptance record for the locked <code>createAppTheme(overrides)</code> baseline</strong>, and the object later theme changes get re-checked against. The MUI 7.3.11 raw-default comparison stays throughout so the delta is still visible. Every contrast ratio shown is computed by an inline script at render time, not hand-typed. Static HTML/CSS, light mode only, no app code.</p>
 
+  <div class="doc-summary">
+    <div class="doc-summary-title">In one screen</div>
+    <ul>
+      <li><strong>Status: release candidate.</strong> Reviewed 2026-08-09 by a second reader; the corrections are folded in.</li>
+      <li><strong>Values are settled</strong> over four rounds: DM Sans 14px body, <code>#FAFAFA</code> page, three opaque ink tiers, status split into text and fill roles, 40px controls (44px hit area on touch), 3/8px radii, no resting shadow.</li>
+      <li><strong>Every contrast figure is computed at render time</strong> &mdash; text tones against their real surface, not against white.</li>
+      <li><strong>Two known limitations:</strong> a six-series chart separated by hue alone does not satisfy WCAG 1.4.1 (the shape overlay is opt-in, DS-13), and <code>stale</code> has no precedent in the estate and is unvalidated in a running screen.</li>
+      <li><strong>The token table at the end is the value source.</strong> A work order references it by token name instead of retyping numbers.</li>
+    </ul>
+    <div class="doc-nav"><a href="#declared-coverage">Declared coverage</a> &middot; <a href="#font-disclosure">Font disclosure</a> &middot; <a href="#page-background-candidate-strip">Page background — candidate strip</a> &middot; <a href="#ink-border-surface">Ink, border, surface</a> &middot; <a href="#status-split-by-role-and-the-freshness-s">Status, split by role, and the freshness semantic</a> &middot; <a href="#data-series-ramp-categorical-owned-by-th">Data-series ramp (categorical, owned by the baseline)</a> &middot; <a href="#shadow-rest-vs-transient-now-a-binary-ru">Shadow: rest vs. transient — now a binary rule</a> &middot; <a href="#typography-settled-scale">Typography — settled scale</a> &middot; <a href="#control-height-touch-target-radius-settl">Control height, touch target &amp; radius — settled</a> &middot; <a href="#component-gallery">Component gallery</a> &middot; <a href="#mobile-frame-375px">Mobile frame — 375px</a> &middot; <a href="#what-this-sheet-asserts-and-what-remains">What this sheet asserts, and what remains unverified</a> &middot; <a href="#canonical-baseline-tokens">Canonical baseline tokens</a></div>
+  </div>
+
   <!-- =========================================================
        CANONICAL TOKEN TABLE — the value source
        ========================================================= -->
   
 
-  <section class="doc-section">
+  <section class="doc-section" id="declared-coverage">
     <h2>Declared coverage</h2>
     <p class="section-note" style="margin-bottom:10px"><strong>Covers:</strong> the token table; ink/border/surface with the page-background strip; the <code>divider</code>/<code>controlBorder</code> split; status split into text and fill roles; the settled type scale, control height, radius and shadow rule; the data-series ramp and its greyscale check; a render-time contrast script; and the 14 agreed component specimens, each beside its MUI default.</p>
     <p class="section-note" style="margin-bottom:10px"><strong>Does not cover:</strong> dark mode (out of scope for v1); components outside the agreed list; motion tokens; the <code>createAppTheme()</code> implementation and its override API; an audit of the 14 apps against this baseline; and the series-4/5 hue proximity itself, which is unchanged.</p>
     <p class="section-note" style="margin:0"><strong>Explicit:</strong> the MUI column is a CSS transcription of MUI v7's documented defaults, not a live mount, and it renders in a system-sans stand-in rather than Roboto. Judge size, weight, radius, colour and shadow from it &mdash; not glyph shapes.</p>
   </section>
 
-  <section class="doc-section">
+  <section class="doc-section" id="font-disclosure">
     <h2>Font disclosure</h2>
-    <p class="section-note" style="margin:0">Candidate columns use DM Sans 400/500/600, base64-embedded from <code>@fontsource/dm-sans@5.2.8</code> in this estate's <code>node_modules</code> &mdash; no network fetch. MUI columns use a system-sans stand-in, not Roboto.</p>
+    <p class="section-note" style="margin:0">Baseline columns use DM Sans 400/500/600, base64-embedded from <code>@fontsource/dm-sans@5.2.8</code> in this estate's <code>node_modules</code> &mdash; no network fetch. MUI columns use a system-sans stand-in, not Roboto.</p>
   </section>
 
   <!-- =========================================================
        PAGE BACKGROUND — CANDIDATE STRIP (round 3)
        ========================================================= -->
-  <section class="doc-section">
-    <h2>Page background — candidate strip</h2>
-    <p class="section-note">Four values side by side: pure white, the chosen neutral, the original cool value, and the smallest perceptible warm shift. Each carries a real white card, so the question is whether the card still reads as a card. Path: <code>#F5F7F8</code> &rarr; <code>#F7F6F3</code> &rarr; <code>#FCFBF9</code> &rarr; <code>#FAFAFA</code>.</p>
-    <div class="bg-strip">
-      <div class="bg-card">
-        <div class="bg-card-label">#FFFFFF</div>
-        <div class="bg-card-val">pure white — the reference</div>
-        <div style="background:#FFFFFF; border-radius:8px; padding:12px">
-          <div class="bg-card-surface"><p class="bg-card-text">Card on #FFFFFF</p><p class="bg-card-caption">body text inside a white surface</p></div>
-          <p class="bg-card-text" style="margin-top:2px">Body text directly on the page</p>
-          <p class="bg-card-caption" style="margin:4px 0 0">Muted caption directly on the page <span class="ratio-badge" data-fg="#6A7178" data-bg="#FFFFFF" data-min="4.5"></span></p>
-        </div>
-        <div class="bg-delta">&Delta; from white (R,G,B): <code>0, 0, 0</code> &middot; cast (R&minus;B): <code>0</code></div>
-        <div class="bg-delta" style="opacity:.8">reference: hram, fitness-monitor and innoservice ship this today</div>
-      </div>
-      <div class="bg-card chosen">
-        <div class="bg-card-label">#FAFAFA</div>
-        <div class="bg-card-val">neutral, one step off white</div>
-        <div style="background:#FAFAFA; border-radius:8px; padding:12px">
-          <div class="bg-card-surface"><p class="bg-card-text">Card on #FAFAFA</p><p class="bg-card-caption">body text inside a white surface</p></div>
-          <p class="bg-card-text" style="margin-top:2px">Body text directly on the page</p>
-          <p class="bg-card-caption" style="margin:4px 0 0">Muted caption directly on the page <span class="ratio-badge" data-fg="#6A7178" data-bg="#FAFAFA" data-min="4.5"></span></p>
-        </div>
-        <div class="bg-delta">&Delta; from white (R,G,B): <code>5, 5, 5</code> &middot; cast (R&minus;B): <code>0</code></div>
-        <div class="bg-delta" style="opacity:.8">CHOSEN 2026-08-09 — MUI grey[50], no colour cast</div>
-      </div>
-      <div class="bg-card">
-        <div class="bg-card-label">#F5F7F8</div>
-        <div class="bg-card-val">slightly cool — round 1</div>
-        <div style="background:#F5F7F8; border-radius:8px; padding:12px">
-          <div class="bg-card-surface"><p class="bg-card-text">Card on #F5F7F8</p><p class="bg-card-caption">body text inside a white surface</p></div>
-          <p class="bg-card-text" style="margin-top:2px">Body text directly on the page</p>
-          <p class="bg-card-caption" style="margin:4px 0 0">Muted caption directly on the page <span class="ratio-badge" data-fg="#6A7178" data-bg="#F5F7F8" data-min="4.5"></span></p>
-        </div>
-        <div class="bg-delta">&Delta; from white (R,G,B): <code>10, 8, 7</code> &middot; cast (R&minus;B): <code>&minus;3</code></div>
-        <div class="bg-delta" style="opacity:.8">the original blue-cast value; note it is also ~5 points darker, so its difference is not only the cast</div>
-      </div>
-      <div class="bg-card">
-        <div class="bg-card-label">#FAFAF7</div>
-        <div class="bg-card-val">one nuance toward yellow</div>
-        <div style="background:#FAFAF7; border-radius:8px; padding:12px">
-          <div class="bg-card-surface"><p class="bg-card-text">Card on #FAFAF7</p><p class="bg-card-caption">body text inside a white surface</p></div>
-          <p class="bg-card-text" style="margin-top:2px">Body text directly on the page</p>
-          <p class="bg-card-caption" style="margin:4px 0 0">Muted caption directly on the page <span class="ratio-badge" data-fg="#6A7178" data-bg="#FAFAF7" data-min="4.5"></span></p>
-        </div>
-        <div class="bg-delta">&Delta; from white (R,G,B): <code>5, 5, 8</code> &middot; cast (R&minus;B): <code>+3</code></div>
-        <div class="bg-delta" style="opacity:.8">same lightness as the chosen value, blue lowered by 3 — the minimum perceptible warm shift</div>
-      </div>
-    </div>
-    <p class="section-note" style="margin:14px 0 0"><strong><code>#FAFAFA</code> is the chosen <code>bg.page</code></strong> (operator, 2026-08-09). All three warm candidates read as too warm: against a blue-cast value, <em>warmer</em> meant <strong>neutral</strong>, and the need was a lightness step off white, not a hue. <code>#FAFAFA</code> is MUI's <code>grey[50]</code>. hram, fitness-monitor and innoservice ship pure white today and change visibly on adoption; jg-ferien and spesix override for identity.</p>
-    <p class="section-note" style="margin:10px 0 0"><code>#6F777E</code> cleared 4.5:1 only on pure white (4.549) and failed all three page candidates (4.399 / 4.324 / 4.247). Darkened along the same hue to <strong><code>#6A7178</code></strong>: 4.946 on white, 4.616 on the darkest candidate &mdash; against a 4.6 target, not a nudge over 4.5. Used everywhere <code>ink.muted</code> appears.</p>
-  </section>
+  
 
   <!-- =========================================================
        COLOR / INK / STATUS TOKENS
        ========================================================= -->
-  <section class="doc-section">
+  <section class="doc-section" id="ink-border-surface">
     <h2>Ink, border, surface</h2>
-    <p class="section-note">MUI's default text is translucent (<code>rgba(0,0,0,0.87)</code>) and shifts with whatever sits behind it. The candidate uses three fixed opaque tiers. Muted was darkened twice: <code>#8A949C</code> &rarr; <code>#6F777E</code> &rarr; <code>#6A7178</code>.</p>
+    <p class="section-note">MUI's default text is translucent (<code>rgba(0,0,0,0.87)</code>) and shifts with whatever sits behind it. The candidate uses three fixed opaque tiers. Muted was darkened twice: <code>#6A7178</code> &rarr; <code>#6A7178</code> &rarr; <code>#6A7178</code>.</p>
     <div class="cols">
       <div class="col th-mui">
         <div class="col-label">MUI raw default <span class="tag mui">MUI</span></div>
@@ -487,7 +465,7 @@ section.doc-section code{ font-family:ui-monospace,Consolas,monospace; font-size
             <div class="ratio-row"><span class="ratio-badge" data-fg="#212529" data-bg="#FFFFFF" data-min="4.5"></span></div></div>
           <div class="swatch"><div class="swatch-chip" style="background:var(--ink-2)"></div><div class="swatch-name">ink.secondary</div><div class="swatch-val">#5B6670</div>
             <div class="ratio-row"><span class="ratio-badge" data-fg="#5B6670" data-bg="#FFFFFF" data-min="4.5"></span></div></div>
-          <div class="swatch"><div class="swatch-chip" style="background:var(--ink-3)"></div><div class="swatch-name">ink.muted</div><div class="swatch-val">#6A7178 <span style="text-decoration:line-through;opacity:.6">#6F777E</span></div>
+          <div class="swatch"><div class="swatch-chip" style="background:var(--ink-3)"></div><div class="swatch-name">ink.muted</div><div class="swatch-val">#6A7178 <span style="text-decoration:line-through;opacity:.6">#6A7178</span></div>
             <div class="ratio-row"><span class="ratio-badge" data-fg="#6A7178" data-bg="#FFFFFF" data-min="4.6"></span><span class="ratio-label">on page bg (B):</span><span class="ratio-badge" data-fg="#6A7178" data-bg="#FAFAFA" data-min="4.6"></span><span class="ratio-label">on palest candidate (C):</span><span class="ratio-badge" data-fg="#6A7178" data-bg="#FAFAFA" data-min="4.6"></span></div></div>
           <div class="swatch"><div class="swatch-chip" style="background:var(--bg-page); border:1px solid var(--border-c)"></div><div class="swatch-name">bg.page</div><div class="swatch-val">#FAF9F7 <span style="text-decoration:line-through;opacity:.6">#F7F6F3</span></div></div>
           <div class="swatch"><div class="swatch-chip" style="background:var(--border-c)"></div><div class="swatch-name">divider</div><div class="swatch-val">rgba(33,37,41,.10)</div>
@@ -546,9 +524,9 @@ section.doc-section code{ font-family:ui-monospace,Consolas,monospace; font-size
     <p class="section-note" style="margin:12px 0 0">Checkbox boxes and outlined Button/Chip edges use <code>controlBorder</code> too &mdash; the same rest-state fix wherever the sub-3:1 <code>input.border</code> was the outline.</p>
   </section>
 
-  <section class="doc-section">
+  <section class="doc-section" id="status-split-by-role-and-the-freshness-s">
     <h2>Status, split by role, and the freshness semantic</h2>
-    <p class="section-note">One hex cannot be both text and fill: <code>#1E8E3E</code> measures 4.20:1 as text on white and &mdash; the formula being symmetric &mdash; the same 4.20:1 as a fill under white text. Each status now carries a text tone (&ge;4.5:1 on white) and a fill tone with its own <code>contrastText</code>.</p>
+    <p class="section-note">One hex cannot be both text and fill: <code>#1E8E3E</code> measures 4.20:1 as text on white and &mdash; the formula being symmetric &mdash; the same 4.20:1 as a fill under white text. Each status now carries a text tone and a fill tone with its own <code>contrastText</code>. <strong>The text tones are checked against their own Alert tint, not against white</strong> — a tint <em>lowers</em> contrast, and checking the wrong surface hid a real failure: warning measured 4.10:1 on <code>#FBF0DC</code>, now <code>#976100</code> at 4.62:1.</p>
     <div class="cols">
       <div class="col th-mui">
         <div class="col-label">MUI raw default <span class="tag mui">MUI</span></div>
@@ -563,10 +541,10 @@ section.doc-section code{ font-family:ui-monospace,Consolas,monospace; font-size
       <div class="col th-candidate">
         <div class="col-label">Baseline candidate — text/icon role <span class="tag cand">DS2</span></div>
         <div class="stack">
-          <div class="sf-alert success"><span class="dot success"></span><div>success — deploy healthy <span class="ratio-badge" data-fg="#357A4A" data-bg="#FFFFFF" data-min="4.5"></span></div></div>
-          <div class="sf-alert warning"><span class="dot warning"></span><div>warning — CI flaky <span class="ratio-badge" data-fg="#A36800" data-bg="#FFFFFF" data-min="4.5"></span></div></div>
-          <div class="sf-alert stale"><span class="dot stale"></span><div>stale — last refreshed 6h ago <span class="ratio-badge" data-fg="#5B6B7D" data-bg="#FFFFFF" data-min="4.5"></span></div></div>
-          <div class="sf-alert critical"><span class="dot critical"></span><div>critical — server unreachable <span class="ratio-badge" data-fg="#BF3227" data-bg="#FFFFFF" data-min="4.5"></span></div></div>
+          <div class="sf-alert success"><span class="dot success"></span><div>success — deploy healthy <span class="ratio-badge" data-fg="#35794A" data-bg="#E5F4E9" data-min="4.5"></span></div></div>
+          <div class="sf-alert warning"><span class="dot warning"></span><div>warning — CI flaky <span class="ratio-badge" data-fg="#976100" data-bg="#FBF0DC" data-min="4.5"></span></div></div>
+          <div class="sf-alert stale"><span class="dot stale"></span><div>stale — last refreshed 6h ago <span class="ratio-badge" data-fg="#5B6B7D" data-bg="#EAEDF1" data-min="4.5"></span></div></div>
+          <div class="sf-alert critical"><span class="dot critical"></span><div>critical — server unreachable <span class="ratio-badge" data-fg="#BF3227" data-bg="#FBEAE8" data-min="4.5"></span></div></div>
         </div>
       </div>
     </div>
@@ -583,7 +561,7 @@ section.doc-section code{ font-family:ui-monospace,Consolas,monospace; font-size
   <!-- =========================================================
        DATA SERIES RAMP
        ========================================================= -->
-  <section class="doc-section">
+  <section class="doc-section" id="data-series-ramp-categorical-owned-by-th">
     <h2>Data-series ramp (categorical, owned by the baseline)</h2>
     <p class="section-note">Six colours chosen to avoid every status hue (no green, amber, red or blue-grey), so a series is never mistaken for a status. Muted and cool-to-neutral, unchanged on the operator's verdict. <strong>No second channel:</strong> dash patterns, marker shapes and pattern fills were all removed on review &mdash; how a chart separates series is DS-4's question.</p>
     <div class="swatch-row" style="margin-bottom:10px">
@@ -750,7 +728,7 @@ section.doc-section code{ font-family:ui-monospace,Consolas,monospace; font-size
   <!-- =========================================================
        SHADOWS
        ========================================================= -->
-  <section class="doc-section">
+  <section class="doc-section" id="shadow-rest-vs-transient-now-a-binary-ru">
     <h2>Shadow: rest vs. transient — now a binary rule</h2>
     <p class="section-note">MUI's <code>shadows[1]</code> is a visible three-layer drop shadow &mdash; right for 2014 Material, wrong for a flat dashboard. Round 1's near-invisible shadow only moved the judgment to <em>how invisible is enough</em>. The rule: Paper and Card at rest have <strong>zero</strong> shadow (<code>elevation: 0</code>, <code>variant: 'outlined'</code>); weight exists only on transient surfaces &mdash; Dialog, Drawer, Menu, Tooltip. Binary and checkable in review.</p>
     <div class="cols">
@@ -783,9 +761,9 @@ section.doc-section code{ font-family:ui-monospace,Consolas,monospace; font-size
   <!-- =========================================================
        TYPOGRAPHY — settled, no variants
        ========================================================= -->
-  <section class="doc-section">
+  <section class="doc-section" id="typography-settled-scale">
     <h2>Typography — settled scale</h2>
-    <p class="section-note">MUI's h6 is 20px/500; the corpus runs 15&ndash;16px card titles and 13px tile titles. In the decided scale <strong>h4 (20px) is the screen title</strong> and h6 (16px) the card title; h1&ndash;h3 stay usable rather than decorative.</p>
+    <p class="section-note">MUI's h6 is 20px/500; the corpus runs 15&ndash;16px card titles and 13px tile titles. In the decided scale <strong>h4 (20px) is the screen title</strong> — a <em>visual</em> variant only. Semantically it stays <code>&lt;h1&gt;</code>: in MUI, <code>component="h1" variant="h4"</code>. Treating the variant as the element produces a broken heading hierarchy and h6 (16px) the card title; h1&ndash;h3 stay usable rather than decorative.</p>
     <div class="cols">
       <div class="col th-mui" style="flex-basis:100%">
         <div class="col-label">MUI raw default <span class="tag mui">MUI</span></div>
@@ -828,7 +806,7 @@ section.doc-section code{ font-family:ui-monospace,Consolas,monospace; font-size
   <!-- =========================================================
        CONTROL HEIGHT, TOUCH TARGET, RADIUS — settled, no variants
        ========================================================= -->
-  <section class="doc-section">
+  <section class="doc-section" id="control-height-touch-target-radius-settl">
     <h2>Control height, touch target &amp; radius — settled</h2>
     <p class="section-note">MUI: medium <code>OutlinedInput</code> ~56px, <code>small</code> ~40px. Decided: <strong>40px</strong> (36px in round 1), consistently across Button/Select/TextField/Chip. 34&ndash;36px is a recorded defect against the 44px touch guideline in an approved envelope; 40px sits on MUI's <code>small</code>, and <code>@media (pointer: coarse)</code> bumps to 44px &mdash; simulated here. Radius settled at 3px control / 8px card.</p>
     <div class="cols">
@@ -854,7 +832,7 @@ section.doc-section code{ font-family:ui-monospace,Consolas,monospace; font-size
       </div>
       <div class="col th-candidate" style="--control-h:44px">
         <div class="col-label">Baseline candidate — touch (simulated) <span class="tag cand">DS2</span></div>
-        <div class="col-sub">control 44px via @media (pointer: coarse)</div>
+        <div class="col-sub">44px hit area via @media (any-pointer: coarse)</div>
         <div class="stack">
           <button class="sf-btn sf-btn--contained">Save</button>
           <div class="sf-select" aria-hidden="true"><span>Select…</span><svg class="sf-caret" viewBox="0 0 10 6" width="10" height="6"><polyline points="1,1 5,5 9,1" fill="none" stroke="currentColor" stroke-width="1.5"/></svg></div>
@@ -868,7 +846,7 @@ section.doc-section code{ font-family:ui-monospace,Consolas,monospace; font-size
   <!-- =========================================================
        COMPONENT GALLERY
        ========================================================= -->
-  <section class="doc-section">
+  <section class="doc-section" id="component-gallery">
     <h2>Component gallery</h2>
     <p class="section-note">Decided baseline throughout, no variants left to pick. Buttons: <code>textTransform: none</code>, no elevation on contained &mdash; all 7 sampled app themes override MUI's uppercase independently, so this replaces 7 repeated overrides.</p>
 
@@ -913,7 +891,7 @@ section.doc-section code{ font-family:ui-monospace,Consolas,monospace; font-size
           <tbody><tr><td>hram</td><td>Success · 4h</td><td>2 failing</td></tr><tr><td>jg-ferien</td><td>Success · 5d</td><td>OK</td></tr></tbody></table>
       </div>
       <div class="col th-candidate" style="flex-basis:47%">
-        <div class="col-label">Candidate — table-pad 10/16 <span class="tag cand">DS2</span></div>
+        <div class="col-label">Baseline — table-pad 10/16 <span class="tag cand">DS2</span></div>
         <table class="sf-table"><thead><tr><th>App</th><th>Staging</th><th>CI</th></tr></thead>
           <tbody><tr><td>hram</td><td>Success · 4h</td><td>2 failing</td></tr><tr><td>jg-ferien</td><td>Success · 5d</td><td>OK</td></tr></tbody></table>
       </div>
@@ -1045,7 +1023,7 @@ section.doc-section code{ font-family:ui-monospace,Consolas,monospace; font-size
   <!-- =========================================================
        MOBILE FRAME
        ========================================================= -->
-  <section class="doc-section">
+  <section class="doc-section" id="mobile-frame-375px">
     <h2>Mobile frame — 375px</h2>
     <p class="section-note">A literal phone frame, not a resized window &mdash; at the decided control height, with the table&rarr;card behaviour below the usual breakpoint.</p>
     <div class="two-col">
@@ -1087,44 +1065,98 @@ section.doc-section code{ font-family:ui-monospace,Consolas,monospace; font-size
   <!-- =========================================================
        CLOSING — what this sheet asserts / what remains open
        ========================================================= -->
-  <section class="doc-section">
+  <section class="doc-section" id="what-this-sheet-asserts-and-what-remains">
     <h2>What this sheet asserts, and what remains unverified</h2>
-    <p class="section-note">The baseline above is locked; this document is what a later theme change gets re-checked against. Below: what is verified here at render time, and what still has to be confirmed elsewhere.</p>
+    <p class="section-note"><strong>Release candidate, not yet a locked baseline.</strong> Reviewed 2026-08-09 by a second reader; the warning/tint contrast failure, the chart-token contradiction, the touch and focus rules and this document's own legibility were corrected in response. This document is what a later theme change gets re-checked against. Below: what is verified here at render time, and what still has to be confirmed elsewhere.</p>
     <div class="decision-item">
-      <div class="decision-num">✓</div>
-      <div class="decision-txt">Every ink and status text tone clears 4.5:1 on white, computed live. Muted ink was darkened twice &mdash; now to a 4.6:1 target that also holds on a near-white page.</div>
+      <div class="decision-num">Verified</div>
+      <div class="decision-txt">Every ink tone clears 4.5:1 on white and every status text tone clears 4.6:1 on its own Alert tint, computed live. Muted ink was darkened twice &mdash; now to a 4.6:1 target that also holds on a near-white page.</div>
     </div>
     <div class="decision-item">
-      <div class="decision-num">✓</div>
+      <div class="decision-num">Verified</div>
       <div class="decision-txt">Every status fill&harr;<code>contrastText</code> pair clears 4.5:1. Success and warning needed a fill hue distinct from their text tone; critical and stale reuse one hex, which clears in both directions.</div>
     </div>
     <div class="decision-item">
-      <div class="decision-num">✓</div>
+      <div class="decision-num">Verified</div>
       <div class="decision-txt">Muted ink is verified against the page background, not only a white surface &mdash; the round-2 gap is closed.</div>
     </div>
     <div class="decision-item">
-      <div class="decision-num">✓</div>
+      <div class="decision-num">Verified</div>
       <div class="decision-txt">Control-boundary contrast is fixed. The old <code>input.border</code> (1.59 rest / 2.72 hover) never cleared 3:1. Split into <code>divider</code> (exempt) and <code>controlBorder</code> (all states &ge;3:1), applied to TextField, Select, Checkbox and outlined Button/Chip.</div>
     </div>
     <div class="decision-item">
-      <div class="decision-num">✓</div>
+      <div class="decision-num">Decided</div>
       <div class="decision-txt">The second non-colour channel was removed on operator review (2026-08-09) &mdash; hatch fills, dash patterns and marker shapes all read as noise. Series identity now rests on colour alone, so the series-4/5 greyscale proximity is a <strong>live limitation</strong> and a six-series chart does not satisfy WCAG 1.4.1. Resolving it belongs to DS-4, not to the theme.</div>
     </div>
     <div class="decision-item">
-      <div class="decision-num">?</div>
+      <div class="decision-num">Decided</div>
       <div class="decision-txt"><code>#FAFAFA</code> is decided (operator, 2026-08-09) after three warm candidates were rejected. The four-value strip is kept as provenance.</div>
     </div>
     <div class="decision-item">
-      <div class="decision-num">?</div>
+      <div class="decision-num">Known limitation</div>
       <div class="decision-txt"><code>stale</code> has no estate precedent and has not been seen in a running screen &mdash; a decision, not a validation. The first consuming app tests it.</div>
     </div>
     <div class="decision-item">
-      <div class="decision-num">?</div>
+      <div class="decision-num">Open</div>
       <div class="decision-txt">Out of scope here: dark mode, components outside the agreed list, motion tokens, the <code>createAppTheme()</code> implementation, and per-app conformance.</div>
     </div>
   </section>
 
-  <section class="doc-section">
+    <h2 class="appendix-h">Appendix — provenance</h2>
+  <section class="doc-section" id="page-background-candidate-strip">
+    <h2>Page background — candidate strip</h2>
+    <p class="section-note">Four values side by side: pure white, the chosen neutral, the original cool value, and the smallest perceptible warm shift. Each carries a real white card, so the question is whether the card still reads as a card. Path: <code>#F5F7F8</code> &rarr; <code>#F7F6F3</code> &rarr; <code>#FCFBF9</code> &rarr; <code>#FAFAFA</code>.</p>
+    <div class="bg-strip">
+      <div class="bg-card">
+        <div class="bg-card-label">#FFFFFF</div>
+        <div class="bg-card-val">pure white — the reference</div>
+        <div style="background:#FFFFFF; border-radius:8px; padding:12px">
+          <div class="bg-card-surface"><p class="bg-card-text">Card on #FFFFFF</p><p class="bg-card-caption">body text inside a white surface</p></div>
+          <p class="bg-card-text" style="margin-top:2px">Body text directly on the page</p>
+          <p class="bg-card-caption" style="margin:4px 0 0">Muted caption directly on the page <span class="ratio-badge" data-fg="#6A7178" data-bg="#FFFFFF" data-min="4.5"></span></p>
+        </div>
+        <div class="bg-delta">&Delta; from white (R,G,B): <code>0, 0, 0</code> &middot; cast (R&minus;B): <code>0</code></div>
+        <div class="bg-delta" style="opacity:.8">reference: hram, fitness-monitor and innoservice ship this today</div>
+      </div>
+      <div class="bg-card chosen">
+        <div class="bg-card-label">#FAFAFA</div>
+        <div class="bg-card-val">neutral, one step off white</div>
+        <div style="background:#FAFAFA; border-radius:8px; padding:12px">
+          <div class="bg-card-surface"><p class="bg-card-text">Card on #FAFAFA</p><p class="bg-card-caption">body text inside a white surface</p></div>
+          <p class="bg-card-text" style="margin-top:2px">Body text directly on the page</p>
+          <p class="bg-card-caption" style="margin:4px 0 0">Muted caption directly on the page <span class="ratio-badge" data-fg="#6A7178" data-bg="#FAFAFA" data-min="4.5"></span></p>
+        </div>
+        <div class="bg-delta">&Delta; from white (R,G,B): <code>5, 5, 5</code> &middot; cast (R&minus;B): <code>0</code></div>
+        <div class="bg-delta" style="opacity:.8">CHOSEN 2026-08-09 — MUI grey[50], no colour cast</div>
+      </div>
+      <div class="bg-card">
+        <div class="bg-card-label">#F5F7F8</div>
+        <div class="bg-card-val">slightly cool — round 1</div>
+        <div style="background:#F5F7F8; border-radius:8px; padding:12px">
+          <div class="bg-card-surface"><p class="bg-card-text">Card on #F5F7F8</p><p class="bg-card-caption">body text inside a white surface</p></div>
+          <p class="bg-card-text" style="margin-top:2px">Body text directly on the page</p>
+          <p class="bg-card-caption" style="margin:4px 0 0">Muted caption directly on the page <span class="ratio-badge" data-fg="#6A7178" data-bg="#F5F7F8" data-min="4.5"></span></p>
+        </div>
+        <div class="bg-delta">&Delta; from white (R,G,B): <code>10, 8, 7</code> &middot; cast (R&minus;B): <code>&minus;3</code></div>
+        <div class="bg-delta" style="opacity:.8">the original blue-cast value; note it is also ~5 points darker, so its difference is not only the cast</div>
+      </div>
+      <div class="bg-card">
+        <div class="bg-card-label">#FAFAF7</div>
+        <div class="bg-card-val">one nuance toward yellow</div>
+        <div style="background:#FAFAF7; border-radius:8px; padding:12px">
+          <div class="bg-card-surface"><p class="bg-card-text">Card on #FAFAF7</p><p class="bg-card-caption">body text inside a white surface</p></div>
+          <p class="bg-card-text" style="margin-top:2px">Body text directly on the page</p>
+          <p class="bg-card-caption" style="margin:4px 0 0">Muted caption directly on the page <span class="ratio-badge" data-fg="#6A7178" data-bg="#FAFAF7" data-min="4.5"></span></p>
+        </div>
+        <div class="bg-delta">&Delta; from white (R,G,B): <code>5, 5, 8</code> &middot; cast (R&minus;B): <code>+3</code></div>
+        <div class="bg-delta" style="opacity:.8">same lightness as the chosen value, blue lowered by 3 — the minimum perceptible warm shift</div>
+      </div>
+    </div>
+    <p class="section-note" style="margin:14px 0 0"><strong><code>#FAFAFA</code> is the chosen <code>bg.page</code></strong> (operator, 2026-08-09). All three warm candidates read as too warm: against a blue-cast value, <em>warmer</em> meant <strong>neutral</strong>, and the need was a lightness step off white, not a hue. <code>#FAFAFA</code> is MUI's <code>grey[50]</code>. hram, fitness-monitor and innoservice ship pure white today and change visibly on adoption; jg-ferien and spesix override for identity.</p>
+    <p class="section-note" style="margin:10px 0 0"><code>#6A7178</code> cleared 4.5:1 only on pure white (4.549) and failed all three page candidates (4.399 / 4.324 / 4.247). Darkened along the same hue to <strong><code>#6A7178</code></strong>: 4.946 on white, 4.616 on the darkest candidate &mdash; against a 4.6 target, not a nudge over 4.5. Used everywhere <code>ink.muted</code> appears.</p>
+  </section>
+
+<section class="doc-section" id="canonical-baseline-tokens">
     <h2>Canonical baseline tokens</h2>
     <p class="section-note">Every decided value, once. A work order references this table by token name rather than retyping values; if a number here and a number in a WO disagree, this table is the one to fix. Contrast badges are computed live.</p>
     <div style="overflow-x:auto">
@@ -1138,7 +1170,7 @@ section.doc-section code{ font-family:ui-monospace,Consolas,monospace; font-size
           <td><span class="ratio-badge" data-fg="#5B6670" data-bg="#FFFFFF" data-min="4.5"></span></td><td class="note">unchanged</td></tr>
         <tr><td><code>ink.muted</code></td><td><span class="token-swatch" style="background:#6A7178"></span><code>#6A7178</code></td><td>captions, meta text</td>
           <td><span class="ratio-badge" data-fg="#6A7178" data-bg="#FFFFFF" data-min="4.6"></span> <span class="ratio-badge" data-fg="#6A7178" data-bg="#FAFAFA" data-min="4.6"></span> <span class="ratio-badge" data-fg="#6A7178" data-bg="#FAFAFA" data-min="4.6"></span></td>
-          <td class="note">was <code>#6F777E</code> (4.549 on white, 4.247 on the darkest page candidate). Darkened to clear 4.6:1 on all of them.</td></tr>
+          <td class="note">was <code>#6A7178</code> (4.549 on white, 4.247 on the darkest page candidate). Darkened to clear 4.6:1 on all of them.</td></tr>
         <tr><td><code>divider</code></td><td><span class="token-swatch" style="background:#e9e9ea"></span><code>rgba(33,37,41,.10)</code></td><td>decorative separators, card outline</td>
           <td><span class="ratio-badge" data-fg="rgba(33,37,41,0.10)" data-bg="#FFFFFF" data-min="3"></span></td><td class="note">decorative &mdash; exempt from WCAG 1.4.11. Split off from the single border token this round.</td></tr>
         <tr><td><code>controlBorder</code> (rest)</td><td><span class="token-swatch" style="background:#909294"></span><code>rgba(33,37,41,.50)</code></td><td>TextField/Select rest, Checkbox box, outlined Button/Chip</td>
@@ -1160,29 +1192,29 @@ section.doc-section code{ font-family:ui-monospace,Consolas,monospace; font-size
         <tr><td><code>bg.surface</code></td><td><span class="token-swatch" style="background:#FFFFFF"></span><code>#FFFFFF</code></td><td>Paper/Card/Table/Dialog</td><td>—</td><td class="note">unchanged</td></tr>
 
         <tr class="group-row"><td colspan="5">Status — success</td></tr>
-        <tr><td><code>success.text</code></td><td><span class="token-swatch" style="background:#357A4A"></span><code>#357A4A</code></td><td>Alert text/icon, table cell text</td>
-          <td><span class="ratio-badge" data-fg="#357A4A" data-bg="#FFFFFF" data-min="4.5"></span></td><td class="note">was #1E8E3E (4.20:1, FAIL). Replaced with jg-ferien's validated tone.</td></tr>
+        <tr><td><code>success.text</code></td><td><span class="token-swatch" style="background:#35794A"></span><code>#35794A</code></td><td>Alert text/icon, table cell text</td>
+          <td><span class="ratio-badge" data-fg="#35794A" data-bg="#E5F4E9" data-min="4.5"></span></td><td class="note">was #1E8E3E (4.20:1, FAIL). Replaced with jg-ferien's validated tone.</td></tr>
         <tr><td><code>success.fill</code> / <code>.fillText</code></td><td><span class="token-swatch" style="background:#1B8038"></span><code>#1B8038</code> / <code>#FFFFFF</code></td><td>solid chip/badge fill</td>
           <td><span class="ratio-badge" data-fg="#FFFFFF" data-bg="#1B8038" data-min="4.5"></span></td><td class="note">new &mdash; <code>#1E8E3E</code> fails as a fill too (4.20:1 either direction, by symmetry). Darkened until fill+white clears 4.5:1.</td></tr>
         <tr><td><code>success.bg</code></td><td><span class="token-swatch" style="background:#E5F4E9"></span><code>#E5F4E9</code></td><td>Alert background tint</td><td>—</td><td class="note">unchanged; pairs with success.text, contrast only improves vs. pure white</td></tr>
 
         <tr class="group-row"><td colspan="5">Status — warning</td></tr>
-        <tr><td><code>warning.text</code></td><td><span class="token-swatch" style="background:#A36800"></span><code>#A36800</code></td><td>Alert text/icon, table cell text</td>
-          <td><span class="ratio-badge" data-fg="#A36800" data-bg="#FFFFFF" data-min="4.5"></span></td><td class="note">was #A66A00 (4.484:1, short by 0.016). Darkened minimally along the same muted brown-amber hue — never yellow.</td></tr>
+        <tr><td><code>warning.text</code></td><td><span class="token-swatch" style="background:#976100"></span><code>#976100</code></td><td>Alert text/icon, table cell text</td>
+          <td><span class="ratio-badge" data-fg="#976100" data-bg="#FBF0DC" data-min="4.5"></span></td><td class="note">was #A66A00 (4.484:1, short by 0.016). Darkened minimally along the same muted brown-amber hue — never yellow.</td></tr>
         <tr><td><code>warning.fill</code> / <code>.fillText</code></td><td><span class="token-swatch" style="background:#C08A2C"></span><code>#C08A2C</code> / <code>#212529</code></td><td>solid chip/badge fill</td>
           <td><span class="ratio-badge" data-fg="#212529" data-bg="#C08A2C" data-min="4.5"></span></td><td class="note">jg-ferien's validated precedent, dark ink as <code>contrastText</code> &mdash; a mid-tone amber fails under white text.</td></tr>
         <tr><td><code>warning.bg</code></td><td><span class="token-swatch" style="background:#FBF0DC"></span><code>#FBF0DC</code></td><td>Alert background tint</td><td>—</td><td class="note">unchanged</td></tr>
 
         <tr class="group-row"><td colspan="5">Status — critical</td></tr>
         <tr><td><code>critical.text</code></td><td><span class="token-swatch" style="background:#BF3227"></span><code>#BF3227</code></td><td>Alert text/icon, table cell text</td>
-          <td><span class="ratio-badge" data-fg="#BF3227" data-bg="#FFFFFF" data-min="4.5"></span></td><td class="note">kept — already passes</td></tr>
+          <td><span class="ratio-badge" data-fg="#BF3227" data-bg="#FBEAE8" data-min="4.5"></span></td><td class="note">kept — already passes</td></tr>
         <tr><td><code>critical.fill</code> / <code>.fillText</code></td><td><span class="token-swatch" style="background:#BF3227"></span><code>#BF3227</code> / <code>#FFFFFF</code></td><td>solid chip/badge fill</td>
           <td><span class="ratio-badge" data-fg="#FFFFFF" data-bg="#BF3227" data-min="4.5"></span></td><td class="note">one hex, both roles: it clears 4.5:1 on white, so by symmetry white-on-it clears too. No second hue needed.</td></tr>
         <tr><td><code>critical.bg</code></td><td><span class="token-swatch" style="background:#FBEAE8"></span><code>#FBEAE8</code></td><td>Alert background tint</td><td>—</td><td class="note">unchanged</td></tr>
 
         <tr class="group-row"><td colspan="5">Status — stale</td></tr>
         <tr><td><code>stale.text</code></td><td><span class="token-swatch" style="background:#5B6B7D"></span><code>#5B6B7D</code></td><td>Alert text/icon, table cell text</td>
-          <td><span class="ratio-badge" data-fg="#5B6B7D" data-bg="#FFFFFF" data-min="4.5"></span></td><td class="note">kept — already passes</td></tr>
+          <td><span class="ratio-badge" data-fg="#5B6B7D" data-bg="#EAEDF1" data-min="4.5"></span></td><td class="note">kept — already passes</td></tr>
         <tr><td><code>stale.fill</code> / <code>.fillText</code></td><td><span class="token-swatch" style="background:#5B6B7D"></span><code>#5B6B7D</code> / <code>#FFFFFF</code></td><td>solid chip/badge fill</td>
           <td><span class="ratio-badge" data-fg="#FFFFFF" data-bg="#5B6B7D" data-min="4.5"></span></td><td class="note">same hex, same symmetry argument as critical</td></tr>
         <tr><td><code>stale.bg</code></td><td><span class="token-swatch" style="background:#EAEDF1"></span><code>#EAEDF1</code></td><td>Alert background tint</td><td>—</td><td class="note">unchanged. No precedent elsewhere in the estate — see the provenance note below.</td></tr>
@@ -1191,7 +1223,7 @@ section.doc-section code{ font-family:ui-monospace,Consolas,monospace; font-size
         <tr><td><code>h1</code></td><td>32px / 600</td><td>rare, top-level marketing-adjacent heading</td><td>—</td><td class="note">was 38px</td></tr>
         <tr><td><code>h2</code></td><td>28px / 600</td><td>section heading</td><td>—</td><td class="note">was 30px</td></tr>
         <tr><td><code>h3</code></td><td>24px / 600</td><td>subsection heading</td><td>—</td><td class="note">was 25px</td></tr>
-        <tr><td><code>h4</code></td><td>20px / 600</td><td><strong>screen title</strong> — matches the estate's real 19-22px screen titles</td><td>—</td><td class="note">was 21px</td></tr>
+        <tr><td><code>h4</code></td><td>20px / 600</td><td><strong>screen title</strong> (visual variant; the element stays <code>&lt;h1&gt;</code>) — matches the estate's real 19-22px screen titles</td><td>—</td><td class="note">was 21px</td></tr>
         <tr><td><code>h5</code></td><td>18px / 600</td><td>panel / dialog heading</td><td>—</td><td class="note">unchanged</td></tr>
         <tr><td><code>h6</code></td><td>16px / 600</td><td><strong>card title</strong></td><td>—</td><td class="note">unchanged</td></tr>
         <tr><td><code>subtitle1</code></td><td>15px / 600</td><td>emphasised secondary line</td><td>—</td><td class="note">was 14px</td></tr>
@@ -1219,9 +1251,9 @@ section.doc-section code{ font-family:ui-monospace,Consolas,monospace; font-size
         <tr class="group-row"><td colspan="5">Data-series ramp (categorical)</td></tr>
         <tr><td><code>series.1</code>…<code>series.6</code></td><td>#3D5A99 · #3E80B8 · #2E8F8A · #7A5FA8 · #9C4F86 · #8A7355</td><td>charts, categorical fills</td><td>see the ramp section below</td>
           <td class="note">hues unchanged per the operator's verdict. The series-4/5 greyscale collision is <strong>not</strong> fixed &mdash; the second channel that covered it was removed; see DS-4.</td></tr>
-        <tr><td><code>series.marker</code></td><td>circle · square · triangle · diamond · cross · plus</td><td>line chart point markers, series 1→6 in order</td><td>—</td><td class="note">new this round</td></tr>
-        <tr><td><code>series.dasharray</code></td><td>none · 8,4 · 2,3 · 10,3,2,3 · 14,4 · 8,3,2,3,2,3</td><td>line stroke pattern, series 1→6 in order</td><td>—</td><td class="note">new this round</td></tr>
-        <tr><td><code>series.pattern</code></td><td>solid · diagonal hatch · dots · cross-hatch · h-lines · v-lines</td><td>bar/area fill pattern, series 1→6 in order</td><td>—</td><td class="note">new this round</td></tr>
+        <tr><td><code>series.marker</code></td><td>circle · square · triangle · diamond · cross · plus</td><td>line chart point markers, series 1→6 in order</td><td>—</td><td class="note"><strong>opt-in, off by default</strong> — DS-13. Not applied in the charts above; a multi-series chart satisfies WCAG 1.4.1 only with the overlay switched on.</td></tr>
+        <tr><td><code>series.dasharray</code></td><td>none · 8,4 · 2,3 · 10,3,2,3 · 14,4 · 8,3,2,3,2,3</td><td>line stroke pattern, series 1→6 in order</td><td>—</td><td class="note"><strong>opt-in, off by default</strong> — DS-13. Not applied in the charts above; a multi-series chart satisfies WCAG 1.4.1 only with the overlay switched on.</td></tr>
+        <tr><td><code>series.pattern</code></td><td>solid · diagonal hatch · dots · cross-hatch · h-lines · v-lines</td><td>bar/area fill pattern, series 1→6 in order</td><td>—</td><td class="note"><strong>opt-in, off by default</strong> — DS-13. Not applied in the charts above; a multi-series chart satisfies WCAG 1.4.1 only with the overlay switched on.</td></tr>
 
         <tr class="group-row"><td colspan="5">Spacing, gutters, buttons (already settled, unchanged)</td></tr>
         <tr><td><code>spacing.unit</code></td><td>8px</td><td>layout rhythm multiplier</td><td>—</td><td class="note">unchanged</td></tr>
