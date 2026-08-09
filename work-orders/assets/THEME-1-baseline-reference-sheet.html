@@ -391,125 +391,18 @@ section.doc-section code{ font-family:ui-monospace,Consolas,monospace; font-size
   <!-- =========================================================
        CANONICAL TOKEN TABLE — the value source
        ========================================================= -->
-  <section class="doc-section">
-    <h2>Canonical baseline tokens</h2>
-    <p class="section-note">Every decided value, once. A work order should reference this table by token name instead of retyping a hex or a pixel size — if a number here and a number in a WO ever disagree, this table is wrong and needs fixing, not the other way around. Contrast badges are computed live by the script at the end of this document; the ones on ink/status rows repeat the same badges rendered next to their swatches further down.</p>
-    <div style="overflow-x:auto">
-    <table class="token-table">
-      <thead><tr><th>Token</th><th>Value</th><th>Role</th><th>Computed contrast</th><th>Note</th></tr></thead>
-      <tbody>
-        <tr class="group-row"><td colspan="5">Ink &amp; surface</td></tr>
-        <tr><td><code>ink.primary</code></td><td><span class="token-swatch" style="background:#212529"></span><code>#212529</code></td><td>body text, headings</td>
-          <td><span class="ratio-badge" data-fg="#212529" data-bg="#FFFFFF" data-min="4.5"></span></td><td class="note">unchanged</td></tr>
-        <tr><td><code>ink.secondary</code></td><td><span class="token-swatch" style="background:#5B6670"></span><code>#5B6670</code></td><td>subtitle2, secondary text</td>
-          <td><span class="ratio-badge" data-fg="#5B6670" data-bg="#FFFFFF" data-min="4.5"></span></td><td class="note">unchanged</td></tr>
-        <tr><td><code>ink.muted</code></td><td><span class="token-swatch" style="background:#6A7178"></span><code>#6A7178</code></td><td>captions, meta text</td>
-          <td><span class="ratio-badge" data-fg="#6A7178" data-bg="#FFFFFF" data-min="4.6"></span> <span class="ratio-badge" data-fg="#6A7178" data-bg="#FAFAFA" data-min="4.6"></span> <span class="ratio-badge" data-fg="#6A7178" data-bg="#FAFAFA" data-min="4.6"></span></td>
-          <td class="note">was #6F777E (4.549:1 on white, but only 4.247:1 against the new palest page candidate — round 2 fixed white only). Darkened further this round to clear 4.6:1 against white, the working page bg, and the palest candidate alike — see "Page background — candidate strip" above.</td></tr>
-        <tr><td><code>divider</code></td><td><span class="token-swatch" style="background:#e9e9ea"></span><code>rgba(33,37,41,.10)</code></td><td>decorative separators, card outline</td>
-          <td><span class="ratio-badge" data-fg="rgba(33,37,41,0.10)" data-bg="#FFFFFF" data-min="3"></span></td><td class="note">not a component-identification boundary — WCAG 1.4.11 non-text contrast is explicitly exempt here. Renamed from the single <code>border</code> token this round, split against <code>controlBorder</code> below.</td></tr>
-        <tr><td><code>controlBorder</code> (rest)</td><td><span class="token-swatch" style="background:#909294"></span><code>rgba(33,37,41,.50)</code></td><td>TextField/Select rest, Checkbox box, outlined Button/Chip</td>
-          <td><span class="ratio-badge" data-fg="rgba(33,37,41,0.50)" data-bg="#FFFFFF" data-min="3"></span> <span class="ratio-badge" data-fg="rgba(33,37,41,0.50)" data-bg="#FAFAFA" data-min="3"></span></td>
-          <td class="note">new — supersedes <code>input.border</code> (<code>rgba(33,37,41,.23)</code>), which measured <span class="ratio-badge" data-fg="rgba(33,37,41,0.23)" data-bg="#FFFFFF" data-min="3"></span> and never cleared 3:1, flagged unfixed in round 2. Same ink hue, higher opacity.</td></tr>
-        <tr><td><code>controlBorder-hover</code></td><td><span class="token-swatch" style="background:#7a7c7f"></span><code>rgba(33,37,41,.65)</code></td><td>control outline on hover</td>
-          <td><span class="ratio-badge" data-fg="rgba(33,37,41,0.65)" data-bg="#FFFFFF" data-min="3"></span> <span class="ratio-badge" data-fg="rgba(33,37,41,0.65)" data-bg="#FAFAFA" data-min="3"></span></td>
-          <td class="note">supersedes <code>input.border-hover</code> (<code>rgba(33,37,41,.45)</code>, 2.72:1, also sub-3:1)</td></tr>
-        <tr><td><code>control.autofill</code></td><td>surface inset shadow + <code>-webkit-text-fill-color</code> = <code>ink.primary</code></td><td>autofilled input/select background and text</td>
-          <td class="note">not a contrast pair — a suppression</td><td class="note"><strong>MUI has no autofill styling, and the browsers disagree loudly:</strong> the same field rendered yellow in a Chromium browser, dark grey in Opera and dark blue in Firefox (operator, 2026-08-09). <code>:-webkit-autofill</code> alone is not enough — the standard <code>:autofill</code> selector is needed for Firefox. <strong>This sheet no longer demonstrates it:</strong> its inputs and selects were converted to inert styled markup, because a specimen sheet shows appearance, not behaviour, and real form controls drag in per-browser native chrome that pollutes every comparison next to them. The gap is real for the apps and belongs in the factory regardless.</td></tr>
-        <tr><td><code>controlBorder-focus</code></td><td><em>derived from the app's <code>primary</code></em>, auto-darkened until it clears 3:1 against the surface (MUI <code>getContrastRatio</code>/<code>darken</code>). No fixed hex — the baseline defines no <code>primary</code>. Ratios for the four real estate accents &rarr;</td><td>control outline on focus</td>
-          <td style="line-height:1.9">hram <code>#468AB2</code> <span class="ratio-badge" data-fg="#468AB2" data-bg="#FCFBF9" data-min="3"></span><br>spesix <code>#1B8FD8</code> <span class="ratio-badge" data-fg="#1B8FD8" data-bg="#FCFBF9" data-min="3"></span><br>fm <code>#0F62FE</code> <span class="ratio-badge" data-fg="#0F62FE" data-bg="#FCFBF9" data-min="3"></span><br>survey <code>#432CA1</code> <span class="ratio-badge" data-fg="#432CA1" data-bg="#FCFBF9" data-min="3"></span></td>
-          <td class="note">new — reuses the existing primary hue rather than introducing another colour</td></tr>
-        <tr><td><code>controlBorder-error</code></td><td><span class="token-swatch" style="background:#BF3227"></span><code>#BF3227</code></td><td>control outline in error state</td>
-          <td><span class="ratio-badge" data-fg="#BF3227" data-bg="#FFFFFF" data-min="3"></span> <span class="ratio-badge" data-fg="#BF3227" data-bg="#FAFAFA" data-min="3"></span></td>
-          <td class="note">new — reuses the existing critical hue</td></tr>
-        <tr><td><code>bg.page</code></td><td><span class="token-swatch" style="background:#FAFAFA"></span><code>#FAFAFA</code></td><td>app canvas / page background</td><td>—</td>
-          <td class="note">neutral, no colour cast — MUI grey[50]. Fourth value in the chain: #F5F7F8 (cool) → #F7F6F3 → #FCFBF9 (both too warm) → #FAFAFA. A lightness step off white, not a hue.</td></tr>
-        <tr><td><code>bg.surface</code></td><td><span class="token-swatch" style="background:#FFFFFF"></span><code>#FFFFFF</code></td><td>Paper/Card/Table/Dialog</td><td>—</td><td class="note">unchanged</td></tr>
-
-        <tr class="group-row"><td colspan="5">Status — success</td></tr>
-        <tr><td><code>success.text</code></td><td><span class="token-swatch" style="background:#357A4A"></span><code>#357A4A</code></td><td>Alert text/icon, table cell text</td>
-          <td><span class="ratio-badge" data-fg="#357A4A" data-bg="#FFFFFF" data-min="4.5"></span></td><td class="note">was #1E8E3E (4.20:1, FAIL). Replaced with jg-ferien's validated tone.</td></tr>
-        <tr><td><code>success.fill</code> / <code>.fillText</code></td><td><span class="token-swatch" style="background:#1B8038"></span><code>#1B8038</code> / <code>#FFFFFF</code></td><td>solid chip/badge fill</td>
-          <td><span class="ratio-badge" data-fg="#FFFFFF" data-bg="#1B8038" data-min="4.5"></span></td><td class="note">new — #1E8E3E itself fails as a fill too (white text on it = 4.20:1, same number as the text failure, by the symmetry of the contrast formula); darkened further until the fill+white pairing clears 4.5:1</td></tr>
-        <tr><td><code>success.bg</code></td><td><span class="token-swatch" style="background:#E5F4E9"></span><code>#E5F4E9</code></td><td>Alert background tint</td><td>—</td><td class="note">unchanged; pairs with success.text, contrast only improves vs. pure white</td></tr>
-
-        <tr class="group-row"><td colspan="5">Status — warning</td></tr>
-        <tr><td><code>warning.text</code></td><td><span class="token-swatch" style="background:#A36800"></span><code>#A36800</code></td><td>Alert text/icon, table cell text</td>
-          <td><span class="ratio-badge" data-fg="#A36800" data-bg="#FFFFFF" data-min="4.5"></span></td><td class="note">was #A66A00 (4.484:1, short by 0.016). Darkened minimally along the same muted brown-amber hue — never yellow.</td></tr>
-        <tr><td><code>warning.fill</code> / <code>.fillText</code></td><td><span class="token-swatch" style="background:#C08A2C"></span><code>#C08A2C</code> / <code>#212529</code></td><td>solid chip/badge fill</td>
-          <td><span class="ratio-badge" data-fg="#212529" data-bg="#C08A2C" data-min="4.5"></span></td><td class="note">jg-ferien's validated fill precedent, dark ink as contrastText (a mid-tone amber fails against white text, so dark text is the correct pairing here, not white)</td></tr>
-        <tr><td><code>warning.bg</code></td><td><span class="token-swatch" style="background:#FBF0DC"></span><code>#FBF0DC</code></td><td>Alert background tint</td><td>—</td><td class="note">unchanged</td></tr>
-
-        <tr class="group-row"><td colspan="5">Status — critical</td></tr>
-        <tr><td><code>critical.text</code></td><td><span class="token-swatch" style="background:#BF3227"></span><code>#BF3227</code></td><td>Alert text/icon, table cell text</td>
-          <td><span class="ratio-badge" data-fg="#BF3227" data-bg="#FFFFFF" data-min="4.5"></span></td><td class="note">kept — already passes</td></tr>
-        <tr><td><code>critical.fill</code> / <code>.fillText</code></td><td><span class="token-swatch" style="background:#BF3227"></span><code>#BF3227</code> / <code>#FFFFFF</code></td><td>solid chip/badge fill</td>
-          <td><span class="ratio-badge" data-fg="#FFFFFF" data-bg="#BF3227" data-min="4.5"></span></td><td class="note">same hex serves both roles here — because it already clears 4.5:1 on white, the symmetric contrast relation means white-on-it also clears 4.5:1. Unlike success/warning, no second hue was needed.</td></tr>
-        <tr><td><code>critical.bg</code></td><td><span class="token-swatch" style="background:#FBEAE8"></span><code>#FBEAE8</code></td><td>Alert background tint</td><td>—</td><td class="note">unchanged</td></tr>
-
-        <tr class="group-row"><td colspan="5">Status — stale</td></tr>
-        <tr><td><code>stale.text</code></td><td><span class="token-swatch" style="background:#5B6B7D"></span><code>#5B6B7D</code></td><td>Alert text/icon, table cell text</td>
-          <td><span class="ratio-badge" data-fg="#5B6B7D" data-bg="#FFFFFF" data-min="4.5"></span></td><td class="note">kept — already passes</td></tr>
-        <tr><td><code>stale.fill</code> / <code>.fillText</code></td><td><span class="token-swatch" style="background:#5B6B7D"></span><code>#5B6B7D</code> / <code>#FFFFFF</code></td><td>solid chip/badge fill</td>
-          <td><span class="ratio-badge" data-fg="#FFFFFF" data-bg="#5B6B7D" data-min="4.5"></span></td><td class="note">same hex, same symmetry argument as critical</td></tr>
-        <tr><td><code>stale.bg</code></td><td><span class="token-swatch" style="background:#EAEDF1"></span><code>#EAEDF1</code></td><td>Alert background tint</td><td>—</td><td class="note">unchanged. No precedent elsewhere in the estate — see the provenance note below.</td></tr>
-
-        <tr class="group-row"><td colspan="5">Typography</td></tr>
-        <tr><td><code>h1</code></td><td>32px / 600</td><td>rare, top-level marketing-adjacent heading</td><td>—</td><td class="note">was 38px</td></tr>
-        <tr><td><code>h2</code></td><td>28px / 600</td><td>section heading</td><td>—</td><td class="note">was 30px</td></tr>
-        <tr><td><code>h3</code></td><td>24px / 600</td><td>subsection heading</td><td>—</td><td class="note">was 25px</td></tr>
-        <tr><td><code>h4</code></td><td>20px / 600</td><td><strong>screen title</strong> — matches the estate's real 19-22px screen titles</td><td>—</td><td class="note">was 21px</td></tr>
-        <tr><td><code>h5</code></td><td>18px / 600</td><td>panel / dialog heading</td><td>—</td><td class="note">unchanged</td></tr>
-        <tr><td><code>h6</code></td><td>16px / 600</td><td><strong>card title</strong></td><td>—</td><td class="note">unchanged</td></tr>
-        <tr><td><code>subtitle1</code></td><td>15px / 600</td><td>emphasised secondary line</td><td>—</td><td class="note">was 14px</td></tr>
-        <tr><td><code>subtitle2</code></td><td>13px / 500</td><td>secondary tile title</td><td>—</td><td class="note">unchanged</td></tr>
-        <tr><td><code>body1</code></td><td>14px / 400</td><td>primary body copy</td><td>—</td><td class="note">unchanged</td></tr>
-        <tr><td><code>body2</code></td><td>13px / 400</td><td>secondary body copy, table cells</td><td>—</td><td class="note">unchanged</td></tr>
-        <tr><td><code>button</code></td><td>14px / 500, no uppercase</td><td>Button label</td><td>—</td><td class="note">unchanged</td></tr>
-        <tr><td><code>caption</code></td><td>12px / 400</td><td>captions</td><td>—</td><td class="note">unchanged</td></tr>
-        <tr><td><code>overline</code></td><td>11px / 600, uppercase</td><td>overline labels</td><td>—</td><td class="note">unchanged</td></tr>
-
-        <tr class="group-row"><td colspan="5">Density &amp; control height</td></tr>
-        <tr><td><code>control.height</code></td><td>40px<br>44px <span class="note">@ (pointer: coarse)</span></td><td>Button/Select/TextField height</td><td>—</td>
-          <td class="note">was 36px. 34-36px is a recorded defect against the 44px touch guideline in an already-approved envelope; 40px sits on MUI's own <code>size="small"</code>, 44px activates automatically under a coarse (touch) pointer.</td></tr>
-        <tr><td><code>table.cellPadding</code></td><td>10px 16px</td><td>TableCell</td><td>—</td><td class="note">was 8px 12px, scaled proportionally with control height</td></tr>
-        <tr><td><code>chip.height</code> / <code>.radius</code> / <code>.fontSize</code></td><td>32px / 16px / 13px</td><td>Chip</td><td>—</td><td class="note">was 28px / 14px / 12.5px, same proportional scaling</td></tr>
-
-        <tr class="group-row"><td colspan="5">Radius</td></tr>
-        <tr><td><code>radius.control</code></td><td>3px</td><td>Button/Select/TextField/Chip corner</td><td>—</td><td class="note">settled — no A/B variant left</td></tr>
-        <tr><td><code>radius.card</code></td><td>8px</td><td>Paper/Card/Dialog corner</td><td>—</td><td class="note">settled — no A/B variant left</td></tr>
-
-        <tr class="group-row"><td colspan="5">Shadow</td></tr>
-        <tr><td><code>shadow.rest</code></td><td><code>none</code></td><td>Paper/Card at rest — <code>elevation:0</code>, <code>variant:'outlined'</code> is the default</td><td>—</td><td class="note">binary rule now: rest state never has a shadow, full stop</td></tr>
-        <tr><td><code>shadow.overlay</code></td><td><code>0 8px 24px rgba(20,26,31,.16), 0 2px 8px rgba(20,26,31,.08)</code></td><td>Dialog, Drawer, Menu, Tooltip only</td><td>—</td><td class="note">unchanged value; scope narrowed to transient surfaces only</td></tr>
-
-        <tr class="group-row"><td colspan="5">Data-series ramp (categorical)</td></tr>
-        <tr><td><code>series.1</code>…<code>series.6</code></td><td>#3D5A99 · #3E80B8 · #2E8F8A · #7A5FA8 · #9C4F86 · #8A7355</td><td>charts, categorical fills</td><td>see the ramp section below</td>
-          <td class="note">hues unchanged this round, per the operator's verdict — the round-2 greyscale collision (series 4/5) is fixed via a second channel instead: <code>stroke-dasharray</code> + marker shape for lines, SVG <code>&lt;pattern&gt;</code> fills for bars, per WCAG 1.4.1</td></tr>
-        <tr><td><code>series.marker</code></td><td>circle · square · triangle · diamond · cross · plus</td><td>line chart point markers, series 1→6 in order</td><td>—</td><td class="note">new this round</td></tr>
-        <tr><td><code>series.dasharray</code></td><td>none · 8,4 · 2,3 · 10,3,2,3 · 14,4 · 8,3,2,3,2,3</td><td>line stroke pattern, series 1→6 in order</td><td>—</td><td class="note">new this round</td></tr>
-        <tr><td><code>series.pattern</code></td><td>solid · diagonal hatch · dots · cross-hatch · h-lines · v-lines</td><td>bar/area fill pattern, series 1→6 in order</td><td>—</td><td class="note">new this round</td></tr>
-
-        <tr class="group-row"><td colspan="5">Spacing, gutters, buttons (already settled, unchanged)</td></tr>
-        <tr><td><code>spacing.unit</code></td><td>8px</td><td>layout rhythm multiplier</td><td>—</td><td class="note">unchanged</td></tr>
-        <tr><td><code>container.gutter</code></td><td>24px (32px ≥1200px)</td><td>Container</td><td>—</td><td class="note">unchanged</td></tr>
-        <tr><td><code>button.textTransform</code></td><td><code>none</code></td><td>Button label casing</td><td>—</td><td class="note">unchanged</td></tr>
-        <tr><td><code>button.elevation</code></td><td><code>none</code> (contained)</td><td>Button contained variant</td><td>—</td><td class="note">unchanged, and now consistent with the shadow.rest rule above</td></tr>
-      </tbody>
-    </table>
-    </div>
-  </section>
+  
 
   <section class="doc-section">
     <h2>Declared coverage</h2>
-    <p class="section-note" style="margin-bottom:10px"><strong>Covers:</strong> the full canonical token table above; ink/border/surface tokens including a page-background candidate strip (three near-white values, live contrast checked) and the resulting second muted-ink darkening; the border token split into decorative <code>divider</code> (1.4.11-exempt) and interactive <code>controlBorder</code> (rest/hover/focus/error, all ≥3:1 against both white and the palest page candidate), rendered live on TextField/Select/Checkbox/outlined Button&amp;Chip against MUI's raw default; the 4-tier status semantic split into text/icon and fill+contrastText roles per status, each pairing verified live; the settled typography scale (h1–overline, single scale, no variants); the settled control height (40/44px) and its touch-breakpoint rule; the settled radius pairing (3/8); the binary rest-vs-transient shadow rule; the data-series ramp, its greyscale distinguishability check, and the data-series ramp rendered as a multi-series line chart and grouped bar chart, in colour and desaturated, with no second channel (removed on operator review — see the closing section); a live, render-time WCAG contrast script covering every foreground/background pair the sheet renders; and rendered specimens of Button, TableCell/Table, IconButton, Divider, Tooltip, Select, Checkbox, FormControlLabel, Container, Paper/Card, Chip, TextField/OutlinedInput, Dialog header, and Alert — each against its MUI raw default.</p>
-    <p class="section-note" style="margin-bottom:10px"><strong>Does not cover:</strong> dark mode (explicitly out of scope for v1); components outside the agreed list (DataGrid, Autocomplete, Stepper, Snackbar, Accordion, ToggleButton, etc. — <code>controlBorder</code> is defined as a token and demonstrated on the components above, but not rendered on every component the token could in principle apply to); motion/transition tokens; the actual <code>createAppTheme()</code> implementation or its override API surface; per-app deviations already in production (this is the target baseline, not an audit of the 14 apps against it); the underlying series-4/5 hue proximity itself, which is unchanged by design — the second channel makes it a non-issue for distinguishability rather than removing the near-collision from the ramp; and the operator's final pick among the three page-background candidates, which this sheet proposes but does not decide.</p>
-    <p class="section-note" style="margin:0"><strong>Explicit:</strong> the "MUI raw default" column is not a live MUI mount — it is a CSS transcription of MUI v7's documented theme defaults (typography scale, <code>shape.borderRadius: 4</code>, <code>shadows[1]</code>/<code>shadows[2]</code>/<code>shadows[24]</code>, <code>palette.text.primary/secondary/disabled</code>, and the Alert standard-variant color mixes). Font: that column substitutes a system-sans stack for Roboto (MUI's actual default) — disclosed here and again at first use, so no reader mistakes it for a font judgment; the comparison that matters is size/weight/radius/color/shadow, not exact glyph shapes.</p>
+    <p class="section-note" style="margin-bottom:10px"><strong>Covers:</strong> the token table; ink/border/surface with the page-background strip; the <code>divider</code>/<code>controlBorder</code> split; status split into text and fill roles; the settled type scale, control height, radius and shadow rule; the data-series ramp and its greyscale check; a render-time contrast script; and the 14 agreed component specimens, each beside its MUI default.</p>
+    <p class="section-note" style="margin-bottom:10px"><strong>Does not cover:</strong> dark mode (out of scope for v1); components outside the agreed list; motion tokens; the <code>createAppTheme()</code> implementation and its override API; an audit of the 14 apps against this baseline; and the series-4/5 hue proximity itself, which is unchanged.</p>
+    <p class="section-note" style="margin:0"><strong>Explicit:</strong> the MUI column is a CSS transcription of MUI v7's documented defaults, not a live mount, and it renders in a system-sans stand-in rather than Roboto. Judge size, weight, radius, colour and shadow from it &mdash; not glyph shapes.</p>
   </section>
 
   <section class="doc-section">
     <h2>Font disclosure</h2>
-    <p class="section-note" style="margin:0">The candidate columns throughout this sheet render in <strong>DM Sans</strong>, weights 400/500/600, embedded as base64 <code>woff2</code> below (sourced from <code>@fontsource/dm-sans@5.2.8</code> already vendored in this estate's <code>node_modules</code> — no network fetch). The MUI-default columns render in a system-sans stand-in, not Roboto, because embedding a second full font family solely to color one comparison column wasn't warranted — that substitution is disclosed inline wherever it appears, per the instruction that an undisclosed font swap would invalidate every type judgment made from this sheet.</p>
+    <p class="section-note" style="margin:0">Candidate columns use DM Sans 400/500/600, base64-embedded from <code>@fontsource/dm-sans@5.2.8</code> in this estate's <code>node_modules</code> &mdash; no network fetch. MUI columns use a system-sans stand-in, not Roboto.</p>
   </section>
 
   <!-- =========================================================
@@ -517,7 +410,7 @@ section.doc-section code{ font-family:ui-monospace,Consolas,monospace; font-size
        ========================================================= -->
   <section class="doc-section">
     <h2>Page background — candidate strip</h2>
-    <p class="section-note">Four values kept side by side for comparison, at the operator's request: pure white, the chosen neutral, the original slightly cool value, and the smallest perceptible warm shift. Each shows a real white card on it, so the judgment is about whether the card still reads as a card — not about the swatch alone. The path to the decision was <code>#F5F7F8</code> (cool) &rarr; <code>#F7F6F3</code> (far too warm) &rarr; <code>#FCFBF9</code> (still too warm) &rarr; <code>#FAFAFA</code>; the two rejected warm values are not shown here because both were verdicts, not options.</p>
+    <p class="section-note">Four values side by side: pure white, the chosen neutral, the original cool value, and the smallest perceptible warm shift. Each carries a real white card, so the question is whether the card still reads as a card. Path: <code>#F5F7F8</code> &rarr; <code>#F7F6F3</code> &rarr; <code>#FCFBF9</code> &rarr; <code>#FAFAFA</code>.</p>
     <div class="bg-strip">
       <div class="bg-card">
         <div class="bg-card-label">#FFFFFF</div>
@@ -564,8 +457,8 @@ section.doc-section code{ font-family:ui-monospace,Consolas,monospace; font-size
         <div class="bg-delta" style="opacity:.8">same lightness as the chosen value, blue lowered by 3 — the minimum perceptible warm shift</div>
       </div>
     </div>
-    <p class="section-note" style="margin:14px 0 0"><strong><code>#FAFAFA</code> is the chosen <code>bg.page</code></strong> — operator decision 2026-08-09, after all three warm candidates read as too warm. The correction: <em>&ldquo;warmer&rdquo; against a blue-cast value meant NEUTRAL, not yellow</em>, and the requirement is a lightness step off white to take the glare out, not a hue. <code>#FAFAFA</code> is MUI's own <code>grey[50]</code> and carries no cast. The strip below is kept as provenance of the four-step path: <code>#F5F7F8</code> (cool, round&nbsp;1) &rarr; <code>#F7F6F3</code> (far too warm) &rarr; <code>#FCFBF9</code> (still too warm) &rarr; <code>#FAFAFA</code>. Three of the six estate apps (hram, fitness-monitor, innoservice) use pure <code>#FFFFFF</code> today and will change visibly on adoption; jg-ferien (<code>#eceae2</code>) and spesix (<code>#EEF4FA</code>) override for identity.</p>
-    <p class="section-note" style="margin:10px 0 0"><strong>Muted ink re-verified against the new band — and it doesn't clear 4.5:1 anywhere close to white anymore.</strong> The badges above use the <em>current</em> tone, <code>#6F777E</code>: 4.549:1 on pure white (barely — 0.049 of headroom over the 4.5 floor) but a <strong>failing</strong> 4.399 / 4.324 / 4.247 :1 on candidates A / B / C. A value that passes at 4.55 was already fragile; against a near-white page it fails outright. Darkened minimally along the same hue to <strong><code>#6A7178</code></strong>: <span class="ratio-badge" data-fg="#6A7178" data-bg="#FFFFFF" data-min="4.6"></span> on white, <span class="ratio-badge" data-fg="#6A7178" data-bg="#F8F7F4" data-min="4.6"></span> on the palest candidate (C) — cleared against a 4.6:1 target with real headroom, not just nudged over the 4.5:1 floor. This is the tone now used everywhere <code>ink.muted</code> appears in this document, including the token table below.</p>
+    <p class="section-note" style="margin:14px 0 0"><strong><code>#FAFAFA</code> is the chosen <code>bg.page</code></strong> (operator, 2026-08-09). All three warm candidates read as too warm: against a blue-cast value, <em>warmer</em> meant <strong>neutral</strong>, and the need was a lightness step off white, not a hue. <code>#FAFAFA</code> is MUI's <code>grey[50]</code>. hram, fitness-monitor and innoservice ship pure white today and change visibly on adoption; jg-ferien and spesix override for identity.</p>
+    <p class="section-note" style="margin:10px 0 0"><code>#6F777E</code> cleared 4.5:1 only on pure white (4.549) and failed all three page candidates (4.399 / 4.324 / 4.247). Darkened along the same hue to <strong><code>#6A7178</code></strong>: 4.946 on white, 4.616 on the darkest candidate &mdash; against a 4.6 target, not a nudge over 4.5. Used everywhere <code>ink.muted</code> appears.</p>
   </section>
 
   <!-- =========================================================
@@ -573,7 +466,7 @@ section.doc-section code{ font-family:ui-monospace,Consolas,monospace; font-size
        ========================================================= -->
   <section class="doc-section">
     <h2>Ink, border, surface</h2>
-    <p class="section-note">MUI's default text is never pure ink — <code>rgba(0,0,0,0.87)</code> — which prints muddy on light backgrounds and shifts with whatever sits behind it. The candidate uses three fixed, opaque ink tiers instead. The muted tier was darkened again this round (see the page-background verification above): <code>#8A949C</code> → <code>#6F777E</code> in round 2, now <code>#6F777E</code> → <code>#6A7178</code> to hold a real margin against a near-white page instead of the bare 4.5:1 floor on pure white.</p>
+    <p class="section-note">MUI's default text is translucent (<code>rgba(0,0,0,0.87)</code>) and shifts with whatever sits behind it. The candidate uses three fixed opaque tiers. Muted was darkened twice: <code>#8A949C</code> &rarr; <code>#6F777E</code> &rarr; <code>#6A7178</code>.</p>
     <div class="cols">
       <div class="col th-mui">
         <div class="col-label">MUI raw default <span class="tag mui">MUI</span></div>
@@ -605,7 +498,7 @@ section.doc-section code{ font-family:ui-monospace,Consolas,monospace; font-size
     </div>
 
     <h3>Border, split in two: <code>divider</code> vs. <code>controlBorder</code></h3>
-    <p class="section-note">WCAG treats these differently, so one token can't serve both roles. <strong><code>divider</code></strong> is a decorative separator or card edge — table rows, dividers, card outline at rest — and is explicitly exempt from 1.4.11 non-text contrast; it stays the pale <code>rgba(33,37,41,0.10)</code> above, unchanged. <strong><code>controlBorder</code></strong> is the visual boundary of an interactive control — the thing a user has to be able to see well enough to know it's a control — and 1.4.11 sets a real floor for it: <strong>≥3:1</strong> against the surface it sits on. The pre-existing token that served this role, <code>input.border</code> (<code>rgba(33,37,41,0.23)</code>), measured <span class="ratio-badge" data-fg="rgba(33,37,41,0.23)" data-bg="#FFFFFF" data-min="3"></span> on white — it never cleared that floor, flagged and left unfixed in round 2. <code>controlBorder</code> below is derived from the same ink hue (33,37,41), not a new grey, at higher opacity for rest/hover plus the existing primary/critical hues for focus/error — each checked against both white and the palest page candidate (C), since a control can sit on either.</p>
+    <p class="section-note">WCAG treats the two differently, so one token cannot serve both. <code>divider</code> is decorative and exempt from 1.4.11; it stays pale. <code>controlBorder</code> is a control's boundary and needs <strong>&ge;3:1</strong> against its surface &mdash; the inherited <code>input.border</code> never cleared it. Derived from the same ink hue at higher opacity.</p>
     <div class="swatch-row">
       <div class="swatch"><div class="swatch-chip" style="border:2px solid var(--control-border); background:#fff"></div><div class="swatch-name">controlBorder (rest)</div><div class="swatch-val">rgba(33,37,41,.50)</div>
         <div class="ratio-row"><span class="ratio-badge" data-fg="rgba(33,37,41,0.50)" data-bg="#FFFFFF" data-min="3"></span></div>
@@ -622,7 +515,7 @@ section.doc-section code{ font-family:ui-monospace,Consolas,monospace; font-size
     </div>
 
     <h3>TextField / Select — rest, hover, focus, error</h3>
-    <p class="section-note">Same four states, MUI raw default alongside the candidate, every boundary's contrast computed live. MUI's own rest default fails the 3:1 non-text target too — its hover/focus/error states already clear it (hover jumps to <code>text.primary</code>, focus/error use saturated theme colors), so this is specifically a rest-state gap, in MUI itself and in the token this baseline inherited from it. This is a place where the fixed baseline is <strong>better than the library default</strong>, not a deviation from it.</p>
+    <p class="section-note">Same four states, MUI default beside the candidate, every boundary computed live. MUI's <strong>rest</strong> default also fails 3:1; its hover/focus/error states clear it. A rest-state gap in the library, not a deviation from it.</p>
     <div class="cols">
       <div class="col th-mui">
         <div class="col-label">MUI raw default <span class="tag mui">MUI</span></div>
@@ -651,12 +544,12 @@ section.doc-section code{ font-family:ui-monospace,Consolas,monospace; font-size
         </div>
       </div>
     </div>
-    <p class="section-note" style="margin:12px 0 0">Checkbox box and outlined Button/Chip edges now use <code>controlBorder</code> too (see the component gallery below) — the same rest-state fix applies everywhere a control's own outline was previously the sub-3:1 <code>input.border</code>.</p>
+    <p class="section-note" style="margin:12px 0 0">Checkbox boxes and outlined Button/Chip edges use <code>controlBorder</code> too &mdash; the same rest-state fix wherever the sub-3:1 <code>input.border</code> was the outline.</p>
   </section>
 
   <section class="doc-section">
     <h2>Status, split by role, and the freshness semantic</h2>
-    <p class="section-note">A single hex can't serve both as text/icon colour and as a fill: <code>#1E8E3E</code> (the old success token) measures 4.20:1 as text on white — and, because the WCAG contrast formula is symmetric, it measures the <em>same</em> 4.20:1 as a fill with white text on top. Failing one direction failed both. Each status below now carries two verified tones: a <strong>text/icon</strong> tone (≥4.5:1 on white) and a <strong>fill</strong> tone with its own <strong>contrastText</strong> (the fill↔contrastText pair itself ≥4.5:1) — plus the existing pale Alert background tint, unchanged, which pairs with the text tone at even higher contrast than pure white gives.</p>
+    <p class="section-note">One hex cannot be both text and fill: <code>#1E8E3E</code> measures 4.20:1 as text on white and &mdash; the formula being symmetric &mdash; the same 4.20:1 as a fill under white text. Each status now carries a text tone (&ge;4.5:1 on white) and a fill tone with its own <code>contrastText</code>.</p>
     <div class="cols">
       <div class="col th-mui">
         <div class="col-label">MUI raw default <span class="tag mui">MUI</span></div>
@@ -685,7 +578,7 @@ section.doc-section code{ font-family:ui-monospace,Consolas,monospace; font-size
       <div class="status-fill stale">Stale<span class="ratio-badge" data-fg="#FFFFFF" data-bg="#5B6B7D" data-min="4.5"></span></div>
       <div class="status-fill critical">Critical<span class="ratio-badge" data-fg="#FFFFFF" data-bg="#BF3227" data-min="4.5"></span></div>
     </div>
-    <p class="section-note" style="margin:14px 0 0"><strong>Stale provenance.</strong> Three prototypes across this estate independently invented a "stale" concept distinct from "warning" — but expressed it inconsistently: cockpit used a muted amber (<code>#9a7b33</code>), fitness-monitor reused its existing <code>--status-warn</code> token outright. Neither is this blue-grey. <code>#5B6B7D</code> has <strong>no precedent anywhere in the estate</strong> — it is a new hue, included here on the operator's decision precisely because reusing an amber for "stale" would collide with "warning" (the whole reason this token exists). It has not been validated in a real running screen; the first consuming app is where that happens.</p>
+    <p class="section-note" style="margin:14px 0 0"><strong>No estate precedent.</strong> Three prototypes invented a stale concept, all in amber: cockpit <code>#9a7b33</code>, fitness-monitor reused <code>--status-warn</code>. <code>#5B6B7D</code> is new &mdash; included on the operator's decision, because reusing amber would collide with <code>warning</code>, which is the reason the token exists. Unvalidated in a running screen; the first consuming app validates it.</p>
   </section>
 
   <!-- =========================================================
@@ -693,7 +586,7 @@ section.doc-section code{ font-family:ui-monospace,Consolas,monospace; font-size
        ========================================================= -->
   <section class="doc-section">
     <h2>Data-series ramp (categorical, owned by the baseline)</h2>
-    <p class="section-note">Six series colors, chosen to never overlap the status hues above (no green, no amber/brown, no red, no blue-gray) so a reader never mistakes "series 3" for "success" or "series 6" for "stale." Cool-to-neutral family, muted saturation, kept unchanged this round — the operator's verdict was to keep the six hues and fix distinguishability a different way. The greyscale check below found series 4 (gray 109) and series 5 (gray 106) colliding, with series 2/3/6 clustered in a 10-point band. <strong>Fixed this round by encoding series identity in a second, non-colour channel</strong> instead of re-hueing anything: distinct <code>stroke-dasharray</code> + marker shape for lines, distinct SVG <code>&lt;pattern&gt;</code> fills for bars/areas. WCAG 1.4.1 requires colour never be the sole carrier of information — a second channel is the structurally correct fix under that criterion, and it resolves the greyscale collision as a side effect rather than needing the hues changed. Each swatch below now carries its series' marker glyph too, so the ramp itself — not just the charts further down — survives desaturation.</p>
+    <p class="section-note">Six colours chosen to avoid every status hue (no green, amber, red or blue-grey), so a series is never mistaken for a status. Muted and cool-to-neutral, unchanged on the operator's verdict. <strong>No second channel:</strong> dash patterns, marker shapes and pattern fills were all removed on review &mdash; how a chart separates series is DS-4's question.</p>
     <div class="swatch-row" style="margin-bottom:10px">
       <div class="swatch"><div class="swatch-chip" style="background:#3D5A99"></div><div class="swatch-name">series 1</div><div class="swatch-val">#3D5A99 — circle</div>
         <div class="ratio-row"><span class="ratio-badge" data-fg="#3D5A99" data-bg="#FFFFFF" data-min="3"></span></div></div>
@@ -710,7 +603,7 @@ section.doc-section code{ font-family:ui-monospace,Consolas,monospace; font-size
     </div>
 
     <h3>Greyscale check — same swatches, desaturated to luminance only</h3>
-    <p class="section-note">Colour removed, marker glyph kept. Series 4 and 5 are still the same near-identical gray (109 vs. 106) — that hasn't changed and isn't meant to — but the diamond vs. cross glyph now carries the identity the hue used to.</p>
+    <p class="section-note">Colour removed. Series 4 and 5 remain near-identical greys (109 vs 106), and <strong>nothing else distinguishes them</strong> since the marker glyphs were dropped.</p>
     <div class="swatch-row">
       <div class="swatch"><div class="gray-swatch" data-gray-source="#3D5A99"></div><div class="swatch-name">series 1</div><div class="gray-value"></div></div>
       <div class="swatch"><div class="gray-swatch" data-gray-source="#3E80B8"></div><div class="swatch-name">series 2</div><div class="gray-value"></div></div>
@@ -719,10 +612,10 @@ section.doc-section code{ font-family:ui-monospace,Consolas,monospace; font-size
       <div class="swatch"><div class="gray-swatch" data-gray-source="#9C4F86"></div><div class="swatch-name">series 5</div><div class="gray-value"></div></div>
       <div class="swatch"><div class="gray-swatch" data-gray-source="#8A7355"></div><div class="swatch-name">series 6</div><div class="gray-value"></div></div>
     </div>
-    <p class="section-note" style="margin:14px 0 0"><strong>Finding, unchanged: series 4 and series 5 still collide on hue/luminance alone.</strong> Desaturated gray values (computed live above, sRGB byte 0–255): series 1 ≈ 92, series 2 ≈ 123, series 3 ≈ 129, series 4 ≈ 109, series 5 ≈ 106, series 6 ≈ 119 — series 4/5 differ by only ~3/255, below what's reliably perceptible as two distinct grays, and 2/3/6 cluster within a 10-point band. <strong>That finding stands</strong> — desaturation is a property of the hues, and the hues weren't changed. What changed is that the ramp no longer depends on the hue being distinguishable: the marker glyph (and, in the charts below, the dasharray/pattern) carries series identity through the desaturation instead.</p>
+    <p class="section-note" style="margin:14px 0 0">Desaturated greys (live, sRGB 0&ndash;255): 92 &middot; 123 &middot; 129 &middot; 109 &middot; 106 &middot; 119. Series 4 and 5 differ by ~3/255, below reliable perception; 2/3/6 sit inside 10 points. With nothing but hue carrying identity, a six-series chart does not satisfy WCAG 1.4.1.</p>
 
     <h3>Second channel in practice — multi-series line chart</h3>
-    <p class="section-note">Same six series, same colours, solid strokes, no per-series pattern or marker shape — removed on operator review (2026-08-09). How a chart keeps series apart is chart craft and belongs to DS-4, not to the theme tokens. Distinguishability per line. Series 4 (diamond) and 5 (cross) cross each other around March/May in the data below — exactly the kind of close-luminance overlap the greyscale check flagged — and stay identifiable by shape alone in the desaturated pane on the right.</p>
+    <p class="section-note">Same six series, solid strokes, no per-series pattern or marker &mdash; removed on operator review (2026-08-09). Series 4 and 5 cross around March/May, which is where the close-luminance pair matters most; in the desaturated pane they are not reliably separable.</p>
     <div class="chart-pair">
       <div class="chart-box">
         <div class="chart-box-label">Colour</div>
@@ -771,7 +664,7 @@ section.doc-section code{ font-family:ui-monospace,Consolas,monospace; font-size
     </div>
 
     <h3>Second channel in practice — grouped bar chart</h3>
-    <p class="section-note">Same six series again, this time as fills: a distinct SVG <code>&lt;pattern&gt;</code> (solid, diagonal hatch, dots, cross-hatch, horizontal lines, vertical lines) layered over each series colour. The pattern survives desaturation the same way the line markers do.</p>
+    <p class="section-note">The same six series as bar fills &mdash; flat colour, no pattern. In the desaturated pane the close pairs are not separable.</p>
     <div class="chart-pair">
       <div class="chart-box">
         <div class="chart-box-label">Colour</div>
@@ -852,7 +745,7 @@ section.doc-section code{ font-family:ui-monospace,Consolas,monospace; font-size
       <div class="legend-item"><svg width="22" height="22" viewBox="0 0 22 22" xmlns="http://www.w3.org/2000/svg"><defs><pattern id="legend-p5" width="8" height="8" patternUnits="userSpaceOnUse"><rect width="8" height="8" fill="#9C4F86"/></pattern></defs><rect width="22" height="22" rx="4" fill="url(#legend-p5)"/></svg><span>Series 5</span></div>
       <div class="legend-item"><svg width="22" height="22" viewBox="0 0 22 22" xmlns="http://www.w3.org/2000/svg"><defs><pattern id="legend-p6" width="8" height="8" patternUnits="userSpaceOnUse"><rect width="8" height="8" fill="#8A7355"/></pattern></defs><rect width="22" height="22" rx="4" fill="url(#legend-p6)"/></svg><span>Series 6</span></div>
     </div>
-    <p class="section-note" style="margin:14px 0 0"><strong>Result: the desaturated line and bar charts above are now readable.</strong> Every series stays identifiable in both by dasharray+marker or by pattern alone, with no reference to hue. Contrast ratio against the surface is unaffected by any of this (desaturation preserves relative luminance exactly by construction, and the badges in the swatch row above already cover surface contrast) — this section is entirely about series-to-series distinguishability under WCAG 1.4.1, not text/UI contrast under 1.4.3/1.4.11.</p>
+    <p class="section-note" style="margin:14px 0 0">With the second channel gone, the desaturated panes are <strong>not</strong> reliably readable &mdash; series 4 and 5 in particular. Surface contrast is unaffected (desaturation preserves relative luminance); this section is about series-to-series distinguishability under 1.4.1, not text contrast.</p>
   </section>
 
   <!-- =========================================================
@@ -860,7 +753,7 @@ section.doc-section code{ font-family:ui-monospace,Consolas,monospace; font-size
        ========================================================= -->
   <section class="doc-section">
     <h2>Shadow: rest vs. transient — now a binary rule</h2>
-    <p class="section-note">MUI's <code>shadows[1]</code> (Paper/Card default) is a visible three-layer drop shadow — appropriate for a physical card floating over paper in 2014 Material Design, wrong for a flat 2026 dashboard. Round 1 gave rest state a near-invisible shadow instead of none, which just relocates the judgment call to "how invisible is invisible enough." The decided rule removes the judgment call: <strong>Paper and Card at rest have zero shadow, always</strong> (<code>elevation: 0</code>, <code>variant: 'outlined'</code> as the default) — border only. Real shadow weight exists only on transient, temporarily-overlaid surfaces: <strong>Dialog, Drawer, Menu, Tooltip</strong>. This is binary and checkable in a code review — "does this component appear/disappear over other content, yes or no" — instead of a subjective read of a box-shadow value.</p>
+    <p class="section-note">MUI's <code>shadows[1]</code> is a visible three-layer drop shadow &mdash; right for 2014 Material, wrong for a flat dashboard. Round 1's near-invisible shadow only moved the judgment to <em>how invisible is enough</em>. The rule: Paper and Card at rest have <strong>zero</strong> shadow (<code>elevation: 0</code>, <code>variant: 'outlined'</code>); weight exists only on transient surfaces &mdash; Dialog, Drawer, Menu, Tooltip. Binary and checkable in review.</p>
     <div class="cols">
       <div class="col th-mui">
         <div class="col-label">MUI raw default <span class="tag mui">MUI</span></div>
@@ -893,7 +786,7 @@ section.doc-section code{ font-family:ui-monospace,Consolas,monospace; font-size
        ========================================================= -->
   <section class="doc-section">
     <h2>Typography — settled scale</h2>
-    <p class="section-note">MUI's h6 is 20px/500; the corpus's actual card titles run 15-16px, secondary tile titles 13px. The decided scale below is complete h1→overline. <strong>h4 (20px) is the screen title</strong> — matching the estate's real 19-22px screen titles — and <strong>h6 (16px) is the card title</strong>; h1-h3 stay usable for the consumer-facing apps rather than purely decorative sizes nothing ever reaches.</p>
+    <p class="section-note">MUI's h6 is 20px/500; the corpus runs 15&ndash;16px card titles and 13px tile titles. In the decided scale <strong>h4 (20px) is the screen title</strong> and h6 (16px) the card title; h1&ndash;h3 stay usable rather than decorative.</p>
     <div class="cols">
       <div class="col th-mui" style="flex-basis:100%">
         <div class="col-label">MUI raw default <span class="tag mui">MUI</span></div>
@@ -938,7 +831,7 @@ section.doc-section code{ font-family:ui-monospace,Consolas,monospace; font-size
        ========================================================= -->
   <section class="doc-section">
     <h2>Control height, touch target &amp; radius — settled</h2>
-    <p class="section-note">MUI's medium <code>OutlinedInput</code> is ~56px tall; <code>size="small"</code> ~40px. The decided control height is <strong>40px</strong> (was 36px in round 1), applied consistently to Button/Select/TextField/TableCell-adjacent chip. 34-36px is a recorded defect against the 44px touch-target guideline in an already-approved envelope; 40px sits on MUI's own <code>size="small"</code>, and a <code>@media (pointer: coarse)</code> rule bumps every control to <strong>44px</strong> automatically under a touch pointer — simulated below since this document can't force a real touch pointer. Radius stays the round-1 recommendation: <strong>3px control / 8px card</strong> — settled, no A/B pairing left to choose between.</p>
+    <p class="section-note">MUI: medium <code>OutlinedInput</code> ~56px, <code>small</code> ~40px. Decided: <strong>40px</strong> (36px in round 1), consistently across Button/Select/TextField/Chip. 34&ndash;36px is a recorded defect against the 44px touch guideline in an approved envelope; 40px sits on MUI's <code>small</code>, and <code>@media (pointer: coarse)</code> bumps to 44px &mdash; simulated here. Radius settled at 3px control / 8px card.</p>
     <div class="cols">
       <div class="col th-mui">
         <div class="col-label">MUI raw default <span class="tag mui">MUI</span></div>
@@ -978,7 +871,7 @@ section.doc-section code{ font-family:ui-monospace,Consolas,monospace; font-size
        ========================================================= -->
   <section class="doc-section">
     <h2>Component gallery</h2>
-    <p class="section-note">Rendered with the decided baseline throughout — no variant classes left to select. Buttons: <code>textTransform: none</code>, no elevation on contained (all 7 sampled app themes override MUI's uppercase independently — this makes it a baseline default instead of 7 repeated overrides).</p>
+    <p class="section-note">Decided baseline throughout, no variants left to pick. Buttons: <code>textTransform: none</code>, no elevation on contained &mdash; all 7 sampled app themes override MUI's uppercase independently, so this replaces 7 repeated overrides.</p>
 
     <h3>Button — all variants × sizes</h3>
     <div class="cols">
@@ -1155,7 +1048,7 @@ section.doc-section code{ font-family:ui-monospace,Consolas,monospace; font-size
        ========================================================= -->
   <section class="doc-section">
     <h2>Mobile frame — 375px</h2>
-    <p class="section-note">The corpus convention is a literal phone frame, not a resized browser window. Shown here at the decided control height and the table→card behaviour a data table takes on below the corpus's usual breakpoint.</p>
+    <p class="section-note">A literal phone frame, not a resized window &mdash; at the decided control height, with the table&rarr;card behaviour below the usual breakpoint.</p>
     <div class="two-col">
       <div>
         <h3 style="margin-top:0">Controls at 375px (40px control height)</h3>
@@ -1197,38 +1090,147 @@ section.doc-section code{ font-family:ui-monospace,Consolas,monospace; font-size
        ========================================================= -->
   <section class="doc-section">
     <h2>What this sheet asserts, and what remains unverified</h2>
-    <p class="section-note">This is no longer a decision request — the baseline above is locked, and this document is what a later theme change gets re-checked against. What follows is a plain accounting, not a hedge: what's been verified here, computed at render time, versus what a reader still has to confirm somewhere else.</p>
+    <p class="section-note">The baseline above is locked; this document is what a later theme change gets re-checked against. Below: what is verified here at render time, and what still has to be confirmed elsewhere.</p>
     <div class="decision-item">
       <div class="decision-num">✓</div>
-      <div class="decision-txt"><strong>Every ink and status text/icon tone clears WCAG AA normal text (4.5:1) on white</strong>, computed live by the inline script — not retyped from a manual calculation. Muted ink and warning text needed correction in round 2; muted ink was darkened again this round, past the 4.5:1 floor to a 4.6:1 target that also holds against a near-white page, not just pure white.</div>
+      <div class="decision-txt">Every ink and status text tone clears 4.5:1 on white, computed live. Muted ink was darkened twice &mdash; now to a 4.6:1 target that also holds on a near-white page.</div>
     </div>
     <div class="decision-item">
       <div class="decision-num">✓</div>
-      <div class="decision-txt"><strong>Every status fill↔contrastText pair clears 4.5:1</strong>, also computed live. Success and warning needed a genuinely different fill hue from their text tone (the original hex failed both roles symmetrically); critical and stale reuse the same hex for both roles because it already clears 4.5:1 in both directions.</div>
+      <div class="decision-txt">Every status fill&harr;<code>contrastText</code> pair clears 4.5:1. Success and warning needed a fill hue distinct from their text tone; critical and stale reuse one hex, which clears in both directions.</div>
     </div>
     <div class="decision-item">
       <div class="decision-num">✓</div>
-      <div class="decision-txt"><strong>Muted ink is now verified against a near-white page background, not just a white surface</strong> — the round-2 gap (fine on white, failing at ~4.2:1 on the page) is closed: the darkened <code>#6A7178</code> clears 4.6:1 on white, on the working page candidate, and on the palest of the three candidates offered.</div>
+      <div class="decision-txt">Muted ink is verified against the page background, not only a white surface &mdash; the round-2 gap is closed.</div>
     </div>
     <div class="decision-item">
       <div class="decision-num">✓</div>
-      <div class="decision-txt"><strong>Control-boundary contrast is fixed.</strong> The old <code>input.border</code> (1.59:1 rest, 2.72:1 hover) never cleared the 3:1 non-text/UI-component target — flagged unresolved after round 2. The border token is now split: <code>divider</code> (decorative, 1.4.11-exempt, unchanged) and <code>controlBorder</code> (rest/hover/focus/error, all ≥3:1 against white and the palest page candidate), applied to TextField, Select, Checkbox, and outlined Button/Chip.</div>
+      <div class="decision-txt">Control-boundary contrast is fixed. The old <code>input.border</code> (1.59 rest / 2.72 hover) never cleared 3:1. Split into <code>divider</code> (exempt) and <code>controlBorder</code> (all states &ge;3:1), applied to TextField, Select, Checkbox and outlined Button/Chip.</div>
     </div>
     <div class="decision-item">
       <div class="decision-num">✓</div>
-      <div class="decision-txt"><strong>The data-series greyscale collision no longer breaks distinguishability</strong>, though the underlying hue proximity between series 4 and 5 is untouched by design (operator kept the six colours). <strong>The second non-colour channel was removed entirely on operator review (2026-08-09)</strong> — bar hatch fills, per-series dash patterns and per-series marker shapes all read as visual noise. Series identity therefore rests on colour (plus position, in grouped bars). Consequence, stated plainly: the series-4/5 greyscale proximity is a live limitation, and a six-series chart distinguished by hue alone does not satisfy WCAG 1.4.1. <strong>Resolving that is DS-4's job</strong> — direct labelling at the series, or a small luminance stagger — not the theme baseline's, which owns only the colours, demonstrated on a rendered multi-series line chart and grouped bar chart, each shown in colour and desaturated. This is the WCAG-1.4.1-correct fix (colour must never be the sole carrier of information), not a workaround.</div>
+      <div class="decision-txt">The second non-colour channel was removed on operator review (2026-08-09) &mdash; hatch fills, dash patterns and marker shapes all read as noise. Series identity now rests on colour alone, so the series-4/5 greyscale proximity is a <strong>live limitation</strong> and a six-series chart does not satisfy WCAG 1.4.1. Resolving it belongs to DS-4, not to the theme.</div>
     </div>
     <div class="decision-item">
       <div class="decision-num">?</div>
-      <div class="decision-txt"><strong>The page background is a proposal, not a decision.</strong> Three near-white candidates are rendered with live contrast and delta-from-white figures; candidate B is used as this sheet's working value so the rest of the document renders against something concrete, but the operator picks the final one.</div>
+      <div class="decision-txt"><code>#FAFAFA</code> is decided (operator, 2026-08-09) after three warm candidates were rejected. The four-value strip is kept as provenance.</div>
     </div>
     <div class="decision-item">
       <div class="decision-num">?</div>
-      <div class="decision-txt"><strong>The <code>stale</code> token has no precedent anywhere in the estate</strong> and has not been seen in a real running screen — it is a decision, not a validation. The first consuming app is where it actually gets tested against real content and real neighbouring colours.</div>
+      <div class="decision-txt"><code>stale</code> has no estate precedent and has not been seen in a running screen &mdash; a decision, not a validation. The first consuming app tests it.</div>
     </div>
     <div class="decision-item">
       <div class="decision-num">?</div>
-      <div class="decision-txt"><strong>Dark mode, components outside the agreed list, motion tokens, the actual <code>createAppTheme()</code> implementation, and per-app conformance to this baseline</strong> are all explicitly out of scope for this document (see "Declared coverage" above) and remain to be done elsewhere.</div>
+      <div class="decision-txt">Out of scope here: dark mode, components outside the agreed list, motion tokens, the <code>createAppTheme()</code> implementation, and per-app conformance.</div>
+    </div>
+  </section>
+
+  <section class="doc-section">
+    <h2>Canonical baseline tokens</h2>
+    <p class="section-note">Every decided value, once. A work order references this table by token name rather than retyping values; if a number here and a number in a WO disagree, this table is the one to fix. Contrast badges are computed live.</p>
+    <div style="overflow-x:auto">
+    <table class="token-table">
+      <thead><tr><th>Token</th><th>Value</th><th>Role</th><th>Computed contrast</th><th>Note</th></tr></thead>
+      <tbody>
+        <tr class="group-row"><td colspan="5">Ink &amp; surface</td></tr>
+        <tr><td><code>ink.primary</code></td><td><span class="token-swatch" style="background:#212529"></span><code>#212529</code></td><td>body text, headings</td>
+          <td><span class="ratio-badge" data-fg="#212529" data-bg="#FFFFFF" data-min="4.5"></span></td><td class="note">unchanged</td></tr>
+        <tr><td><code>ink.secondary</code></td><td><span class="token-swatch" style="background:#5B6670"></span><code>#5B6670</code></td><td>subtitle2, secondary text</td>
+          <td><span class="ratio-badge" data-fg="#5B6670" data-bg="#FFFFFF" data-min="4.5"></span></td><td class="note">unchanged</td></tr>
+        <tr><td><code>ink.muted</code></td><td><span class="token-swatch" style="background:#6A7178"></span><code>#6A7178</code></td><td>captions, meta text</td>
+          <td><span class="ratio-badge" data-fg="#6A7178" data-bg="#FFFFFF" data-min="4.6"></span> <span class="ratio-badge" data-fg="#6A7178" data-bg="#FAFAFA" data-min="4.6"></span> <span class="ratio-badge" data-fg="#6A7178" data-bg="#FAFAFA" data-min="4.6"></span></td>
+          <td class="note">was <code>#6F777E</code> (4.549 on white, 4.247 on the darkest page candidate). Darkened to clear 4.6:1 on all of them.</td></tr>
+        <tr><td><code>divider</code></td><td><span class="token-swatch" style="background:#e9e9ea"></span><code>rgba(33,37,41,.10)</code></td><td>decorative separators, card outline</td>
+          <td><span class="ratio-badge" data-fg="rgba(33,37,41,0.10)" data-bg="#FFFFFF" data-min="3"></span></td><td class="note">decorative &mdash; exempt from WCAG 1.4.11. Split off from the single border token this round.</td></tr>
+        <tr><td><code>controlBorder</code> (rest)</td><td><span class="token-swatch" style="background:#909294"></span><code>rgba(33,37,41,.50)</code></td><td>TextField/Select rest, Checkbox box, outlined Button/Chip</td>
+          <td><span class="ratio-badge" data-fg="rgba(33,37,41,0.50)" data-bg="#FFFFFF" data-min="3"></span> <span class="ratio-badge" data-fg="rgba(33,37,41,0.50)" data-bg="#FAFAFA" data-min="3"></span></td>
+          <td class="note">new &mdash; supersedes <code>input.border</code> (0.23 alpha), which never cleared 3:1. Same ink hue, higher opacity.</td></tr>
+        <tr><td><code>controlBorder-hover</code></td><td><span class="token-swatch" style="background:#7a7c7f"></span><code>rgba(33,37,41,.65)</code></td><td>control outline on hover</td>
+          <td><span class="ratio-badge" data-fg="rgba(33,37,41,0.65)" data-bg="#FFFFFF" data-min="3"></span> <span class="ratio-badge" data-fg="rgba(33,37,41,0.65)" data-bg="#FAFAFA" data-min="3"></span></td>
+          <td class="note">supersedes <code>input.border-hover</code> (<code>rgba(33,37,41,.45)</code>, 2.72:1, also sub-3:1)</td></tr>
+        <tr><td><code>control.autofill</code></td><td>surface inset shadow + <code>-webkit-text-fill-color</code> = <code>ink.primary</code></td><td>autofilled input/select background and text</td>
+          <td class="note">not a contrast pair — a suppression</td><td class="note"><strong>MUI has no autofill styling, and the browsers disagree:</strong> the same field rendered yellow in Chromium, dark grey in Opera, dark blue in Firefox (operator, 2026-08-09). <code>:-webkit-autofill</code> alone misses Firefox &mdash; the standard <code>:autofill</code> is needed too. Not demonstrated here: this sheet's form controls are inert, so no native chrome pollutes the comparisons. The gap is real for the apps.</td></tr>
+        <tr><td><code>controlBorder-focus</code></td><td><em>derived from the app's <code>primary</code></em>, auto-darkened until it clears 3:1 against the surface (MUI <code>getContrastRatio</code>/<code>darken</code>). No fixed hex — the baseline defines no <code>primary</code>. Ratios for the four real estate accents &rarr;</td><td>control outline on focus</td>
+          <td style="line-height:1.9">hram <code>#468AB2</code> <span class="ratio-badge" data-fg="#468AB2" data-bg="#FCFBF9" data-min="3"></span><br>spesix <code>#1B8FD8</code> <span class="ratio-badge" data-fg="#1B8FD8" data-bg="#FCFBF9" data-min="3"></span><br>fm <code>#0F62FE</code> <span class="ratio-badge" data-fg="#0F62FE" data-bg="#FCFBF9" data-min="3"></span><br>survey <code>#432CA1</code> <span class="ratio-badge" data-fg="#432CA1" data-bg="#FCFBF9" data-min="3"></span></td>
+          <td class="note">new — reuses the existing primary hue rather than introducing another colour</td></tr>
+        <tr><td><code>controlBorder-error</code></td><td><span class="token-swatch" style="background:#BF3227"></span><code>#BF3227</code></td><td>control outline in error state</td>
+          <td><span class="ratio-badge" data-fg="#BF3227" data-bg="#FFFFFF" data-min="3"></span> <span class="ratio-badge" data-fg="#BF3227" data-bg="#FAFAFA" data-min="3"></span></td>
+          <td class="note">new — reuses the existing critical hue</td></tr>
+        <tr><td><code>bg.page</code></td><td><span class="token-swatch" style="background:#FAFAFA"></span><code>#FAFAFA</code></td><td>app canvas / page background</td><td>—</td>
+          <td class="note">neutral, no cast &mdash; MUI <code>grey[50]</code>. Fourth in the chain <code>#F5F7F8</code> &rarr; <code>#F7F6F3</code> &rarr; <code>#FCFBF9</code> &rarr; <code>#FAFAFA</code>.</td></tr>
+        <tr><td><code>bg.surface</code></td><td><span class="token-swatch" style="background:#FFFFFF"></span><code>#FFFFFF</code></td><td>Paper/Card/Table/Dialog</td><td>—</td><td class="note">unchanged</td></tr>
+
+        <tr class="group-row"><td colspan="5">Status — success</td></tr>
+        <tr><td><code>success.text</code></td><td><span class="token-swatch" style="background:#357A4A"></span><code>#357A4A</code></td><td>Alert text/icon, table cell text</td>
+          <td><span class="ratio-badge" data-fg="#357A4A" data-bg="#FFFFFF" data-min="4.5"></span></td><td class="note">was #1E8E3E (4.20:1, FAIL). Replaced with jg-ferien's validated tone.</td></tr>
+        <tr><td><code>success.fill</code> / <code>.fillText</code></td><td><span class="token-swatch" style="background:#1B8038"></span><code>#1B8038</code> / <code>#FFFFFF</code></td><td>solid chip/badge fill</td>
+          <td><span class="ratio-badge" data-fg="#FFFFFF" data-bg="#1B8038" data-min="4.5"></span></td><td class="note">new &mdash; <code>#1E8E3E</code> fails as a fill too (4.20:1 either direction, by symmetry). Darkened until fill+white clears 4.5:1.</td></tr>
+        <tr><td><code>success.bg</code></td><td><span class="token-swatch" style="background:#E5F4E9"></span><code>#E5F4E9</code></td><td>Alert background tint</td><td>—</td><td class="note">unchanged; pairs with success.text, contrast only improves vs. pure white</td></tr>
+
+        <tr class="group-row"><td colspan="5">Status — warning</td></tr>
+        <tr><td><code>warning.text</code></td><td><span class="token-swatch" style="background:#A36800"></span><code>#A36800</code></td><td>Alert text/icon, table cell text</td>
+          <td><span class="ratio-badge" data-fg="#A36800" data-bg="#FFFFFF" data-min="4.5"></span></td><td class="note">was #A66A00 (4.484:1, short by 0.016). Darkened minimally along the same muted brown-amber hue — never yellow.</td></tr>
+        <tr><td><code>warning.fill</code> / <code>.fillText</code></td><td><span class="token-swatch" style="background:#C08A2C"></span><code>#C08A2C</code> / <code>#212529</code></td><td>solid chip/badge fill</td>
+          <td><span class="ratio-badge" data-fg="#212529" data-bg="#C08A2C" data-min="4.5"></span></td><td class="note">jg-ferien's validated precedent, dark ink as <code>contrastText</code> &mdash; a mid-tone amber fails under white text.</td></tr>
+        <tr><td><code>warning.bg</code></td><td><span class="token-swatch" style="background:#FBF0DC"></span><code>#FBF0DC</code></td><td>Alert background tint</td><td>—</td><td class="note">unchanged</td></tr>
+
+        <tr class="group-row"><td colspan="5">Status — critical</td></tr>
+        <tr><td><code>critical.text</code></td><td><span class="token-swatch" style="background:#BF3227"></span><code>#BF3227</code></td><td>Alert text/icon, table cell text</td>
+          <td><span class="ratio-badge" data-fg="#BF3227" data-bg="#FFFFFF" data-min="4.5"></span></td><td class="note">kept — already passes</td></tr>
+        <tr><td><code>critical.fill</code> / <code>.fillText</code></td><td><span class="token-swatch" style="background:#BF3227"></span><code>#BF3227</code> / <code>#FFFFFF</code></td><td>solid chip/badge fill</td>
+          <td><span class="ratio-badge" data-fg="#FFFFFF" data-bg="#BF3227" data-min="4.5"></span></td><td class="note">one hex, both roles: it clears 4.5:1 on white, so by symmetry white-on-it clears too. No second hue needed.</td></tr>
+        <tr><td><code>critical.bg</code></td><td><span class="token-swatch" style="background:#FBEAE8"></span><code>#FBEAE8</code></td><td>Alert background tint</td><td>—</td><td class="note">unchanged</td></tr>
+
+        <tr class="group-row"><td colspan="5">Status — stale</td></tr>
+        <tr><td><code>stale.text</code></td><td><span class="token-swatch" style="background:#5B6B7D"></span><code>#5B6B7D</code></td><td>Alert text/icon, table cell text</td>
+          <td><span class="ratio-badge" data-fg="#5B6B7D" data-bg="#FFFFFF" data-min="4.5"></span></td><td class="note">kept — already passes</td></tr>
+        <tr><td><code>stale.fill</code> / <code>.fillText</code></td><td><span class="token-swatch" style="background:#5B6B7D"></span><code>#5B6B7D</code> / <code>#FFFFFF</code></td><td>solid chip/badge fill</td>
+          <td><span class="ratio-badge" data-fg="#FFFFFF" data-bg="#5B6B7D" data-min="4.5"></span></td><td class="note">same hex, same symmetry argument as critical</td></tr>
+        <tr><td><code>stale.bg</code></td><td><span class="token-swatch" style="background:#EAEDF1"></span><code>#EAEDF1</code></td><td>Alert background tint</td><td>—</td><td class="note">unchanged. No precedent elsewhere in the estate — see the provenance note below.</td></tr>
+
+        <tr class="group-row"><td colspan="5">Typography</td></tr>
+        <tr><td><code>h1</code></td><td>32px / 600</td><td>rare, top-level marketing-adjacent heading</td><td>—</td><td class="note">was 38px</td></tr>
+        <tr><td><code>h2</code></td><td>28px / 600</td><td>section heading</td><td>—</td><td class="note">was 30px</td></tr>
+        <tr><td><code>h3</code></td><td>24px / 600</td><td>subsection heading</td><td>—</td><td class="note">was 25px</td></tr>
+        <tr><td><code>h4</code></td><td>20px / 600</td><td><strong>screen title</strong> — matches the estate's real 19-22px screen titles</td><td>—</td><td class="note">was 21px</td></tr>
+        <tr><td><code>h5</code></td><td>18px / 600</td><td>panel / dialog heading</td><td>—</td><td class="note">unchanged</td></tr>
+        <tr><td><code>h6</code></td><td>16px / 600</td><td><strong>card title</strong></td><td>—</td><td class="note">unchanged</td></tr>
+        <tr><td><code>subtitle1</code></td><td>15px / 600</td><td>emphasised secondary line</td><td>—</td><td class="note">was 14px</td></tr>
+        <tr><td><code>subtitle2</code></td><td>13px / 500</td><td>secondary tile title</td><td>—</td><td class="note">unchanged</td></tr>
+        <tr><td><code>body1</code></td><td>14px / 400</td><td>primary body copy</td><td>—</td><td class="note">unchanged</td></tr>
+        <tr><td><code>body2</code></td><td>13px / 400</td><td>secondary body copy, table cells</td><td>—</td><td class="note">unchanged</td></tr>
+        <tr><td><code>button</code></td><td>14px / 500, no uppercase</td><td>Button label</td><td>—</td><td class="note">unchanged</td></tr>
+        <tr><td><code>caption</code></td><td>12px / 400</td><td>captions</td><td>—</td><td class="note">unchanged</td></tr>
+        <tr><td><code>overline</code></td><td>11px / 600, uppercase</td><td>overline labels</td><td>—</td><td class="note">unchanged</td></tr>
+
+        <tr class="group-row"><td colspan="5">Density &amp; control height</td></tr>
+        <tr><td><code>control.height</code></td><td>40px<br>44px <span class="note">@ (pointer: coarse)</span></td><td>Button/Select/TextField height</td><td>—</td>
+          <td class="note">was 36px. 34&ndash;36px is a recorded defect against the 44px touch guideline; 40px sits on MUI's <code>small</code>, 44px activates under a coarse pointer.</td></tr>
+        <tr><td><code>table.cellPadding</code></td><td>10px 16px</td><td>TableCell</td><td>—</td><td class="note">was 8px 12px, scaled proportionally with control height</td></tr>
+        <tr><td><code>chip.height</code> / <code>.radius</code> / <code>.fontSize</code></td><td>32px / 16px / 13px</td><td>Chip</td><td>—</td><td class="note">was 28px / 14px / 12.5px, same proportional scaling</td></tr>
+
+        <tr class="group-row"><td colspan="5">Radius</td></tr>
+        <tr><td><code>radius.control</code></td><td>3px</td><td>Button/Select/TextField/Chip corner</td><td>—</td><td class="note">settled — no A/B variant left</td></tr>
+        <tr><td><code>radius.card</code></td><td>8px</td><td>Paper/Card/Dialog corner</td><td>—</td><td class="note">settled — no A/B variant left</td></tr>
+
+        <tr class="group-row"><td colspan="5">Shadow</td></tr>
+        <tr><td><code>shadow.rest</code></td><td><code>none</code></td><td>Paper/Card at rest — <code>elevation:0</code>, <code>variant:'outlined'</code> is the default</td><td>—</td><td class="note">binary rule now: rest state never has a shadow, full stop</td></tr>
+        <tr><td><code>shadow.overlay</code></td><td><code>0 8px 24px rgba(20,26,31,.16), 0 2px 8px rgba(20,26,31,.08)</code></td><td>Dialog, Drawer, Menu, Tooltip only</td><td>—</td><td class="note">unchanged value; scope narrowed to transient surfaces only</td></tr>
+
+        <tr class="group-row"><td colspan="5">Data-series ramp (categorical)</td></tr>
+        <tr><td><code>series.1</code>…<code>series.6</code></td><td>#3D5A99 · #3E80B8 · #2E8F8A · #7A5FA8 · #9C4F86 · #8A7355</td><td>charts, categorical fills</td><td>see the ramp section below</td>
+          <td class="note">hues unchanged per the operator's verdict. The series-4/5 greyscale collision is <strong>not</strong> fixed &mdash; the second channel that covered it was removed; see DS-4.</td></tr>
+        <tr><td><code>series.marker</code></td><td>circle · square · triangle · diamond · cross · plus</td><td>line chart point markers, series 1→6 in order</td><td>—</td><td class="note">new this round</td></tr>
+        <tr><td><code>series.dasharray</code></td><td>none · 8,4 · 2,3 · 10,3,2,3 · 14,4 · 8,3,2,3,2,3</td><td>line stroke pattern, series 1→6 in order</td><td>—</td><td class="note">new this round</td></tr>
+        <tr><td><code>series.pattern</code></td><td>solid · diagonal hatch · dots · cross-hatch · h-lines · v-lines</td><td>bar/area fill pattern, series 1→6 in order</td><td>—</td><td class="note">new this round</td></tr>
+
+        <tr class="group-row"><td colspan="5">Spacing, gutters, buttons (already settled, unchanged)</td></tr>
+        <tr><td><code>spacing.unit</code></td><td>8px</td><td>layout rhythm multiplier</td><td>—</td><td class="note">unchanged</td></tr>
+        <tr><td><code>container.gutter</code></td><td>24px (32px ≥1200px)</td><td>Container</td><td>—</td><td class="note">unchanged</td></tr>
+        <tr><td><code>button.textTransform</code></td><td><code>none</code></td><td>Button label casing</td><td>—</td><td class="note">unchanged</td></tr>
+        <tr><td><code>button.elevation</code></td><td><code>none</code> (contained)</td><td>Button contained variant</td><td>—</td><td class="note">unchanged, and now consistent with the shadow.rest rule above</td></tr>
+      </tbody>
+    </table>
     </div>
   </section>
 
