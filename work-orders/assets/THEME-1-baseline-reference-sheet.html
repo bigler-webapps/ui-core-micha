@@ -513,39 +513,52 @@ section.doc-section code{ font-family:ui-monospace,Consolas,monospace; font-size
        ========================================================= -->
   <section class="doc-section">
     <h2>Page background — candidate strip</h2>
-    <p class="section-note">Operator verdict on round 2's <code>#F7F6F3</code>: <strong>far too warm — bring it much closer to white.</strong> Still not pure white, and still very slightly warm (R the highest channel) — just far subtler. Three candidates below, at increasing distance from white. Each card shows a real <code>#FFFFFF</code> surface sitting on the candidate (so page↔card separation stays visible), body text and a muted caption rendered directly on the bare page, and the <em>current</em> muted-ink tone's live contrast against that candidate — this is what motivates the re-verification below, not the already-fixed tone.</p>
+    <p class="section-note">Four values kept side by side for comparison, at the operator's request: pure white, the chosen neutral, the original slightly cool value, and the smallest perceptible warm shift. Each shows a real white card on it, so the judgment is about whether the card still reads as a card — not about the swatch alone. The path to the decision was <code>#F5F7F8</code> (cool) &rarr; <code>#F7F6F3</code> (far too warm) &rarr; <code>#FCFBF9</code> (still too warm) &rarr; <code>#FAFAFA</code>; the two rejected warm values are not shown here because both were verdicts, not options.</p>
     <div class="bg-strip">
       <div class="bg-card">
-        <div class="bg-card-label">Candidate A — #FCFBF9 <span style="opacity:.7">— superseded, still too warm</span></div>
-        <div class="bg-card-val">closest to white</div>
-        <div style="background:#FCFBF9; border-radius:8px; padding:12px">
-          <div class="bg-card-surface"><p class="bg-card-text">Card on candidate A</p><p class="bg-card-caption">body text inside a white surface</p></div>
+        <div class="bg-card-label">#FFFFFF</div>
+        <div class="bg-card-val">pure white — the reference</div>
+        <div style="background:#FFFFFF; border-radius:8px; padding:12px">
+          <div class="bg-card-surface"><p class="bg-card-text">Card on #FFFFFF</p><p class="bg-card-caption">body text inside a white surface</p></div>
           <p class="bg-card-text" style="margin-top:2px">Body text directly on the page</p>
-          <p class="bg-card-caption" style="margin:4px 0 0">Muted caption directly on the page <span class="ratio-badge" data-fg="#6F777E" data-bg="#FCFBF9" data-min="4.5"></span></p>
+          <p class="bg-card-caption" style="margin:4px 0 0">Muted caption directly on the page <span class="ratio-badge" data-fg="#6A7178" data-bg="#FFFFFF" data-min="4.5"></span></p>
         </div>
-        <div class="bg-delta">Δ from white (R,G,B): <code>3, 4, 6</code> · warm cast (R−B): <code>+3</code></div>
+        <div class="bg-delta">&Delta; from white (R,G,B): <code>0, 0, 0</code> &middot; cast (R&minus;B): <code>0</code></div>
+        <div class="bg-delta" style="opacity:.8">reference: hram, fitness-monitor and innoservice ship this today</div>
       </div>
       <div class="bg-card chosen">
-        <div class="bg-card-label">Candidate B — #FAF9F7</div>
-        <div class="bg-card-val">middle distance</div>
-        <div style="background:#FAF9F7; border-radius:8px; padding:12px">
-          <div class="bg-card-surface"><p class="bg-card-text">Card on candidate B</p><p class="bg-card-caption">body text inside a white surface</p></div>
+        <div class="bg-card-label">#FAFAFA</div>
+        <div class="bg-card-val">neutral, one step off white</div>
+        <div style="background:#FAFAFA; border-radius:8px; padding:12px">
+          <div class="bg-card-surface"><p class="bg-card-text">Card on #FAFAFA</p><p class="bg-card-caption">body text inside a white surface</p></div>
           <p class="bg-card-text" style="margin-top:2px">Body text directly on the page</p>
-          <p class="bg-card-caption" style="margin:4px 0 0">Muted caption directly on the page <span class="ratio-badge" data-fg="#6F777E" data-bg="#FAF9F7" data-min="4.5"></span></p>
+          <p class="bg-card-caption" style="margin:4px 0 0">Muted caption directly on the page <span class="ratio-badge" data-fg="#6A7178" data-bg="#FAFAFA" data-min="4.5"></span></p>
         </div>
-        <div class="bg-delta">Δ from white (R,G,B): <code>5, 6, 8</code> · warm cast (R−B): <code>+3</code></div>
+        <div class="bg-delta">&Delta; from white (R,G,B): <code>5, 5, 5</code> &middot; cast (R&minus;B): <code>0</code></div>
+        <div class="bg-delta" style="opacity:.8">CHOSEN 2026-08-09 — MUI grey[50], no colour cast</div>
       </div>
       <div class="bg-card">
-        <div class="bg-card-label">Candidate C — #F8F7F4</div>
-        <div class="bg-card-val">furthest from white, still pale</div>
-        <div style="background:#F8F7F4; border-radius:8px; padding:12px">
-          <div class="bg-card-surface"><p class="bg-card-text">Card on candidate C</p><p class="bg-card-caption">body text inside a white surface</p></div>
+        <div class="bg-card-label">#F5F7F8</div>
+        <div class="bg-card-val">slightly cool — round 1</div>
+        <div style="background:#F5F7F8; border-radius:8px; padding:12px">
+          <div class="bg-card-surface"><p class="bg-card-text">Card on #F5F7F8</p><p class="bg-card-caption">body text inside a white surface</p></div>
           <p class="bg-card-text" style="margin-top:2px">Body text directly on the page</p>
-          <p class="bg-card-caption" style="margin:4px 0 0">Muted caption directly on the page <span class="ratio-badge" data-fg="#6F777E" data-bg="#F8F7F4" data-min="4.5"></span></p>
+          <p class="bg-card-caption" style="margin:4px 0 0">Muted caption directly on the page <span class="ratio-badge" data-fg="#6A7178" data-bg="#F5F7F8" data-min="4.5"></span></p>
         </div>
-        <div class="bg-delta">Δ from white (R,G,B): <code>7, 8, 11</code> · warm cast (R−B): <code>+4</code></div>
+        <div class="bg-delta">&Delta; from white (R,G,B): <code>10, 8, 7</code> &middot; cast (R&minus;B): <code>&minus;3</code></div>
+        <div class="bg-delta" style="opacity:.8">the original blue-cast value; note it is also ~5 points darker, so its difference is not only the cast</div>
       </div>
-    </div>
+      <div class="bg-card">
+        <div class="bg-card-label">#FAFAF7</div>
+        <div class="bg-card-val">one nuance toward yellow</div>
+        <div style="background:#FAFAF7; border-radius:8px; padding:12px">
+          <div class="bg-card-surface"><p class="bg-card-text">Card on #FAFAF7</p><p class="bg-card-caption">body text inside a white surface</p></div>
+          <p class="bg-card-text" style="margin-top:2px">Body text directly on the page</p>
+          <p class="bg-card-caption" style="margin:4px 0 0">Muted caption directly on the page <span class="ratio-badge" data-fg="#6A7178" data-bg="#FAFAF7" data-min="4.5"></span></p>
+        </div>
+        <div class="bg-delta">&Delta; from white (R,G,B): <code>5, 5, 8</code> &middot; cast (R&minus;B): <code>+3</code></div>
+        <div class="bg-delta" style="opacity:.8">same lightness as the chosen value, blue lowered by 3 — the minimum perceptible warm shift</div>
+      </div>
     <p class="section-note" style="margin:14px 0 0"><strong><code>#FAFAFA</code> is the chosen <code>bg.page</code></strong> — operator decision 2026-08-09, after all three warm candidates read as too warm. The correction: <em>&ldquo;warmer&rdquo; against a blue-cast value meant NEUTRAL, not yellow</em>, and the requirement is a lightness step off white to take the glare out, not a hue. <code>#FAFAFA</code> is MUI's own <code>grey[50]</code> and carries no cast. The strip below is kept as provenance of the four-step path: <code>#F5F7F8</code> (cool, round&nbsp;1) &rarr; <code>#F7F6F3</code> (far too warm) &rarr; <code>#FCFBF9</code> (still too warm) &rarr; <code>#FAFAFA</code>. Three of the six estate apps (hram, fitness-monitor, innoservice) use pure <code>#FFFFFF</code> today and will change visibly on adoption; jg-ferien (<code>#eceae2</code>) and spesix (<code>#EEF4FA</code>) override for identity.</p>
     <p class="section-note" style="margin:10px 0 0"><strong>Muted ink re-verified against the new band — and it doesn't clear 4.5:1 anywhere close to white anymore.</strong> The badges above use the <em>current</em> tone, <code>#6F777E</code>: 4.549:1 on pure white (barely — 0.049 of headroom over the 4.5 floor) but a <strong>failing</strong> 4.399 / 4.324 / 4.247 :1 on candidates A / B / C. A value that passes at 4.55 was already fragile; against a near-white page it fails outright. Darkened minimally along the same hue to <strong><code>#6A7178</code></strong>: <span class="ratio-badge" data-fg="#6A7178" data-bg="#FFFFFF" data-min="4.6"></span> on white, <span class="ratio-badge" data-fg="#6A7178" data-bg="#F8F7F4" data-min="4.6"></span> on the palest candidate (C) — cleared against a 4.6:1 target with real headroom, not just nudged over the 4.5:1 floor. This is the tone now used everywhere <code>ink.muted</code> appears in this document, including the token table below.</p>
   </section>
