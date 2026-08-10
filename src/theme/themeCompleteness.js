@@ -275,6 +275,22 @@ function contrastFindings(theme) {
     white: '#FFFFFF',
     page: theme.palette?.background?.default,
   };
+  for (const status of STATUS_KEYS) {
+    const main = theme.palette?.[status]?.main;
+    if (!main) continue;
+    for (const [surface, background] of Object.entries(backgrounds)) {
+      const ratio = calculateContrastRatio(main, background);
+      if (!Number.isFinite(ratio) || ratio < 4.5) {
+        findings.push({
+          surface: `contrast.${status}.main-on-${surface}`,
+          reason: Number.isFinite(ratio)
+            ? `Expected at least 4.5:1; received ${ratio.toFixed(2)}:1.`
+            : 'Contrast could not be calculated from the declared colours.',
+        });
+      }
+    }
+  }
+
   for (const state of ['main', 'hover', 'focus', 'error']) {
     const colour = theme.palette?.controlBorder?.[state];
     if (!colour) continue;

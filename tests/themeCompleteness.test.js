@@ -60,4 +60,35 @@ describe('theme completeness', () => {
     expect(assertThemeComplete(theme).findings.map(({ surface }) => surface))
       .toContain('contrast.success.text-on-bg');
   });
+
+  it('requires every MUI status main to clear AA on white and the page background', () => {
+    const theme = createAppTheme({ palette: { primary: { main: '#8AB4F8' } } });
+
+    for (const status of ['success', 'warning', 'error', 'info']) {
+      expect(calculateContrastRatio(theme.palette[status].main, '#FFFFFF')).toBeGreaterThanOrEqual(4.5);
+      expect(calculateContrastRatio(
+        theme.palette[status].main,
+        theme.palette.background.default,
+      )).toBeGreaterThanOrEqual(4.5);
+    }
+
+    theme.palette.warning.main = '#C08A2C';
+    expect(assertThemeComplete(theme).findings.map(({ surface }) => surface)).toEqual(
+      expect.arrayContaining([
+        'contrast.warning.main-on-white',
+        'contrast.warning.main-on-page',
+      ]),
+    );
+  });
+
+  it('reports main contrast findings without hard-failing for a non-adopting app theme', () => {
+    const result = assertThemeComplete(createTheme());
+
+    expect(result.findings.map(({ surface }) => surface)).toEqual(
+      expect.arrayContaining([
+        'contrast.warning.main-on-white',
+        'contrast.warning.main-on-page',
+      ]),
+    );
+  });
 });

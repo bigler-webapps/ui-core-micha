@@ -17,11 +17,18 @@ describe('createAppTheme', () => {
     // MUI's createTheme(options, ...args) only augments the FIRST argument's
     // palette; every later arg is deep-merged raw, so a status entry missing
     // `main`/`contrastText` silently keeps MUI's stock hue for color="success"
-    // etc. -- main/contrastText must equal the canonical fill/fillText tones.
-    for (const status of ['success', 'warning', 'error', 'info']) {
+    // etc. -- main/contrastText must be explicitly set and clear AA as a
+    // foreground (THEME-2: `warning` deliberately breaks the main===fill
+    // pattern success/error/info follow -- amber cannot serve both a legible
+    // fill AND a legible foreground with one hex, so `warning.main` is the
+    // darker `text` tone instead, `warning.fill` stays the lighter amber for
+    // deliberate fill use).
+    for (const status of ['success', 'error', 'info']) {
       expect(theme.palette[status].main).toBe(theme.palette[status].fill);
       expect(theme.palette[status].contrastText).toBe(theme.palette[status].fillText);
     }
+    expect(theme.palette.warning.main).toBe(theme.palette.warning.text);
+    expect(theme.palette.warning.contrastText).toBe('#FFFFFF');
   });
 
   it('throws when palette.primary is missing', () => {

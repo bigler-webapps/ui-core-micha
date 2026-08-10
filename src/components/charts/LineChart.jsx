@@ -11,6 +11,7 @@ import {
   spaceForRotatedTicks,
   withAxisDefaults,
   withChartSlotDefaults,
+  withGridDefaults,
 } from './chartDefaults';
 
 // Fixes MUI's hollow `background.paper`-filled marker (MarkElement.js's own
@@ -40,7 +41,7 @@ export function LineChart({
   palette,
   minHeight,
   aspect,
-  grid = { horizontal: true },
+  grid,
   hideLegend = series.length <= 1,
   legendPosition = DEFAULT_LEGEND_POSITION,
   margin,
@@ -85,7 +86,7 @@ export function LineChart({
         xAxis={rotatedTickSpace.xAxis}
         yAxis={labelledYAxis}
         colors={palette || neutralPalette.categorical}
-        grid={grid}
+        grid={withGridDefaults(grid)}
         hideLegend={hideLegend}
         margin={rotatedTickSpace.margin}
         slots={{ mark: FilledMarkElement, ...slots }}

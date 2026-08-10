@@ -121,6 +121,24 @@ describe('chart chrome defaults', () => {
     expect(props.slotProps.legend.position).toEqual(legendPosition);
   });
 
+  it('adds a caller-requested vertical grid to the default horizontal grid', () => {
+    renderLine({ grid: { vertical: true } });
+
+    expect(lineSpy.mock.calls.at(-1)[0].grid).toEqual({
+      horizontal: true,
+      vertical: true,
+    });
+  });
+
+  it('lets a caller switch off both grid directions explicitly', () => {
+    renderBar({ grid: { horizontal: false, vertical: false } });
+
+    expect(barSpy.mock.calls.at(-1)[0].grid).toEqual({
+      horizontal: false,
+      vertical: false,
+    });
+  });
+
   // Found live in the dev harness (not by this mocked test, which cannot
   // reproduce a real MUI scale computation): a caller-supplied xAxis with
   // `data` but no `scaleType` lost the wrapper's default scaleType entirely,
@@ -170,8 +188,21 @@ describe('chart chrome defaults', () => {
     });
 
     cleanup();
-    const requested = { vertical: 'middle', horizontal: 'end' };
+    const requested = { vertical: 'middle' };
     renderBar({ series: [{ data: [1] }, { data: [2] }], legendPosition: requested });
-    expect(barSpy.mock.calls.at(-1)[0].slotProps.legend.position).toEqual(requested);
+    expect(barSpy.mock.calls.at(-1)[0].slotProps.legend.position).toEqual({
+      vertical: 'middle',
+      horizontal: 'start',
+    });
+
+    cleanup();
+    renderBar({
+      series: [{ data: [1] }, { data: [2] }],
+      slotProps: { legend: { position: { horizontal: 'end' } } },
+    });
+    expect(barSpy.mock.calls.at(-1)[0].slotProps.legend.position).toEqual({
+      vertical: 'bottom',
+      horizontal: 'end',
+    });
   });
 });

@@ -77,6 +77,8 @@ function StatusChip({ label, tone }) {
   );
 }
 
+const MUI_STATUS_TONES = ['success', 'warning', 'error', 'info'];
+
 function ThemeBaselineEntry() {
   return (
     <Stack spacing={3}>
@@ -118,6 +120,25 @@ function ThemeBaselineEntry() {
         <StatusChip label="Critical" tone="error" />
         <StatusChip label="Info" tone="info" />
         <StatusChip label="Stale" tone="stale" />
+      </Stack>
+
+      <Stack spacing={1}>
+        <Typography variant="subtitle2">MUI status colours using palette main</Typography>
+        <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
+          {MUI_STATUS_TONES.map((tone) => (
+            <Button key={tone} color={tone} variant="contained">{tone}</Button>
+          ))}
+        </Stack>
+        <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
+          {MUI_STATUS_TONES.map((tone) => (
+            <Chip key={tone} color={tone} label={tone} />
+          ))}
+        </Stack>
+        <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
+          {MUI_STATUS_TONES.map((tone) => (
+            <Alert key={tone} severity={tone} variant="filled">{tone}</Alert>
+          ))}
+        </Stack>
       </Stack>
 
       <Stack direction="column" spacing={2} alignItems="flex-start" sx={{ '@container (min-width: 900px)': { flexDirection: 'row' } }}>
@@ -196,7 +217,7 @@ function ThemeBaselineEntry() {
             ]}
             xAxisLabel="Month"
             yAxisLabel="Cases"
-            grid={{ horizontal: true, vertical: true }}
+            grid={{ vertical: true }}
             legendPosition={{ vertical: 'top', horizontal: 'end' }}
             height={320}
           />

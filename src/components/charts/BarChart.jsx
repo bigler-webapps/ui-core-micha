@@ -8,6 +8,7 @@ import {
   spaceForRotatedTicks,
   withAxisDefaults,
   withChartSlotDefaults,
+  withGridDefaults,
 } from './chartDefaults';
 
 /**
@@ -23,7 +24,7 @@ export function BarChart({
   palette,
   minHeight,
   aspect,
-  grid = { horizontal: true },
+  grid,
   hideLegend = series.length <= 1,
   legendPosition = DEFAULT_LEGEND_POSITION,
   margin,
@@ -62,7 +63,7 @@ export function BarChart({
         xAxis={rotatedTickSpace.xAxis}
         yAxis={labelledYAxis}
         colors={palette || neutralPalette.categorical}
-        grid={grid}
+        grid={withGridDefaults(grid)}
         hideLegend={hideLegend}
         margin={rotatedTickSpace.margin}
         slotProps={withChartSlotDefaults(slotProps, legendPosition)}

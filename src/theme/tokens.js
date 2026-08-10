@@ -79,7 +79,7 @@ export const BASELINE_PALETTE = {
     bg: '#E5F4E9',
   },
   warning: {
-    ...withMainShades('#C08A2C', '#212529'),
+    ...withMainShades('#976100', '#FFFFFF'),
     text: '#976100',
     fill: '#C08A2C',
     fillText: '#212529',

@@ -3,6 +3,10 @@ export const DEFAULT_LEGEND_POSITION = {
   horizontal: 'start',
 };
 
+export function withGridDefaults(grid) {
+  return { horizontal: true, ...grid };
+}
+
 export function withAxisDefaults(axes, label, defaults, tickFontSize) {
   const values = axes?.length ? axes : [defaults];
   return values.map((axis) => ({
@@ -97,6 +101,11 @@ export function spaceForRotatedTicks(xAxis, margin, defaultLineHeight = 1) {
 }
 
 export function withChartSlotDefaults(slotProps, legendPosition) {
+  const position = {
+    ...DEFAULT_LEGEND_POSITION,
+    ...legendPosition,
+    ...slotProps?.legend?.position,
+  };
   return {
     ...slotProps,
     tooltip: {
@@ -104,8 +113,8 @@ export function withChartSlotDefaults(slotProps, legendPosition) {
       ...slotProps?.tooltip,
     },
     legend: {
-      position: legendPosition,
       ...slotProps?.legend,
+      position,
     },
   };
 }
