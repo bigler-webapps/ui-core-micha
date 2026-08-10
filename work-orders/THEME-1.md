@@ -313,4 +313,275 @@ staying untouched.
 
 ## B. Implementation map
 
-*To be filled by the Orchestrator on `git pull` — see AGENTS.md → "Work Order".*
+*Filled by the Orchestrator on `git pull` — see AGENTS.md → "Work Order".*
+
+### Execution directive (read this first)
+
+> **If you are the implementer reading this work order as your own specification: this section is
+> NOT addressed to you.** It tells the Orchestrator how to invoke you. **You ARE that invocation —
+> do NOT shell out to `codex exec`.**
+>
+> Implement through `codex exec` in the background — invoked directly via Bash (never the
+> `debugger`/`*_coder` Agent wrappers) with BOTH flags `--skip-git-repo-check` and
+> `--dangerously-bypass-approvals-and-sandbox`, prompt passed as a positional argument from a file.
+> (Fallback to direct Claude implementation only on Codex quota / rate-limit / non-zero exit.)
+
+### Context package
+
+**Repo layout relevant here:** `ui-core-micha` is a flat package — no `frontend/` subdir. `src/`
+ships to npm (`tsconfig.build.json` → `include: ["src"]`, `rootDir: "./src"`); `dev/` is the vite
+dev harness (not shipped); `tests/` is vitest, not shipped. Current version `2.29.2` in
+`package.json:3`.
+
+**Value source — read this file's canonical token table before writing any token:**
+`work-orders/assets/THEME-1-baseline-reference-sheet.html`, section `#canonical-baseline-tokens`
+(~line 1166–1285). Every numeric value below is transcribed from there; if this map and that table
+ever disagree, the table wins (per the Envelope). Key transcribed values, so you don't have to
+re-derive them:
+
+- **Typography** (fontSize/fontWeight/lineHeight; letterSpacing only where the sheet sets one —
+  everywhere else use `0` explicitly, don't leave it unset, since MUI's own defaults are non-zero
+  and unset would silently inherit them):
+  `h1` 32px/600/1.2 · `h2` 28px/600/1.22 · `h3` 24px/600/1.25 · `h4` 20px/600/1.3 ·
+  `h5` 18px/600/1.3 · `h6` 16px/600/1.35 · `subtitle1` 15px/600/1.4 · `subtitle2` 13px/500/1.4 ·
+  `body1` 14px/400/1.55 · `body2` 13px/400/1.55 · `button` 14px/500, `textTransform:'none'`,
+  `letterSpacing:0` · `caption` 12px/400/1.4 · `overline` 11px/600, `textTransform:'uppercase'`,
+  `letterSpacing:'0.4px'`.
+  `fontFamily: "'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif"` — this is the
+  baseline's OWN fontFamily default (an app's `typography.fontFamily` override replaces it, per the
+  factory example in the Envelope Goal).
+- **Palette — ink:** `primary #212529` · `secondary #5B6670` · `muted #6A7178` (4.6:1 target, not
+  the app's own colours — these are baseline-owned, not overridable-by-convention).
+- **Palette — surfaces:** `background.default #FAFAFA` (MUI `grey[50]`) · `background.paper #FFFFFF`.
+- **Palette — borders:** `divider: 'rgba(33,37,41,.10)'` (decorative, exempt from 1.4.11).
+  `controlBorder` is NOT a MUI palette key — it is an **augmented namespace** (`palette.controlBorder`)
+  with `{ main: 'rgba(33,37,41,.50)', hover: 'rgba(33,37,41,.65)', error: '#BF3227' }` plus **`focus`
+  computed from the final `primary.main`**, darkened via MUI's `darken()`/`getContrastRatio()` until
+  it clears 3:1 against `background.paper` — this is the one baseline value that is a *function of
+  app input*, so it must be computed inside `createAppTheme` after the palette merge (see the
+  palette-first ordering invariant below), not stored as a static token.
+- **Status tokens** (each is `{ text, fill, fillText, bg }`, all under an augmented
+  `palette.<status>` — `success`/`warning`/`error`/`info` reuse MUI's palette slots for `main`/
+  `contrastText` but the baseline ALSO needs the four-part shape the sheet defines; decide whether
+  `text`/`fill`/`bg` live as extra keys on the same palette entries (`palette.success.text` etc.) or
+  a parallel `palette.status.success.*` — the sheet's token names (`success.text`, `success.fill`,
+  `success.fillText`, `success.bg`) suggest keying directly on `palette.success.*` so
+  `theme.palette.success.text` / `.fill` / `.fillText` / `.bg` all resolve, alongside MUI's own
+  `.main`/`.light`/`.dark`/`.contrastText` which stay untouched for compatibility):
+  - success: text `#35794A` · fill `#1B8038` / fillText `#FFFFFF` · bg `#E5F4E9`
+  - warning: text `#976100` · fill `#C08A2C` / fillText `#212529` · bg `#FBF0DC`
+  - critical (maps to MUI's `error` palette key): text `#BF3227` · fill `#BF3227` / fillText
+    `#FFFFFF` · bg `#FBEAE8`
+  - info: not itemized with new values in the table — MUI's own `info` stays as-is per the "no new
+    hue" pattern used for `stale`; only add `text`/`fill`/`fillText`/`bg` shape for consistency if
+    cheap, otherwise state the omission in the completeness assertion's exemption list with a reason.
+  - `stale` (new augmented namespace, `palette.stale`, no MUI precedent): text/fill `#5B6B7D`,
+    fillText `#FFFFFF`, bg `#EAEDF1`.
+- **Radius:** `shape.borderRadius: 3` (MUI's own single knob covers `radius.control`) — but
+  `radius.card: 8` is a SECOND radius MUI has no slot for, so it must be an augmented token
+  (`theme.radius.card` or similar) consumed by the `MuiPaper`/`MuiCard`/`MuiDialog`
+  `styleOverrides` rather than by `shape`.
+- **Shadows:** `shadows` is the 25-entry MUI array — per the Risk section, either supply the full
+  array or explicitly keep MUI's; the sheet's rule is **rest = none** (`elevation:0`,
+  `variant:'outlined'` default on `MuiPaper`) and only Dialog/Drawer/Menu/Tooltip get
+  `shadow.overlay = '0 8px 24px rgba(20,26,31,.16), 0 2px 8px rgba(20,26,31,.08)'` — the simplest
+  correct reading is: don't touch the `shadows` array at all (keep MUI's default 25 entries, since
+  nothing here reads `theme.shadows[n]` by index other than via the two named component overrides),
+  and apply `shadow.overlay` directly as a literal boxShadow string in the four component
+  `styleOverrides`, with `MuiPaper` defaulting to `elevation: 0`/`variant: 'outlined'`. State this
+  choice explicitly in the PR/commit — the Risk section calls it out as something to decide, not
+  discover.
+- **Density:** `control.height: 40` (44 under `@media (any-pointer: coarse)`) ·
+  `table.cellPadding: '10px 16px'` · `chip: { height: 32, radius: 16, fontSize: 13 }`.
+- **Transitions:** `motion.fast 120ms` (hover/focus/border/colour) · `motion.base 180ms`
+  (expand/collapse) · `motion.overlay` 220ms in / 180ms out (Dialog/Drawer/Menu/Tooltip) ·
+  `motion.chart 300ms` (kept as MUI's `standard`) · easing: enter `easeOut`, exit `easeIn`, state
+  `easeInOut` (MUI's own curve constants, only the assignment is new) · reduced-motion: ALL
+  durations collapse to `'0.01ms'` (a string, not `0`) under `prefers-reduced-motion: reduce` —
+  implement via `transitions.create`'s duration overrides is not enough since that's static; this
+  needs either a CSS `@media` global override in a `MuiCssBaseline` styleOverride, or a documented
+  runtime hook — read the sheet's motion section (`grep -n "prefers-reduced-motion"` in the HTML)
+  for how it demonstrates this, and match that mechanism.
+- **Spacing/breakpoints:** `spacing: 8` (MUI's default unit — confirm it's actually 8 today, i.e.
+  this may be a no-op) · `container.gutter: 24px, 32px ≥1200px` via `MuiContainer` styleOverrides.
+- **Components — the 7/7 and 6/7 consensus plus the measured leak surface** (exact values from the
+  Density/Radius/Shadow tokens above, applied via `styleOverrides`, OBJECTS ONLY per decision 20 —
+  never a function):
+  `MuiButton` (height 40, radius 3, textTransform none, no contained elevation) ·
+  `MuiTableCell` (padding `10px 16px`) · `MuiIconButton` · `MuiDivider` (uses `divider` token) ·
+  `MuiTooltip` (overlay shadow, motion.overlay) · `MuiSelect` (height 40, controlBorder) ·
+  `MuiCheckbox` (controlBorder box) · `MuiFormControlLabel` · `MuiContainer` (gutter) ·
+  `MuiPaper` (elevation 0, outlined variant default, radius.card) · `MuiCard` (radius.card) ·
+  `MuiChip` (height 32, radius 16, fontSize 13) ·
+  `MuiTextField`/`MuiOutlinedInput` (controlBorder rest/hover/focus/error, height 40, autofill) ·
+  `MuiDialog` (radius.card, overlay shadow) · `MuiAlert` (status bg/text tones).
+- **Autofill:** target BOTH `&:-webkit-autofill` and the standard `&:autofill` inside
+  `MuiOutlinedInput`/`MuiFilledInput`/`MuiInput` `styleOverrides.input`, using a `box-shadow` inset
+  trick (`box-shadow: 0 0 0 100px <bg.surface> inset`) plus `-webkit-text-fill-color: <ink.primary>`
+  — the standard estate pattern for suppressing browser-native autofill colouring; there is no app
+  precedent to copy from since this is a measured gap (sheet's `control.autofill` row), so implement
+  from the description in the table plus standard MUI/CSS practice.
+- **Data-series ramp:** `series.1`…`series.6` =
+  `['#3D5A99', '#3E80B8', '#2E8F8A', '#7A5FA8', '#9C4F86', '#8A7355']`. Marker/dasharray/pattern
+  variants are DS-13, **opt-in and out of scope** — do not implement them, the ramp colours only.
+  Expose this as e.g. `theme.chartPalette` or `theme.palette.dataSeries` (pick one, document it,
+  and use the SAME key in the `useNeutralChartPalette` fallback wiring below).
+- **Font loading:** `@fontsource/dm-sans` weights 400/500/600, self-hosted, never a CDN. All 14
+  consumer apps already depend on `@fontsource/dm-sans` in their own `package.json` (verified
+  2026-08-10) — so the safest approach is for `createAppTheme`'s module (or a sibling module it
+  imports) to `import '@fontsource/dm-sans/400.css'` etc. as a side effect, AND for `ui-core-micha`
+  to gain its OWN `dependencies` entry `"@fontsource/dm-sans": "^5.2.8"` (matching the version every
+  consumer already pins) in `package.json` — this is a new dependency, but it is explicitly named in
+  this WO's scope (Envelope § B, "Font loading" row), so it carries the WO's approval per AGENTS.md
+  and does not need a separate approval round. A duplicate import in an app that also imports the
+  font itself is harmless (same CSS, same `@font-face`, browser dedups by URL).
+- **Touch target:** 44px hit area gated by `@media (any-pointer: coarse)` on `MuiButton`/
+  `MuiIconButton`/`MuiSelect`/`MuiCheckbox` etc. — visual `control.height` stays 40, only the
+  clickable/touch area grows under the coarse-pointer query (commonly via `minHeight`/padding, not
+  a visual box-size change at 40px).
+
+### Named files to create / change
+
+**New:**
+- `src/theme/createAppTheme.js` — the factory. `export function createAppTheme(appConfig = {})`.
+  Steps inside: (1) throw if `!appConfig?.palette?.primary` with a message naming what's missing;
+  (2) throw if any function is found in `appConfig.components.*.styleOverrides` (walk the object,
+  name the offending slot in the message); (3) build a first-pass theme merging
+  `BASELINE_PALETTE` with `appConfig.palette` ONLY (via `createTheme({ palette: {...} })` or a plain
+  object merge — palette-first) to get the FINAL resolved palette (primary, success, etc. as the app
+  set them); (4) compute palette-derived values from that final palette — `controlBorder.focus`
+  (darken `primary.main` until ≥3:1), and anything else in the components tree that depends on
+  `success`/`warning`/`error` colours; (5) call MUI's `createTheme(BASELINE_STATIC, appConfig,
+  { palette: computed additions })` or equivalent multi-arg merge, being careful that the
+  computed/palette-derived pieces are merged AFTER the palette but BEFORE/alongside `appConfig`'s
+  own component overrides — re-read the palette-first invariant (Envelope § A) and design the merge
+  order so Test 4 (reversing the order must fail) is provable. This is the single most important
+  piece of code in the WO — do not guess at MUI's deep-merge semantics without checking `mui/material`
+  `createTheme`'s documented multi-arg behavior (later args win, plain-object deep merge, arrays
+  replace not concatenate).
+  Import `@fontsource/dm-sans/400.css`, `/500.css`, `/600.css` here as side-effect imports.
+- `src/theme/tokens.js` (or inline in `createAppTheme.js` if smaller) — `BASELINE_PALETTE` /
+  `BASELINE_STATIC` constants holding the values transcribed above, one place, referenced by both
+  the factory and (for baseline-invariant testing) the completeness assertion.
+- `src/theme/themeCompleteness.js` — the exported assertion. Shape (design freely, but must satisfy
+  Envelope § C and the required tests): a function like
+  `assertThemeComplete(theme, { exemptions = [] } = {})` returning `{ findings: [...] }` (array of
+  `{ surface, reason? }`), where a `findings.length === 0` result is "complete". Compares the given
+  theme's enumerated surfaces (typography variants, palette tokens, component overrides, shadow
+  rule, etc.) against MUI's OWN untouched `createTheme()` output for the same surfaces — a surface
+  equal to the default is a finding UNLESS present in `exemptions` with a `reason` (no reason on an
+  exemption is itself a finding — decision 5). Also export a **contrast-checking** helper (or reuse
+  one if MUI/`polished`/similar is already a devDependency — check `package.json` first; if nothing
+  suitable exists, implement WCAG relative-luminance contrast inline, it's ~15 lines) used both by
+  the assertion (status text-vs-own-tint, `controlBorder` vs white/page) and by test 11.
+  Also export an **adoption-reporting** helper (inline-hex count, theme-bypass paths) — Envelope
+  says "reported as a number, never gated"; keep this simple (e.g. count of raw hex literals in a
+  given source-string set, or just document the intended API surface if a full static-analysis pass
+  is out of proportion for this WO — narrow test scope, don't over-build).
+- `src/theme/index.js` — re-exports `createAppTheme`, `assertThemeComplete` (+ whatever helper
+  names you settle on) for `src/index.js` to pull from.
+- `tests/createAppTheme.test.js`, `tests/themeCompleteness.test.js` — per Required tests below.
+
+**Change:**
+- `src/index.js` — add exports for `createAppTheme` and the completeness assertion near the top
+  (a new numbered section, e.g. "0. Theme", or alongside an existing section — match the file's
+  existing numbered-comment convention).
+- `src/components/charts/palette.js:7-19` (`getNeutralChartPalette`) — add the ramp-first branch:
+  if `theme.palette?.dataSeries` (or whatever key `createAppTheme` settles on above — MUST match)
+  is present and has both `categorical`-shaped data, return it (or derive `categorical` from it,
+  `sequential` can keep deriving from ink/primary as today unless the sheet specifies a sequential
+  ramp too — it doesn't, only categorical `series.1..6` is enumerated); ELSE fall back to the
+  existing derivation unchanged (decision 22 — a non-adopter theme has no `dataSeries` key and must
+  see byte-identical output to today).
+- `tests/chartsPalette.test.js` — extend with tests 12–13 (ramp present → used; ramp absent →
+  today's derivation, proven non-vacuous by temporarily removing the fallback branch and observing
+  the test fail, then restoring it — this is a proof step during development, not something to leave
+  removed).
+- `package.json` — version `2.29.2` → `2.30.0`; add a `"dependencies"` block (currently absent —
+  only `peerDependencies`/`devDependencies` exist) with `"@fontsource/dm-sans": "^5.2.8"`.
+- `DESIGN.md:9` (principle 1) — rewrite to reflect the policy change (decision 1): ucm now ships a
+  shared theme baseline via `createAppTheme`; apps still own their identity (`palette.primary`,
+  `fontFamily`) as deliberate overrides, but the baseline (not each app from scratch) is the source
+  of everything else. Don't delete the "match first, then elevate" sentiment — it still governs
+  what an app's OWN overrides should look like — but the "every app owns its own tokens... ucm ships
+  no theme" framing is now false and must go.
+- `DESIGN.md:22` (principle 8, the "concrete data palette is per-app" clause) — reword per Envelope
+  § "Replaces/removes" item 3: the data-colour layer is now "a separate layer **with a shared
+  default** that apps override" rather than purely per-app.
+- `dev/entries.jsx` — add a new harness entry rendering the baseline's surfaces (buttons, cards,
+  tables, chips, form controls; a chart via the existing `BarChart`/`ChartFrame` to show the ramp).
+  This is decision 18's "living harness page" — it does not need to reproduce the full 1352-line
+  reference sheet, just render enough real MUI components under `createAppTheme` for the Orchestrator
+  to do the two-width visual comparison against the reference sheet. Reasonable scope: one entry,
+  e.g. `id: 'theme-baseline'`, composing `Button` (contained/outlined/text), a `Paper`/`Card` pair,
+  a `TableCell`-based table, `Chip` (default + status colours), `TextField`/`Select`/`Checkbox`, an
+  `Alert` per status (including `stale` if you added it to the palette), and the existing `BarChart`
+  to show the series ramp.
+- `dev/main.jsx:32` — the harness currently does `createTheme({ palette: { mode } })` directly;
+  add a way to switch the harness's OWN theme to `createAppTheme({ palette: { primary: {...} } })`
+  for the new entry (or just always use `createAppTheme` if it stays backward compatible with a
+  bare mode toggle — check whether dark mode is requested elsewhere in the harness; the WO is
+  light-only v1, so if switching the whole harness to `createAppTheme` breaks the dark-mode toggle
+  for OTHER entries, keep the two paths separate instead of forcing one factory globally).
+
+### Do-not-touch / invariants
+
+- **No behaviour, permission, or data-contract change** anywhere (parity guardrail).
+- **`ChartFrame`'s `p: 2` padding and its foot row** stay untouched — 16 panels depend on them.
+- **`getNeutralChartPalette`/`useNeutralChartPalette` exports** stay, same signature, same names.
+- **jg-ferien's `variants:` usage** is not in this repo — irrelevant here, just don't introduce a
+  function anywhere in `BASELINE_STATIC.components.*.styleOverrides`.
+- **innoservice, and every other consumer** — do not touch any other repo. All 14 consumers pin
+  exact versions and are unaffected until they bump.
+- Dark mode tokens: do not add any — the API must stay mode-capable (i.e. don't hard-code
+  `mode: 'light'` inside the factory in a way that would need a breaking signature change later;
+  simplest: don't set `palette.mode` at all in `BASELINE_PALETTE`, let `appConfig`/MUI's default
+  handle it, and only ship light-token values).
+
+### Pitfalls (verified against landed code 2026-08-10)
+
+- `getNeutralChartPalette` is called in existing tests with a **plain object**, not a real MUI
+  theme (`tests/chartsPalette.test.js:11-23`) — so the new ramp-lookup branch must not call any
+  MUI-only API (e.g. `useTheme()`) inside `getNeutralChartPalette` itself; keep it a pure function
+  of the `theme` object passed in, exactly as today.
+- `src/index.js` has a duplicate `// --- 9. ... ---` comment (two "9"s, messaging and onboarding) —
+  pre-existing, not yours to fix; just don't compound it, pick a header that doesn't collide.
+- The dev harness (`dev/main.jsx`) is NOT part of the shipped package (`tsconfig.build.json` only
+  includes `src`) — safe to add whatever's needed there without touching the npm build surface.
+- MUI's `shadows` theme key is a 25-element ARRAY; passing a partial array in a `createTheme()` arg
+  REPLACES the whole array (arrays don't deep-merge index-wise) — this is why the map above says
+  "don't touch `shadows` at all" rather than trying to override two entries.
+
+### Target repo working directory (absolute)
+
+`C:\Users\biglmi\Documents\webapps\ui-core-micha`
+
+### Required tests to WRITE (Codex writes them; the Orchestrator runs them)
+
+Exactly the 13 tests plus `tsc` check enumerated in Envelope § "Required tests to WRITE" above —
+`tests/createAppTheme.test.js` (7 tests), `tests/themeCompleteness.test.js` (4 tests),
+`tests/chartsPalette.test.js` extension (2 tests), plus `tsc -p tsconfig.build.json --noEmit`
+clean. Do not add more, do not run the full suite.
+
+### Preamble (append verbatim)
+
+> The text above is the COMPLETE spec — the committed WO file's content, not a plan to refine; there
+> is no separate plan file. Read the nearest `AGENTS.md`, the relevant `.codex/skills/<role>/SKILL.md`, and the
+> app `MEMORY.md` ONLY for conventions. Stay in scope; do not touch auth/permissions/deps/schema/CI
+> unless the spec says so (the ONE new dependency, `@fontsource/dm-sans`, IS in scope — see "Font
+> loading" above); do not update `MEMORY.md`. Do NOT `git add`/`commit`/`push` — leave every change
+> uncommitted in the working tree for the orchestrator's independent review. WRITE the tests the
+> `Required tests` section calls for AND **RUN the tests you just wrote** to confirm they execute
+> and pass — that is the ONLY test run you do (NOT the app's affected/full suite, NOT any review).
+> The orchestrator re-runs the authoritative set + does the independent review after you finish —
+> those are the gate; your own run does not count as the gate.
+>
+> Narrate continuously: a `PLAN: <step1> | <step2> | …` line up front, then a single-line
+> `PROGRESS: [<n>/<total>] <present-tense action>` before every relevant action (and `… done` on
+> completion), spaced so no gap exceeds ~2 min, stdout unbuffered, plus exactly one final
+> `RESULT: DONE|BLOCKED <reason>`.
+
+### Mini-handover
+
+Repo: `ui-core-micha` (`C:\Users\biglmi\Documents\webapps\ui-core-micha`), branch `main`. WO:
+`work-orders/THEME-1.md`. Follow `orchestrate-codex`.
