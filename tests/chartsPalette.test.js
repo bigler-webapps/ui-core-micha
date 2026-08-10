@@ -36,4 +36,44 @@ describe('chart palette and formatters', () => {
     expect(formatCompact(12500, 'en-US')).toMatch(/12.5K|13K/);
     expect(createChartFormatters('fr-FR').ratio(1.5)).toContain('1');
   });
+
+  it('uses the theme categorical ramp when one is present', () => {
+    const ramp = ['series-1', 'series-2', 'series-3'];
+    const theme = {
+      palette: {
+        dataSeries: { categorical: ramp },
+        mode: 'light',
+        primary: { main: 'primary-main', light: 'primary-light' },
+        action: { disabled: 'action-disabled' },
+        text: { secondary: 'text-secondary' },
+        divider: 'divider',
+      },
+    };
+
+    expect(getNeutralChartPalette(theme).categorical).toEqual(ramp);
+  });
+
+  it('keeps the existing palette derivation when no ramp is present', () => {
+    const theme = {
+      palette: {
+        mode: 'light',
+        primary: { main: 'primary-main', light: 'primary-light' },
+        secondary: { main: 'secondary-main' },
+        info: { main: 'info-main' },
+        success: { main: 'success-main' },
+        warning: { main: 'warning-main' },
+        action: { disabled: 'action-disabled' },
+        text: { secondary: 'text-secondary' },
+        divider: 'divider',
+      },
+    };
+
+    expect(getNeutralChartPalette(theme).categorical).toEqual([
+      'primary-main',
+      'secondary-main',
+      'info-main',
+      'success-main',
+      'warning-main',
+    ]);
+  });
 });

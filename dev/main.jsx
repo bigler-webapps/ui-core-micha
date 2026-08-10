@@ -8,6 +8,7 @@ import { Box, Button, ButtonGroup, CssBaseline, FormControl, InputLabel, MenuIte
 import { chartsTranslations } from '../src/i18n/chartsTranslations';
 import { notificationsTranslations } from '../src/i18n/notificationsTranslations';
 import { messagingTranslations } from '../src/i18n/messagingTranslations';
+import { createAppTheme } from '../src/theme/createAppTheme';
 import { entries } from './entries';
 import { MockTransportProvider } from './mockTransport';
 
@@ -29,7 +30,13 @@ function Harness() {
   const [mode, setMode] = useState('light');
   const [width, setWidth] = useState('desktop');
   const entry = entries.find((item) => item.id === entryId) || entries[0];
-  const theme = useMemo(() => createTheme({ palette: { mode } }), [mode]);
+  const effectiveMode = entry.id === 'theme-baseline' ? 'light' : mode;
+  const theme = useMemo(
+    () => entry.id === 'theme-baseline'
+      ? createAppTheme({ palette: { primary: { main: '#3D5A99' } } })
+      : createTheme({ palette: { mode } }),
+    [entry.id, mode],
+  );
   const viewportWidth = width === 'mobile' ? 390 : width === 'tablet' ? 768 : 1180;
   const Entry = entry.Component;
 
@@ -40,10 +47,10 @@ function Harness() {
         <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} sx={{ mb: 3 }} alignItems={{ md: 'center' }}>
           <Typography variant="h5" sx={{ mr: 'auto' }}>ui-core-micha harness</Typography>
           <FormControl size="small" sx={{ minWidth: 220 }}><InputLabel id="entry-label">Entry</InputLabel><Select labelId="entry-label" label="Entry" value={entryId} onChange={(event) => setEntryId(event.target.value)}>{entries.map((item) => <MenuItem key={item.id} value={item.id}>{item.label}</MenuItem>)}</Select></FormControl>
-          <ButtonGroup size="small"><Button variant={mode === 'light' ? 'contained' : 'outlined'} onClick={() => setMode('light')}>Light</Button><Button variant={mode === 'dark' ? 'contained' : 'outlined'} onClick={() => setMode('dark')}>Dark</Button></ButtonGroup>
+          <ButtonGroup size="small"><Button variant={effectiveMode === 'light' ? 'contained' : 'outlined'} onClick={() => setMode('light')}>Light</Button><Button disabled={entry.id === 'theme-baseline'} variant={effectiveMode === 'dark' ? 'contained' : 'outlined'} onClick={() => setMode('dark')}>Dark</Button></ButtonGroup>
           <ButtonGroup size="small">{['mobile', 'tablet', 'desktop'].map((size) => <Button key={size} variant={width === size ? 'contained' : 'outlined'} onClick={() => setWidth(size)}>{size}</Button>)}</ButtonGroup>
         </Stack>
-        <Paper variant="outlined" sx={{ width: viewportWidth, maxWidth: '100%', mx: 'auto', p: 3, overflow: 'hidden' }}>
+        <Paper variant="outlined" sx={{ width: viewportWidth, maxWidth: '100%', mx: 'auto', p: 3, overflow: 'hidden', containerType: 'inline-size' }}>
           <Entry />
         </Paper>
       </Box>

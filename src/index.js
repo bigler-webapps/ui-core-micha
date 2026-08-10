@@ -1,5 +1,14 @@
 // index.js (Entry Point deiner Library)
 
+// --- 0. Theme ---
+export {
+  createAppTheme,
+  assertThemeComplete,
+  calculateContrastRatio,
+  reportThemeAdoption,
+  THEME_COMPLETENESS_SURFACES,
+} from './theme';
+
 // --- 1. Auth Context (Essentiell für den Wrapper) ---
 export { AuthContext, AuthProvider } from './auth/AuthContext';
 export { UserMenu } from './auth/UserMenu';

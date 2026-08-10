@@ -1,13 +1,13 @@
 # Frontend Design Principles
 
-How we design app frontends across the estate. **Consistency here is consistency of METHOD, not one identical look** — every app honors its OWN theme tokens (principle 1); the shared surface (`ui-core-micha` components, charts, layout) carries the structural consistency. hram is the worked example throughout, not a look other apps must copy.
+How we design app frontends across the estate. **Consistency here is consistency of METHOD, not one identical look** — every app starts from the shared `createAppTheme` baseline and owns its identity overrides (principle 1); the shared surface (`ui-core-micha` theme, components, charts, layout) carries the structural consistency. hram is the worked example throughout, not a look other apps must copy.
 
 These principles are the spec a **prototype** encodes and the implementation matches. `frontend-engineering` (build) and `ui_reviewer` (review) point here; the prototype workflow is the `frontend-design` skill.
 
 ## Identity
 
-1. **Honor the existing system, don't invent one.** Pull the app's real tokens and apply them consistently (hram: primary blue `#468AB2`, DM Sans, white, small radii, MUI `ToggleButton` / outlined-`Select` shapes from its `theme.js`). **Match first, then elevate.** Never invent a parallel language — a made-up teal / pills / breadcrumb vocabulary was the v1 mistake.
-2. **One accent, deliberately placed.** Interactive = the app's one accent colour. **Data colours are a separate layer.** Status (green / amber / red) is semantic and is NEVER repurposed as a series colour. Restraint over decoration.
+1. **Honor the shared baseline and the app's identity; don't invent a parallel system.** `ui-core-micha`'s `createAppTheme` deliberately owns the complete visual baseline. Each app supplies its identity through `palette.primary` and `fontFamily`, plus reviewed overrides where its real design requires them (hram: primary blue `#468AB2`). **Match first, then elevate.** Never invent a parallel language — a made-up teal / pills / breadcrumb vocabulary was the v1 mistake.
+2. **One accent, deliberately placed.** Interactive = the app's one accent colour. **Data colours are a separate layer with a shared default that apps may override.** Status (green / amber / red) is semantic and is NEVER repurposed as a series colour. Restraint over decoration.
 3. **Commit to the app's theme reality — with intent.** If the app is single-theme (hram is light-only), commit to that deliberately rather than bolting on dark mode as an afterthought — a decision, not an omission. The estate does NOT mandate light-only; it is per-app — but whichever it is, it is on purpose.
 
 ## Information design (it's a tool, not a document)
@@ -19,7 +19,7 @@ These principles are the spec a **prototype** encodes and the implementation mat
 
 ## Charts (read by humans, executed by code)
 
-8. **Every chart earns:** axis labels (with units), a legend only when >1 series, a tooltip, theme-token colours, container-responsive sizing, and empty/loading states. **Single-hue for magnitude; diverging (blue/red around zero) ONLY for signed data.** The concrete data palette is per-app / the `ui-core-micha` chart kit — this states the rules, not a fixed palette.
+8. **Every chart earns:** axis labels (with units), a legend only when >1 series, a tooltip, theme-token colours, container-responsive sizing, and empty/loading states. **Single-hue for magnitude; diverging (blue/red around zero) ONLY for signed data.** The concrete data palette is a separate layer with a shared `ui-core-micha` default that apps override when their domain calls for it.
    **Dual-axis is a default-off exception, opt-in only** (CHART-5, operator decision): the shared `TimeSeriesChart` preset supports a second y-axis via a per-series `axis: 'secondary'` field specifically for two series sharing one axis at very different scales/units (e.g. a user count vs. hours) where series-toggles alone leave one series unreadable. Reach for it only under that same condition, not as a general layout choice — a single shared axis (or toggles) stays the default everywhere else.
 9. **Ground it in the real subject matter.** Faithful structures from the real panels (hram: Morris-tornado, Pareto/knee, CI-strip, allocation-scatter with shape-encoded sources) — no lorem, no generic charts. Hence: **scout the real subject before building.**
 

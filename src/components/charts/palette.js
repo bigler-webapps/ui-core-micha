@@ -7,11 +7,14 @@ import { useTheme } from '@mui/material/styles';
 export function getNeutralChartPalette(theme) {
   const palette = theme.palette;
   const isDark = palette.mode === 'dark';
+  const dataSeries = palette.dataSeries?.categorical;
 
   return {
-    categorical: isDark
-      ? [palette.primary.light, palette.secondary.light, palette.info.light, palette.success.light, palette.warning.light]
-      : [palette.primary.main, palette.secondary.main, palette.info.main, palette.success.main, palette.warning.main],
+    categorical: Array.isArray(dataSeries) && dataSeries.length > 0
+      ? [...dataSeries]
+      : isDark
+        ? [palette.primary.light, palette.secondary.light, palette.info.light, palette.success.light, palette.warning.light]
+        : [palette.primary.main, palette.secondary.main, palette.info.main, palette.success.main, palette.warning.main],
     sequential: isDark
       ? [palette.action.disabled, palette.text.secondary, palette.primary.light, palette.primary.main, palette.primary.dark]
       : [palette.action.disabled, palette.divider, palette.text.secondary, palette.primary.light, palette.primary.main],

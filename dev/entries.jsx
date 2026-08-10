@@ -1,5 +1,31 @@
 import { useEffect, useState } from 'react';
-import { Box, Button, Stack, Typography } from '@mui/material';
+import MoreVertIcon from '@mui/icons-material/MoreVert';
+import {
+  Alert,
+  Box,
+  Button,
+  Card,
+  CardContent,
+  Checkbox,
+  Chip,
+  Divider,
+  FormControl,
+  FormControlLabel,
+  IconButton,
+  InputLabel,
+  MenuItem,
+  Paper,
+  Select,
+  Stack,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableRow,
+  TextField,
+  Tooltip,
+  Typography,
+} from '@mui/material';
 
 import { AuthContext } from '../src/auth/AuthContext';
 import { BarChart } from '../src/components/charts/BarChart';
@@ -38,6 +64,108 @@ function BarChartEntry() {
     <ChartFrame title="Monthly cases" subtitle="Standalone BarChart entry" minHeight={360}>
       <BarChart {...barChartFixture} xAxisLabel="Month" yAxisLabel="Cases" height={320} />
     </ChartFrame>
+  );
+}
+
+function StatusChip({ label, tone }) {
+  return (
+    <Chip
+      label={label}
+      sx={{ bgcolor: `${tone}.fill`, color: `${tone}.fillText` }}
+    />
+  );
+}
+
+function ThemeBaselineEntry() {
+  return (
+    <Stack spacing={3}>
+      <Box>
+        <Typography component="h1" variant="h4" gutterBottom>Shared theme baseline</Typography>
+        <Typography color="text.secondary">
+          Real MUI surfaces rendered through createAppTheme.
+        </Typography>
+      </Box>
+
+      <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap" alignItems="center">
+        <Button variant="contained">Contained</Button>
+        <Button variant="outlined">Outlined</Button>
+        <Button variant="text">Text</Button>
+        <Tooltip title="More actions">
+          <IconButton aria-label="More actions"><MoreVertIcon /></IconButton>
+        </Tooltip>
+      </Stack>
+
+      <Divider />
+
+      <Stack direction="column" spacing={2} sx={{ '@container (min-width: 900px)': { flexDirection: 'row' } }}>
+        <Paper sx={{ p: 2, flex: 1 }}>
+          <Typography variant="h6">Paper</Typography>
+          <Typography variant="body2" color="text.secondary">Outlined, with no resting shadow.</Typography>
+        </Paper>
+        <Card sx={{ flex: 1 }}>
+          <CardContent>
+            <Typography variant="h6">Card</Typography>
+            <Typography variant="body2" color="text.secondary">Eight-pixel surface radius.</Typography>
+          </CardContent>
+        </Card>
+      </Stack>
+
+      <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
+        <Chip label="Default chip" variant="outlined" />
+        <StatusChip label="Success" tone="success" />
+        <StatusChip label="Warning" tone="warning" />
+        <StatusChip label="Critical" tone="error" />
+        <StatusChip label="Info" tone="info" />
+        <StatusChip label="Stale" tone="stale" />
+      </Stack>
+
+      <Stack direction="column" spacing={2} alignItems="flex-start" sx={{ '@container (min-width: 900px)': { flexDirection: 'row' } }}>
+        <TextField label="Project name" defaultValue="Baseline harness" fullWidth />
+        <FormControl fullWidth>
+          <InputLabel id="baseline-status-label">Status</InputLabel>
+          <Select labelId="baseline-status-label" label="Status" defaultValue="active">
+            <MenuItem value="active">Active</MenuItem>
+            <MenuItem value="stale">Stale</MenuItem>
+          </Select>
+        </FormControl>
+        <FormControlLabel control={<Checkbox defaultChecked />} label="Enabled" />
+      </Stack>
+
+      <Stack spacing={1}>
+        <Alert severity="success">Success status on its own tint.</Alert>
+        <Alert severity="warning">Warning status on its own tint.</Alert>
+        <Alert severity="error">Critical status on its own tint.</Alert>
+        <Alert severity="info">Info status using MUI's info hue family.</Alert>
+        <Alert icon={false} sx={{ bgcolor: 'stale.bg', color: 'stale.text' }}>Stale freshness status.</Alert>
+      </Stack>
+
+      <Paper sx={{ overflow: 'hidden' }}>
+        <Table size="small">
+          <TableHead><TableRow><TableCell>Application</TableCell><TableCell>Status</TableCell><TableCell align="right">Cases</TableCell></TableRow></TableHead>
+          <TableBody>
+            <TableRow><TableCell>hram</TableCell><TableCell>Healthy</TableCell><TableCell align="right">128</TableCell></TableRow>
+            <TableRow><TableCell>jg-ferien</TableCell><TableCell>Stale</TableCell><TableCell align="right">42</TableCell></TableRow>
+          </TableBody>
+        </Table>
+      </Paper>
+
+      <ChartFrame title="Series ramp" subtitle="Six categorical baseline colours" minHeight={360}>
+        <BarChart
+          xAxis={[{ scaleType: 'band', data: ['Baseline'] }]}
+          series={[
+            { label: 'Series 1', data: [8] },
+            { label: 'Series 2', data: [12] },
+            { label: 'Series 3', data: [10] },
+            { label: 'Series 4', data: [16] },
+            { label: 'Series 5', data: [13] },
+            { label: 'Series 6', data: [9] },
+          ]}
+          xAxisLabel="Series"
+          yAxisLabel="Cases"
+          height={320}
+        />
+      </ChartFrame>
+    </Stack>
   );
 }
 
@@ -203,6 +331,7 @@ function PollCardEntry() { return <AuthContext.Provider value={{ user: { id: 1 }
 function MessagingScopeConfigEntry() { return <MessagingProvider api={messagingHarnessApi} active={false}><MessagingScopeConfig conversationId={12} /></MessagingProvider>; }
 
 export const entries = [
+  { id: 'theme-baseline', label: 'Theme / Shared baseline', Component: ThemeBaselineEntry },
   { id: 'notification-bell', label: 'Notifications / Bell', Component: NotificationBellEntry },
   { id: 'bar-chart', label: 'Charts / BarChart', Component: BarChartEntry },
   { id: 'time-series-chart', label: 'Charts / TimeSeriesChart', Component: TimeSeriesChartEntry },
