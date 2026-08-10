@@ -5,7 +5,7 @@ import { cleanup, render } from '@testing-library/react';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 
 const chartSpy = vi.hoisted(() => vi.fn(() => <div data-testid="mui-line-chart" />));
-vi.mock('@mui/x-charts/LineChart', () => ({ LineChart: chartSpy }));
+vi.mock('@mui/x-charts/LineChart', () => ({ LineChart: chartSpy, MarkElement: 'path' }));
 
 import { LineChart } from '../src/components/charts/LineChart';
 
@@ -28,6 +28,9 @@ describe('LineChart preset', () => {
     expect(props.xAxis[0].label).toBe('Date');
     expect(props.yAxis[0].label).toBe('Rate (%)');
     expect(props.hideLegend).toBe(false);
-    expect(props.slotProps).toEqual({ tooltip: { trigger: 'axis' } });
+    expect(props.slotProps).toEqual({
+      tooltip: { trigger: 'axis' },
+      legend: { position: { vertical: 'bottom', horizontal: 'start' } },
+    });
   });
 });

@@ -26,7 +26,10 @@ describe('BarChart preset', () => {
 
     expect(props.xAxis[0].label).toBe('Year');
     expect(props.yAxis[0].label).toBe('Value (kg)');
-    expect(props.slotProps).toEqual({ tooltip: { trigger: 'axis' } });
+    expect(props.slotProps).toEqual({
+      tooltip: { trigger: 'axis' },
+      legend: { position: { vertical: 'bottom', horizontal: 'start' } },
+    });
     expect(props.hideLegend).toBe(true);
     expect(screen.getByTestId('bar-chart-container').getAttribute('style') || '').not.toContain('px');
   });

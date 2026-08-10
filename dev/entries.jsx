@@ -30,6 +30,7 @@ import {
 import { AuthContext } from '../src/auth/AuthContext';
 import { BarChart } from '../src/components/charts/BarChart';
 import { ChartFrame } from '../src/components/charts/ChartFrame';
+import { LineChart } from '../src/components/charts/LineChart';
 import { TimeSeriesChart } from '../src/components/charts/TimeSeriesChart';
 import { NotificationBell } from '../src/notifications/NotificationBell';
 import { NotificationsProvider } from '../src/notifications/NotificationsProvider';
@@ -165,6 +166,42 @@ function ThemeBaselineEntry() {
           height={320}
         />
       </ChartFrame>
+
+      <Stack
+        direction="column"
+        spacing={2}
+        sx={{ '@container (min-width: 900px)': { flexDirection: 'row' } }}
+      >
+        <ChartFrame title="Chart defaults" subtitle="No caller chrome props" minHeight={360}>
+          <LineChart
+            xAxis={[{ data: ['Jan', 'Feb', 'Mar', 'Apr'] }]}
+            series={[
+              { label: 'Observed', data: [8, 12, 10, 16] },
+              { label: 'Forecast', data: [7, 11, 13, 15] },
+            ]}
+            xAxisLabel="Month"
+            yAxisLabel="Cases"
+            height={320}
+          />
+        </ChartFrame>
+        <ChartFrame title="Caller overrides" subtitle="Tuned ticks, marks, grid and legend" minHeight={360}>
+          <LineChart
+            xAxis={[{
+              data: ['Jan', 'Feb', 'Mar', 'Apr'],
+              tickLabelStyle: { fontSize: 14, angle: -25 },
+            }]}
+            series={[
+              { label: 'Observed', data: [8, 12, 10, 16], showMark: true },
+              { label: 'Forecast', data: [7, 11, 13, 15], showMark: true },
+            ]}
+            xAxisLabel="Month"
+            yAxisLabel="Cases"
+            grid={{ horizontal: true, vertical: true }}
+            legendPosition={{ vertical: 'top', horizontal: 'end' }}
+            height={320}
+          />
+        </ChartFrame>
+      </Stack>
     </Stack>
   );
 }

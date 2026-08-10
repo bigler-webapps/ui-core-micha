@@ -56,6 +56,13 @@ export { LineChart } from './components/charts/LineChart';
 export { TimeSeriesChart } from './components/charts/TimeSeriesChart';
 export { getNeutralChartPalette, useNeutralChartPalette } from './components/charts/palette';
 export {
+  formatShortTime,
+  formatShortDate,
+  formatShortMonth,
+  formatShortYear,
+} from './components/charts/chartLabels';
+export { yearTickInterval } from './components/charts/yearTickInterval';
+export {
   formatPercentage,
   formatCompact,
   formatRatio,

@@ -80,6 +80,22 @@ const RANGE_OPTIONS = [
   { key: '1y', granularity: 'month', labelKey: 'TimeSeriesChart.RANGE_1_YEAR' },
 ];
 
+function SeriesToggleDot({ color, active }) {
+  return (
+    <Box
+      component="span"
+      data-testid="series-colour-dot"
+      sx={{
+        width: (theme) => theme.spacing(1.5),
+        height: (theme) => theme.spacing(1.5),
+        borderRadius: '50%',
+        bgcolor: color,
+        opacity: active ? 1 : 0.35,
+      }}
+    />
+  );
+}
+
 /**
  * A time-series preset on ChartFrame + BarChart: a range picker (emits the
  * selected range AND its mapped granularity to the host) and series toggle
@@ -106,6 +122,7 @@ export function TimeSeriesChart({
   error = false,
   onRangeChange,
   defaultRange = '1w',
+  skipAnimation,
 }) {
   const { t } = useTranslation();
   const palette = useNeutralChartPalette().categorical;
@@ -221,6 +238,8 @@ export function TimeSeriesChart({
                   size="small"
                   checked={visibleKeys.has(series.key)}
                   onChange={() => toggleSeries(series.key)}
+                  icon={<SeriesToggleDot color={palette[index % palette.length]} active={false} />}
+                  checkedIcon={<SeriesToggleDot color={palette[index % palette.length]} active />}
                   sx={{
                     color: palette[index % palette.length],
                     '&.Mui-checked': { color: palette[index % palette.length] },
@@ -261,6 +280,8 @@ export function TimeSeriesChart({
           }))}
           palette={visiblePalette}
           height={CHART_HEIGHT}
+          hideLegend={seriesConfig.length > 0}
+          skipAnimation={skipAnimation}
         />
       )}
     </ChartFrame>
