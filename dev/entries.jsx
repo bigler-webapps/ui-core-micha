@@ -223,6 +223,19 @@ function ThemeBaselineEntry() {
           />
         </ChartFrame>
       </Stack>
+
+      <Stack
+        direction="column"
+        spacing={2}
+        sx={{ '@container (min-width: 900px)': { flexDirection: 'row' } }}
+      >
+        <ChartFrame title="Default titleVariant" subtitle="h6, unchanged for existing callers" minHeight={160}>
+          <Typography variant="body2" color="text.secondary">Panel body placeholder</Typography>
+        </ChartFrame>
+        <ChartFrame title="Dense panel title" subtitle="titleVariant=&quot;subtitle2&quot;" titleVariant="subtitle2" minHeight={160}>
+          <Typography variant="body2" color="text.secondary">Panel body placeholder</Typography>
+        </ChartFrame>
+      </Stack>
     </Stack>
   );
 }

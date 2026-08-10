@@ -32,6 +32,7 @@ export function ChartFrame({
   ariaLabel,
   children,
   variant = 'outlined',
+  titleVariant = 'h6',
   sx,
 }) {
   const { t } = useTranslation();
@@ -71,7 +72,7 @@ export function ChartFrame({
     <Paper variant={variant} sx={{ p: 2, ...sx }}>
       <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 2, mb: 2 }}>
         <Box>
-          <Typography id={titleId} variant="h6">{title}</Typography>
+          <Typography id={titleId} variant={titleVariant}>{title}</Typography>
           {subtitle && <Typography variant="body2" color="text.secondary">{subtitle}</Typography>}
         </Box>
         {toolbar && <Box>{toolbar}</Box>}

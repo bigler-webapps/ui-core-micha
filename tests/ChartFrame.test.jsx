@@ -55,6 +55,48 @@ function renderFrame(props = {}, language = 'en') {
 describe('ChartFrame', () => {
   afterEach(cleanup);
 
+  it('renders the title as h6 by default', () => {
+    renderFrame();
+
+    const title = screen.getByText('Chart title');
+    expect(title.tagName).toBe('H6');
+    expect(title.classList.contains('MuiTypography-h6')).toBe(true);
+  });
+
+  it('renders the title at an overridden typography variant', () => {
+    renderFrame({ titleVariant: 'subtitle2' });
+
+    const title = screen.getByText('Chart title');
+    expect(title.classList.contains('MuiTypography-subtitle2')).toBe(true);
+    expect(title.classList.contains('MuiTypography-h6')).toBe(false);
+  });
+
+  it('leaves the subtitle, toolbar, and footer unchanged for either title variant', () => {
+    for (const titleVariant of [undefined, 'subtitle2']) {
+      const view = renderFrame({
+        titleVariant,
+        toolbar: <button type="button">Period selector</button>,
+        meta: 'Panel metadata',
+        exportOptions: true,
+      });
+
+      const subtitle = screen.getByText('Chart subtitle');
+      expect(subtitle.tagName).toBe('P');
+      expect(subtitle.classList.contains('MuiTypography-body2')).toBe(true);
+      expect(screen.getByRole('button', { name: 'Period selector' })).toBeTruthy();
+
+      const metaNode = screen.getByText('Panel metadata');
+      expect(metaNode.classList.contains('MuiTypography-caption')).toBe(true);
+      const foot = metaNode.parentElement;
+      expect(foot.contains(screen.getByRole('button', { name: 'Export SVG' }))).toBe(true);
+      expect(foot.contains(screen.getByRole('button', { name: 'Export PNG' }))).toBe(true);
+      expect(window.getComputedStyle(foot).justifyContent).toBe('space-between');
+      expect(window.getComputedStyle(foot).borderTopStyle).toBe('solid');
+
+      view.unmount();
+    }
+  });
+
   it('renders its title, subtitle, toolbar, and accessible chart region', () => {
     renderFrame({ toolbar: <button type="button">Period selector</button> });
 
