@@ -90,7 +90,11 @@ describe('NotificationsProvider', () => {
       expect.objectContaining({ id: 1, notification_id: 101, seen: false }),
       expect.objectContaining({ id: 2, notification_id: 102, dismissed: false }),
     ]));
-    expect(MockWebSocket.instances).toHaveLength(1);
+    // `seeded` (which gates the socket connect) flips in refresh()'s .finally(),
+    // one tick after unreadCount is set -- so the socket can still be unopened
+    // right when the unread-count waitFor above resolves. Wait for it directly
+    // instead of asserting synchronously.
+    await waitFor(() => expect(MockWebSocket.instances).toHaveLength(1));
   });
 
   it('prepends a new notification push and increments the unread count', async () => {
