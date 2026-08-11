@@ -12,6 +12,7 @@ import {
   KIT_COMPONENT_SX_REGISTRY,
   reportOffPaletteColours,
   reportKitSxBypasses,
+  reportRedundantThemeValues,
   THEME_COMPLETENESS_SURFACES,
 } from '../src/theme';
 import { BASELINE_PALETTE } from '../src/theme/tokens';
@@ -503,5 +504,92 @@ describe('off-palette colour reporting', () => {
 
     expect(hardFindings).toEqual([]);
     expect(result.findings.some(({ reason }) => reason.includes('grey.50'))).toBe(true);
+  });
+});
+
+describe('redundant app-side theme values', () => {
+  const theme = createAppTheme({ palette: { primary: { main: '#0F62FE' } } });
+
+  it('flags an sx value that already equals the theme, naming the file, line, component and property', () => {
+    const result = reportRedundantThemeValues(
+      [{
+        path: 'src/components/Example.jsx',
+        source: "export function Example() {\n  return <Paper sx={{ borderColor: 'divider' }} />;\n}",
+      }],
+      { theme },
+    );
+
+    expect(result.findings).toEqual([{
+      surface: 'src/components/Example.jsx:2.MuiPaper.borderColor',
+      reason: expect.stringMatching(/MuiPaper.*borderColor.*theme already resolves/),
+    }]);
+  });
+
+  it('does not flag a genuinely different value', () => {
+    const result = reportRedundantThemeValues(
+      [{
+        path: 'src/components/Example.jsx',
+        source: "<Paper sx={{ borderColor: 'error.main' }} />",
+      }],
+      { theme },
+    );
+
+    expect(result.findings).toEqual([]);
+  });
+
+  it('does not flag a component tag outside the attribution list at all', () => {
+    const result = reportRedundantThemeValues(
+      [{
+        path: 'src/components/Example.jsx',
+        source: "<Box sx={{ borderColor: 'divider' }} />",
+      }],
+      { theme },
+    );
+
+    expect(result.findings).toEqual([]);
+  });
+
+  it('does not flag a property the theme does not style on an attributable component', () => {
+    // MuiTextField's baseline styleOverrides.root has no borderColor, so this
+    // must fall through the themeValue === undefined branch, not match.
+    const result = reportRedundantThemeValues(
+      [{
+        path: 'src/components/Example.jsx',
+        source: "<TextField sx={{ borderColor: 'divider' }} />",
+      }],
+      { theme },
+    );
+
+    expect(result.findings).toEqual([]);
+  });
+
+  it('skips a numeric borderRadius rather than false-positive on MUI\'s theme-scale multiplier', () => {
+    // sx={{ borderRadius: 8 }} on a Card actually renders as
+    // theme.shape.borderRadius * 8, not the raw baseline styleOverride value
+    // -- comparing the two numbers directly would be a false positive.
+    const result = reportRedundantThemeValues(
+      [{
+        path: 'src/components/Example.jsx',
+        source: `<Card sx={{ borderRadius: ${theme.components.MuiCard.styleOverrides.root.borderRadius} }} />`,
+      }],
+      { theme },
+    );
+
+    expect(result.findings).toEqual([]);
+  });
+
+  it('matches the finding shape of its sibling checks', () => {
+    const result = reportRedundantThemeValues(
+      [{ path: 'a.jsx', source: "<Paper sx={{ borderColor: 'divider' }} />" }],
+      { theme },
+    );
+
+    expect(result).toEqual({ findings: expect.any(Array) });
+    expect(result.findings[0]).toEqual({ surface: expect.any(String), reason: expect.any(String) });
+  });
+
+  it('returns no findings and requires a theme', () => {
+    expect(reportRedundantThemeValues([{ path: 'a.jsx', source: "<Paper sx={{ borderColor: 'divider' }} />" }]))
+      .toEqual({ findings: [] });
   });
 });

@@ -5,6 +5,7 @@ export {
   calculateContrastRatio,
   reportOffPaletteColours,
   reportKitSxBypasses,
+  reportRedundantThemeValues,
   reportThemeAdoption,
   THEME_COMPLETENESS_SURFACES,
 } from './themeCompleteness';

@@ -17,6 +17,7 @@ export {
   KIT_COMPONENT_SX_REGISTRY,
   reportOffPaletteColours,
   reportKitSxBypasses,
+  reportRedundantThemeValues,
   reportThemeAdoption,
   THEME_COMPLETENESS_SURFACES,
 } from './theme';

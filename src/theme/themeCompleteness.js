@@ -816,6 +816,207 @@ export function reportOffPaletteColours(
   return { findings };
 }
 
+function balancedBraceRegion(text, start) {
+  let depth = 0;
+  let quote = null;
+  for (let index = start; index < text.length; index += 1) {
+    const character = text[index];
+    if (quote) {
+      if (character === quote && text[index - 1] !== '\\') quote = null;
+      continue;
+    }
+    if (character === '"' || character === "'" || character === '`') {
+      quote = character;
+      continue;
+    }
+    if (character === '{') depth += 1;
+    else if (character === '}') {
+      depth -= 1;
+      if (depth === 0) return text.slice(start, index + 1);
+    }
+  }
+  return text.slice(start);
+}
+
+function topLevelObjectEntries(objectText) {
+  const inner = objectText.slice(1, -1);
+  const entries = [];
+  let depth = 0;
+  let quote = null;
+  let entryStart = 0;
+  const push = (raw) => {
+    const trimmed = raw.trim();
+    if (trimmed) entries.push(trimmed);
+  };
+  for (let index = 0; index < inner.length; index += 1) {
+    const character = inner[index];
+    if (quote) {
+      if (character === quote && inner[index - 1] !== '\\') quote = null;
+      continue;
+    }
+    if (character === '"' || character === "'" || character === '`') {
+      quote = character;
+      continue;
+    }
+    if (character === '{' || character === '[' || character === '(') depth += 1;
+    else if (character === '}' || character === ']' || character === ')') depth -= 1;
+    else if (character === ',' && depth === 0) {
+      push(inner.slice(entryStart, index));
+      entryStart = index + 1;
+    }
+  }
+  push(inner.slice(entryStart));
+  return entries;
+}
+
+function splitSxEntry(entry) {
+  let depth = 0;
+  let quote = null;
+  for (let index = 0; index < entry.length; index += 1) {
+    const character = entry[index];
+    if (quote) {
+      if (character === quote && entry[index - 1] !== '\\') quote = null;
+      continue;
+    }
+    if (character === '"' || character === "'" || character === '`') {
+      quote = character;
+      continue;
+    }
+    if (character === '{' || character === '[' || character === '(') depth += 1;
+    else if (character === '}' || character === ']' || character === ')') depth -= 1;
+    else if (character === ':' && depth === 0) {
+      return { rawKey: entry.slice(0, index).trim(), rawValue: entry.slice(index + 1).trim() };
+    }
+  }
+  return null;
+}
+
+const SIMPLE_IDENTIFIER_PATTERN = /^[A-Za-z_$][\w$]*$/;
+const QUOTED_STRING_PATTERN = /^(['"])((?:\\.|(?!\1)[\s\S])*)\1$/;
+const NUMERIC_LITERAL_PATTERN = /^-?\d+(?:\.\d+)?$/;
+
+/**
+ * Reads a top-level `sx={{ ... }}` object literal on a baseline-styled tag
+ * and returns its simple `{ property, value }` entries: identifier keys only
+ * (a quoted key is a nested selector like `'&:hover'` and is skipped, not a
+ * property), values that are a plain quoted string or bare number only. A
+ * template literal, identifier reference, spread, or function call is out of
+ * scope by design -- this is a lower bound, not a JS evaluator.
+ */
+function literalSxEntries(sxValueText) {
+  if (!/^\{\s*\{/.test(sxValueText)) return [];
+  const objectText = balancedBraceRegion(sxValueText, sxValueText.indexOf('{', 1));
+  const entries = [];
+  for (const rawEntry of topLevelObjectEntries(objectText)) {
+    const split = splitSxEntry(rawEntry);
+    if (!split) continue;
+    const { rawKey, rawValue } = split;
+    if (!SIMPLE_IDENTIFIER_PATTERN.test(rawKey)) continue;
+
+    const quoted = rawValue.match(QUOTED_STRING_PATTERN);
+    if (quoted) {
+      entries.push({ property: rawKey, value: quoted[2] });
+      continue;
+    }
+    if (NUMERIC_LITERAL_PATTERN.test(rawValue)) {
+      entries.push({ property: rawKey, value: Number(rawValue) });
+    }
+  }
+  return entries;
+}
+
+// MUI's sx system multiplies a bare NUMBER by a theme scale factor for these
+// properties (`theme.shape.borderRadius` for borderRadius, `theme.spacing()`
+// for every spacing alias) before it ever reaches the DOM -- a raw
+// `styleOverrides.root` value is already-resolved CSS, unscaled. Comparing
+// the two numbers directly would be a false positive (e.g. `borderRadius: 8`
+// in sx renders as `theme.shape.borderRadius * 8`, not `8`), and false
+// positives are the failure mode this whole check exists to avoid. Numeric
+// literals on these properties are therefore skipped, not compared -- a
+// false negative (this check's accepted lower bound) is the safe direction
+// to err in, a false positive is not.
+const MUI_NUMERIC_SCALE_PROPERTIES = new Set([
+  'borderRadius',
+  ...Object.keys(SPACING_SHORTHAND_LONGHANDS).filter((key) => key !== 'bgcolor' && key !== 'typography'),
+]);
+
+/**
+ * Resolves what an sx value would actually render as, for comparison against
+ * a theme styleOverride value already resolved to a real CSS value. A string
+ * sx value is tried as a `theme.palette.<value>` token path first (MUI's own
+ * resolution for palette-aware sx properties, e.g. `borderColor: 'divider'`
+ * -> `theme.palette.divider`); if that path is undefined, the raw string is
+ * used as-is (a plain CSS keyword like `'none'` is not a token path).
+ */
+function resolveSxValue(theme, value) {
+  if (typeof value !== 'string') return value;
+  const paletteValue = getPath(theme, `palette.${value}`);
+  return paletteValue !== undefined ? paletteValue : value;
+}
+
+/**
+ * Reports an app's own `sx` value that already equals what its theme
+ * resolves for that MUI component and property -- not "you overrode the
+ * baseline" (in an app, that is the intended mechanism), but "you re-stated
+ * a value you already had", which silently diverges the next time the token
+ * changes. Attribution is by JSX tag name against the same
+ * `BASELINE_STYLED_MUI_COMPONENTS` list `reportKitSxBypasses` uses, checked
+ * against `theme.components.Mui<Tag>.styleOverrides.root.<property>` only
+ * (no other slot). Report-only; there is no exemption arm yet -- each
+ * adopting app makes this a hard assertion in its own follow-up WO once it
+ * has acted on the findings.
+ *
+ * This is a lower bound, and the bound is open, not enumerated: a `styled()`
+ * component, a component rendered through `component={...}` (so its JSX tag
+ * name is not the MUI component it becomes), an aliased import
+ * (`import { Paper as Surface }`), array/callback/conditional `sx`, and a
+ * template-literal or identifier-reference value are all unattributed or
+ * unresolved by this method. A numeric `sx` value on a property MUI scales
+ * by a theme factor (`borderRadius`, every spacing alias) is deliberately
+ * SKIPPED rather than compared -- see `MUI_NUMERIC_SCALE_PROPERTIES` -- since
+ * comparing the raw numbers would be a false positive, not a missed finding.
+ * A clean result means "nothing found by this method", not "no redundant
+ * value exists".
+ */
+export function reportRedundantThemeValues(sources = [], { theme } = {}) {
+  const findings = [];
+  if (!theme) return { findings };
+  const componentPattern = BASELINE_STYLED_MUI_COMPONENTS.join('|');
+  const tagPattern = new RegExp(`<(${componentPattern})\\b`, 'g');
+
+  for (const { path, source } of normalizedSources(sources)) {
+    const scanSource = maskComments(maskQrPrintDocument(source, path.replaceAll('\\', '/')));
+
+    for (const match of scanSource.matchAll(tagPattern)) {
+      const tagName = match[1];
+      const tag = jsxOpeningTag(scanSource, match.index);
+      const sxValueText = topLevelSxValue(tag);
+      const line = source.slice(0, match.index).split(/\r?\n/).length;
+
+      for (const { property, value } of literalSxEntries(sxValueText)) {
+        if (typeof value === 'number' && MUI_NUMERIC_SCALE_PROPERTIES.has(property)) continue;
+        const [canonicalProperty] = expandShorthandProperty(property);
+        const lookupProperty = expandShorthandProperty(property).length === 1
+          ? canonicalProperty
+          : property;
+        const themeValue = getPath(
+          theme,
+          `components.Mui${tagName}.styleOverrides.root.${lookupProperty}`,
+        );
+        if (themeValue === undefined) continue;
+        if (sameValue(resolveSxValue(theme, value), themeValue)) {
+          findings.push({
+            surface: `${path}:${line}.Mui${tagName}.${property}`,
+            reason: `Mui${tagName}'s sx sets "${property}" to a value the theme already resolves to the same thing.`,
+          });
+        }
+      }
+    }
+  }
+
+  return { findings };
+}
+
 /** Reports adoption signals as numbers; it never changes completeness. */
 export function reportThemeAdoption(sources = []) {
   const normalized = sources.map((entry, index) =>
