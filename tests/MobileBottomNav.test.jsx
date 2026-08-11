@@ -4,7 +4,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 
-import { MobileBottomNav } from '../src/components/MobileBottomNav';
+import {
+  MOBILE_BOTTOM_NAV_ACTION_SX,
+  MOBILE_BOTTOM_NAV_ROOT_SX,
+  MobileBottomNav,
+} from '../src/components/MobileBottomNav';
 import { createAppTheme } from '../src/theme/createAppTheme';
 
 const theme = createAppTheme({ palette: { primary: { main: '#0F62FE' } } });
@@ -179,6 +183,101 @@ describe('MobileBottomNav', () => {
     });
   });
 
+  it('keeps its structural edge and evenly divided actions under a plain MUI theme', () => {
+    const fiveDestinations = [
+      ...destinations,
+      { route: '/fourth', label: 'Fourth', icon: Icon },
+      { route: '/fifth', label: 'Fifth', icon: Icon },
+    ];
+    setViewportWidth(375);
+    const { container } = render(
+      <ThemeProvider theme={createTheme()}>
+        <MobileBottomNav
+          destinations={fiveDestinations}
+          activeRoute="/first"
+          onNavigate={vi.fn()}
+        />
+      </ThemeProvider>,
+    );
+    const navStyle = getComputedStyle(container.firstElementChild);
+    const actionStyles = screen.getAllByRole('button').map((action) => getComputedStyle(action));
+
+    expect(navStyle.borderTopWidth).toBe('1px');
+    expect(navStyle.borderTopStyle).toBe('solid');
+    expect(actionStyles).toHaveLength(5);
+    actionStyles.forEach((actionStyle) => {
+      expect(actionStyle.minWidth).toBe('0px');
+      expect(actionStyle.maxWidth).toBe('none');
+      expect(actionStyle.flexGrow).toBe('1');
+    });
+  });
+
+  it('keeps component-owned sx keys out of baseline theme overrides', () => {
+    const componentSurfaces = [
+      ...Object.keys(MOBILE_BOTTOM_NAV_ROOT_SX)
+        .map((key) => `MuiBottomNavigation.${key}`),
+      ...Object.keys(MOBILE_BOTTOM_NAV_ACTION_SX)
+        .map((key) => `MuiBottomNavigationAction.${key}`),
+    ];
+    const themeSurfaces = [
+      ...Object.keys(theme.components.MuiBottomNavigation.styleOverrides.root)
+        .map((key) => `MuiBottomNavigation.${key}`),
+      ...Object.keys(theme.components.MuiBottomNavigationAction.styleOverrides.root)
+        .map((key) => `MuiBottomNavigationAction.${key}`),
+    ];
+
+    expect(componentSurfaces.filter((surface) => themeSurfaces.includes(surface))).toEqual([]);
+  });
+
+  it.each([
+    ['object', {
+      position: 'absolute',
+      borderTop: '3px dashed',
+      borderColor: 'primary.main',
+    }],
+    ['callback', (currentTheme) => ({
+      position: 'absolute',
+      borderTop: '3px dashed',
+      borderColor: currentTheme.palette.primary.main,
+    })],
+    ['array', [
+      { borderTop: '2px dotted' },
+      {
+        position: 'absolute',
+        borderTop: '3px dashed',
+        borderColor: 'primary.main',
+      },
+    ]],
+  ])('lets caller %s sx override the component defaults', (_kind, sx) => {
+    const { container } = renderNav({
+      sx,
+    });
+    const navStyle = getComputedStyle(container.firstElementChild);
+
+    expect(navStyle.position).toBe('absolute');
+    expect(navStyle.borderTopWidth).toBe('3px');
+    expect(navStyle.borderTopStyle).toBe('dashed');
+    expect(navStyle.borderTopColor).toBe('rgb(15, 98, 254)');
+  });
+
+  it('preserves baseline density and label styling after the structural values move', () => {
+    renderNav();
+    const [selectedAction] = screen.getAllByRole('button');
+    const actionStyle = getComputedStyle(selectedAction);
+    const labelStyle = getComputedStyle(
+      selectedAction.querySelector('.MuiBottomNavigationAction-label'),
+    );
+
+    expect(actionStyle.minWidth).toBe('0px');
+    expect(actionStyle.maxWidth).toBe('none');
+    expect(actionStyle.paddingLeft).toBe('2px');
+    expect(actionStyle.paddingRight).toBe('2px');
+    expect(actionStyle.gap).toBe('2px');
+    expect(labelStyle.fontSize).toBe('12px');
+    expect(labelStyle.fontWeight).toBe('500');
+    expect(labelStyle.lineHeight).toBe('1.2');
+  });
+
   it('renders nothing at and above hideAbove', () => {
     setMediaQueryMatches((query) => query === '(min-width:900px)');
     const { container } = renderNav();
@@ -195,7 +294,7 @@ describe('MobileBottomNav', () => {
     expect(nav.classList.contains('MuiBottomNavigation-root')).toBe(true);
     // jsdom drops env() declarations while parsing CSS, so assert the sx
     // declaration before browser CSS parsing instead of a computed inset.
-    expect(MobileBottomNav.toString()).toContain('env(safe-area-inset-bottom)');
+    expect(MOBILE_BOTTOM_NAV_ROOT_SX.paddingBottom).toBe('env(safe-area-inset-bottom)');
   });
 
   it('renders the five-item, two-badge specimen at 375px and nothing at 1280px', () => {

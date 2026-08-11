@@ -96,12 +96,8 @@ const COMPONENT_SURFACES = [
     (theme) => theme.components?.MuiChip?.styleOverrides?.root
       ?.['@media (any-pointer: coarse)']?.['&::after']?.inset,
   ),
-  componentPath('MuiBottomNavigation', 'styleOverrides.root.borderTop'),
   componentPath('MuiBottomNavigation', 'styleOverrides.root.boxShadow'),
   componentPath('MuiBottomNavigation', 'styleOverrides.root.backgroundColor'),
-  componentPath('MuiBottomNavigation', 'styleOverrides.root.borderColor'),
-  componentPath('MuiBottomNavigationAction', 'styleOverrides.root.minWidth'),
-  componentPath('MuiBottomNavigationAction', 'styleOverrides.root.maxWidth'),
   componentPath('MuiBottomNavigationAction', 'styleOverrides.root.padding'),
   componentPath('MuiBottomNavigationAction', 'styleOverrides.root.gap'),
   componentKeyLeaf('MuiBottomNavigationAction', 'styleOverrides.root', '& .MuiSvgIcon-root', 'width'),

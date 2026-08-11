@@ -5,7 +5,8 @@ import {
   assertThemeComplete,
   calculateContrastRatio,
   createAppTheme,
-} from '../src/index';
+  THEME_COMPLETENESS_SURFACES,
+} from '../src/theme';
 
 describe('theme completeness', () => {
   it('finds untouched MUI surfaces and accepts createAppTheme', () => {
@@ -20,12 +21,8 @@ describe('theme completeness', () => {
       .map(({ surface }) => surface))
       .toContain('components.MuiButton.styleOverrides.root.minHeight');
     expect(bare.findings.map(({ surface }) => surface)).toEqual(expect.arrayContaining([
-      'components.MuiBottomNavigation.styleOverrides.root.borderTop',
       'components.MuiBottomNavigation.styleOverrides.root.boxShadow',
       'components.MuiBottomNavigation.styleOverrides.root.backgroundColor',
-      'components.MuiBottomNavigation.styleOverrides.root.borderColor',
-      'components.MuiBottomNavigationAction.styleOverrides.root.minWidth',
-      'components.MuiBottomNavigationAction.styleOverrides.root.maxWidth',
       'components.MuiBottomNavigationAction.styleOverrides.root.padding',
       'components.MuiBottomNavigationAction.styleOverrides.root.gap',
       'components.MuiBottomNavigationAction.styleOverrides.root.& .MuiSvgIcon-root.width',
@@ -42,6 +39,34 @@ describe('theme completeness', () => {
       'components.MuiBottomNavigationAction.styleOverrides.root.&.Mui-selected.color',
     ]));
     expect(baseline.findings).toEqual([]);
+  });
+
+  it('keeps the narrowed bottom-navigation inventory complete', () => {
+    const bottomNavigationSurfaces = THEME_COMPLETENESS_SURFACES
+      .map(({ surface }) => surface)
+      .filter((surface) => surface.startsWith('components.MuiBottomNavigation'));
+
+    expect(bottomNavigationSurfaces).toHaveLength(16);
+    [
+      'components.MuiBottomNavigation.styleOverrides.root.borderTop',
+      'components.MuiBottomNavigation.styleOverrides.root.borderColor',
+      'components.MuiBottomNavigationAction.styleOverrides.root.minWidth',
+      'components.MuiBottomNavigationAction.styleOverrides.root.maxWidth',
+    ].forEach((surface) => expect(bottomNavigationSurfaces).not.toContain(surface));
+  });
+
+  it('ignores a valid exemption for a deregistered surface', () => {
+    const result = assertThemeComplete(
+      createAppTheme({ palette: { primary: { main: '#0F62FE' } } }),
+      {
+        exemptions: [{
+          surface: 'components.MuiBottomNavigation.styleOverrides.root.borderTop',
+          reason: 'Legacy exemption retained while the application upgrades.',
+        }],
+      },
+    );
+
+    expect(result.findings).toEqual([]);
   });
 
   it('suppresses exactly one surface when an exemption includes a reason', () => {

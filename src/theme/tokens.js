@@ -308,14 +308,12 @@ export const BASELINE_STATIC = {
     },
     MuiBottomNavigation: {
       styleOverrides: {
-        root: { borderTop: '1px solid', boxShadow: 'none' },
+        root: { boxShadow: 'none' },
       },
     },
     MuiBottomNavigationAction: {
       styleOverrides: {
         root: {
-          minWidth: 0,
-          maxWidth: 'none',
           padding: '0 2px',
           gap: '2px',
           '& .MuiSvgIcon-root': { width: '22px', height: '22px' },

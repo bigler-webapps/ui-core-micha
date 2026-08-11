@@ -1,7 +1,7 @@
 import { createTheme } from '@mui/material/styles';
 import { describe, expect, it } from 'vitest';
 
-import { assertThemeComplete, createAppTheme } from '../src/index';
+import { assertThemeComplete, createAppTheme } from '../src/theme';
 import { BASELINE_STATIC } from '../src/theme/tokens';
 
 describe('createAppTheme', () => {
@@ -23,12 +23,16 @@ describe('createAppTheme', () => {
       '&.Mui-selected': { fontSize: '12px' },
     });
     expect(theme.components.MuiBottomNavigationAction.styleOverrides.root).toMatchObject({
-      minWidth: 0,
-      maxWidth: 'none',
       padding: '0 2px',
       gap: '2px',
       '& .MuiSvgIcon-root': { width: '22px', height: '22px' },
     });
+    expect(theme.components.MuiBottomNavigation.styleOverrides.root).not.toHaveProperty('borderTop');
+    expect(theme.components.MuiBottomNavigation.styleOverrides.root).not.toHaveProperty('borderColor');
+    expect(theme.components.MuiBottomNavigationAction.styleOverrides.root)
+      .not.toHaveProperty('minWidth');
+    expect(theme.components.MuiBottomNavigationAction.styleOverrides.root)
+      .not.toHaveProperty('maxWidth');
     expect(theme.palette.dataSeries.categorical).toHaveLength(6);
     expect(theme.palette.primary.light).not.toBe(createTheme().palette.primary.light);
     // MUI's createTheme(options, ...args) only augments the FIRST argument's

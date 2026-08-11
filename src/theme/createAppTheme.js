@@ -120,7 +120,6 @@ function createPaletteAwareComponents(palette) {
       styleOverrides: {
         root: {
           backgroundColor: palette.background.paper,
-          borderColor: palette.divider,
         },
       },
     },

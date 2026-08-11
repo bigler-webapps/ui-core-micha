@@ -31,6 +31,7 @@ import {
   Tooltip,
   Typography,
 } from '@mui/material';
+import { ThemeProvider, createTheme } from '@mui/material/styles';
 
 import { AuthContext } from '../src/auth/AuthContext';
 import { MobileBottomNav } from '../src/components/MobileBottomNav';
@@ -74,6 +75,8 @@ const MOBILE_NAV_DESTINATIONS = [
   { route: '/more', label: 'Mehr', icon: MoreHorizIcon, emphasis: true },
 ];
 
+const PLAIN_MOBILE_NAV_THEME = createTheme();
+
 function MobileBottomNavEntry() {
   const [activeRoute, setActiveRoute] = useState('/triage');
 
@@ -81,14 +84,33 @@ function MobileBottomNavEntry() {
     <Box sx={{ minHeight: 180 }}>
       <Typography variant="h6">Mobile bottom navigation</Typography>
       <Typography color="text.secondary">
-        Five destinations, two badges, and one emphasised action. This specimen follows the real
-        browser viewport: resize below 900px to show the bar and to 900px or wider to hide it.
+        The baseline and plain-MUI variants use the same five destinations. Both keep their edge
+        and evenly divided actions; their label and icon density may differ.
       </Typography>
-      <MobileBottomNav
-        destinations={MOBILE_NAV_DESTINATIONS}
-        activeRoute={activeRoute}
-        onNavigate={setActiveRoute}
-      />
+      <Stack direction={{ xs: 'column', lg: 'row' }} spacing={2} sx={{ mt: 2 }}>
+        <Box sx={{ flex: 1, minWidth: 0 }}>
+          <Typography variant="subtitle2">createAppTheme baseline</Typography>
+          <MobileBottomNav
+            destinations={MOBILE_NAV_DESTINATIONS}
+            activeRoute={activeRoute}
+            onNavigate={setActiveRoute}
+            hideAbove="xl"
+            sx={{ position: 'relative', width: '100%', mt: 1 }}
+          />
+        </Box>
+        <ThemeProvider theme={PLAIN_MOBILE_NAV_THEME}>
+          <Box sx={{ flex: 1, minWidth: 0 }}>
+            <Typography variant="subtitle2">Plain createTheme</Typography>
+            <MobileBottomNav
+              destinations={MOBILE_NAV_DESTINATIONS}
+              activeRoute={activeRoute}
+              onNavigate={setActiveRoute}
+              hideAbove="xl"
+              sx={{ position: 'relative', width: '100%', mt: 1 }}
+            />
+          </Box>
+        </ThemeProvider>
+      </Stack>
     </Box>
   );
 }

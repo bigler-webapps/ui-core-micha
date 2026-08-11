@@ -6,15 +6,32 @@ import { useTheme } from '@mui/material/styles';
 
 const defaultZIndex = (theme) => theme.zIndex.drawer + 2;
 
+export const MOBILE_BOTTOM_NAV_ROOT_SX = {
+  position: 'fixed',
+  left: 0,
+  right: 0,
+  bottom: 0,
+  borderTop: '1px solid',
+  borderColor: 'divider',
+  paddingBottom: 'env(safe-area-inset-bottom)',
+};
+
+export const MOBILE_BOTTOM_NAV_ACTION_SX = {
+  minWidth: 0,
+  maxWidth: 'none',
+};
+
 export function MobileBottomNav({
   destinations,
   activeRoute,
   onNavigate,
   hideAbove = 'md',
   zIndex = defaultZIndex,
+  sx = {},
 }) {
   const theme = useTheme();
   const isHidden = useMediaQuery(theme.breakpoints.up(hideAbove));
+  const callerSx = Array.isArray(sx) ? sx : [sx];
 
   if (isHidden) return null;
 
@@ -23,14 +40,10 @@ export function MobileBottomNav({
       value={activeRoute}
       onChange={(_, route) => onNavigate(route)}
       showLabels
-      sx={{
-        position: 'fixed',
-        left: 0,
-        right: 0,
-        bottom: 0,
-        zIndex,
-        paddingBottom: 'env(safe-area-inset-bottom)',
-      }}
+      sx={[
+        { ...MOBILE_BOTTOM_NAV_ROOT_SX, zIndex },
+        ...callerSx,
+      ]}
     >
       {destinations.map((destination) => {
         const Icon = destination.icon;
@@ -55,6 +68,7 @@ export function MobileBottomNav({
             label={destination.shortLabel ?? destination.label}
             aria-label={destination.shortLabel != null ? destination.label : undefined}
             aria-current={selected ? 'page' : undefined}
+            sx={MOBILE_BOTTOM_NAV_ACTION_SX}
             icon={destination.badgeCount ? (
               <Badge badgeContent={destination.badgeCount} color="error" max={99}>
                 {icon}
