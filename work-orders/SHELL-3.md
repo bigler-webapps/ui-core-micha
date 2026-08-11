@@ -103,6 +103,38 @@ Behaviour the component does **not** own:
   added open/close state, a scrim, a focus trap, Escape handling and a reduced-motion path to a
   shared component on the strength of two consumers.
 
+### Design-agnosticism: what the bar derives from, and what it does not guarantee
+
+**No hex value appears in the component.** The bar is composed entirely from tokens —
+`background.paper` for its surface, `divider` for its top edge, `text.secondary` for the label,
+`primary.main` for the selected state — so an app with a different surface colour gets a different
+bar without touching the kit. A second seam exists above that: an app may override
+`MuiBottomNavigation` / `MuiBottomNavigationAction` in **its own** theme. That is not an escape
+hatch, it is the mechanism, and it is the reason part 1 puts the defaults in the theme rather than
+in the component. Values inside the component are exactly jg's current problem.
+
+Three limits must be stated rather than discovered:
+
+- **Contrast is not guaranteed, and nothing checks it.** `assertThemeComplete`'s contrast surfaces
+  are hardcoded to `#FFFFFF` and `background.default`; **`background.paper` is never a contrast
+  surface, and `text.secondary` is never checked against anything.** An app with a dark or
+  saturated `background.paper` therefore gets a correctly-rendered, unreadable bar and **zero
+  findings**. For baseline apps this is comfortable — `#5B6670` on `#FFFFFF` measures 5.87:1 and on
+  `#FAFAFA` 5.62:1 (MUI's own `getContrastRatio`) — so this is a limit for deviating apps, not a
+  defect in the default. **Do not extend the shared contrast assertion inside this WO**: adding a
+  surface changes what every adopting app is measured against, which is a deliberate governance
+  decision belonging to `DS-18` (invariant-scoped coverage), not a side effect of shipping a
+  component.
+- **The separation from the page depends on `background.paper` differing from
+  `background.default`.** The bar has no resting shadow by baseline rule, so its edge comes from
+  one tonal step (`#FFFFFF` against `#FAFAFA`) plus a 1&nbsp;px divider. In an app where those two
+  tokens are the same colour, only the divider carries it and the bar reads as glued to the page.
+  That is an acceptable outcome, but it must be a known one.
+- **A tooling trap for anyone verifying the above:** MUI's `getContrastRatio` ignores alpha —
+  `rgba(0, 0, 0, 0.6)` on white returns `21.00`, the figure for pure black. jg-ferien keeps its own
+  `createTheme` and therefore MUI's alpha-based `text.secondary`, so a contrast check against jg's
+  theme is meaningless. Verify jg by looking, not by computing.
+
 ### Non-goals / do not touch
 
 - **No `AppHeaderMobile` promotion.** jg's is mostly app wiring around already-shared pieces.
@@ -135,6 +167,12 @@ Behaviour the component does **not** own:
 4. `badgeCount` renders on the destination that has it and **not** on the others; a count of `0`
    or `undefined` renders no badge.
 5. `shortLabel` is used when present, `label` when absent.
+5b. **Theme-agnosticism, asserted rather than assumed.** Render the same bar under two themes whose
+   `background.paper`, `text.secondary` and `primary.main` differ, and assert the resolved computed
+   values follow the theme in both. This is what proves no colour is baked into the component — the
+   single most likely regression, because an `sx` literal looks correct in the app it was written
+   for. Include one theme that is **not** built by `createAppTheme`, since jg-ferien is exactly that
+   case and `NAV-36` depends on it working.
 6. Above `hideAbove` the component renders nothing.
 7. `assertThemeComplete(createAppTheme({ palette: { primary: { main: '#0F62FE' } } })).findings`
    stays `[]` with the new surfaces registered — and **prove non-vacuity**: a theme missing the
