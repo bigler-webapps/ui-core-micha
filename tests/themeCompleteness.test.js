@@ -19,6 +19,28 @@ describe('theme completeness', () => {
     expect(assertThemeComplete(createTheme({ components: { MuiButton: {} } })).findings
       .map(({ surface }) => surface))
       .toContain('components.MuiButton.styleOverrides.root.minHeight');
+    expect(bare.findings.map(({ surface }) => surface)).toEqual(expect.arrayContaining([
+      'components.MuiBottomNavigation.styleOverrides.root.borderTop',
+      'components.MuiBottomNavigation.styleOverrides.root.boxShadow',
+      'components.MuiBottomNavigation.styleOverrides.root.backgroundColor',
+      'components.MuiBottomNavigation.styleOverrides.root.borderColor',
+      'components.MuiBottomNavigationAction.styleOverrides.root.minWidth',
+      'components.MuiBottomNavigationAction.styleOverrides.root.maxWidth',
+      'components.MuiBottomNavigationAction.styleOverrides.root.padding',
+      'components.MuiBottomNavigationAction.styleOverrides.root.gap',
+      'components.MuiBottomNavigationAction.styleOverrides.root.& .MuiSvgIcon-root.width',
+      'components.MuiBottomNavigationAction.styleOverrides.root.& .MuiSvgIcon-root.height',
+      'components.MuiBottomNavigationAction.styleOverrides.root.color',
+      'components.MuiBottomNavigationAction.styleOverrides.label.fontSize',
+      'components.MuiBottomNavigationAction.styleOverrides.label.fontWeight',
+      'components.MuiBottomNavigationAction.styleOverrides.label.lineHeight',
+      'components.MuiBottomNavigationAction.styleOverrides.label.maxWidth',
+      'components.MuiBottomNavigationAction.styleOverrides.label.whiteSpace',
+      'components.MuiBottomNavigationAction.styleOverrides.label.overflow',
+      'components.MuiBottomNavigationAction.styleOverrides.label.textOverflow',
+      'components.MuiBottomNavigationAction.styleOverrides.label.&.Mui-selected.fontSize',
+      'components.MuiBottomNavigationAction.styleOverrides.root.&.Mui-selected.color',
+    ]));
     expect(baseline.findings).toEqual([]);
   });
 

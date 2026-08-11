@@ -306,6 +306,32 @@ export const BASELINE_STATIC = {
         },
       },
     },
+    MuiBottomNavigation: {
+      styleOverrides: {
+        root: { borderTop: '1px solid', boxShadow: 'none' },
+      },
+    },
+    MuiBottomNavigationAction: {
+      styleOverrides: {
+        root: {
+          minWidth: 0,
+          maxWidth: 'none',
+          padding: '0 2px',
+          gap: '2px',
+          '& .MuiSvgIcon-root': { width: '22px', height: '22px' },
+        },
+        label: {
+          fontSize: '12px',
+          fontWeight: 500,
+          lineHeight: 1.2,
+          maxWidth: '100%',
+          whiteSpace: 'nowrap',
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          '&.Mui-selected': { fontSize: '12px' },
+        },
+      },
+    },
     MuiTextField: {
       defaultProps: { variant: 'outlined' },
       styleOverrides: { root: { minHeight: 40, ...coarseHitArea } },

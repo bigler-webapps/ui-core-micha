@@ -1,5 +1,10 @@
 import { useEffect, useState } from 'react';
+import ChatBubbleOutlineIcon from '@mui/icons-material/ChatBubbleOutline';
+import InboxIcon from '@mui/icons-material/Inbox';
+import MoreHorizIcon from '@mui/icons-material/MoreHoriz';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
+import ScheduleIcon from '@mui/icons-material/Schedule';
+import ViewKanbanIcon from '@mui/icons-material/ViewKanban';
 import {
   Alert,
   Box,
@@ -28,6 +33,7 @@ import {
 } from '@mui/material';
 
 import { AuthContext } from '../src/auth/AuthContext';
+import { MobileBottomNav } from '../src/components/MobileBottomNav';
 import { BarChart } from '../src/components/charts/BarChart';
 import { ChartFrame } from '../src/components/charts/ChartFrame';
 import { LineChart } from '../src/components/charts/LineChart';
@@ -57,6 +63,33 @@ function NotificationBellEntry() {
         <NotificationBell resolveLink={(link) => window.alert(`Navigate to ${link}`)} />
       </NotificationsProvider>
     </AuthContext.Provider>
+  );
+}
+
+const MOBILE_NAV_DESTINATIONS = [
+  { route: '/triage', label: 'Triage', icon: InboxIcon, badgeCount: 7 },
+  { route: '/board', label: 'Board', icon: ViewKanbanIcon, badgeCount: 3 },
+  { route: '/chat', label: 'Chat', icon: ChatBubbleOutlineIcon },
+  { route: '/status', label: 'Status', icon: ScheduleIcon },
+  { route: '/more', label: 'Mehr', icon: MoreHorizIcon, emphasis: true },
+];
+
+function MobileBottomNavEntry() {
+  const [activeRoute, setActiveRoute] = useState('/triage');
+
+  return (
+    <Box sx={{ minHeight: 180 }}>
+      <Typography variant="h6">Mobile bottom navigation</Typography>
+      <Typography color="text.secondary">
+        Five destinations, two badges, and one emphasised action. This specimen follows the real
+        browser viewport: resize below 900px to show the bar and to 900px or wider to hide it.
+      </Typography>
+      <MobileBottomNav
+        destinations={MOBILE_NAV_DESTINATIONS}
+        activeRoute={activeRoute}
+        onNavigate={setActiveRoute}
+      />
+    </Box>
   );
 }
 
@@ -403,6 +436,7 @@ function MessagingScopeConfigEntry() { return <MessagingProvider api={messagingH
 
 export const entries = [
   { id: 'theme-baseline', label: 'Theme / Shared baseline', Component: ThemeBaselineEntry },
+  { id: 'mobile-bottom-nav', label: 'Navigation / Mobile bottom nav', Component: MobileBottomNavEntry },
   { id: 'notification-bell', label: 'Notifications / Bell', Component: NotificationBellEntry },
   { id: 'bar-chart', label: 'Charts / BarChart', Component: BarChartEntry },
   { id: 'time-series-chart', label: 'Charts / TimeSeriesChart', Component: TimeSeriesChartEntry },

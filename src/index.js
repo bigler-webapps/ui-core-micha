@@ -48,6 +48,7 @@ export { RegistrationMethodsManager } from './components/RegistrationMethodsMana
 export { AuthFactorRequirementCard } from './components/AuthFactorRequirementCard';
 export { AccessCodeSingleUseToggle } from './components/AccessCodeSingleUseToggle';
 export { QrSignupManager } from './components/QrSignupManager';
+export { MobileBottomNav } from './components/MobileBottomNav';
 
 // --- 6. Charts ---
 export { ChartFrame } from './components/charts/ChartFrame';

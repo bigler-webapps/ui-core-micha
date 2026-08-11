@@ -116,6 +116,22 @@ function createPaletteAwareComponents(palette) {
         outlined: { borderColor: palette.controlBorder.main },
       },
     },
+    MuiBottomNavigation: {
+      styleOverrides: {
+        root: {
+          backgroundColor: palette.background.paper,
+          borderColor: palette.divider,
+        },
+      },
+    },
+    MuiBottomNavigationAction: {
+      styleOverrides: {
+        root: {
+          color: palette.text.secondary,
+          '&.Mui-selected': { color: palette.primary.main },
+        },
+      },
+    },
     MuiOutlinedInput: {
       styleOverrides: {
         root: {

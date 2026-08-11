@@ -12,6 +12,23 @@ describe('createAppTheme', () => {
     expect(theme.typography.body1.fontSize).toBe('14px');
     expect(theme.shape.borderRadius).toBe(3);
     expect(theme.components.MuiPaper.defaultProps).toMatchObject({ elevation: 0, variant: 'outlined' });
+    expect(theme.components.MuiBottomNavigationAction.styleOverrides.label).toMatchObject({
+      fontSize: '12px',
+      fontWeight: 500,
+      lineHeight: 1.2,
+      maxWidth: '100%',
+      whiteSpace: 'nowrap',
+      overflow: 'hidden',
+      textOverflow: 'ellipsis',
+      '&.Mui-selected': { fontSize: '12px' },
+    });
+    expect(theme.components.MuiBottomNavigationAction.styleOverrides.root).toMatchObject({
+      minWidth: 0,
+      maxWidth: 'none',
+      padding: '0 2px',
+      gap: '2px',
+      '& .MuiSvgIcon-root': { width: '22px', height: '22px' },
+    });
     expect(theme.palette.dataSeries.categorical).toHaveLength(6);
     expect(theme.palette.primary.light).not.toBe(createTheme().palette.primary.light);
     // MUI's createTheme(options, ...args) only augments the FIRST argument's
