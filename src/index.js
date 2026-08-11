@@ -1,5 +1,13 @@
 // index.js (Entry Point deiner Library)
 
+import { authTranslations } from './i18n/authTranslations';
+import { chartsTranslations } from './i18n/chartsTranslations';
+import { messagingTranslations } from './i18n/messagingTranslations';
+import { notificationsTranslations } from './i18n/notificationsTranslations';
+import { onboardingTranslations } from './i18n/onboardingTranslations';
+import { sectionNavTranslations } from './i18n/sectionNavTranslations';
+import { userMenuTranslations } from './i18n/userMenuTranslations';
+
 // --- 0. Theme ---
 export {
   createAppTheme,
@@ -125,3 +133,13 @@ export { notificationsTranslations } from './i18n/notificationsTranslations';
 export { onboardingTranslations } from './i18n/onboardingTranslations';
 export { chartsTranslations } from './i18n/chartsTranslations';
 export { messagingTranslations } from './i18n/messagingTranslations';
+
+export const uiCoreTranslations = {
+  ...authTranslations,
+  ...chartsTranslations,
+  ...messagingTranslations,
+  ...notificationsTranslations,
+  ...onboardingTranslations,
+  ...sectionNavTranslations,
+  ...userMenuTranslations,
+};
