@@ -295,7 +295,47 @@ entries structure, or any component's public props. No baseline token added (Par
 tokens only). `chartLabels.js`'s own values are not colours to fix (see trap above) — if the finished
 scan flags anything in `src/theme/**`, that is a scan-scope bug, not a file to edit.
 
+### Addendum — operator decision on the scan's broader findings (chunk 2)
+
+The first implementation chunk correctly stopped without committing and reported a real scope
+question instead of deciding it: with the off-palette scan's detection widened beyond hex + basic
+named colours (per Part 2), it also catches two values **outside `MFAComponent`**, which the
+Envelope's Parity guardrail ("six values change in one component; everything else in the kit renders
+identically") did not anticipate:
+
+1. `src/components/SocialLoginButtons.jsx:37` — `border: '1px solid rgba(0,0,0,0.2)'` on the Google
+   icon circle. A real rendered `sx` border, same class of finding as the MFA border fixes.
+2. `src/components/charts/exportChart.js:48` — `context.fillStyle = 'white'` inside a **Canvas 2D API
+   call** (PNG export), not JSX/`sx` — structurally like the already-excluded print document in that it
+   runs outside the React/theme tree, but unlike it, plumbing a resolved colour in is straightforward
+   (the caller has `useTheme()` access; a colour can be passed as a parameter to the export function).
+
+**Operator decision (this session): fix both**, per Codex's own recommended option. This is an
+explicit, approved widening of scope beyond the original Envelope's blast radius — record it as such
+in the register note, do not fold it in as if the original Envelope already covered it.
+
+**Scope of the fix:**
+- Widen the scan's colour detection to catch `rgba(...)` literals (not just hex + the basic named-colour
+  set), so this class is caught mechanically going forward, not just this one instance.
+- `SocialLoginButtons.jsx:37`: map to `divider` (the same token every other border-role finding in this
+  WO maps to) — confirm this reads correctly next to the icon (a translucent, lighter border than the
+  current `rgba(0,0,0,0.2)`; this is the intended effect of holding to the baseline, not a regression).
+- `exportChart.js:48`: resolve the fill colour from the theme at the call site (the component invoking
+  the export utility has `useTheme()`), and pass it into `exportChart`'s existing call rather than
+  hardcoding a new default inside the utility — check `exportChart.js`'s current signature and its
+  caller(s) (`ChartFrame.jsx`, most likely) before deciding the exact parameter shape; prefer the
+  smallest signature change that removes the hardcoded literal, not a redesign of the export API.
+- Both new value changes must be listed in the register note the same way as the seven MFA values
+  (from → to, with role), per the Envelope's "every changed value must be listed" requirement, which
+  the operator's decision extends to cover these two as well.
+- Re-run both reviewers (`reviewer` + `ui_reviewer`) on the complete, widened diff — the WO's original
+  review requirement stands, now over a larger diff.
+
+This addendum does not change anything else in Part A/B above — the six/seven MFA mappings, the
+allowlist requirement, the print-document exclusion, and the `grey.*` report-only class are unchanged.
+
 ### Mini-handover
 
 Repo: `ui-core-micha` (`C:\Users\biglmi\Documents\webapps\ui-core-micha`), branch `main`.
-WO: `work-orders/THEME-5.md`. Follow `orchestrate-codex`.
+WO: `work-orders/THEME-5.md`. Follow `orchestrate-codex`. **Chunk 2**: implement the Addendum above on
+top of chunk 1's uncommitted working-tree state — do not discard chunk 1's work, extend it.
