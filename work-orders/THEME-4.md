@@ -178,6 +178,92 @@ note, not folded in as tidying.
 > `git status` before your own review; an implementer commit is a blocker to surface, and a register
 > row naming a review the Orchestrator did not itself start is invalid.
 
+### Context package
+
+**Precondition confirmed:** `THEME-3` is landed and published (`1b25117`, register row `done`).
+`git log --oneline -3` at hand-off time shows the Orchestrator's own docs commits on top of it, no
+implementer commit — clean to start from.
+
+**The established `sx`-export convention (scope item 1's shape to follow), already shipped in
+`src/components/MobileBottomNav.jsx`:**
+```js
+export const MOBILE_BOTTOM_NAV_ROOT_SX = {
+  position: 'fixed', left: 0, right: 0, bottom: 0,
+  borderTop: '1px solid', borderColor: 'divider',
+  paddingBottom: 'env(safe-area-inset-bottom)',
+};
+export const MOBILE_BOTTOM_NAV_ACTION_SX = { minWidth: 0, maxWidth: 'none' };
+```
+Both are plain top-level `export const` object literals, used directly as (or spread into) the
+`sx` prop on the MUI element they style. This is the shape the registry (item 1) should match
+against — a component "carries its own `sx` for a MUI component the baseline styles" means: look for
+`<BottomNavigation`, `<Button`, `<Card`, etc. (the 23 baseline-styled MUI component names) receiving
+an `sx=` prop inside `src/**/*.jsx`, then check whether that `sx` is a top-level exported identifier
+(covered) or an inline/conditional literal (item 3's bypass check should flag the latter if it isn't
+exported).
+
+**The exemption contract to mirror exactly (scope item 2 + required test 4), from
+`src/theme/themeCompleteness.js:333-350` (`assertThemeComplete`):**
+```js
+export function assertThemeComplete(theme, { exemptions = [] } = {}) {
+  const declaredExemptions = [...(theme?.themeCompleteness?.exemptions || []), ...exemptions];
+  const validExemptions = new Set();
+  const findings = [];
+  for (const exemption of declaredExemptions) {
+    if (!exemption?.surface || !exemption?.reason?.trim()) {
+      findings.push({ surface: `exemption.${exemption?.surface || 'unknown'}`,
+        reason: 'A completeness exemption must name a surface and include a reason.' });
+      continue;
+    }
+    validExemptions.add(exemption.surface);
+  }
+  ...
+}
+```
+The new check's `{ findings: [{ surface, reason }] }` return shape and exemption handling should be
+structurally identical to this, not a reinvention — same two failure modes (missing reason is itself
+a finding; a valid exemption suppresses exactly one finding).
+
+**The bypass-check precedent (scope item 3), from `src/theme/themeCompleteness.js:370-379`
+(`reportThemeAdoption`):**
+```js
+export function reportThemeAdoption(sources = []) {
+  const normalized = sources.map((entry, index) => typeof entry === 'string'
+    ? { path: `source-${index + 1}`, source: entry }
+    : { path: entry.path || `source-${index + 1}`, source: entry.source || '' });
+  const themeBypassPaths = normalized
+    .filter(({ source }) => /\bcreateTheme\s*\(/.test(source) && !/\bcreateAppTheme\s*\(/.test(source))
+    .map(({ path }) => path);
+  ...
+}
+```
+Same module, same input shape (an array of `{ path, source }` or raw source strings), same
+regex-over-source-text technique — the new bypass check takes the same input shape and regexes for
+an inline `sx={{ ... }}` object literal that is not a reference to a top-level exported identifier.
+
+**Where to put the new code:** co-locate in `src/theme/themeCompleteness.js` alongside
+`reportThemeAdoption` (the WO's own "same module" language for item 3), or a new sibling file if
+the additions make that file unwieldy — Codex's call, but export everything new from
+`src/theme/index.js` and `src/index.js` (follow the existing export list pattern in both) so the
+check is part of the public API per the WO's "additive API is a minor" versioning note.
+
+**Discovery is the actual task, not pre-solved here:** the WO's own measurement (51 `.jsx` files
+under `src/` carry `sx=`, baseline styles 23 MUI keys) is a starting estimate, not a fixed list —
+grep `src/**/*.jsx` for `sx=` against the 23 keys named in the Envelope's "Why the whole kit,
+measured" section to build the actual registry. This is scope item 1 itself; do not skip it by
+registering only `MobileBottomNav`'s two already-known exports.
+
+**On the "stop and report if large" clause:** if fixing every real finding from test 2 would grow
+this WO well beyond a layer-relocation pass (i.e. touches component *behaviour*, not just moving an
+`sx` value into an export), STOP before committing anything and report the finding list instead of
+silently absorbing it all — this is explicitly named in the Envelope as an operator-level scope
+decision, not an implementer judgment call.
+
+**Known repeat-offense warning, restated because it has happened on the two immediately preceding
+work orders in this exact repo:** do not run `git commit` or `git push` under any circumstance. Leave
+the diff for the Orchestrator. If you find yourself about to commit "because everything passed", stop
+— that decision is not yours in this workflow, regardless of how clean the result looks.
+
 ### Mini-handover
 
 Repo: `ui-core-micha` (`C:\Users\biglmi\Documents\webapps\ui-core-micha`), branch `main`.
