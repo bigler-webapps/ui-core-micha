@@ -41,6 +41,16 @@ describe('theme completeness', () => {
     expect(baseline.findings).toEqual([]);
   });
 
+  it('requires and automatically resolves the subtle background for a minimal adopter', () => {
+    const muiDefault = createTheme();
+    const theme = createAppTheme({ palette: { primary: { main: '#0F62FE' } } });
+
+    expect(muiDefault.palette.background.subtle).toBeUndefined();
+    expect(THEME_COMPLETENESS_SURFACES.map(({ surface }) => surface))
+      .toContain('palette.background.subtle');
+    expect(assertThemeComplete(theme).findings).toEqual([]);
+  });
+
   it('keeps the narrowed bottom-navigation inventory complete', () => {
     const bottomNavigationSurfaces = THEME_COMPLETENESS_SURFACES
       .map(({ surface }) => surface)
@@ -106,6 +116,11 @@ describe('theme completeness', () => {
     theme.palette.success.text = 'not-a-colour';
     expect(assertThemeComplete(theme).findings.map(({ surface }) => surface))
       .toContain('contrast.success.text-on-bg');
+  });
+
+  it('keeps secondary ink AA-legible on the subtle background', () => {
+    const ratio = calculateContrastRatio('#5B6670', '#F4F5F6');
+    expect(ratio).toBeGreaterThanOrEqual(4.5);
   });
 
   it('requires every MUI status main to clear AA on white and the page background', () => {

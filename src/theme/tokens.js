@@ -64,6 +64,7 @@ export const BASELINE_PALETTE = {
   background: {
     default: '#FAFAFA',
     paper: '#FFFFFF',
+    subtle: '#F4F5F6',
   },
   divider: 'rgba(33,37,41,.10)',
   controlBorder: {

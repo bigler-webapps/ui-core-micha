@@ -9,6 +9,7 @@ describe('createAppTheme', () => {
     const theme = createAppTheme({ palette: { primary: { main: '#0F62FE' } } });
 
     expect(assertThemeComplete(theme).findings).toEqual([]);
+    expect(theme.palette.background.subtle).toBe('#F4F5F6');
     expect(theme.typography.body1.fontSize).toBe('14px');
     expect(theme.shape.borderRadius).toBe(3);
     expect(theme.components.MuiPaper.defaultProps).toMatchObject({ elevation: 0, variant: 'outlined' });

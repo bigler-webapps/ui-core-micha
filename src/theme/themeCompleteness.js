@@ -160,6 +160,7 @@ export const THEME_COMPLETENESS_SURFACES = [
   pathSurface('palette.ink.muted'),
   pathSurface('palette.background.default'),
   pathSurface('palette.background.paper'),
+  pathSurface('palette.background.subtle'),
   pathSurface('palette.divider'),
   pathSurface('palette.controlBorder.main'),
   pathSurface('palette.controlBorder.hover'),
