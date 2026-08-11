@@ -1,10 +1,13 @@
 export { createAppTheme } from './createAppTheme';
 export {
   assertThemeComplete,
+  assertKitSxDisjoint,
   calculateContrastRatio,
+  reportKitSxBypasses,
   reportThemeAdoption,
   THEME_COMPLETENESS_SURFACES,
 } from './themeCompleteness';
+export { KIT_COMPONENT_SX_REGISTRY } from './kitSxRegistry';
 export {
   formatShortTime,
   formatShortDate,

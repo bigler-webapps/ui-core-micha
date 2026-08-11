@@ -11,6 +11,9 @@ import {
 import { useTranslation } from 'react-i18next';
 import { updateAuthPolicy } from '../auth/authApi';
 
+export const REGISTRATION_METHODS_ALERT_SX = { mb: 2 };
+export const REGISTRATION_METHODS_INFO_SX = { mt: 2 };
+
 const EMPTY_POLICY = {
   allow_admin_invite: true,
   allow_self_signup_access_code: false,
@@ -76,9 +79,9 @@ export function RegistrationMethodsManager({
       <Typography variant="body2" sx={{ mb: 2, color: 'text.secondary' }}>
         {t('Auth.REGISTRATION_METHODS_HINT', 'Choose which signup and invite flows are active for this app.')}
       </Typography>
-      {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
-      {saveError && <Alert severity="error" sx={{ mb: 2 }}>{saveError}</Alert>}
-      {success && <Alert severity="success" sx={{ mb: 2 }}>{success}</Alert>}
+      {error && <Alert severity="error" sx={REGISTRATION_METHODS_ALERT_SX}>{error}</Alert>}
+      {saveError && <Alert severity="error" sx={REGISTRATION_METHODS_ALERT_SX}>{saveError}</Alert>}
+      {success && <Alert severity="success" sx={REGISTRATION_METHODS_ALERT_SX}>{success}</Alert>}
 
       <Stack spacing={1}>
         <FormControlLabel
@@ -134,7 +137,7 @@ export function RegistrationMethodsManager({
       </Stack>
 
       {policyState.allow_self_signup_email_domain && !(policyState.allowed_email_domains || []).length && (
-        <Alert severity="info" sx={{ mt: 2 }}>
+        <Alert severity="info" sx={REGISTRATION_METHODS_INFO_SX}>
           {t(
             'Auth.EMAIL_DOMAIN_CURRENTLY_BLOCKED_HINT',
             'Email-domain signup is enabled, but it stays blocked until at least one allowed domain is saved.',

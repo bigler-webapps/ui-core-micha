@@ -7,6 +7,12 @@ import { useTranslation } from 'react-i18next';
 
 import { useMessaging } from './MessagingProvider';
 
+export const ATTACHMENT_LIST_LIGHTBOX_ACTION_SX = {
+  bgcolor: 'background.paper',
+  boxShadow: 1,
+};
+export const ATTACHMENT_LIST_ALERT_SX = { m: 2 };
+
 function isImage(attachment) { return attachment.content_type?.startsWith('image/'); }
 // `filename` is dcm's real, sanitized upload name (MSG-12) -- `id` is the
 // last-resort fallback for interop with a host still on a pre-MSG-12 pin.
@@ -117,15 +123,15 @@ export function AttachmentList({ attachments = [] }) {
     <Dialog open={Boolean(lightbox)} onClose={() => setLightbox(null)} maxWidth="lg" aria-label={lightbox ? nameOf(lightbox.attachment) : undefined}>
       {lightbox && <Box sx={{ position: 'relative', minWidth: 240, minHeight: lightbox.status === 'ready' ? undefined : 160, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <Stack direction="row" spacing={0.5} sx={{ position: 'absolute', top: 4, right: 4 }}>
-          {lightbox.status === 'ready' && <IconButton aria-label={t('MessagingAttachments.DOWNLOAD_ACTION')} onClick={() => download(lightbox.attachment)} sx={{ bgcolor: 'background.paper', boxShadow: 1 }}>
+          {lightbox.status === 'ready' && <IconButton aria-label={t('MessagingAttachments.DOWNLOAD_ACTION')} onClick={() => download(lightbox.attachment)} sx={ATTACHMENT_LIST_LIGHTBOX_ACTION_SX}>
             <DownloadIcon />
           </IconButton>}
-          <IconButton aria-label={t('MessagingAttachments.CLOSE_PREVIEW')} onClick={() => setLightbox(null)} sx={{ bgcolor: 'background.paper', boxShadow: 1 }}>
+          <IconButton aria-label={t('MessagingAttachments.CLOSE_PREVIEW')} onClick={() => setLightbox(null)} sx={ATTACHMENT_LIST_LIGHTBOX_ACTION_SX}>
             <CloseIcon />
           </IconButton>
         </Stack>
         {lightbox.status === 'loading' && <CircularProgress aria-label={t('MessagingAttachments.LOADING_PREVIEW')} sx={{ m: 4 }} />}
-        {lightbox.status === 'error' && <Alert severity="error" role="alert" sx={{ m: 2 }}>{t('MessagingAttachments.PREVIEW_ERROR')}</Alert>}
+        {lightbox.status === 'error' && <Alert severity="error" role="alert" sx={ATTACHMENT_LIST_ALERT_SX}>{t('MessagingAttachments.PREVIEW_ERROR')}</Alert>}
         {lightbox.status === 'ready' && <Box component="img" src={lightbox.url} alt={nameOf(lightbox.attachment)} sx={{ display: 'block', maxWidth: '90vw', maxHeight: '90vh' }} />}
       </Box>}
     </Dialog>

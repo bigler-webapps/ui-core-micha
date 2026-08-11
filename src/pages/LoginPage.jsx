@@ -20,6 +20,8 @@ import { loginWithPasskey, startSocialLogin } from '../utils/authService';
 import { LoginForm } from '../components/LoginForm';
 import { MfaLoginComponent } from '../components/MfaLoginComponent';
 
+export const LOGIN_PAGE_ALERT_SX = { mb: 2 };
+
 export function LoginPage() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -284,25 +286,25 @@ export function LoginPage() {
       </Helmet>
 
       {errorKey && (
-        <Alert severity="error" sx={{ mb: 2 }}>
+        <Alert severity="error" sx={LOGIN_PAGE_ALERT_SX}>
           {t(errorKey)}
         </Alert>
       )}
 
       {recoveryFetching && !errorKey && (
-        <Alert severity="info" sx={{ mb: 2 }}>
+        <Alert severity="info" sx={LOGIN_PAGE_ALERT_SX}>
           {t('Auth.RECOVERY_LINK_VALIDATING', 'Validating recovery link…')}
         </Alert>
       )}
 
       {recoveryToken && !errorKey && (
-        <Alert severity="info" sx={{ mb: 2 }}>
+        <Alert severity="info" sx={LOGIN_PAGE_ALERT_SX}>
           {t('Auth.RECOVERY_LOGIN_WARNING', 'Recovery link validated. Please enter your password.')}
         </Alert>
       )}
 
       {twoFactorRequired && !recoveryToken && !recoveryFetching && (
-        <Alert severity="info" sx={{ mb: 2 }}>
+        <Alert severity="info" sx={LOGIN_PAGE_ALERT_SX}>
           {t('Auth.TWO_FACTOR_REQUIRED_HINT', 'This app requires two authentication factors for full access.')}
         </Alert>
       )}

@@ -2,9 +2,11 @@
 import React from 'react';
 import { Container, Box, Typography } from '@mui/material';
 
+export const PAGE_LAYOUT_CONTAINER_SX = { mt: 4 };
+
 // Layout for content pages with larger width (e.g. Profile, Welcome, Input)
 export const WidePage = ({ title, children, maxWidth = 'lg' }) => (
-  <Container maxWidth={maxWidth} sx={{ mt: 4 }}>
+  <Container maxWidth={maxWidth} sx={PAGE_LAYOUT_CONTAINER_SX}>
     {title && (
       <Typography variant="h4" gutterBottom>
         {title}
@@ -16,7 +18,7 @@ export const WidePage = ({ title, children, maxWidth = 'lg' }) => (
 
 // Layout for forms or narrow pages (e.g. Login, Reset, Invite)
 export const NarrowPage = ({ title, subtitle, children }) => (
-  <Container maxWidth="md" sx={{ mt: 4 }}>
+  <Container maxWidth="md" sx={PAGE_LAYOUT_CONTAINER_SX}>
     <Box sx={{ maxWidth: 480, mx: 'auto' }}>
       {title && (
         <Typography variant="h4" gutterBottom>

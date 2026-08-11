@@ -16,6 +16,10 @@ import { useTranslation } from 'react-i18next';
 import { authenticateWithMFA, fetchCurrentUser, requestMfaSupportHelp } from '../auth/authApi';
 import { loginWithPasskey } from '../utils/authService';
 
+export const MFA_LOGIN_ALERT_SX = { mb: 2 };
+export const MFA_LOGIN_DIVIDER_SX = { my: 2 };
+export const MFA_LOGIN_TEXT_FIELD_SX = { mb: 2 };
+
 export function MfaLoginComponent({ availableTypes, identifier, onSuccess, onCancel }) {
   const { t } = useTranslation();
   const [code, setCode] = useState('');
@@ -113,13 +117,13 @@ export function MfaLoginComponent({ availableTypes, identifier, onSuccess, onCan
       </Typography>
 
       {errorKey && (
-        <Alert severity="error" sx={{ mb: 2 }}>
+        <Alert severity="error" sx={MFA_LOGIN_ALERT_SX}>
           {t(errorKey)}
         </Alert>
       )}
 
       {infoKey && (
-        <Alert severity="info" sx={{ mb: 2 }}>
+        <Alert severity="info" sx={MFA_LOGIN_ALERT_SX}>
           {t(infoKey)}
         </Alert>
       )}
@@ -136,7 +140,7 @@ export function MfaLoginComponent({ availableTypes, identifier, onSuccess, onCan
           </Button>
         )}
 
-        <Divider sx={{ my: 2 }}>
+        <Divider sx={MFA_LOGIN_DIVIDER_SX}>
           {t('Auth.LOGIN_OR')}
         </Divider>
 
@@ -152,7 +156,7 @@ export function MfaLoginComponent({ availableTypes, identifier, onSuccess, onCan
               fullWidth
               disabled={submitting || helpRequested}
               autoComplete="one-time-code"
-              sx={{ mb: 2 }}
+              sx={MFA_LOGIN_TEXT_FIELD_SX}
             />
             <Button
               type="submit"
@@ -165,7 +169,7 @@ export function MfaLoginComponent({ availableTypes, identifier, onSuccess, onCan
           </Box>
         )}
 
-        <Divider sx={{ my: 2 }}>
+        <Divider sx={MFA_LOGIN_DIVIDER_SX}>
           {t('Auth.LOGIN_OR')}
         </Divider>
 

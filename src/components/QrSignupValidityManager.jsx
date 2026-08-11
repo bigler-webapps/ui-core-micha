@@ -10,6 +10,10 @@ import {
 import { useTranslation } from 'react-i18next';
 import { updateAuthPolicy } from '../auth/authApi';
 
+export const QR_SIGNUP_VALIDITY_ALERT_SX = { mb: 2 };
+export const QR_SIGNUP_VALIDITY_FIELD_SX = { flex: 1 };
+export const QR_SIGNUP_VALIDITY_BUTTON_SX = { minWidth: 120, mt: { sm: '8px' } };
+
 const DEFAULT_EXPIRY_DAYS = 90;
 
 function clampExpiryDays(value) {
@@ -71,8 +75,8 @@ export function QrSignupValidityManager({
         )}
       </Typography>
 
-      {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
-      {success && <Alert severity="success" sx={{ mb: 2 }}>{success}</Alert>}
+      {error && <Alert severity="error" sx={QR_SIGNUP_VALIDITY_ALERT_SX}>{error}</Alert>}
+      {success && <Alert severity="success" sx={QR_SIGNUP_VALIDITY_ALERT_SX}>{success}</Alert>}
 
       <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} alignItems={{ sm: 'flex-start' }}>
         <TextField
@@ -85,13 +89,13 @@ export function QrSignupValidityManager({
           value={currentExpiryDays}
           onChange={(event) => setCurrentExpiryDays(event.target.value)}
           disabled={busy || !canEdit}
-          sx={{ flex: 1 }}
+          sx={QR_SIGNUP_VALIDITY_FIELD_SX}
         />
         <Button
           variant="contained"
           onClick={handleSave}
           disabled={busy || !canEdit}
-          sx={{ minWidth: 120, mt: { sm: '8px' } }}
+          sx={QR_SIGNUP_VALIDITY_BUTTON_SX}
         >
           {t('Common.SAVE', 'Save')}
         </Button>

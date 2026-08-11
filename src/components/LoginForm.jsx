@@ -9,6 +9,8 @@ import {
 import { useTranslation } from 'react-i18next';
 import { SocialLoginButtons } from './SocialLoginButtons';
 
+export const LOGIN_FORM_DIVIDER_SX = { my: 2 };
+
 export function LoginForm({
   onSubmit,
   onForgotPassword,
@@ -62,7 +64,7 @@ export function LoginForm({
             {t('Auth.LOGIN_USE_PASSKEY_BUTTON')}
           </Button>
 
-          <Divider sx={{ my: 2 }}>
+          <Divider sx={LOGIN_FORM_DIVIDER_SX}>
             {t('Auth.LOGIN_OR')}
           </Divider>
         </>
@@ -109,7 +111,7 @@ export function LoginForm({
       {/* Other ways to sign in */}
       {onSocialLogin && (
         <Box>
-          <Divider sx={{ my: 2 }}>
+          <Divider sx={LOGIN_FORM_DIVIDER_SX}>
             {t('Auth.LOGIN_OR')}
           </Divider>
           <SocialLoginButtons
@@ -121,7 +123,7 @@ export function LoginForm({
       {/* Account actions */}
       {(onSignUp || onForgotPassword) && (
       <Box>
-        <Divider sx={{ my: 2 }}>
+        <Divider sx={LOGIN_FORM_DIVIDER_SX}>
           {t('Auth.LOGIN_OR')}
         </Divider>
 

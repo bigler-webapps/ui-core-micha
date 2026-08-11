@@ -4,7 +4,10 @@
 export {
   createAppTheme,
   assertThemeComplete,
+  assertKitSxDisjoint,
   calculateContrastRatio,
+  KIT_COMPONENT_SX_REGISTRY,
+  reportKitSxBypasses,
   reportThemeAdoption,
   THEME_COMPLETENESS_SURFACES,
 } from './theme';

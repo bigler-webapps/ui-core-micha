@@ -13,6 +13,9 @@ import apiClient from './apiClient';
 import { HEADLESS_BASE } from './authConfig';
 import { rejectReauth, resolveReauth, subscribe } from './reauth';
 
+export const REAUTH_MODAL_ALERT_SX = { mb: 2 };
+export const REAUTH_MODAL_TEXT_FIELD_SX = { mt: 1 };
+
 export function ReauthModal() {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
@@ -53,7 +56,7 @@ export function ReauthModal() {
       <form onSubmit={handleSubmit}>
         <DialogTitle>{t('Auth.REAUTH_TITLE')}</DialogTitle>
         <DialogContent>
-          {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+          {error && <Alert severity="error" sx={REAUTH_MODAL_ALERT_SX}>{error}</Alert>}
           <TextField
             autoFocus
             fullWidth
@@ -62,7 +65,7 @@ export function ReauthModal() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             disabled={loading}
-            sx={{ mt: 1 }}
+            sx={REAUTH_MODAL_TEXT_FIELD_SX}
           />
         </DialogContent>
         <DialogActions>

@@ -8,6 +8,8 @@ import { WizardDialogShell } from '../onboarding/WizardDialogShell';
 import { useNotifications } from './NotificationsProvider';
 import { DEFAULT_ENVELOPE, useRealtime } from './realtime';
 
+export const POPUP_SURFACE_DISMISS_BUTTON_SX = { alignSelf: 'flex-end' };
+
 function PopupStepComponent({ onDismiss, ctx }) {
   const { t } = useTranslation();
   const content = ctx?.content || {};
@@ -17,7 +19,7 @@ function PopupStepComponent({ onDismiss, ctx }) {
       {content.body_key && (
         <Typography variant="body1">{t(content.body_key, content.params || {})}</Typography>
       )}
-      <Button onClick={onDismiss} sx={{ alignSelf: 'flex-end' }}>
+      <Button onClick={onDismiss} sx={POPUP_SURFACE_DISMISS_BUTTON_SX}>
         {t('PopupSurface.CLOSE')}
       </Button>
     </Stack>

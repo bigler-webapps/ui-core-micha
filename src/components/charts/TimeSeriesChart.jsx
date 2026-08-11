@@ -32,6 +32,13 @@ import { useNeutralChartPalette } from './palette';
 // MUI measurement bug is actually resolved.
 const CHART_HEIGHT = 320;
 
+// Dynamic sx factories are outside the registry's documented top-level-object
+// lower bound; the series colour is data-dependent at render time.
+const seriesToggleSx = (colour) => ({
+  color: colour,
+  '&.Mui-checked': { color: colour },
+});
+
 // CHART-5: how many x-axis tick labels to show, evenly spread across
 // data.xLabels, regardless of container width or label length. Replaces
 // MUI's own collision-based tick filtering (which, given enough densely
@@ -240,10 +247,7 @@ export function TimeSeriesChart({
                   onChange={() => toggleSeries(series.key)}
                   icon={<SeriesToggleDot color={palette[index % palette.length]} active={false} />}
                   checkedIcon={<SeriesToggleDot color={palette[index % palette.length]} active />}
-                  sx={{
-                    color: palette[index % palette.length],
-                    '&.Mui-checked': { color: palette[index % palette.length] },
-                  }}
+                  sx={seriesToggleSx(palette[index % palette.length])}
                 />
               )}
               label={series.label}

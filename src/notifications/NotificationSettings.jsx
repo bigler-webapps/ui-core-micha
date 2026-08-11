@@ -18,6 +18,21 @@ import {
   urlBase64ToUint8Array,
 } from './api';
 
+export const NOTIFICATION_SETTINGS_ALERT_SX = { mb: 2 };
+export const NOTIFICATION_SETTINGS_HINT_ALERT_SX = { mb: 1.5 };
+export const NOTIFICATION_SETTINGS_REACH_ALERT_SX = { mb: 1 };
+export const NOTIFICATION_SETTINGS_FORM_CONTROL_SX = { alignItems: 'flex-start', ml: 0 };
+export const NOTIFICATION_SETTINGS_PUSH_CONTROL_SX = {
+  alignItems: 'flex-start',
+  ml: 0,
+  mt: 1.5,
+};
+export const NOTIFICATION_SETTINGS_CATEGORY_CONTROL_SX = {
+  alignItems: 'center',
+  ml: 0,
+  display: 'flex',
+};
+
 function reachLabelKey(notificationType) {
   const noActiveChannel = notificationType.active && notificationType.has_active_channel === false;
   if (notificationType.active && notificationType.passive) {
@@ -210,23 +225,23 @@ export function NotificationSettings() {
       <Typography variant="body2" color="text.secondary" gutterBottom>
         {t('NotificationSettings.SUBTITLE')}
       </Typography>
-      {error && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError('')}>{error}</Alert>}
-      {conflict && <Alert severity="warning" sx={{ mb: 2 }} onClose={() => setConflict('')}>{conflict}</Alert>}
+      {error && <Alert severity="error" sx={NOTIFICATION_SETTINGS_ALERT_SX} onClose={() => setError('')}>{error}</Alert>}
+      {conflict && <Alert severity="warning" sx={NOTIFICATION_SETTINGS_ALERT_SX} onClose={() => setConflict('')}>{conflict}</Alert>}
 
       <Box sx={{ py: 2 }}>
         <FormControlLabel
           control={<Switch checked={Boolean(preferences?.email_opt_in)} onChange={handleEmailToggle} disabled={savingEmail} />}
           label={<Box><Typography variant="body1">{t('NotificationSettings.EMAIL_LABEL')}</Typography><Typography variant="caption" color="text.secondary">{t('NotificationSettings.EMAIL_HINT')}</Typography></Box>}
           labelPlacement="end"
-          sx={{ alignItems: 'flex-start', ml: 0 }}
+          sx={NOTIFICATION_SETTINGS_FORM_CONTROL_SX}
         />
       </Box>
 
       <Divider />
 
       <Box sx={{ py: 2 }}>
-        {iosNeedsInstall && <Alert severity="info" sx={{ mb: 1.5 }}>{t('NotificationSettings.IOS_HINT')}</Alert>}
-        {!pushSupported && !iosNeedsInstall && <Alert severity="warning" sx={{ mb: 1.5 }}>{t('NotificationSettings.PUSH_NOT_SUPPORTED')}</Alert>}
+        {iosNeedsInstall && <Alert severity="info" sx={NOTIFICATION_SETTINGS_HINT_ALERT_SX}>{t('NotificationSettings.IOS_HINT')}</Alert>}
+        {!pushSupported && !iosNeedsInstall && <Alert severity="warning" sx={NOTIFICATION_SETTINGS_HINT_ALERT_SX}>{t('NotificationSettings.PUSH_NOT_SUPPORTED')}</Alert>}
         <FormControlLabel
           control={(
             <Switch
@@ -237,7 +252,7 @@ export function NotificationSettings() {
           )}
           label={<Box><Typography variant="body1">{t('NotificationSettings.PUSH_LABEL')}</Typography><Typography variant="caption" color="text.secondary">{t('NotificationSettings.PUSH_HINT')}</Typography></Box>}
           labelPlacement="end"
-          sx={{ alignItems: 'flex-start', ml: 0 }}
+          sx={NOTIFICATION_SETTINGS_FORM_CONTROL_SX}
         />
         <FormControlLabel
           control={(
@@ -249,7 +264,7 @@ export function NotificationSettings() {
           )}
           label={<Box><Typography variant="body1">{t('NotificationSettings.PUSH_PREVIEW_LABEL')}</Typography><Typography variant="caption" color="text.secondary">{t('NotificationSettings.PUSH_PREVIEW_HINT')}</Typography></Box>}
           labelPlacement="end"
-          sx={{ alignItems: 'flex-start', ml: 0, mt: 1.5 }}
+          sx={NOTIFICATION_SETTINGS_PUSH_CONTROL_SX}
         />
       </Box>
 
@@ -266,7 +281,7 @@ export function NotificationSettings() {
               // reach description is static settings copy, not a status message.
               if (labelKey === 'NotificationSettings.REACH_NO_ACTIVE_CHANNEL') {
                 return (
-                  <Alert key={notificationType.key} severity="warning" sx={{ mb: 1 }}>
+                  <Alert key={notificationType.key} severity="warning" sx={NOTIFICATION_SETTINGS_REACH_ALERT_SX}>
                     <strong>{notificationType.label}</strong> — {reachText}
                   </Alert>
                 );
@@ -302,7 +317,7 @@ export function NotificationSettings() {
                 )}
                 label={row.label}
                 labelPlacement="end"
-                sx={{ alignItems: 'center', ml: 0, display: 'flex' }}
+                sx={NOTIFICATION_SETTINGS_CATEGORY_CONTROL_SX}
               />
             ))}
           </Box>

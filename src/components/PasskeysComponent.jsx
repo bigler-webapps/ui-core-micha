@@ -22,6 +22,9 @@ import { fetchPasskeys, deletePasskey } from '../auth/authApi';
 import { registerPasskey } from '../utils/authService';
 import { FEATURES } from '../auth/authConfig';
 
+export const PASSKEYS_ALERT_SX = { mb: 2 };
+export const PASSKEYS_DIVIDER_SX = { mb: 2 };
+
 export function PasskeysComponent() {
   const { t } = useTranslation();
 
@@ -131,18 +134,18 @@ export function PasskeysComponent() {
       </Typography>
 
       {!passkeysSupported && (
-        <Alert severity="info" sx={{ mb: 2 }}>
+        <Alert severity="info" sx={PASSKEYS_ALERT_SX}>
           {t('Auth.PASSKEY_BROWSER_NOT_SUPPORTED')}
         </Alert>
       )}
 
       {messageKey && (
-        <Alert severity="success" sx={{ mb: 2 }}>
+        <Alert severity="success" sx={PASSKEYS_ALERT_SX}>
           {t(messageKey)}
         </Alert>
       )}
       {errorKey && (
-        <Alert severity="error" sx={{ mb: 2 }}>
+        <Alert severity="error" sx={PASSKEYS_ALERT_SX}>
           {t(errorKey)}
         </Alert>
       )}
@@ -176,7 +179,7 @@ export function PasskeysComponent() {
         </Box>
       )}
 
-      <Divider sx={{ mb: 2 }} />
+      <Divider sx={PASSKEYS_DIVIDER_SX} />
 
       {/* List of existing passkeys */}
       {loading ? (

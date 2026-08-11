@@ -20,6 +20,13 @@ import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import { useTranslation } from 'react-i18next';
 import { fetchAuthenticators, requestTotpKey, activateTotp, deactivateTotp, fetchRecoveryCodes, generateRecoveryCodes  } from '../auth/authApi';
 
+export const MFA_ALERT_SX = { mb: 2 };
+export const MFA_CARD_SX = { mb: 3 };
+export const MFA_ACTIVE_CARD_SX = { bgcolor: '#f0fdf4' };
+export const MFA_TEXT_FIELD_SX = { mb: 2 };
+export const MFA_DIVIDER_SX = { my: 3 };
+export const MFA_RECOVERY_BUTTON_SX = { mt: 2 };
+
 export function MFAComponent() {
   const { t } = useTranslation();
 
@@ -165,14 +172,14 @@ export function MFAComponent() {
       </Typography>
 
       {errorKey && (
-        <Alert severity="error" sx={{ mb: 2 }}>
+        <Alert severity="error" sx={MFA_ALERT_SX}>
           {t(errorKey)}
         </Alert>
       )}
 
       {/* --- CASE 1: TOTP IS ACTIVE --- */}
       {totpAuthenticator ? (
-        <Card variant="outlined" sx={{ mb: 3, bgcolor: '#f0fdf4' }}>
+        <Card variant="outlined" sx={[MFA_CARD_SX, MFA_ACTIVE_CARD_SX]}>
           <CardContent
             sx={{
               display: 'flex',
@@ -209,7 +216,7 @@ export function MFAComponent() {
 
       {/* --- WIZARD: SETUP --- */}
       {isSettingUp && totpData && (
-        <Card variant="outlined" sx={{ mb: 3 }}>
+        <Card variant="outlined" sx={MFA_CARD_SX}>
           <CardContent>
             <Typography variant="subtitle1" gutterBottom>
               {t('Auth.MFA_TOTP_QR_TITLE')}
@@ -251,7 +258,7 @@ export function MFAComponent() {
                     onChange={(e) => setVerifyCode(e.target.value)}
                     fullWidth
                     required
-                    sx={{ mb: 2 }}
+                    sx={MFA_TEXT_FIELD_SX}
                     autoComplete="off"
                   />
                   <Stack direction="row" spacing={1}>
@@ -278,7 +285,7 @@ export function MFAComponent() {
         </Card>
       )}
 
-      <Divider sx={{ my: 3 }} />
+      <Divider sx={MFA_DIVIDER_SX} />
 
       {/* --- RECOVERY CODES --- */}
       <Typography variant="h6" gutterBottom>
@@ -294,7 +301,7 @@ export function MFAComponent() {
         </Button>
       ) : (
         <Box sx={{ bgcolor: '#f5f5f5', p: 2, borderRadius: 1 }}>
-          <Alert severity="warning" sx={{ mb: 2 }}>
+          <Alert severity="warning" sx={MFA_ALERT_SX}>
             {t('Auth.MFA_RECOVERY_WARNING')}
           </Alert>
           <Stack direction="row" flexWrap="wrap" gap={2}>
@@ -326,7 +333,7 @@ export function MFAComponent() {
               ))}
           </Stack>
           <Button
-            sx={{ mt: 2 }}
+            sx={MFA_RECOVERY_BUTTON_SX}
             size="small"
             onClick={handleGenerateNewRecoveryCodes}
           >

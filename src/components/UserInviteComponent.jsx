@@ -3,19 +3,19 @@ import { Box, TextField, Button, Typography, Alert, CircularProgress } from '@mu
 import { sendAdminInvite } from '../auth/authApi';
 import { useTranslation } from 'react-i18next';
 
+export const USER_INVITE_ACTION_SX = {
+  minWidth: 120,
+  height: 40,
+  whiteSpace: 'nowrap',
+};
+export const USER_INVITE_ALERT_SX = { mb: 2 };
+
 export function UserInviteComponent() { // FIX: Removed apiUrl prop
   const { t } = useTranslation();
   const [inviteEmail, setInviteEmail] = useState('');
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const actionButtonSx = {
-    minWidth: 120,
-    height: 40,
-    textTransform: 'none',
-    whiteSpace: 'nowrap',
-  };
-
   const inviteUser = async () => {
     setMessage('');
     setError('');
@@ -43,8 +43,8 @@ export function UserInviteComponent() { // FIX: Removed apiUrl prop
         {t('Auth.INVITE_TITLE', 'Invite a new user')}
       </Typography>
 
-      {message && <Alert severity="success" sx={{ mb: 2 }}>{message}</Alert>}
-      {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+      {message && <Alert severity="success" sx={USER_INVITE_ALERT_SX}>{message}</Alert>}
+      {error && <Alert severity="error" sx={USER_INVITE_ALERT_SX}>{error}</Alert>}
 
       <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
         <TextField
@@ -65,7 +65,7 @@ export function UserInviteComponent() { // FIX: Removed apiUrl prop
             size="small"
             onClick={inviteUser} 
             disabled={loading || !inviteEmail}
-            sx={actionButtonSx}
+            sx={USER_INVITE_ACTION_SX}
         >
           {loading ? <CircularProgress size={24} color="inherit" /> : t('Auth.INVITE_BUTTON', 'Invite')}
         </Button>

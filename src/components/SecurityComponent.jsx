@@ -15,6 +15,9 @@ import { changePassword } from '../auth/authApi';
 import { startSocialLogin } from '../utils/authService';
 import { AuthContext } from '../auth/AuthContext';
 
+export const SECURITY_ALERT_SX = { mb: 2 };
+export const SECURITY_DIVIDER_SX = { my: 3 };
+
 export function SecurityComponent({
   fromRecovery = false,
   fromWeakLogin = false,
@@ -75,24 +78,24 @@ export function SecurityComponent({
   return (
     <Box>
       {fromRecovery && (
-        <Alert severity="warning" sx={{ mb: 2 }}>
+        <Alert severity="warning" sx={SECURITY_ALERT_SX}>
           {t('Security.RECOVERY_LOGIN_WARNING')}
         </Alert>
       )}
 
       {fromWeakLogin && (
-        <Alert severity="warning" sx={{ mb: 2 }}>
+        <Alert severity="warning" sx={SECURITY_ALERT_SX}>
           {t('Security.WEAK_LOGIN_WARNING')}
         </Alert>
       )}
 
       {messageKey && (
-        <Alert severity="success" sx={{ mb: 2 }}>
+        <Alert severity="success" sx={SECURITY_ALERT_SX}>
           {t(messageKey)}
         </Alert>
       )}
       {errorKey && (
-        <Alert severity="error" sx={{ mb: 2 }}>
+        <Alert severity="error" sx={SECURITY_ALERT_SX}>
           {t(errorKey)}
         </Alert>
       )}
@@ -103,7 +106,7 @@ export function SecurityComponent({
             {t('Auth.LOGIN_PASSWORD_LABEL')}
           </Typography>
           <PasswordChangeForm onSubmit={handlePasswordChange} />
-          {needsDividerAfter('password') && <Divider sx={{ my: 3 }} />}
+          {needsDividerAfter('password') && <Divider sx={SECURITY_DIVIDER_SX} />}
         </>
       )}
 
@@ -119,14 +122,14 @@ export function SecurityComponent({
             onProviderClick={handleSocialClick}
             providers={socialProviders}
           />
-          {needsDividerAfter('social') && <Divider sx={{ my: 3 }} />}
+          {needsDividerAfter('social') && <Divider sx={SECURITY_DIVIDER_SX} />}
         </>
       )}
 
       {passkeysEnabled && (
         <>
           <PasskeysComponent />
-          {needsDividerAfter('passkeys') && <Divider sx={{ my: 3 }} />}
+          {needsDividerAfter('passkeys') && <Divider sx={SECURITY_DIVIDER_SX} />}
         </>
       )}
 

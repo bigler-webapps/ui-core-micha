@@ -1,6 +1,7 @@
 import { createTheme, getContrastRatio as getMuiContrastRatio } from '@mui/material/styles';
 
 import { STATUS_KEYS, TYPOGRAPHY_VARIANTS } from './tokens';
+import { KIT_COMPONENT_SX_REGISTRY } from './kitSxRegistry';
 
 const MUI_DEFAULT_THEME = createTheme();
 
@@ -363,6 +364,232 @@ export function assertThemeComplete(theme, { exemptions = [] } = {}) {
   }
 
   findings.push(...contrastFindings(theme));
+  return { findings };
+}
+
+const SAME_ROOT_STYLE_OVERRIDE_SLOTS = {
+  MuiAlert: ['standardSuccess', 'standardWarning', 'standardError', 'standardInfo'],
+  MuiButton: ['root', 'contained', 'outlined'],
+  MuiChip: ['root', 'outlined'],
+};
+
+// MUI's sx prop accepts CSS spacing shorthands (`py`, `px`, `pt`, ...) that
+// styleOverrides' plain CSS-in-JS objects do not -- a baseline `padding`
+// default and a component's own `sx={{ py: 1 }}` collide on the vertical
+// axis even though the two key strings never match literally. Each key is
+// expanded to the canonical longhand properties it can affect so the
+// disjointness check compares axes, not raw key spellings; a property
+// outside this table expands to itself.
+const SPACING_SHORTHAND_LONGHANDS = {
+  p: ['paddingTop', 'paddingRight', 'paddingBottom', 'paddingLeft'],
+  padding: ['paddingTop', 'paddingRight', 'paddingBottom', 'paddingLeft'],
+  px: ['paddingLeft', 'paddingRight'],
+  py: ['paddingTop', 'paddingBottom'],
+  pt: ['paddingTop'],
+  pr: ['paddingRight'],
+  pb: ['paddingBottom'],
+  pl: ['paddingLeft'],
+  m: ['marginTop', 'marginRight', 'marginBottom', 'marginLeft'],
+  margin: ['marginTop', 'marginRight', 'marginBottom', 'marginLeft'],
+  mx: ['marginLeft', 'marginRight'],
+  my: ['marginTop', 'marginBottom'],
+  mt: ['marginTop'],
+  mr: ['marginRight'],
+  mb: ['marginBottom'],
+  ml: ['marginLeft'],
+};
+
+function expandShorthandProperty(property) {
+  return SPACING_SHORTHAND_LONGHANDS[property] || [property];
+}
+
+function styleOverrideKeys(componentConfig, slots = ['root']) {
+  const keys = new Set();
+  for (const slot of slots) {
+    const slotStyles = componentConfig?.styleOverrides?.[slot];
+    if (!slotStyles || typeof slotStyles !== 'object' || Array.isArray(slotStyles)) continue;
+    Object.keys(slotStyles).forEach((key) => expandShorthandProperty(key).forEach((longhand) => keys.add(longhand)));
+  }
+  return keys;
+}
+
+/**
+ * Reports top-level property collisions between registered kit sx objects and
+ * the baseline MUI component they target. Spacing shorthands (`py`/`px`/...)
+ * are compared by the longhand axis they affect, not by literal key name --
+ * see `SPACING_SHORTHAND_LONGHANDS`.
+ *
+ * This is deliberately a lower bound on shadowing: conditional sx, nested sx,
+ * callback results, and nested selector properties are not inspected. A clean
+ * result therefore proves only that the registered top-level key sets are
+ * disjoint; it is not proof that no component can shadow the baseline.
+ */
+export function assertKitSxDisjoint(
+  theme,
+  { registry = KIT_COMPONENT_SX_REGISTRY, exemptions = [] } = {},
+) {
+  const declaredExemptions = [
+    ...(theme?.themeCompleteness?.exemptions || []),
+    ...exemptions,
+  ];
+  const validExemptions = new Set();
+  const findings = [];
+
+  for (const exemption of declaredExemptions) {
+    if (!exemption?.surface || !exemption?.reason?.trim()) {
+      findings.push({
+        surface: `exemption.${exemption?.surface || 'unknown'}`,
+        reason: 'A completeness exemption must name a surface and include a reason.',
+      });
+      continue;
+    }
+    validExemptions.add(exemption.surface);
+  }
+
+  for (const entry of registry) {
+    const baselineKeys = styleOverrideKeys(
+      theme?.components?.[entry.muiComponent],
+      entry.slots || SAME_ROOT_STYLE_OVERRIDE_SLOTS[entry.muiComponent],
+    );
+    for (const property of Object.keys(entry.sx || {})) {
+      const surface = `${entry.component}.${entry.muiComponent}.${property}`;
+      const collides = expandShorthandProperty(property).some((longhand) => baselineKeys.has(longhand));
+      if (collides && !validExemptions.has(surface)) {
+        findings.push({
+          surface,
+          reason: `${entry.component} sx shadows ${entry.muiComponent} styleOverrides property "${property}".`,
+        });
+      }
+    }
+  }
+
+  return { findings };
+}
+
+const BASELINE_STYLED_MUI_COMPONENTS = [
+  'Alert',
+  'BottomNavigation',
+  'BottomNavigationAction',
+  'Button',
+  'Card',
+  'Checkbox',
+  'Chip',
+  'Container',
+  'CssBaseline',
+  'Dialog',
+  'Divider',
+  'Drawer',
+  'FilledInput',
+  'FormControlLabel',
+  'IconButton',
+  'Input',
+  'Menu',
+  'OutlinedInput',
+  'Paper',
+  'Select',
+  'TableCell',
+  'TextField',
+  'Tooltip',
+];
+
+function jsxOpeningTag(source, start) {
+  let braces = 0;
+  let quote = null;
+  for (let index = start; index < source.length; index += 1) {
+    const character = source[index];
+    if (quote) {
+      if (character === quote && source[index - 1] !== '\\') quote = null;
+      continue;
+    }
+    if (character === '"' || character === "'" || character === '`') {
+      quote = character;
+    } else if (character === '{') {
+      braces += 1;
+    } else if (character === '}') {
+      braces = Math.max(0, braces - 1);
+    } else if (character === '>' && braces === 0) {
+      return source.slice(start, index + 1);
+    }
+  }
+  return source.slice(start);
+}
+
+function topLevelSxValue(tag) {
+  let braces = 0;
+  let quote = null;
+  for (let index = 0; index < tag.length; index += 1) {
+    const character = tag[index];
+    if (quote) {
+      if (character === quote && tag[index - 1] !== '\\') quote = null;
+      continue;
+    }
+    if (character === '"' || character === "'" || character === '`') {
+      quote = character;
+      continue;
+    }
+    if (braces === 0 && (index === 0 || /\s/.test(tag[index - 1]))) {
+      const attribute = tag.slice(index).match(/^sx\b\s*=\s*/)?.[0];
+      if (attribute) return tag.slice(index + attribute.length);
+    }
+    if (character === '{') braces += 1;
+    if (character === '}') braces = Math.max(0, braces - 1);
+  }
+  return '';
+}
+
+/**
+ * Reports baseline-styled MUI tags that bypass the exported-object convention.
+ * Like assertKitSxDisjoint, this is a documented lower bound: conditional,
+ * array, callback, and otherwise nested sx expressions are not inspected.
+ */
+export function reportKitSxBypasses(sources = [], { registry } = {}) {
+  const normalized = sources.map((entry, index) =>
+    typeof entry === 'string'
+      ? { path: `source-${index + 1}`, source: entry }
+      : { path: entry.path || `source-${index + 1}`, source: entry.source || '' },
+  );
+  const findings = [];
+  const registeredTargets = registry
+    ? registry.reduce((targets, { exportName, muiComponent }) => {
+      if (!exportName || !muiComponent) return targets;
+      if (!targets.has(exportName)) targets.set(exportName, new Set());
+      targets.get(exportName).add(muiComponent);
+      return targets;
+    }, new Map())
+    : null;
+  const componentPattern = BASELINE_STYLED_MUI_COMPONENTS.join('|');
+  const tagPattern = new RegExp(`<(${componentPattern})\\b`, 'g');
+
+  for (const { path, source } of normalized) {
+    const exportedObjects = new Set(
+      [...source.matchAll(/\bexport\s+const\s+([A-Za-z_$][\w$]*)\s*=\s*\{/g)]
+        .map((match) => match[1]),
+    );
+
+    for (const match of source.matchAll(tagPattern)) {
+      const tag = jsxOpeningTag(source, match.index);
+      const sxValue = topLevelSxValue(tag);
+      const inline = /^\{\s*\{/.test(sxValue);
+      const identifier = sxValue.match(/^\{\s*([A-Za-z_$][\w$]*)\s*\}/)?.[1];
+      const exported = identifier && exportedObjects.has(identifier);
+      const muiComponent = `Mui${match[1]}`;
+      const unregistered = exported
+        && registeredTargets
+        && !registeredTargets.get(identifier)?.has(muiComponent);
+      if (!inline && (!identifier || (exported && !unregistered))) continue;
+
+      const line = source.slice(0, match.index).split(/\r?\n/).length;
+      findings.push({
+        surface: `${path}:${line}.Mui${match[1]}.sx`,
+        reason: inline
+          ? `${match[1]} uses an inline sx object instead of a top-level exported object.`
+          : unregistered
+            ? `${match[1]} uses exported sx object "${identifier}" without a ${muiComponent} registry entry.`
+            : `${match[1]} uses non-exported sx object "${identifier}".`,
+      });
+    }
+  }
+
   return { findings };
 }
 

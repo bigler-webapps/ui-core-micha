@@ -16,6 +16,8 @@ import { useTranslation } from 'react-i18next';
 // Internal context
 import { AuthContext } from '../auth/AuthContext';
 
+export const ACCOUNT_PAGE_SECTION_PAPER_SX = { p: 2.5 };
+
 // Falls die Komponenten noch lokal sind:
 import { WidePage } from '../layout/PageLayout';
 import { ProfileComponent } from '../components/ProfileComponent';
@@ -250,13 +252,13 @@ export function AccountPage({
         <Box sx={{ mt: 2 }}>
           <Stack spacing={2.5}>
             {canViewAuthPolicy && (
-              <Paper variant="outlined" sx={{ p: 2.5, borderRadius: 2 }}>
+              <Paper variant="outlined" sx={ACCOUNT_PAGE_SECTION_PAPER_SX}>
                 <AuthFactorRequirementCard canEdit={canWriteAuthPolicy} policy={authPolicy} />
               </Paper>
             )}
 
             {canViewAuthPolicy && (
-              <Paper variant="outlined" sx={{ p: 2.5, borderRadius: 2 }}>
+              <Paper variant="outlined" sx={ACCOUNT_PAGE_SECTION_PAPER_SX}>
                 <RegistrationMethodsManager
                   policy={authPolicy}
                   error={authPolicyError}
@@ -267,13 +269,13 @@ export function AccountPage({
             )}
 
             {canSendInvites && Boolean(authPolicy?.allow_admin_invite) && (
-              <Paper variant="outlined" sx={{ p: 2.5, borderRadius: 2 }}>
+              <Paper variant="outlined" sx={ACCOUNT_PAGE_SECTION_PAPER_SX}>
                 <UserInviteComponent />
               </Paper>
             )}
 
             {canManageAccessCodes && Boolean(authPolicy?.allow_self_signup_access_code) && (
-              <Paper variant="outlined" sx={{ p: 2.5, borderRadius: 2 }}>
+              <Paper variant="outlined" sx={ACCOUNT_PAGE_SECTION_PAPER_SX}>
                 <Typography variant="h6" gutterBottom>
                   {t('Auth.ACCESS_CODE_MANAGER_TITLE', 'Access Codes')}
                 </Typography>
@@ -285,7 +287,7 @@ export function AccountPage({
             )}
 
             {canManageAccessCodes && Boolean(authPolicy?.allow_self_signup_access_code) && (
-              <Paper variant="outlined" sx={{ p: 2.5, borderRadius: 2 }}>
+              <Paper variant="outlined" sx={ACCOUNT_PAGE_SECTION_PAPER_SX}>
                 <AccessCodeSingleUseToggle
                   canEdit={canWriteAuthPolicy}
                   policy={authPolicy}
@@ -295,13 +297,13 @@ export function AccountPage({
             )}
 
             {canSendInvites && showBulkInviteCsvTab && Boolean(authPolicy?.allow_admin_invite) && (
-              <Paper variant="outlined" sx={{ p: 2.5, borderRadius: 2 }}>
+              <Paper variant="outlined" sx={ACCOUNT_PAGE_SECTION_PAPER_SX}>
                 <BulkInviteCsvTab {...bulkInviteCsvProps} />
               </Paper>
             )}
 
             {canViewAuthPolicy && Boolean(authPolicy?.allow_self_signup_email_domain) && (
-              <Paper variant="outlined" sx={{ p: 2.5, borderRadius: 2 }}>
+              <Paper variant="outlined" sx={ACCOUNT_PAGE_SECTION_PAPER_SX}>
                 <AllowedEmailDomainsManager
                   enabled={Boolean(authPolicy?.allow_self_signup_email_domain)}
                   domains={authPolicy?.allowed_email_domains || []}
@@ -312,7 +314,7 @@ export function AccountPage({
             )}
 
             {canViewAuthPolicy && Boolean(authPolicy?.allow_self_signup_qr) && (
-              <Paper variant="outlined" sx={{ p: 2.5, borderRadius: 2 }}>
+              <Paper variant="outlined" sx={ACCOUNT_PAGE_SECTION_PAPER_SX}>
                 <QrSignupValidityManager
                   enabled={Boolean(authPolicy?.allow_self_signup_qr)}
                   expiryDays={authPolicy?.signup_qr_expiry_days}
@@ -323,7 +325,7 @@ export function AccountPage({
             )}
 
             {canManageSignupQr && Boolean(authPolicy?.allow_self_signup_qr) && (
-              <Paper variant="outlined" sx={{ p: 2.5, borderRadius: 2 }}>
+              <Paper variant="outlined" sx={ACCOUNT_PAGE_SECTION_PAPER_SX}>
                 <QrSignupManager
                   enabled={Boolean(authPolicy?.allow_self_signup_qr)}
                   expiryDays={authPolicy?.signup_qr_expiry_days}

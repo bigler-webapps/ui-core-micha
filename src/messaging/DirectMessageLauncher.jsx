@@ -18,6 +18,8 @@ import { useTranslation } from 'react-i18next';
 
 import { extractApiErrorMessage, useMessaging } from './MessagingProvider';
 
+export const DIRECT_MESSAGE_LAUNCHER_ALERT_SX = { mb: 1 };
+
 /**
  * Starts direct conversations from host-provided people. Candidate discovery is
  * intentionally outside messaging because memberships are host-domain data.
@@ -70,7 +72,7 @@ export function DirectMessageLauncher({ candidates = [], scope, onOpen }) {
       <Dialog open={open} onClose={closePicker} fullScreen={fullScreen} aria-labelledby={titleId}>
         <DialogTitle id={titleId}>{t('MessagingDirect.TITLE')}</DialogTitle>
         <DialogContent>
-          {error && <Alert severity="error" sx={{ mb: 1 }}>{error}</Alert>}
+          {error && <Alert severity="error" sx={DIRECT_MESSAGE_LAUNCHER_ALERT_SX}>{error}</Alert>}
           {starting && <Typography role="status" sx={{ mb: 1 }}><CircularProgress size={16} sx={{ mr: 1 }} />{t('MessagingDirect.STARTING')}</Typography>}
           {candidates.length === 0 ? (
             <Typography>{t('MessagingDirect.EMPTY')}</Typography>

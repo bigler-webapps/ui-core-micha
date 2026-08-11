@@ -9,6 +9,8 @@ import {
 import { useTranslation } from 'react-i18next';
 import { fetchAuthPolicy, updateAuthPolicy } from '../auth/authApi';
 
+export const ACCESS_CODE_SINGLE_USE_ALERT_SX = { mb: 2 };
+
 export function AccessCodeSingleUseToggle({ canEdit = true, policy = null, onPolicyChange = null }) {
   const { t } = useTranslation();
   const [value, setValue] = useState(false);
@@ -72,8 +74,8 @@ export function AccessCodeSingleUseToggle({ canEdit = true, policy = null, onPol
           'When enabled, each access code can be redeemed only once. Recommended.',
         )}
       </Typography>
-      {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
-      {success && <Alert severity="success" sx={{ mb: 2 }}>{success}</Alert>}
+      {error && <Alert severity="error" sx={ACCESS_CODE_SINGLE_USE_ALERT_SX}>{error}</Alert>}
+      {success && <Alert severity="success" sx={ACCESS_CODE_SINGLE_USE_ALERT_SX}>{success}</Alert>}
       <FormControlLabel
         control={
           <Switch

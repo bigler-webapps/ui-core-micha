@@ -27,6 +27,12 @@ import { fetchUsersList, deleteUser, updateUserRole } from '../auth/authApi';
 
 const DEFAULT_ROLES = ['none', 'student', 'teacher', 'admin'];
 
+export const USER_LIST_ACTION_SX = { minWidth: 90 };
+export const USER_LIST_ALERT_SX = { mb: 2 };
+export const USER_LIST_HEADER_CELL_SX = { fontWeight: 600, whiteSpace: 'nowrap' };
+export const USER_LIST_EMPTY_CELL_SX = { py: 4, color: 'text.secondary' };
+export const USER_LIST_BODY_CELL_SX = { verticalAlign: 'top', py: 1 };
+
 export function UserListComponent({
     roles = DEFAULT_ROLES,
     currentUser,
@@ -54,7 +60,6 @@ export function UserListComponent({
   const [page, setPage] = useState(0);
   const [pageSize, setPageSize] = useState(25);
   const controlSx = { minWidth: 140 };
-  const actionButtonSx = { textTransform: 'none', minWidth: 90 };
 
   const loadUsers = useCallback(async () => {
     setLoading(true);
@@ -419,7 +424,7 @@ export function UserListComponent({
                 variant="outlined"
                 onClick={() => runRowAction(action, row)}
                 disabled={isBusy || isDisabled}
-                sx={actionButtonSx}
+                sx={USER_LIST_ACTION_SX}
               >
                 {typeof action.label === 'function'
                   ? action.label({ user: row, t, currentUser, canEdit: canEdit(row) })
@@ -438,7 +443,7 @@ export function UserListComponent({
                   startIcon={<DeleteIcon />}
                   onClick={() => handleDelete(row.id)}
                   disabled={!canDelete(row)}
-                  sx={actionButtonSx}
+                  sx={USER_LIST_ACTION_SX}
                 >
                   {t('Common.DELETE', 'Delete')}
                 </Button>
@@ -508,7 +513,7 @@ export function UserListComponent({
         />
       </Box>
 
-      {error && <Alert severity="error" sx={{ mb: 2 }}>{t(error)}</Alert>}
+      {error && <Alert severity="error" sx={USER_LIST_ALERT_SX}>{t(error)}</Alert>}
 
       {loading && (
         <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
@@ -527,7 +532,7 @@ export function UserListComponent({
                       key={col.field}
                       align={col.headerAlign || col.align || 'left'}
                       sortDirection={sortField === col.field ? sortDir : false}
-                      sx={{ minWidth: col.minWidth, fontWeight: 600, whiteSpace: 'nowrap' }}
+                      sx={[USER_LIST_HEADER_CELL_SX, { minWidth: col.minWidth }]}
                     >
                       {col.sortable !== false ? (
                         <TableSortLabel
@@ -550,7 +555,7 @@ export function UserListComponent({
                     <TableCell
                       colSpan={columns.length}
                       align="center"
-                      sx={{ py: 4, color: 'text.secondary' }}
+                      sx={USER_LIST_EMPTY_CELL_SX}
                     >
                       {t('UserList.NO_USERS', 'No users found.')}
                     </TableCell>
@@ -562,7 +567,7 @@ export function UserListComponent({
                         <TableCell
                           key={col.field}
                           align={col.align || 'left'}
-                          sx={{ verticalAlign: 'top', py: 1 }}
+                          sx={USER_LIST_BODY_CELL_SX}
                         >
                           {col.renderCell(row)}
                         </TableCell>

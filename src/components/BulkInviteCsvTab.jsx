@@ -16,6 +16,13 @@ import {
 import { useTranslation } from 'react-i18next';
 import { sendAdminInvite } from '../auth/authApi';
 
+export const BULK_INVITE_ACTION_SX = {
+  minWidth: 120,
+  height: 40,
+  whiteSpace: 'nowrap',
+};
+export const BULK_INVITE_ALERT_SX = { mb: 2 };
+
 function parseEmailsFromCsv(text) {
   if (!text) return [];
 
@@ -45,12 +52,6 @@ export function BulkInviteCsvTab({
   onCompleted,
 }) {
   const { t } = useTranslation();
-  const actionButtonSx = {
-    minWidth: 120,
-    height: 40,
-    textTransform: 'none',
-    whiteSpace: 'nowrap',
-  };
   const [emails, setEmails] = useState([]);
   const [results, setResults] = useState({});
   const [busy, setBusy] = useState(false);
@@ -134,15 +135,15 @@ export function BulkInviteCsvTab({
         )}
       </Typography>
 
-      {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
-      {success && <Alert severity="success" sx={{ mb: 2 }}>{success}</Alert>}
+      {error && <Alert severity="error" sx={BULK_INVITE_ALERT_SX}>{error}</Alert>}
+      {success && <Alert severity="success" sx={BULK_INVITE_ALERT_SX}>{success}</Alert>}
 
       <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', mb: 2, flexWrap: 'wrap' }}>
-        <Button variant="outlined" size="small" component="label" disabled={busy} sx={actionButtonSx}>
+        <Button variant="outlined" size="small" component="label" disabled={busy} sx={BULK_INVITE_ACTION_SX}>
           {t('Account.BULK_INVITE_UPLOAD', 'Upload CSV')}
           <input type="file" accept=".csv,text/csv" hidden onChange={handleFile} />
         </Button>
-        <Button variant="contained" size="small" sx={actionButtonSx} onClick={handleInviteAll} disabled={busy || emails.length === 0}>
+        <Button variant="contained" size="small" sx={BULK_INVITE_ACTION_SX} onClick={handleInviteAll} disabled={busy || emails.length === 0}>
           {t('Account.BULK_INVITE_SEND', 'Send Invites')}
         </Button>
         <Typography variant="body2">

@@ -10,6 +10,8 @@ import { useTranslation } from 'react-i18next';
 import { compressImageForUpload } from './composerImageCompression';
 import { extractApiErrorMessage, useMessaging } from './MessagingProvider';
 
+export const COMPOSER_EMOJI_BUTTON_SX = { fontSize: '1.15rem' };
+
 // A wider, Composer-only set (MSG-6i) -- deliberately separate from
 // ReactionBar's own QUICK_EMOJIS (5, curated for fast reactions). Mobile
 // users already have a full native emoji keyboard for free-form text; this
@@ -167,7 +169,7 @@ export function Composer({ conversationId, conversation, replyTarget = null, onR
       */}
       <Box role="group" aria-label={t('MessagingComposer.EMOJI_PICKER')} sx={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 0.25, p: 0.5, maxWidth: 280 }}>
         {COMPOSER_EMOJIS.map((emoji) => (
-          <IconButton key={emoji} type="button" size="small" onClick={() => insertEmoji(emoji)} sx={{ fontSize: '1.15rem' }}>
+          <IconButton key={emoji} type="button" size="small" onClick={() => insertEmoji(emoji)} sx={COMPOSER_EMOJI_BUTTON_SX}>
             {emoji}
           </IconButton>
         ))}

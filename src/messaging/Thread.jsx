@@ -8,6 +8,8 @@ import { MESSAGING_ENVELOPE, useMessaging } from './MessagingProvider';
 import { ReadTicks } from './ReadTicks';
 import { useRealtime } from '../notifications/realtime';
 
+export const THREAD_DAY_SEPARATOR_SX = { flex: 1 };
+
 function chronological(messages) { return [...messages].sort((left, right) => new Date(left.created_at || 0) - new Date(right.created_at || 0)); }
 function replyToId(message) { return message.reply_to_id ?? message.reply_to; }
 // last_reply_at/reply_count are viewer-independent (always on serialize_message);
@@ -174,7 +176,7 @@ export function Thread({ conversationId, onReplyTargetChange, canModerateMessage
             no vertical overflow). */}
         <Stack spacing={1} sx={{ pr: 2 }}>{datedRoots.map(({ message, showDateSeparator }) => {
           const replies = chronological(Object.values(cache.messages).filter((item) => String(replyToId(item)) === String(message.id)));
-          return <Stack key={message.id} spacing={0.75}>{showDateSeparator && <Stack data-testid="day-separator" direction="row" alignItems="center" spacing={1}><Divider sx={{ flex: 1 }} /><Typography variant="caption" color="text.secondary">{new Date(message.created_at).toLocaleDateString(i18n?.language)}</Typography><Divider sx={{ flex: 1 }} /></Stack>}<MessageBubble message={message} conversation={conversation} onReply={reply} onJumpToMessage={jumpToMessage} onAnnouncementLink={onAnnouncementLink} canModerateMessages={canModerateMessages}>{canShowReadTicks(message, user) && <ReadTicks messageId={message.id} conversation={conversation} />}</MessageBubble>
+          return <Stack key={message.id} spacing={0.75}>{showDateSeparator && <Stack data-testid="day-separator" direction="row" alignItems="center" spacing={1}><Divider sx={THREAD_DAY_SEPARATOR_SX} /><Typography variant="caption" color="text.secondary">{new Date(message.created_at).toLocaleDateString(i18n?.language)}</Typography><Divider sx={THREAD_DAY_SEPARATOR_SX} /></Stack>}<MessageBubble message={message} conversation={conversation} onReply={reply} onJumpToMessage={jumpToMessage} onAnnouncementLink={onAnnouncementLink} canModerateMessages={canModerateMessages}>{canShowReadTicks(message, user) && <ReadTicks messageId={message.id} conversation={conversation} />}</MessageBubble>
             {(message.reply_count || replies.length) > 0 && (() => {
               const unread = hasUnreadReplies(message, cache.receipts, user?.id);
               const label = openThreads[message.id] ? t('MessagingThread.HIDE_REPLIES') : t('MessagingThread.SHOW_REPLIES', { count: message.reply_count || replies.length });

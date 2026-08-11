@@ -16,6 +16,8 @@ import {
   urlBase64ToUint8Array,
 } from '../../notifications/api';
 
+export const BROWSER_PUSH_FORM_CONTROL_LABEL_SX = { alignItems: 'flex-start', ml: 0 };
+
 export function BrowserPushStep({ onComplete, onDismiss, ctx }) {
   const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
@@ -92,7 +94,7 @@ export function BrowserPushStep({ onComplete, onDismiss, ctx }) {
         control={<Switch checked={emailOptedIn} onChange={handleEmailToggle} disabled={savingEmail} />}
         label={<Box><Typography variant="body1">{t('Onboarding.EMAIL_NOTIFICATIONS_LABEL')}</Typography><Typography variant="caption" color="text.secondary">{t('Onboarding.EMAIL_NOTIFICATIONS_HINT')}</Typography></Box>}
         labelPlacement="end"
-        sx={{ alignItems: 'flex-start', ml: 0 }}
+        sx={BROWSER_PUSH_FORM_CONTROL_LABEL_SX}
       />
       {pushSupported && (
         <Box>

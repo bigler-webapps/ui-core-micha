@@ -11,6 +11,8 @@ import {
 import { useTranslation } from 'react-i18next';
 import { fetchAuthPolicy, updateAuthPolicy } from '../auth/authApi';
 
+export const AUTH_FACTOR_REQUIREMENT_ALERT_SX = { mb: 2 };
+
 export function AuthFactorRequirementCard({ canEdit = true, policy = null }) {
   const { t } = useTranslation();
   const [value, setValue] = useState('1');
@@ -71,8 +73,8 @@ export function AuthFactorRequirementCard({ canEdit = true, policy = null }) {
           'Define the minimum number of authentication factors required for sign-in.',
         )}
       </Typography>
-      {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
-      {success && <Alert severity="success" sx={{ mb: 2 }}>{success}</Alert>}
+      {error && <Alert severity="error" sx={AUTH_FACTOR_REQUIREMENT_ALERT_SX}>{error}</Alert>}
+      {success && <Alert severity="success" sx={AUTH_FACTOR_REQUIREMENT_ALERT_SX}>{success}</Alert>}
       <FormControl>
         <RadioGroup value={value} onChange={handleChange}>
           <FormControlLabel

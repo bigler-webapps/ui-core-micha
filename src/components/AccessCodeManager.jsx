@@ -21,15 +21,22 @@ import {
   deleteAccessCode,
 } from '../auth/authApi';
 
+export const ACCESS_CODE_ACTION_SX = {
+  minWidth: 120,
+  height: 40,
+  whiteSpace: 'nowrap',
+};
+export const ACCESS_CODE_PRIMARY_ACTION_SX = { ...ACCESS_CODE_ACTION_SX, mt: 1 };
+export const ACCESS_CODE_ALERT_SX = { mb: 2 };
+export const ACCESS_CODE_VALUE_FIELD_SX = {
+  '& .MuiInputBase-input': {
+    fontFamily: 'monospace',
+    letterSpacing: '0.04em',
+  },
+};
+
 export function AccessCodeManager() {
   const { t } = useTranslation();
-  const actionButtonSx = {
-    minWidth: 120,
-    height: 40,
-    textTransform: 'none',
-    whiteSpace: 'nowrap',
-  };
-
   const [codes, setCodes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -142,17 +149,17 @@ export function AccessCodeManager() {
   return (
     <Box>
       {errorKey && (
-        <Alert severity="error" sx={{ mb: 2 }}>
+        <Alert severity="error" sx={ACCESS_CODE_ALERT_SX}>
           {t(errorKey)}
         </Alert>
       )}
       {successKey && (
-        <Alert severity="success" sx={{ mb: 2 }}>
+        <Alert severity="success" sx={ACCESS_CODE_ALERT_SX}>
           {t(successKey)}
         </Alert>
       )}
       {copyNotice && (
-        <Alert severity="info" sx={{ mb: 2 }}>
+        <Alert severity="info" sx={ACCESS_CODE_ALERT_SX}>
           {copyNotice}
         </Alert>
       )}
@@ -190,19 +197,14 @@ export function AccessCodeManager() {
                       onFocus: (event) => event.target.select(),
                     },
                   }}
-                  sx={{
-                    '& .MuiInputBase-input': {
-                      fontFamily: 'monospace',
-                      letterSpacing: '0.04em',
-                    },
-                  }}
+                  sx={ACCESS_CODE_VALUE_FIELD_SX}
                 />
                 <Button
                   variant="outlined"
                   size="small"
                   onClick={() => handleCopyCode(code.code)}
                   startIcon={<ContentCopyIcon fontSize="small" />}
-                  sx={actionButtonSx}
+                  sx={ACCESS_CODE_ACTION_SX}
                 >
                   {t('Auth.ACCESS_CODE_COPY_BUTTON', t('Auth.MFA_RECOVERY_COPY_TOOLTIP', 'Kopieren'))}
                 </Button>
@@ -212,7 +214,7 @@ export function AccessCodeManager() {
                   size="small"
                   onClick={() => handleDelete(code.id)}
                   startIcon={<DeleteIcon fontSize="small" />}
-                  sx={actionButtonSx}
+                  sx={ACCESS_CODE_ACTION_SX}
                 >
                   {t('Common.DELETE', 'Löschen')}
                 </Button>
@@ -246,7 +248,7 @@ export function AccessCodeManager() {
         <Button
           variant="contained"
           size="small"
-          sx={{ ...actionButtonSx, mt: 1 }}
+          sx={ACCESS_CODE_PRIMARY_ACTION_SX}
           onClick={handleGenerateClick}
           disabled={submitting}
         >
@@ -275,7 +277,7 @@ export function AccessCodeManager() {
             size="small"
             onClick={handleAddManual}
             disabled={submitting}
-            sx={actionButtonSx}
+            sx={ACCESS_CODE_ACTION_SX}
           >
             {t('Auth.ACCESS_CODE_ADD_BUTTON')}
           </Button>

@@ -9,6 +9,9 @@ import {
 import { useTranslation } from 'react-i18next';
 import { updateAuthPolicy } from '../auth/authApi';
 
+export const ALLOWED_EMAIL_DOMAINS_ALERT_SX = { mb: 2 };
+export const ALLOWED_EMAIL_DOMAINS_BUTTON_SX = { mt: 2 };
+
 export function AllowedEmailDomainsManager({
   domains = [],
   enabled = false,
@@ -63,8 +66,8 @@ export function AllowedEmailDomainsManager({
         )}
       </Typography>
 
-      {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
-      {success && <Alert severity="success" sx={{ mb: 2 }}>{success}</Alert>}
+      {error && <Alert severity="error" sx={ALLOWED_EMAIL_DOMAINS_ALERT_SX}>{error}</Alert>}
+      {success && <Alert severity="success" sx={ALLOWED_EMAIL_DOMAINS_ALERT_SX}>{success}</Alert>}
 
       <TextField
         label={t('Auth.ALLOWED_EMAIL_DOMAINS_LABEL', 'Allowed email domains')}
@@ -80,7 +83,7 @@ export function AllowedEmailDomainsManager({
         disabled={busy || !canEdit}
       />
 
-      <Button variant="contained" sx={{ mt: 2 }} onClick={handleSave} disabled={busy || !canEdit}>
+      <Button variant="contained" sx={ALLOWED_EMAIL_DOMAINS_BUTTON_SX} onClick={handleSave} disabled={busy || !canEdit}>
         {t('Common.SAVE', 'Save')}
       </Button>
     </Box>

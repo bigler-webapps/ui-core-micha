@@ -33,6 +33,10 @@ import {
   updateUserSupportStatus,
 } from '../auth/authApi';
 
+export const SUPPORT_RECOVERY_AGENT_PAPER_SX = { p: 2, mb: 3 };
+export const SUPPORT_RECOVERY_ALERT_SX = { mb: 2 };
+export const SUPPORT_RECOVERY_AGENT_BUTTON_SX = { minWidth: 160 };
+
 export function SupportRecoveryRequestsTab() {
   const { t, i18n } = useTranslation();
   const { user } = useContext(AuthContext);
@@ -198,7 +202,7 @@ export function SupportRecoveryRequestsTab() {
   return (
     <Box>
       {canManageAgents && (
-        <Paper variant="outlined" sx={{ p: 2, mb: 3, borderRadius: 2 }}>
+        <Paper variant="outlined" sx={SUPPORT_RECOVERY_AGENT_PAPER_SX}>
           <Typography variant="h6" gutterBottom>
             {t('Support.AGENTS_TITLE', 'Support agents')}
           </Typography>
@@ -211,7 +215,7 @@ export function SupportRecoveryRequestsTab() {
           </Typography>
 
           {agentErrorKey && (
-            <Alert severity="error" sx={{ mb: 2 }}>
+            <Alert severity="error" sx={SUPPORT_RECOVERY_ALERT_SX}>
               {t(agentErrorKey)}
             </Alert>
           )}
@@ -242,7 +246,7 @@ export function SupportRecoveryRequestsTab() {
               variant="contained"
               onClick={handleAddAgent}
               disabled={!selectedAgentCandidate || agentLoading || Boolean(agentActionUserId)}
-              sx={{ minWidth: 160 }}
+              sx={SUPPORT_RECOVERY_AGENT_BUTTON_SX}
             >
               {t('Support.AGENTS_ADD', 'Add as agent')}
             </Button>
@@ -305,7 +309,7 @@ export function SupportRecoveryRequestsTab() {
       </Typography>
 
       {errorKey && (
-        <Alert severity="error" sx={{ mb: 2 }}>
+        <Alert severity="error" sx={SUPPORT_RECOVERY_ALERT_SX}>
           {t(errorKey)}
         </Alert>
       )}

@@ -11,6 +11,9 @@ import {
 import { useTranslation } from 'react-i18next';
 import { exportChartPng, exportChartSvg } from './exportChart';
 
+export const CHART_FRAME_ROOT_SX = { p: 2 };
+export const CHART_FRAME_ALERT_SX = { mt: 2 };
+
 /**
  * Chart-type-agnostic chart scaffolding. Children may be an X-Charts primitive or a bespoke SVG.
  */
@@ -44,6 +47,7 @@ export function ChartFrame({
   const hasMeta = meta !== undefined && meta !== null && meta !== false && meta !== '';
   const hasCustomAriaLabel = Boolean(ariaLabel);
   const chartLabel = ariaLabel || title;
+  const callerSx = Array.isArray(sx) ? sx : [sx];
 
   const runExport = async (type) => {
     setExportError(false);
@@ -69,7 +73,7 @@ export function ChartFrame({
   }
 
   return (
-    <Paper variant={variant} sx={{ p: 2, ...sx }}>
+    <Paper variant={variant} sx={[CHART_FRAME_ROOT_SX, ...callerSx]}>
       <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 2, mb: 2 }}>
         <Box>
           <Typography id={titleId} variant={titleVariant}>{title}</Typography>
@@ -101,7 +105,7 @@ export function ChartFrame({
         {content}
       </Box>
 
-      {exportError && <Alert severity="error" sx={{ mt: 2 }}>{t('ChartFrame.EXPORT_ERROR')}</Alert>}
+      {exportError && <Alert severity="error" sx={CHART_FRAME_ALERT_SX}>{t('ChartFrame.EXPORT_ERROR')}</Alert>}
 
       {/* `meta` opts the card into the single bordered foot row (meta left, exports right).
           Without it the markup below is byte-for-byte the pre-`meta` structure -- a bare Stack,

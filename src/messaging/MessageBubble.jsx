@@ -8,6 +8,29 @@ import { extractApiErrorMessage, useOptionalMessaging } from './MessagingProvide
 import { ReactionBar } from './ReactionBar';
 import { PollCard } from './PollCard';
 
+export const MESSAGE_BUBBLE_ROOT_SX = {
+  position: 'relative',
+  p: 1.25,
+  minWidth: 0,
+  overflowWrap: 'anywhere',
+  '& .message-actions': {
+    opacity: 0,
+    pointerEvents: 'none',
+    transition: 'opacity 120ms ease-in-out',
+  },
+  '&:hover .message-actions, &:focus-within .message-actions, &[data-actions-visible="true"] .message-actions': {
+    opacity: 1,
+    pointerEvents: 'auto',
+  },
+};
+export const MESSAGE_BUBBLE_ACTION_SX = {
+  position: 'absolute',
+  top: -12,
+  right: -12,
+  bgcolor: 'background.paper',
+  boxShadow: 1,
+};
+
 function senderName(message) {
   return message.sender?.display_name || message.sender?.username || message.sender_name || message.sender?.name;
 }
@@ -103,16 +126,15 @@ export function MessageBubble({ message, replyTo, conversation, onReply, onJumpT
         data-actions-visible={actionsVisible || undefined}
         onClick={revealActions}
         onContextMenu={canOpenMenu ? openMenu : undefined}
-        sx={{
-          position: 'relative', p: 1.25, minWidth: 0,
-          bgcolor: isOwn ? (theme) => alpha(theme.palette.primary.light, 0.24) : 'background.paper',
-          borderColor: isOwn ? (theme) => alpha(theme.palette.primary.main, 0.35) : 'divider',
-          overflowWrap: 'anywhere',
-          '& .message-actions': { opacity: 0, pointerEvents: 'none', transition: 'opacity 120ms ease-in-out' },
-          '&:hover .message-actions, &:focus-within .message-actions, &[data-actions-visible="true"] .message-actions': { opacity: 1, pointerEvents: 'auto' },
-        }}
+        sx={[
+          MESSAGE_BUBBLE_ROOT_SX,
+          {
+            bgcolor: isOwn ? (theme) => alpha(theme.palette.primary.light, 0.24) : 'background.paper',
+            borderColor: isOwn ? (theme) => alpha(theme.palette.primary.main, 0.35) : 'divider',
+          },
+        ]}
       >
-        {canOpenMenu && <IconButton className="message-actions" size="small" aria-label={t('MessagingActions.MENU')} onClick={openMenu} sx={{ position: 'absolute', top: -12, right: -12, bgcolor: 'background.paper', boxShadow: 1 }}><MoreVertIcon fontSize="small" /></IconButton>}
+        {canOpenMenu && <IconButton className="message-actions" size="small" aria-label={t('MessagingActions.MENU')} onClick={openMenu} sx={MESSAGE_BUBBLE_ACTION_SX}><MoreVertIcon fontSize="small" /></IconButton>}
         <Stack spacing={0.75}>
           {replyTo && <ButtonBase type="button" onClick={() => onJumpToMessage?.(replyTo.id)} sx={{ display: 'block', width: '100%', px: 0.75, py: 0.5, textAlign: 'left', borderLeft: 3, borderColor: 'primary.main', bgcolor: 'action.hover', borderRadius: 0.5 }}>
             <Stack spacing={0} alignItems="flex-start">

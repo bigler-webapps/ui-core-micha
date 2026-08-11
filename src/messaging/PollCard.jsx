@@ -5,6 +5,10 @@ import { useTranslation } from 'react-i18next';
 
 import { extractApiErrorMessage, useMessaging } from './MessagingProvider';
 
+export const POLL_CARD_ROOT_SX = { p: 1.5, minWidth: 260 };
+export const POLL_CARD_FORM_CONTROL_SX = { width: '100%', m: 0, alignItems: 'flex-start' };
+export const POLL_CARD_CHECKBOX_SX = { pt: 0.25 };
+
 /**
  * Independently mountable live poll view. Server authorization remains authoritative.
  *
@@ -124,19 +128,17 @@ export function PollCard({ message, canClose: canCloseProp }) {
     </Stack>;
     return { accessibleLabel, richLabel };
   };
-  const formControlSx = { width: '100%', m: 0, alignItems: 'flex-start' };
-
   // MSG-6j: a short question/option set could otherwise pull the whole `MessageBubble`
   // (`width: fit-content`) in tighter than comfortable to read. 260px stays under the
   // bubble's own `maxWidth: min(75%, 680px)` ceiling even at a 375px viewport (75% = 281px)
   // -- verified at that width, not just desktop.
-  return <Paper variant="outlined" sx={{ p: 1.5, minWidth: 260 }} aria-label={t('MessagingPoll.LABEL')}><Stack spacing={1.5}>
+  return <Paper variant="outlined" sx={POLL_CARD_ROOT_SX} aria-label={t('MessagingPoll.LABEL')}><Stack spacing={1.5}>
     <Typography variant="subtitle2">{poll.question}</Typography>
     {poll.allow_multiple
       ? (poll.options || []).map((option) => {
           const { accessibleLabel, richLabel } = optionLabel(option);
-          return <FormControlLabel key={option.id} disabled={closed} sx={formControlSx} label={richLabel}
-            control={<Checkbox checked={selected.includes(option.id)} inputProps={{ 'aria-label': accessibleLabel }} onChange={() => tap(option.id)} sx={{ pt: 0.25 }} />} />;
+          return <FormControlLabel key={option.id} disabled={closed} sx={POLL_CARD_FORM_CONTROL_SX} label={richLabel}
+            control={<Checkbox checked={selected.includes(option.id)} inputProps={{ 'aria-label': accessibleLabel }} onChange={() => tap(option.id)} sx={POLL_CARD_CHECKBOX_SX} />} />;
         })
       // No RadioGroup-level onChange: it would only ever hand back
       // `event.target.value`, a DOM string -- coercing a non-string option id
@@ -148,7 +150,7 @@ export function PollCard({ message, canClose: canCloseProp }) {
       : <RadioGroup value={selected[0] ?? ''} name={`poll-${poll.id}-options`}>
           {(poll.options || []).map((option) => {
             const { accessibleLabel, richLabel } = optionLabel(option);
-            return <FormControlLabel key={option.id} value={option.id} disabled={closed} sx={formControlSx} label={richLabel}
+            return <FormControlLabel key={option.id} value={option.id} disabled={closed} sx={POLL_CARD_FORM_CONTROL_SX} label={richLabel}
               control={<Radio inputProps={{ 'aria-label': accessibleLabel }} onChange={() => tap(option.id)} sx={{ pt: 0.25 }} />} />;
           })}
         </RadioGroup>}

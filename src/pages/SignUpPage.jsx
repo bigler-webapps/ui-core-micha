@@ -21,6 +21,8 @@ import { AuthContext } from '../auth/AuthContext';
 import { submitRegistrationRequest } from '../auth/authApi';
 import { TurnstileWidget } from '../components/TurnstileWidget';
 
+export const SIGN_UP_PAGE_ALERT_SX = { mb: 2 };
+
 const TURNSTILE_SIGNUP_MODES = new Set([
   'self_signup_open',
   'self_signup_email_domain',
@@ -162,13 +164,13 @@ export function SignUpPage() {
       </Helmet>
 
       {successKey && (
-        <Alert severity="success" sx={{ mb: 2 }}>
+        <Alert severity="success" sx={SIGN_UP_PAGE_ALERT_SX}>
           {t(successKey, { email })}
         </Alert>
       )}
 
       {errorKey && (
-        <Alert severity="error" sx={{ mb: 2 }}>
+        <Alert severity="error" sx={SIGN_UP_PAGE_ALERT_SX}>
           {t(errorKey, t('Auth.INVITE_FAILED', 'Could not complete signup.'))}
         </Alert>
       )}

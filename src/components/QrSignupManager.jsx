@@ -11,6 +11,8 @@ import { useTranslation } from 'react-i18next';
 import { QRCodeSVG } from 'qrcode.react';
 import { createSignupQr } from '../auth/authApi';
 
+export const QR_SIGNUP_MANAGER_ALERT_SX = { mb: 2 };
+
 const DEFAULT_EXPIRY_DAYS = 90;
 const DEFAULT_MAX_REDEMPTIONS = 1;
 
@@ -297,15 +299,15 @@ export function QrSignupManager({
         />
       </Box>
 
-      {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
-      {success && <Alert severity="success" sx={{ mb: 2 }}>{success}</Alert>}
+      {error && <Alert severity="error" sx={QR_SIGNUP_MANAGER_ALERT_SX}>{error}</Alert>}
+      {success && <Alert severity="success" sx={QR_SIGNUP_MANAGER_ALERT_SX}>{success}</Alert>}
       {copyState === 'copied' && (
-        <Alert severity="success" sx={{ mb: 2 }}>
+        <Alert severity="success" sx={QR_SIGNUP_MANAGER_ALERT_SX}>
           {t('Auth.SIGNUP_QR_LINK_COPIED', 'Signup link copied.')}
         </Alert>
       )}
       {copyState === 'error' && (
-        <Alert severity="warning" sx={{ mb: 2 }}>
+        <Alert severity="warning" sx={QR_SIGNUP_MANAGER_ALERT_SX}>
           {t('Auth.SIGNUP_QR_COPY_UNAVAILABLE', 'Copying the link is not available in this browser.')}
         </Alert>
       )}

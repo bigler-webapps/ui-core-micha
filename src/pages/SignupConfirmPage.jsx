@@ -20,6 +20,8 @@ import { useTranslation } from 'react-i18next';
 import { NarrowPage } from '../layout/PageLayout';
 import { confirmRegistration } from '../auth/authApi';
 
+export const SIGNUP_CONFIRM_PAGE_ALERT_SX = { mb: 2 };
+
 export function SignupConfirmPage() {
   const { t } = useTranslation();
   const location = useLocation();
@@ -85,7 +87,7 @@ export function SignupConfirmPage() {
 
       {tokenMissing ? (
         <>
-          <Alert severity="error" sx={{ mb: 2 }}>
+          <Alert severity="error" sx={SIGNUP_CONFIRM_PAGE_ALERT_SX}>
             {t('Auth.PENDING_TOKEN_INVALID', 'This confirmation link is invalid or expired.')}
           </Alert>
           <Stack direction="row" spacing={1} sx={{ mt: 1 }}>
@@ -100,7 +102,7 @@ export function SignupConfirmPage() {
       ) : (
         <>
           {errorKey && (
-            <Alert severity="error" sx={{ mb: 2 }}>
+            <Alert severity="error" sx={SIGNUP_CONFIRM_PAGE_ALERT_SX}>
               {t(errorKey, t('Auth.PENDING_TOKEN_INVALID', 'Could not confirm registration.'))}
             </Alert>
           )}
