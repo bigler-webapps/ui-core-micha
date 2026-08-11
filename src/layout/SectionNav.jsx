@@ -164,6 +164,20 @@ function SectionNavList({
   );
 }
 
+/**
+ * Render matrix:
+ *
+ * | `mode`    | `open`                 | `onOpen` | trigger | sidebar | `children`       | drawer              |
+ * |-----------|------------------------|----------|---------|---------|------------------|---------------------|
+ * | `desktop` | ignored                | ignored  | —       | yes     | yes, in the grid | —                   |
+ * | `mobile`  | absent (uncontrolled)  | ignored  | yes     | —       | yes              | yes, internal state |
+ * | `mobile`  | given                  | given    | yes     | —       | yes              | caller-driven       |
+ * | `mobile`  | given                  | absent   | no      | —       | yes              | caller-driven       |
+ *
+ * Optional parts: without `overviewItem`, no overview entry or empty Paper is rendered;
+ * without `rememberedKey`, no secondary line is rendered; without `title` or
+ * `triggerEyebrow`, `t('SectionNav.TITLE')` or `t('SectionNav.TRIGGER_EYEBROW')` is used.
+ */
 export function SectionNav({
   mode,
   groups,
@@ -188,6 +202,7 @@ export function SectionNav({
   const [internalOpen, setInternalOpen] = useState(false);
   const isControlled = open !== undefined;
   const drawerOpen = isControlled ? open : internalOpen;
+  const canOpenTrigger = !isControlled || Boolean(onOpen);
   const resolvedTitle = title ?? t('SectionNav.TITLE');
   const resolvedEyebrow = triggerEyebrow ?? t('SectionNav.TRIGGER_EYEBROW');
   const rememberedLabel = t('SectionNav.LAST_OPENED');
@@ -243,27 +258,29 @@ export function SectionNav({
 
   return (
     <>
-      <ButtonBase
-        sx={SECTION_NAV_TRIGGER_SX}
-        onClick={handleTriggerClick}
-        aria-haspopup="dialog"
-        aria-expanded={drawerOpen}
-        aria-controls={drawerId}
-      >
-        <Box sx={SECTION_NAV_TRIGGER_TEXT_SX}>
-          <Typography variant="caption" color="text.secondary">
-            {resolvedEyebrow}
-          </Typography>
-          <Typography variant="subtitle1" sx={SECTION_NAV_TRIGGER_VALUE_SX}>
-            {activeItem?.label ?? resolvedTitle}
-          </Typography>
-        </Box>
-        <KeyboardArrowDownIcon
-          aria-hidden="true"
-          sx={SECTION_NAV_CHEVRON_SX}
-          style={{ transform: drawerOpen ? 'rotate(180deg)' : 'rotate(0deg)' }}
-        />
-      </ButtonBase>
+      {canOpenTrigger && (
+        <ButtonBase
+          sx={SECTION_NAV_TRIGGER_SX}
+          onClick={handleTriggerClick}
+          aria-haspopup="dialog"
+          aria-expanded={drawerOpen}
+          aria-controls={drawerId}
+        >
+          <Box sx={SECTION_NAV_TRIGGER_TEXT_SX}>
+            <Typography variant="caption" color="text.secondary">
+              {resolvedEyebrow}
+            </Typography>
+            <Typography variant="subtitle1" sx={SECTION_NAV_TRIGGER_VALUE_SX}>
+              {activeItem?.label ?? resolvedTitle}
+            </Typography>
+          </Box>
+          <KeyboardArrowDownIcon
+            aria-hidden="true"
+            sx={SECTION_NAV_CHEVRON_SX}
+            style={{ transform: drawerOpen ? 'rotate(180deg)' : 'rotate(0deg)' }}
+          />
+        </ButtonBase>
+      )}
 
       <Box sx={SECTION_NAV_CONTENT_SX}>{children}</Box>
 

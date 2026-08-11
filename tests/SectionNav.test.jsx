@@ -147,6 +147,7 @@ describe('SectionNav', () => {
     renderNav({ mode: 'mobile', onSelect });
 
     const trigger = screen.getByRole('button', { name: /Section Profile/i });
+    expect(trigger).toBeTruthy();
     expect(trigger.getAttribute('aria-expanded')).toBe('false');
     fireEvent.click(trigger);
     expect(trigger.getAttribute('aria-expanded')).toBe('true');
@@ -164,6 +165,7 @@ describe('SectionNav', () => {
     const { rerender } = renderNav({ mode: 'mobile', open: false, onOpen, onClose });
 
     const trigger = screen.getByRole('button', { name: /Section Profile/i });
+    expect(trigger).toBeTruthy();
     fireEvent.click(trigger);
 
     expect(onOpen).toHaveBeenCalledOnce();
@@ -187,6 +189,53 @@ describe('SectionNav', () => {
     );
     expect(trigger.getAttribute('aria-expanded')).toBe('true');
     expect(screen.getByRole('button', { name: 'Security' })).toBeTruthy();
+  });
+
+  it('omits a dead controlled trigger while keeping children and the caller-driven drawer', () => {
+    const { rerender } = renderNav({ mode: 'mobile', open: false });
+
+    expect(screen.queryByRole('button', { name: /Section Profile/i })).toBeNull();
+    expect(screen.getByTestId('section-content')).toBeTruthy();
+    expect(screen.queryByRole('dialog', { name: 'Switch section' })).toBeNull();
+
+    rerender(
+      <ThemeProvider theme={theme}>
+        <SectionNav
+          mode="mobile"
+          groups={groups}
+          activeKey="profile"
+          onSelect={vi.fn()}
+          open
+        >
+          <div data-testid="section-content">Section content</div>
+        </SectionNav>
+      </ThemeProvider>,
+    );
+
+    expect(screen.queryByRole('button', { name: /Section Profile/i })).toBeNull();
+    expect(screen.getByTestId('section-content')).toBeTruthy();
+    expect(screen.getByRole('dialog', { name: 'Switch section' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Security' })).toBeTruthy();
+  });
+
+  it('keeps the desktop sidebar and children for every open/onOpen combination', () => {
+    const propCombinations = [
+      {},
+      { open: false, onOpen: vi.fn() },
+      { open: false },
+    ];
+
+    propCombinations.forEach((props) => {
+      const { container } = renderNav(props);
+
+      expect(container.querySelector('[data-section-nav-mode="desktop"]')).toBeTruthy();
+      expect(container.querySelector('nav')).toBeTruthy();
+      expect(screen.getByTestId('section-content')).toBeTruthy();
+      expect(screen.queryByRole('button', { name: /Section Profile/i })).toBeNull();
+      expect(document.querySelector('.MuiDrawer-root')).toBeNull();
+
+      cleanup();
+    });
   });
 
   it('renders the desktop sidebar and children in a two-column grid, while mobile renders a trigger and no sidebar', () => {
