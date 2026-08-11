@@ -142,6 +142,68 @@ fallback but the appropriate instrument, because "no button" is a DOM fact, not 
 > `git status`. Check the working tree first: `NAV-37`'s rejected CSS workaround lives uncommitted in
 > `jg-ferien`, and other sessions have been active in this repo throughout this strand.
 
+### Context package
+
+**Precondition confirmed:** `SHELL-5` landed and published (`b283c33`/`ada72be`); `I18N-1` also landed
+independently in the interim (`a6d322d`). Clean starting tree, no implementer commit on top.
+
+**Current file state** (`src/layout/SectionNav.jsx`, verified — line numbers drifted a little from
+the WO's own `:246`/`:200-206` estimate since `SHELL-5`'s own review-fix pass, but the structure is
+identical):
+```js
+// :188-190
+const [internalOpen, setInternalOpen] = useState(false);
+const isControlled = open !== undefined;
+const drawerOpen = isControlled ? open : internalOpen;
+// :200-206
+const handleTriggerClick = () => {
+  if (isControlled) {
+    onOpen?.();
+  } else {
+    setInternalOpen(true);
+  }
+};
+// :244-266, the mobile return path
+return (
+  <>
+    <ButtonBase sx={SECTION_NAV_TRIGGER_SX} onClick={handleTriggerClick} ...>
+      ...
+    </ButtonBase>
+    <Box sx={SECTION_NAV_CONTENT_SX}>{children}</Box>
+    <Drawer ...>...</Drawer>
+  </>
+);
+```
+
+**The fix, precisely:** add `const canOpenTrigger = !isControlled || Boolean(onOpen);` and wrap only
+the `<ButtonBase>` block in `{canOpenTrigger && (...)}`. `children` and `<Drawer>` stay unconditional
+— do not touch their rendering. Do not key the condition on `open` (the WO's own Risks section flags
+this exact mistake as the guard test 3 exists for) — the condition is about whether a click can do
+anything, which depends on `isControlled`/`onOpen`, never on the current `open` value itself.
+
+**The render-matrix doc comment (scope item 2):** add a JSDoc-style comment directly above
+`export function SectionNav(...)` reproducing the table from the Envelope (`mode`/`open`/`onOpen` →
+trigger/sidebar/children/drawer), plus the "optional-part cells" paragraph (`overviewItem` absent →
+no overview entry; `rememberedKey` absent → no secondary line; `title`/`triggerEyebrow` absent →
+their `t()` fallbacks). This is a required deliverable per the WO's own framing ("not optional
+documentation; it is the artefact whose absence caused the defect"), not a nice-to-have.
+
+**Test file:** `tests/SectionNav.test.jsx` already has a controlled-mode test from `SHELL-5`'s own
+review-fix round (`'defers to the caller in controlled mode: the trigger calls onOpen, not internal
+state'`, roughly `:145-175` now) — that test passes `onOpen`, so it exercises the WO's "controlled
+with `onOpen`" cell, not the new "controlled without `onOpen`" cell this WO fixes. Add the four new
+tests as siblings of it, following its existing render helper (`renderNav`) and prop-passing style.
+Required test 1 (non-vacuity) needs to be run against a build BEFORE the fix lands to confirm it
+fails — since this is a live working tree with the pre-fix code already checked out, this is simply:
+write the test first, run it once to confirm it fails, then apply the one-line fix and confirm it
+passes. State this sequence happened in the register note.
+
+**Invariants:** no new prop (`showTrigger`/`hideTrigger` explicitly rejected by the WO); desktop path,
+`Drawer`, `zIndex`, safe-area padding, `SectionNavList`, all i18n keys, `AccountPage` itself, and
+`kitSxRegistry.js` all untouched. `SECTION_NAV_TRIGGER_SX` stays registered even though the element
+it styles now sometimes doesn't render — `THEME-4`'s check is about key disjointness, not element
+presence, so this is a non-issue, not a discrepancy to resolve.
+
 ### Mini-handover
 
 Repo: `ui-core-micha` (`C:\Users\biglmi\Documents\webapps\ui-core-micha`), branch `main`.
