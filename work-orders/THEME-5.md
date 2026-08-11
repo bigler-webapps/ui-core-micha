@@ -179,6 +179,122 @@ props, no permissions, no data contract.
 > `THEME-4` was the first of the three where it did not. An implementer commit is a blocker to
 > surface, and a register row naming a review the Orchestrator did not itself start is invalid.
 
+### Context package
+
+**Precondition confirmed:** `THEME-4` is landed and published (`c64e024`, register row `done`,
+`package.json` reads `2.34.0`). Clean starting state, no implementer commit on top.
+
+**Note on the WO's own arithmetic:** the Envelope's "Five values in `MFAComponent.jsx`" heading is
+followed by a table of **six** rows (`:25`, `:231`×2, `:244`, `:303`, `:314`) — the register's own
+summary already says "the six values it finds", so treat the table (six rows) as authoritative, the
+heading as stale, consistent with two prior stale-count mismatches in this strand (`SHELL-4`'s
+"ten to six", `THEME-4`'s "51 files").
+
+**A likely seventh value the table omits — verify before assuming the table is exhaustive:**
+`src/components/MFAComponent.jsx:313` has `bgcolor: 'white'` in the *same* sx object as the WO's row 6
+(`:314`, `border: '1px solid #ddd'` → `divider`) — a recovery-code chip box, structurally identical in
+role to row 3 (`:231`'s `bgcolor: 'white'` → `background.paper`, the QR-code box). If the new scan (Part
+2) flags `:313` and it is not in the six-row table, this is not a table deviation to stop-and-report —
+it is the same white-box-fill role already established at `:231`, map it identically to
+`background.paper` and list it in the register note as a seventh, table-omitted finding the scan
+caught. Confirm this reading against the actual code before implementing; do not assume the six-row
+table is exhaustive just because the Envelope calls it "decided".
+
+**Current file state (verified, so Codex works from real line numbers, not the WO's possibly-drifted
+ones):**
+```
+src/components/MFAComponent.jsx:25   export const MFA_ACTIVE_CARD_SX = { bgcolor: '#f0fdf4' };
+src/components/MFAComponent.jsx:231  <Box sx={{ p: 2, bgcolor: 'white', border: '1px solid #eee' }}>
+src/components/MFAComponent.jsx:244        bgcolor: '#eee',              (inside a multi-line sx, role: fill)
+src/components/MFAComponent.jsx:303  <Box sx={{ bgcolor: '#f5f5f5', p: 2, borderRadius: 1 }}>
+src/components/MFAComponent.jsx:313        bgcolor: 'white',             (inside a multi-line sx -- the omitted 7th)
+src/components/MFAComponent.jsx:314        border: '1px solid #ddd',
+```
+All six table rows' line numbers matched exactly on inspection — no drift.
+
+**Token values to map to, confirmed against `src/theme/tokens.js`:**
+- `divider: 'rgba(33,37,41,.10)'` (`tokens.js:69`)
+- `background.paper: '#FFFFFF'` / `background.default: '#FAFAFA'` (`tokens.js:65-66`)
+- `background.subtle: '#F4F5F6'` (`tokens.js:67`, landed by `THEME-3`)
+- `success.bg: '#E5F4E9'` (`tokens.js:80`)
+These are accessed in a component via `theme.palette.<path>`, i.e. `sx={{ bgcolor: 'divider' }}` /
+`sx={{ bgcolor: 'background.subtle' }}` / `sx={{ bgcolor: 'success.bg' }}` (MUI resolves a dotted
+palette-path string in `sx`) — this is the same string-token-reference pattern already used and
+proven in `SHELL-4`'s `borderColor: 'divider'` fix. Do **not** import raw hex constants.
+
+**Part 1 — extend `SPACING_SHORTHAND_LONGHANDS` (`src/theme/themeCompleteness.js:383`,
+`expandShorthandProperty` at :402):** add a `bgcolor` → `['backgroundColor']` entry (and, while
+touching this, consider whether `color`/other MUI palette-path aliases need the same treatment — the
+WO names `bgcolor` as "the one with a real near-term risk", so that is the required minimum; do not
+expand the alias table beyond what's verifiably a real MUI `sx` shorthand, to avoid the "write the
+bound as an open one" instruction turning into an unbounded audit). Required test 5 (non-vacuity):
+a fixture registry entry with `sx: { bgcolor: '#fff' }` against a MUI key whose baseline
+`styleOverrides` sets `backgroundColor` must be flagged — construct this as a **fixture-only** test
+(pass a custom `registry` + a fixture theme/component config to `assertKitSxDisjoint`, following the
+existing fixture pattern already in `tests/themeCompleteness.test.js`'s `'kit sx disjointness'`
+describe block, e.g. the `FixtureBottomNav`/`FixtureChip`/`FixtureButton` entries) since, per the
+Envelope, there is genuinely no live `backgroundColor` collision in the real kit today — do not invent
+one in the real registry just to exercise the code path.
+
+**Part 2 — the off-palette colour scan.** New exported function in
+`src/theme/themeCompleteness.js` (same file, same `{ findings: [{ surface, reason }] }` contract as
+`assertThemeComplete`/`assertKitSxDisjoint`/`reportKitSxBypasses` — name it something like
+`reportOffPaletteColours`, Codex's call). Reuse the existing hand-rolled brace/quote-aware source
+scanning approach already proven in `reportKitSxBypasses` (`themeCompleteness.js`, functions
+`jsxOpeningTag`/`topLevelSxValue` and the `sources.map(...)` normalisation shape shared with
+`reportThemeAdoption`) rather than inventing a second scanning mechanism.
+
+**Two known false-positive traps for the colour regex, found while preparing this map — test against
+both explicitly:**
+1. `src/components/charts/chartLabels.js:3-4` has a comment referencing GitHub issue numbers
+   `mui-x#18768` and `#18399` — a naive `/#[0-9a-f]{3,8}/i` pattern matches `#18768` as a false "hex
+   literal" (all five characters `1,8,7,6,8` are valid hex digits). The scan must not flag comment
+   text, or must otherwise be precise enough to skip this. This is exactly the "over-eager scan...
+   gets disabled" risk the Envelope names — verify the scan is blind to this file/line before calling
+   Part 2 done.
+2. `src/theme/createAppTheme.js:45` has a comment mentioning `'#FFFFFF'`, and `:188` has a genuine
+   `'#FFFFFF'` string literal used for contrast-ratio computation (not a component style) — per the
+   Envelope's own risk note, `src/theme/` legitimately contains token hex definitions and must be
+   excluded from the scan's target set entirely (scan `src/components/`, `src/messaging/`,
+   `src/notifications/`, `src/pages/`, `src/auth/`, `src/layout/`, `src/onboarding/` — i.e. component
+   source, not `src/theme/` itself).
+
+**The palette-derived allowlist (required test 4):** build the allowlist by walking
+`BASELINE_PALETTE`/`BASELINE_STATIC` (or the fully-resolved output of `createAppTheme(...)`) and
+collecting every hex/rgba string value found in it, rather than hand-listing values — this is what
+required test 4 (adding a token to the palette should make a source using that value pass, without
+editing the check) actually proves. `THEME-3` is cited in the Envelope as evidence a hand-listed
+allowlist goes stale fast (a new baseline token landed three days into this strand).
+
+**Named-CSS-colour detection (required test 2):** `bgcolor: 'white'` must be flagged same as a hex
+literal — CSS named colours are a small, fixed, enumerable set (`white`, `black`, `red`, `grey`,
+etc. — the 16 basic CSS colour keywords are the practical minimum; do not attempt to support the full
+147-name X11/CSS list unless a real instance demands it, per the WO's own anti-gold-plating stance).
+
+**The `grey.*` report-only class (required, do not fix):** `src/components/QrSignupManager.jsx:340`
+has `bgcolor: 'grey.50'` — this is a **dotted MUI theme-path string**, not a hex/named-colour literal,
+so it needs its own detection branch (match `/^[a-z]+\.\d+$/i`-shaped sx string values referencing
+MUI's stock palette ramps, distinct from both the hex/named-colour findings and the
+divider/background.subtle/success.bg *baseline* token-path strings this same WO is busy introducing
+elsewhere — do not let the scan flag the very token references Part 1's own fixes create). Report it
+under a distinct `reason` wording (e.g. "uses MUI's untouched grey ramp, not a baseline token — review,
+do not auto-fix") so a consumer of the findings can filter report-only from must-fix.
+
+**The print-document exclusion (required test 3):** exclude the template-literal region inside
+`QrSignupManager.jsx`'s `printWindow.document.write(\`...\`)` call — currently spans roughly
+`:178`-`:266` (verify exact bounds by locating the `printWindow.document.write(` call and its
+matching closing backtick+paren, not by trusting these line numbers, since the WO's own `:185-240`
+estimate was already off by several lines against the current file). The exclusion must be scoped
+narrowly enough that a hex literal added elsewhere in the same file (outside that one template
+literal) still gets flagged — required test 3's second half.
+
+### Invariants / do-not-touch
+
+No change to `assertThemeComplete`'s surface registry, `createAppTheme`'s signature, `kitSxRegistry`
+entries structure, or any component's public props. No baseline token added (Part 2 consumes existing
+tokens only). `chartLabels.js`'s own values are not colours to fix (see trap above) — if the finished
+scan flags anything in `src/theme/**`, that is a scan-scope bug, not a file to edit.
+
 ### Mini-handover
 
 Repo: `ui-core-micha` (`C:\Users\biglmi\Documents\webapps\ui-core-micha`), branch `main`.
