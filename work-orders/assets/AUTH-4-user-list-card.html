@@ -1,0 +1,407 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AUTH-4 — the account user list on a phone (prototype)</title>
+<style>
+/* ------------------------------------------------------------------
+   Values are ui-core-micha baseline tokens (src/theme/tokens.js).
+   The accent is a NEUTRAL PLACEHOLDER: `palette.primary` is app
+   identity and the baseline deliberately has none, so every app
+   supplies its own. Judge composition here, not the accent hue.
+   ------------------------------------------------------------------ */
+:root {
+  --text-primary: #212529;      /* palette.text.primary */
+  --text-secondary: #5B6670;    /* palette.text.secondary */
+  --text-muted: #6A7178;        /* palette.text.disabled */
+  --bg-default: #FAFAFA;        /* palette.background.default */
+  --surface: #FFFFFF;           /* palette.background.paper */
+  --subtle: #F4F5F6;            /* palette.background.subtle (THEME-3) */
+  --divider: rgba(33,37,41,.10);
+  --control-border: rgba(33,37,41,.50);
+  --success-bg: #E5F4E9; --success-text: #35794A;
+  --stale-bg: #EAEDF1;  --stale-text: #5B6B7D;
+  --error: #BF3227;
+  --radius-control: 3px;        /* shape.borderRadius */
+  --radius-card: 8px;           /* radius.card */
+  --sp-1: 8px; --sp-2: 16px; --sp-3: 24px; --sp-4: 32px;
+  --touch: 44px;                /* density.touchTarget */
+  --control-h: 40px;            /* density.controlHeight */
+  --cell-pad: 10px 16px;        /* density.tableCellPadding */
+  --accent: #3D5A99;            /* PLACEHOLDER, see note above */
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; padding: var(--sp-3); background: #EDEFF1; color: var(--text-primary);
+  font-family: 'DM Sans', system-ui, -apple-system, sans-serif;
+  font-size: 14px; line-height: 1.55;
+}
+.doc { max-width: 1400px; margin: 0 auto; }
+h1 { font-size: 28px; font-weight: 600; line-height: 1.22; margin: 0 0 var(--sp-1); }
+h2 { font-size: 20px; font-weight: 600; margin: var(--sp-4) 0 var(--sp-1); }
+p { margin: 0 0 var(--sp-1); max-width: 76ch; }
+.lede { color: var(--text-secondary); }
+code { font-family: ui-monospace, Menlo, monospace; font-size: 12.5px;
+       background: var(--stale-bg); padding: 1px 5px; border-radius: var(--radius-control); }
+.note { border-left: 3px solid var(--accent); background: var(--surface);
+        padding: var(--sp-1) var(--sp-2); margin: var(--sp-2) 0;
+        border-radius: 0 var(--radius-card) var(--radius-card) 0; }
+.note.warn { border-left-color: var(--error); }
+.note.pick { border-left-color: var(--success-text); }
+.note p:last-child { margin-bottom: 0; }
+
+.frames { display: flex; flex-wrap: wrap; gap: var(--sp-3); align-items: flex-start; }
+.frame { background: var(--surface); border: 1px solid var(--divider);
+         border-radius: var(--radius-card); overflow: hidden; }
+.frame-label { font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase;
+               color: var(--text-muted); padding: 6px var(--sp-1);
+               border-bottom: 1px solid var(--divider); background: var(--bg-default); }
+.frame-label.bad { color: var(--error); background: #FBEAE8; }
+.w375 { width: 375px; flex: 0 0 375px; }
+.w1280 { width: 1280px; max-width: 100%; }
+/* Wide content scrolls inside its own frame so the page body never scrolls sideways. */
+.scroll-x { overflow-x: auto; }
+.pane { background: var(--bg-default); padding: var(--sp-2); }
+.pane.mobile { padding: var(--sp-1); }
+
+/* --- shared controls (stay in both modes) ------------------------- */
+.toolbar { display: flex; gap: var(--sp-1); align-items: center; flex-wrap: wrap;
+           margin-bottom: var(--sp-1); }
+.search { flex: 1 1 160px; min-width: 0; height: var(--control-h);
+          border: 1px solid var(--control-border); border-radius: var(--radius-control);
+          display: flex; align-items: center; gap: 6px; padding: 0 10px;
+          background: var(--surface); color: var(--text-muted); font-size: 14px; }
+.search svg { width: 18px; height: 18px; flex: none; }
+.sortctl { height: var(--control-h); border: 1px solid var(--control-border);
+           border-radius: var(--radius-control); display: flex; align-items: center; gap: 6px;
+           padding: 0 10px; background: var(--surface); font-size: 13px; white-space: nowrap; }
+.sortctl svg { width: 16px; height: 16px; }
+
+/* --- the table (desktop, unchanged) ------------------------------- */
+table { border-collapse: collapse; width: 100%; font-size: 14px; background: var(--surface); }
+th, td { padding: var(--cell-pad); border-bottom: 1px solid var(--divider);
+         text-align: left; vertical-align: middle; white-space: nowrap; }
+th { font-size: 13px; font-weight: 600; color: var(--text-secondary); }
+th .sortable { display: inline-flex; align-items: center; gap: 4px; }
+th svg { width: 14px; height: 14px; opacity: .5; }
+.selectbox { display: inline-flex; align-items: center; justify-content: space-between;
+             gap: 6px; min-width: 120px; height: 36px; padding: 0 8px;
+             border: 1px solid var(--control-border); border-radius: var(--radius-control);
+             font-size: 14px; background: var(--surface); }
+.selectbox svg { width: 16px; height: 16px; opacity: .6; }
+.iconbtn { width: var(--touch); height: var(--touch); display: inline-grid; place-items: center;
+           border-radius: 50%; color: var(--text-secondary); }
+.iconbtn svg { width: 20px; height: 20px; }
+.iconbtn.danger { color: var(--error); }
+.flag { display: inline-grid; place-items: center; width: 24px; height: 24px; }
+.flag svg { width: 18px; height: 18px; }
+.flag.yes { color: var(--success-text); }
+.flag.no { color: var(--text-muted); }
+
+/* the clipped "today" demo */
+.clip { overflow: hidden; position: relative; }
+.clip::after { content: ''; position: absolute; top: 0; right: 0; bottom: 0; width: 28px;
+               background: linear-gradient(to right, rgba(255,255,255,0), var(--error)); opacity: .18; }
+.clip table { width: 1053px; }
+
+/* --- the card list (mobile, the proposal) ------------------------- */
+.cardlist { display: flex; flex-direction: column; gap: var(--sp-1); }
+.ucard { background: var(--surface); border: 1px solid var(--divider);
+         border-radius: var(--radius-card); padding: var(--sp-2); box-shadow: none; }
+.ucard-head { display: flex; align-items: flex-start; gap: var(--sp-1); }
+.ucard-id { min-width: 0; flex: 1 1 auto; }
+.ucard-email { font-size: 15px; font-weight: 600; overflow-wrap: anywhere; }  /* subtitle1 */
+.ucard-name { font-size: 13px; color: var(--text-secondary); }               /* body2 */
+.ucard-name.missing { color: var(--text-muted); font-style: italic; }
+.chips { display: flex; gap: 6px; flex-wrap: wrap; margin-top: var(--sp-1); }
+.chip { display: inline-flex; align-items: center; gap: 4px; height: 32px; padding: 0 10px;
+        border-radius: 16px; font-size: 13px; font-weight: 500; }
+.chip svg { width: 15px; height: 15px; }
+.chip.new { background: var(--success-bg); color: var(--success-text); }
+.chip.never { background: var(--stale-bg); color: var(--stale-text); }
+.ucard-foot { display: flex; align-items: center; gap: var(--sp-1);
+              margin-top: var(--sp-2); padding-top: var(--sp-1);
+              border-top: 1px solid var(--divider); }
+.ucard-foot .selectbox { flex: 1 1 auto; min-width: 0; height: var(--control-h); }
+.rolelabel { font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase;
+             color: var(--text-muted); display: block; margin-bottom: 2px; }
+.pagination { display: flex; align-items: center; justify-content: flex-end; gap: var(--sp-1);
+              padding: var(--sp-1) 0; font-size: 13px; color: var(--text-secondary); }
+
+.measure { font-variant-numeric: tabular-nums; }
+table.spec th, table.spec td { white-space: normal; }
+</style>
+</head>
+<body>
+<div class="doc">
+
+<h1>AUTH-4 — the account user list on a phone</h1>
+<p class="lede">Composition spec for <code>UserListComponent</code> below the <code>md</code>
+breakpoint. Drawn from <code>ui-core-micha</code>'s baseline tokens.</p>
+
+<div class="note">
+<p><strong>Declared coverage.</strong> One surface: the <strong>users</strong> section of
+<code>AccountPage</code> — its toolbar, its rows, its pagination. Nothing else.</p>
+<p><strong>Not covered, therefore unchanged:</strong> every other account section; the section
+navigation itself (that is <code>SHELL-5</code>); the delete confirmation dialog; the invite flow;
+the role list an app supplies; and the <strong>desktop table above <code>md</code></strong>, which
+this work order deliberately leaves exactly as it is.</p>
+</div>
+
+<div class="note warn">
+<p><strong>Authority.</strong> The Envelope wins on scope. The baseline wins on token values. This
+sheet wins on composition — what sits where, at which size, in which state. <strong>The accent is a
+neutral placeholder</strong>: <code>palette.primary</code> is app identity and the baseline has none,
+so each app supplies its own. Do not read the blue as a decision.</p>
+</div>
+
+<h2>1. The defect, measured</h2>
+
+<p>Measured 2026-08-11 in cockpit at <code>innerWidth</code> <strong>411</strong> CSS px — the mobile
+preset yields 411, not 375, so at the real target every figure is worse. The table renders
+<strong>1053&nbsp;px inside a 325&nbsp;px container</strong>. The container scrolls
+(<code>overflow-x: auto</code>) and the document does <em>not</em> overflow, so this is not a broken
+layout: it is a desktop table shown unchanged on a phone.</p>
+
+<div class="frame w375">
+  <div class="frame-label bad">today — 411 px, 1053 px of table in a 325 px container</div>
+  <div class="pane mobile">
+    <div class="toolbar">
+      <div class="search">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M15.5 14h-.8l-.3-.3a6.5 6.5 0 1 0-.7.7l.3.3v.8l5 5 1.5-1.5-5-5Zm-6 0a4.5 4.5 0 1 1 0-9 4.5 4.5 0 0 1 0 9Z"/></svg>
+        Suchen
+      </div>
+    </div>
+    <div class="clip">
+      <table>
+        <thead><tr>
+          <th style="width:220px">Email address</th><th style="width:180px">Name</th>
+          <th style="width:90px">New</th><th style="width:163px">Successful Login</th>
+          <th style="width:180px">Role</th><th style="width:220px">Actions</th>
+        </tr></thead>
+        <tbody>
+          <tr>
+            <td>anna.baumgartner@example.ch</td><td>Anna Baumgartner</td>
+            <td><span class="flag yes"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.2 4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4Z"/></svg></span></td>
+            <td><span class="flag no"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M19 13H5v-2h14Z"/></svg></span></td>
+            <td><span class="selectbox">admin <svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 10l5 5 5-5Z"/></svg></span></td>
+            <td><span class="iconbtn danger"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 19a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V7H6Zm3-7h6v7H9ZM15.5 4l-1-1h-5l-1 1H5v2h14V4Z"/></svg></span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="pagination">Rows per page: 25 · 1–1 of 1</div>
+  </div>
+</div>
+
+<div class="note">
+<p><strong>253&nbsp;px of that width is columns nobody chose.</strong> <code>New</code> (90) and
+<code>Successful Login</code> (163) are default-on props an app can switch off today —
+<code>AccountPage</code> forwards all of them — and cockpit simply left the defaults. But the four
+remaining columns are Email 220 + Name 180 + Role 180 + Actions 220 = <strong>800&nbsp;px</strong>
+against a 325&nbsp;px container. <strong>Configuration cannot fix this; only structure can.</strong>
+The defaults are deliberately left alone here — flipping them would be a silent estate-wide change.</p>
+</div>
+
+<h2>2. The proposal: a card per user below <code>md</code></h2>
+
+<p>The screen exists so an administrator can <strong>change a role</strong> or <strong>remove
+someone</strong>. Both are per-row controls, so any layout that puts them behind horizontal
+scrolling defeats the screen's purpose. A card brings them to thumb reach.</p>
+
+<div class="frames">
+<div class="frame w375">
+  <div class="frame-label">proposed — 375 px</div>
+  <div class="pane mobile">
+    <div class="toolbar">
+      <div class="search">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M15.5 14h-.8l-.3-.3a6.5 6.5 0 1 0-.7.7l.3.3v.8l5 5 1.5-1.5-5-5Zm-6 0a4.5 4.5 0 1 1 0-9 4.5 4.5 0 0 1 0 9Z"/></svg>
+        Suchen
+      </div>
+      <div class="sortctl">Email
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 10l5 5 5-5Z"/></svg>
+      </div>
+    </div>
+
+    <div class="cardlist">
+      <div class="ucard">
+        <div class="ucard-head">
+          <div class="ucard-id">
+            <div class="ucard-email">anna.baumgartner@example.ch</div>
+            <div class="ucard-name">Anna Baumgartner</div>
+          </div>
+        </div>
+        <div class="chips">
+          <span class="chip new">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2 9.2 8.6 2 9.2l5.5 4.8L5.8 21 12 17.3 18.2 21l-1.7-7 5.5-4.8-7.2-.6Z"/></svg>
+            Neu
+          </span>
+          <span class="chip never">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 4a8 8 0 1 0 8 8h-2a6 6 0 1 1-6-6Zm1 3v5l4 2-.9 1.7L11 13V7Z"/></svg>
+            Noch nie angemeldet
+          </span>
+        </div>
+        <div class="ucard-foot">
+          <div style="flex:1 1 auto; min-width:0">
+            <span class="rolelabel">Rolle</span>
+            <span class="selectbox" style="width:100%">admin
+              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 10l5 5 5-5Z"/></svg>
+            </span>
+          </div>
+          <span class="iconbtn danger" title="Löschen">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 19a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V7H6Zm3-7h6v7H9ZM15.5 4l-1-1h-5l-1 1H5v2h14V4Z"/></svg>
+          </span>
+        </div>
+      </div>
+
+      <div class="ucard">
+        <div class="ucard-head">
+          <div class="ucard-id">
+            <div class="ucard-email">t.k@example.ch</div>
+            <div class="ucard-name missing">kein Name hinterlegt</div>
+          </div>
+        </div>
+        <div class="chips">
+          <span class="chip never" style="background:var(--success-bg); color:var(--success-text)">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.2 4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4Z"/></svg>
+            Angemeldet
+          </span>
+        </div>
+        <div class="ucard-foot">
+          <div style="flex:1 1 auto; min-width:0">
+            <span class="rolelabel">Rolle</span>
+            <span class="selectbox" style="width:100%">none
+              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 10l5 5 5-5Z"/></svg>
+            </span>
+          </div>
+          <span class="iconbtn danger" title="Löschen">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 19a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V7H6Zm3-7h6v7H9ZM15.5 4l-1-1h-5l-1 1H5v2h14V4Z"/></svg>
+          </span>
+        </div>
+      </div>
+
+      <div class="ucard">
+        <div class="ucard-head">
+          <div class="ucard-id">
+            <div class="ucard-email">michael.hofstetter-brunner@verwaltung.example.ch</div>
+            <div class="ucard-name">Michael Hofstetter-Brunner</div>
+          </div>
+        </div>
+        <div class="chips">
+          <span class="chip never" style="background:var(--success-bg); color:var(--success-text)">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.2 4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4Z"/></svg>
+            Angemeldet
+          </span>
+        </div>
+        <div class="ucard-foot">
+          <div style="flex:1 1 auto; min-width:0">
+            <span class="rolelabel">Rolle</span>
+            <span class="selectbox" style="width:100%">sekretariat
+              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 10l5 5 5-5Z"/></svg>
+            </span>
+          </div>
+          <span class="iconbtn danger" title="Löschen">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 19a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V7H6Zm3-7h6v7H9ZM15.5 4l-1-1h-5l-1 1H5v2h14V4Z"/></svg>
+          </span>
+        </div>
+      </div>
+    </div>
+    <div class="pagination">25 pro Seite · 1–3 von 3</div>
+  </div>
+</div>
+</div>
+
+<div class="note pick">
+<p><strong>Four composition decisions, each with its reason:</strong></p>
+<p><strong>The email is the card title, the name is secondary.</strong> The email is the identity an
+administrator searches by and the only guaranteed-present field — a user may have no name. A card
+with a missing name shows a muted placeholder rather than an empty line.</p>
+<p><strong>The two boolean columns become labelled chips.</strong> In the table they are icon-only
+with a tooltip, which a touch device cannot show at all. Chips carry the words. This is a small,
+deliberate improvement over parity, not drift — and it is why the flags cost vertical space rather
+than being dropped.</p>
+<p><strong>Role and delete sit together in a footer, separated by a divider.</strong> They are the
+two actions; grouping them keeps the card's top half purely identifying. The role select fills the
+remaining width so its label is never truncated; delete keeps the full 44&nbsp;px touch target.</p>
+<p><strong>Sorting needs its own control.</strong> A card list has no column headers to click, so the
+sortable-column affordance disappears with the table. A compact sort control sits beside the search
+field. <strong>Without it the mobile view silently loses a capability the desktop has</strong> — the
+kind of regression that is invisible in a diff.</p>
+</div>
+
+<h2>3. Above <code>md</code>: nothing changes</h2>
+
+<p>The table is right for a desktop — six columns are scannable at 1136&nbsp;px, and it was measured
+with 570&nbsp;px of headroom in the section strip beside it. Shown here only so "unchanged" is part
+of the spec rather than an omission.</p>
+
+<div class="frame w1280 scroll-x">
+  <div class="frame-label">unchanged — 1280 px</div>
+  <div class="pane">
+    <div class="toolbar">
+      <div class="search" style="max-width:320px">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M15.5 14h-.8l-.3-.3a6.5 6.5 0 1 0-.7.7l.3.3v.8l5 5 1.5-1.5-5-5Zm-6 0a4.5 4.5 0 1 1 0-9 4.5 4.5 0 0 1 0 9Z"/></svg>
+        Suchen
+      </div>
+    </div>
+    <table>
+      <thead><tr>
+        <th><span class="sortable">Email address <svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 14l5 5 5-5Z"/></svg></span></th>
+        <th><span class="sortable">Name <svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 14l5 5 5-5Z"/></svg></span></th>
+        <th>New</th><th>Successful Login</th><th>Role</th><th>Actions</th>
+      </tr></thead>
+      <tbody>
+        <tr>
+          <td>anna.baumgartner@example.ch</td><td>Anna Baumgartner</td>
+          <td><span class="flag yes"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.2 4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4Z"/></svg></span></td>
+          <td><span class="flag no"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M19 13H5v-2h14Z"/></svg></span></td>
+          <td><span class="selectbox">admin <svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 10l5 5 5-5Z"/></svg></span></td>
+          <td><span class="iconbtn danger"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 19a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V7H6Zm3-7h6v7H9ZM15.5 4l-1-1h-5l-1 1H5v2h14V4Z"/></svg></span></td>
+        </tr>
+        <tr>
+          <td>t.k@example.ch</td><td style="color:var(--text-muted); font-style:italic">kein Name hinterlegt</td>
+          <td><span class="flag no"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M19 13H5v-2h14Z"/></svg></span></td>
+          <td><span class="flag yes"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.2 4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4Z"/></svg></span></td>
+          <td><span class="selectbox">none <svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 10l5 5 5-5Z"/></svg></span></td>
+          <td><span class="iconbtn danger"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 19a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V7H6Zm3-7h6v7H9ZM15.5 4l-1-1h-5l-1 1H5v2h14V4Z"/></svg></span></td>
+        </tr>
+      </tbody>
+    </table>
+    <div class="pagination">Rows per page: 25 · 1–2 of 2</div>
+  </div>
+</div>
+
+<h2>4. What the app supplies, and what that costs</h2>
+
+<p><code>UserListComponent</code> already takes <code>extraColumns</code> and
+<code>extraRowActions</code>, so the column set is app-configurable. The card must therefore render
+columns it has never seen.</p>
+
+<table class="spec">
+<thead><tr><th>Input</th><th>In the card</th></tr></thead>
+<tbody>
+<tr><td><code>extraColumns</code></td>
+    <td>rendered as <strong>label: value</strong> rows below the chips, in the order given. No new
+        required field on the column definition — an app that wants nothing else gets nothing else,
+        and one that already passes columns keeps working unchanged.</td></tr>
+<tr><td><code>extraRowActions</code></td>
+    <td>join delete in the footer. Beyond three actions total they must collapse into an overflow
+        menu, or the footer wraps and the card loses its shape.</td></tr>
+<tr><td>the three toggleable columns</td>
+    <td>as chips when on, absent when off. An app that switches both flags off gets a shorter card,
+        not an empty chip row.</td></tr>
+</tbody>
+</table>
+
+<div class="note warn">
+<p><strong>What this sheet cannot show.</strong> No motion, no interaction states beyond the resting
+one — no hover, focus ring, pressed, or the open select menu. The delete confirmation dialog is
+untouched and undrawn. A long list is drawn as three cards; the real scroll behaviour and the
+pagination control at the bottom of a 25-card page are not represented. If DM Sans is not installed
+locally this page falls back to the system font — sizes and weights are still exact.</p>
+</div>
+
+</div>
+</body>
+</html>
