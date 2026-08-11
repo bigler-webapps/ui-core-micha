@@ -182,6 +182,139 @@ jg-only palette extension — is replaced by the baseline surface.
 > repo). Fallback to direct Claude implementation only on Codex quota/rate-limit/non-zero exit —
 > and note that the fallback flips authorship, so both reviewers stay mandatory either way.
 
+### Context package
+
+**Reference implementation to promote from (read-only, do not edit):**
+`C:\Users\biglmi\Documents\webapps\jg-ferien\frontend\src\components\mobileShell\MobileBottomNav.jsx`
+(107 lines) — the source of every field/behaviour named in the Envelope. Note its hardcoded
+`zIndex: (navTheme) => navTheme.zIndex.drawer + 2` (stays a component default, cannot move to the
+theme per the "objects only" constraint), its `/my-registrations` special-case (becomes
+`emphasis`), its messaging-hook badge (becomes generic `badgeCount`), and its inline `t()` calls
+(become finished-string `label`/`shortLabel` props — do not import `react-i18next` into the new
+component).
+
+**Files to change, in ucm:**
+
+1. **`src/theme/tokens.js`** — add to `BASELINE_STATIC.components` (palette-*independent* values
+   only; this file is deep-merged as static objects and MUST NOT contain functions —
+   `tests/createAppTheme.test.js` asserts this):
+   ```js
+   MuiBottomNavigation: {
+     styleOverrides: {
+       root: { borderTop: '1px solid', boxShadow: 'none' },
+     },
+   },
+   MuiBottomNavigationAction: {
+     styleOverrides: {
+       root: { minWidth: 0, maxWidth: 'none' },
+       label: { fontSize: '12px', fontWeight: 500 },
+     },
+   },
+   ```
+   Follow the existing `MuiButton`/`MuiChip` entries immediately above as the pattern to match.
+
+2. **`src/theme/createAppTheme.js`** — the *palette-dependent* half (background.paper, divider
+   border colour, text.secondary / primary.main action colours) belongs in
+   `createPaletteAwareComponents(palette)`, not in tokens.js — this is the existing
+   "palette-first ordering" pattern already used there for `MuiDivider`/`MuiButton.outlined`
+   (see lines 93-95 and 87-91 of the current file). Add, inside the object that function returns:
+   ```js
+   MuiBottomNavigation: {
+     styleOverrides: {
+       root: {
+         backgroundColor: palette.background.paper,
+         borderColor: palette.divider,
+       },
+     },
+   },
+   MuiBottomNavigationAction: {
+     styleOverrides: {
+       root: {
+         color: palette.text.secondary,
+         '&.Mui-selected': { color: palette.primary.main },
+       },
+     },
+   },
+   ```
+   `createAppTheme`'s deep-merge (bottom of the file) already layers this object after the static
+   `BASELINE_STATIC.components` block, so both halves land on the same MUI component slot — do not
+   duplicate a key across both files.
+
+3. **`src/theme/themeCompleteness.js`** — register the new surfaces in
+   `COMPONENT_SURFACES` (around line 90, alongside the existing `MuiChip`/`MuiPaper` entries), using
+   the same `componentPath()` / `componentKeyLeaf()` helpers already imported/defined in this file:
+   - `componentPath('MuiBottomNavigation', 'styleOverrides.root.borderTop')`
+   - `componentPath('MuiBottomNavigation', 'styleOverrides.root.boxShadow')`
+   - `componentPath('MuiBottomNavigation', 'styleOverrides.root.backgroundColor')`
+   - `componentPath('MuiBottomNavigation', 'styleOverrides.root.borderColor')`
+   - `componentPath('MuiBottomNavigationAction', 'styleOverrides.root.minWidth')`
+   - `componentPath('MuiBottomNavigationAction', 'styleOverrides.root.maxWidth')`
+   - `componentPath('MuiBottomNavigationAction', 'styleOverrides.root.color')`
+   - `componentPath('MuiBottomNavigationAction', 'styleOverrides.label.fontSize')`
+   - `componentPath('MuiBottomNavigationAction', 'styleOverrides.label.fontWeight')`
+   - `componentKeyLeaf('MuiBottomNavigationAction', 'styleOverrides.root', '&.Mui-selected', 'color')`
+   These are what test 7 (non-vacuity) exercises: MUI's own `MuiBottomNavigation`/
+   `MuiBottomNavigationAction` defaults must differ from every one of these values, or the
+   completeness assertion is vacuously green (the existing `sameValue()` check in this file already
+   handles the comparison — no new logic needed here beyond registering the surfaces).
+
+4. **New file `src/components/MobileBottomNav.jsx`** (sibling of `src/components/UserListComponent.jsx`
+   etc. — this is a shared, non-auth component so it does not belong in `src/auth/`). Structure:
+   `Paper`-free — apply the fixed positioning, top-border and `env(safe-area-inset-bottom)` padding
+   directly via `sx` on `BottomNavigation` itself (do not rely on `MuiPaper`'s theme entry, which
+   already carries an unrelated `borderRadius: 8` default that would need overriding). Props exactly
+   as the Envelope's table: `destinations`, `activeRoute`, `onNavigate`, `hideAbove = 'md'`,
+   `zIndex = (theme) => theme.zIndex.drawer + 2` — default via a plain JS default parameter *value*
+   passed to `sx`, not stored in the theme (this is the one place the WO explicitly keeps a function,
+   component-local, matching jg's original). Each destination renders a `BottomNavigationAction` with
+   `icon` = `<Icon />` optionally wrapped in `<Badge badgeContent={...} />` when `badgeCount` is
+   truthy (`0`/`undefined` must render no `Badge` wrapper at all — a `Badge` with `badgeContent={0}`
+   still renders a dot with `showZero` unset only if MUI's default differs; simplest correct
+   implementation is to skip the `Badge` wrapper entirely when there is no count). `emphasis` applies
+   jg's raised-icon treatment (`backgroundColor: selected ? primary.main : background.paper`, `color`
+   inverted, `borderRadius: '50%'`, `transform: translateY(-4px)`) to that one destination's icon only
+   — reuse `theme.palette.background.paper`, not jg's `background.white` (a jg-only palette
+   extension not present in the ucm baseline — this is the intended parity difference the Envelope
+   names). Breakpoint hide: `useMediaQuery(theme.breakpoints.up(hideAbove))` → return `null` (mirror
+   jg's `useMediaQuery(theme.breakpoints.down('md'))` inverted for a configurable `hideAbove`).
+
+5. **`src/index.js`** — export `{ MobileBottomNav }` from `./components/MobileBottomNav`, placed in
+   the `--- 5. Components ---` section (after `QrSignupManager`, before `--- 6. Charts ---`).
+
+6. **`dev/entries.jsx`** — add one specimen entry, following the existing `NotificationBellEntry`
+   pattern (small wrapper function + one line in the `entries` array). Five destinations, two with
+   `badgeCount` set, one with `emphasis: true`, mirroring the Envelope's "Verification" section.
+   Import `MobileBottomNav` from `'../src/components/MobileBottomNav'` alongside the other `../src/`
+   imports at the top of the file.
+
+7. **New test file `tests/MobileBottomNav.test.jsx`** — follow `tests/UserMenu.test.jsx`'s structure
+   (jsdom environment pragma, `render`/`screen`/`fireEvent` from testing-library, `afterEach(cleanup)`).
+   Wrap the component in `ThemeProvider` with `createAppTheme({ palette: { primary: { main: '#0F62FE' } } })`
+   (check `tests/createAppTheme.test.js` for the exact call shape already used elsewhere in this
+   suite) since the component's selected-state colour comes from the theme, not inline `sx`. Cover
+   the seven "Required tests to WRITE" items from the Envelope verbatim — they are numbered 1-7
+   above and map 1:1 to test cases; item 7 (non-vacuity) belongs in
+   `tests/themeCompleteness.test.js` or `tests/createAppTheme.test.js` instead, wherever the existing
+   "missing surface produces a named finding" pattern already lives (see `themeCompleteness.test.js`
+   lines ~15-20 for the shape: `bare.findings.map(({ surface }) => surface)).toContain('...')`) —
+   do not duplicate that assertion pattern inside the new component test file.
+
+**Invariants / do-not-touch:** no edits to `BASELINE_PALETTE`, `typography`, `shape`, `spacing`, or
+the `shadows` array in `tokens.js` (Envelope non-goal). No edits to jg-ferien (separate `NAV-36` WO).
+No new i18n keys — `label`/`shortLabel` are finished strings per-prop, not translation keys.
+
+**Pitfalls already known:**
+- A function anywhere in `tokens.js`'s `components` tree fails `tests/createAppTheme.test.js`
+  immediately — the palette-aware colours MUST go in `createAppTheme.js`, not `tokens.js`.
+- `assertThemeComplete`'s non-vacuity depends on MUI's own `createTheme()` default for
+  `MuiBottomNavigation`/`MuiBottomNavigationAction` genuinely differing from the new baseline values
+  — verify this holds (MUI's stock action `minWidth` is `80`, not `0`, and stock has no
+  `borderTop`/`boxShadow: 'none'` on `MuiBottomNavigation` root, so all listed surfaces should clear
+  safely, but confirm rather than assume).
+- `env(safe-area-inset-bottom)` cannot be verified as "working" from a desktop viewport (Envelope
+  Verification section) — assert the CSS declaration is present, do not assert a computed non-zero
+  value.
+
 ### Mini-handover
 
 Repo: `ui-core-micha` (`C:\Users\biglmi\Documents\webapps\ui-core-micha`), branch `main`.
