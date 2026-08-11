@@ -191,6 +191,160 @@ consumer's bar gains its edge and its evenly divided actions.
 > a spawned implementer never commits). Read `git log origin/main..HEAD` before your own review and
 > treat any implementer commit as a blocker to surface, not something to build on.
 
+### Context package
+
+**Note on the Envelope's "ten to six" arithmetic:** the actually-landed `SHELL-3` surface count in
+`themeCompleteness.js` is **twenty**, not ten (SHELL-3's own scope grew mid-implementation to cover
+icon size/padding/gap/label truncation, beyond the ten originally sketched). This does not change
+the instruction — deregister exactly the four surfaces named below, no more, no less — but do not
+be thrown by the stale count in the prose above.
+
+**Files to change, with current line numbers (verified against the landed `SHELL-3` + `586ac9c`
+state, may drift slightly if Codex edits top-to-bottom — re-grep `MuiBottomNavigation` if a line
+number is off by a few):**
+
+1. **`src/theme/tokens.js:309-334`** — the current `BASELINE_STATIC.components` entries:
+   ```js
+   MuiBottomNavigation: {
+     styleOverrides: {
+       root: { borderTop: '1px solid', boxShadow: 'none' },
+     },
+   },
+   MuiBottomNavigationAction: {
+     styleOverrides: {
+       root: {
+         minWidth: 0,
+         maxWidth: 'none',
+         padding: '0 2px',
+         gap: '2px',
+         '& .MuiSvgIcon-root': { width: '22px', height: '22px' },
+       },
+       label: { /* fontSize/fontWeight/lineHeight/... unchanged, leave as-is */ },
+     },
+   },
+   ```
+   Remove `borderTop: '1px solid'` from `MuiBottomNavigation.styleOverrides.root` (keep
+   `boxShadow: 'none'` — it stays per the Envelope's "leave in the theme" list). Remove
+   `minWidth: 0, maxWidth: 'none'` from `MuiBottomNavigationAction.styleOverrides.root` (keep
+   `padding`, `gap`, the icon-size entry, and the entire `label` block unchanged).
+
+2. **`src/theme/createAppTheme.js:119-134`** — the current `createPaletteAwareComponents()` entries:
+   ```js
+   MuiBottomNavigation: {
+     styleOverrides: {
+       root: {
+         backgroundColor: palette.background.paper,
+         borderColor: palette.divider,
+       },
+     },
+   },
+   MuiBottomNavigationAction: {
+     styleOverrides: {
+       root: {
+         color: palette.text.secondary,
+         '&.Mui-selected': { color: palette.primary.main },
+       },
+     },
+   },
+   ```
+   Remove `borderColor: palette.divider` (keep `backgroundColor: palette.background.paper` — not a
+   loss per the Envelope's own table, MUI sets an equivalent). `MuiBottomNavigationAction` here is
+   untouched — `color`/`.Mui-selected` stay exactly as-is.
+
+3. **`src/theme/themeCompleteness.js:99-118`** (`COMPONENT_SURFACES` array) — delete exactly these
+   four lines:
+   ```js
+   componentPath('MuiBottomNavigation', 'styleOverrides.root.borderTop'),
+   componentPath('MuiBottomNavigation', 'styleOverrides.root.borderColor'),
+   componentPath('MuiBottomNavigationAction', 'styleOverrides.root.minWidth'),
+   componentPath('MuiBottomNavigationAction', 'styleOverrides.root.maxWidth'),
+   ```
+   Leave every other `MuiBottomNavigation`/`MuiBottomNavigationAction` line untouched (boxShadow,
+   backgroundColor, padding, gap, icon width/height, color, all label surfaces, both `.Mui-selected`
+   pins).
+
+4. **`src/components/MobileBottomNav.jsx`** (current full file, 69 lines, reproduced above in this
+   session) — add a `sx` prop (default `{}`), and merge these four properties into the root
+   `BottomNavigation`'s `sx`, with the caller's `sx` applied **last** so it wins:
+   ```js
+   export function MobileBottomNav({
+     destinations,
+     activeRoute,
+     onNavigate,
+     hideAbove = 'md',
+     zIndex = defaultZIndex,
+     sx,
+   }) {
+     ...
+     <BottomNavigation
+       ...
+       sx={{
+         position: 'fixed',
+         left: 0,
+         right: 0,
+         bottom: 0,
+         zIndex,
+         borderTop: '1px solid',
+         borderColor: 'divider',
+         paddingBottom: 'env(safe-area-inset-bottom)',
+         ...sx,
+       }}
+     >
+   ```
+   `borderColor: 'divider'` here is a **string token reference** (MUI resolves `'divider'` against
+   `theme.palette.divider` at render time on whatever theme is mounted) — this is NOT the same
+   pattern as the `586ac9c` regression, which duplicated an already-*resolved* hex-bearing default.
+   The `BottomNavigationAction`'s own `sx` (not the top-level prop) needs `minWidth: 0,
+   maxWidth: 'none'` added directly — these are per-action, not per-bar, so they do NOT go through
+   the new `sx` prop. Today the `emphasis` styling sits on the inner `<Icon sx={...}>`, not on
+   `<BottomNavigationAction>` itself — leave that untouched, and simply add a new
+   `sx={{ minWidth: 0, maxWidth: 'none' }}` prop directly on the `<BottomNavigationAction>` element,
+   independent of the `icon` prop's own conditional emphasis styling.
+
+5. **`tests/MobileBottomNav.test.jsx`** — extend with the six numbered tests from the Envelope.
+   Test 2 (no property in two layers) should import `BASELINE_STATIC` (or the theme object) and the
+   component's rendered/declared `sx` keys and assert
+   `intersection(Object.keys(componentSxDefaults), Object.keys(theme.components.MuiBottomNavigation
+   .styleOverrides.root)).length === 0` — read the existing test file's structure first
+   (`createAppTheme`/`createTheme` imports are already there from `SHELL-3`'s test 5b) and follow its
+   conventions rather than introducing a new test-setup style.
+
+6. **`tests/themeCompleteness.test.js`** — the existing `SHELL-3` assertion (added at line ~19-40,
+   the `expect(bare.findings...).toEqual(expect.arrayContaining([...20 surfaces...]))` block) needs
+   its four now-deregistered entries removed from that array, plus the Envelope's test 5 (findings
+   stays `[]` with six surfaces) and test 6 (an exemption naming a deregistered surface produces no
+   finding — because `assertThemeComplete` ignores exemptions matching no registered surface, this
+   is provable without special-casing: declare an exemption for e.g.
+   `'components.MuiBottomNavigation.styleOverrides.root.borderTop'` against a theme built without
+   that surface and assert no finding names it, since the surface list itself no longer contains it).
+
+7. **`dev/entries.jsx:69-94`** (`MobileBottomNavEntry`) — add a second `MobileBottomNav` instance
+   wrapped in its own `<ThemeProvider theme={createTheme()}>` (plain MUI, no `createAppTheme`),
+   rendered side-by-side with the existing baseline-themed one (which is already inside the harness's
+   own `createAppTheme` root — no need to wrap that one again). Import `ThemeProvider`, `createTheme`
+   from `@mui/material/styles` (createTheme is likely already imported elsewhere in this file — grep
+   first). Keep both bars visible at once (e.g. stacked in a `Stack`) so the two-width verification
+   can compare them directly: both need a visible top edge and evenly divided actions; they may
+   legitimately differ in label size/density.
+
+**Invariants / do-not-touch:** no change to `destinations`/`activeRoute`/`onNavigate`/`hideAbove`/
+`zIndex` prop semantics, `emphasis`/`badgeCount`/`shortLabel` behaviour, or any other baseline token.
+No visual change for a `createAppTheme` consumer — the four relocated properties must render
+byte-identically before and after.
+
+**Pitfalls already known:**
+- Deleting from `tokens.js`/`createAppTheme.js` and adding to the component must land in the SAME
+  commit/chunk — a partial move reintroduces either a gap (non-baseline still broken) or a shadow
+  (the exact `586ac9c` bug, just with the copies swapped).
+- `boxShadow: 'none'` and `backgroundColor` are explicitly NOT part of this move — re-reading the
+  Envelope's table, only `borderTop`, `borderColor`, `minWidth`, `maxWidth` relocate.
+- Version target is `2.33.1` (patch) — confirm `package.json` reads `2.33.1` after Codex is done, not
+  a minor bump.
+- **Per `SHELL-3`'s own execution-directive note added to this WO: verify no implementer self-commit
+  happened before doing anything else** — `git log --oneline -3` should show the Orchestrator's own
+  `1106f51`-style "fill Implementation map" commit as the most recent, not a Codex-authored `feat(...)`
+  commit. If a self-commit is present, treat it as a breach per `AGENTS.md`, not as a base to build on.
+
 ### Mini-handover
 
 Repo: `ui-core-micha` (`C:\Users\biglmi\Documents\webapps\ui-core-micha`), branch `main`.
