@@ -29,8 +29,6 @@ export function MobileBottomNav({
         right: 0,
         bottom: 0,
         zIndex,
-        borderTop: '1px solid',
-        borderColor: 'divider',
         paddingBottom: 'env(safe-area-inset-bottom)',
       }}
     >
