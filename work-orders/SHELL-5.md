@@ -213,6 +213,132 @@ Every section that renders today still renders, reached differently.
 > `WORK_ORDERS.md` before either reviewer had started. The preamble now forbids editing that file;
 > verify it was respected.
 
+### Context package
+
+**Precondition confirmed:** `THEME-5` landed and published (`8df44c5`, `package.json` reads `2.35.0`).
+Clean starting tree.
+
+**Reference implementation, read at `e551ff7`** (read-only, do not edit):
+`jg-ferien/frontend/src/components/EventInfoHub/SectionSwitcher.jsx` (119 lines, reproduced in full
+below for convenience — re-verify against the live file if it has moved) and its consumer
+`jg-ferien/frontend/src/pages/EventInfoPage.jsx:1110-1160` (the mode switch + the 280px desktop grid
+this WO's component takes over, `gridTemplateColumns: { md: "280px minmax(0, 1fr)" }`).
+
+```jsx
+// SectionSwitcher.jsx — current jg source, annotated with what changes per the Envelope:
+function SectionSwitcherList({ groupedSections, activeKey, rememberedKey, onSelectSection }) {
+  // renders: Paper(Übersicht item) -- ONLY IF overviewItem is supplied, see below --
+  //          then one Paper per group: group-head Box + List of ListItemButton(selected, primary=label,
+  //          secondary="Zuletzt geöffnet" when item.key===rememberedKey && !selected)
+}
+export default function SectionSwitcher({ mode, open=false, onClose, groupedSections, activeKey=null,
+  rememberedKey=null, onSelectSection, title }) {
+  // mode==='desktop': Box{position:'sticky', top: APP_HEADER_HEIGHT+24} wrapping SectionSwitcherList
+  // else: Drawer{anchor:'bottom', open, onClose, sx:{zIndex: theme=>theme.zIndex.drawer+3},
+  //   PaperProps.sx:{borderTopLeftRadius:18, borderTopRightRadius:18, maxHeight:'78dvh', p:2,
+  //   pb:'max(16px, env(safe-area-inset-bottom))'}} containing a title Typography + scrollable list
+}
+```
+
+**File location:** `src/layout/SectionNav.jsx` — this is page-chrome/navigation-shell, the same
+category as `src/layout/PageLayout.jsx`, not a leaf UI widget (`MobileBottomNav`'s placement in
+`src/components/` was already slightly inconsistent with this; use your judgement but `src/layout/`
+reads as the better fit here since this component, like `PageLayout`, wraps page content).
+
+**Component API — resolving one structural ambiguity the Envelope leaves implicit:** the prop table
+lists `open`/`onClose` unchanged from jg ("drawer only"), but jg's drawer was triggered by a button
+that lived OUTSIDE `SectionSwitcher` (in jg's own page header), whereas Part 2 requires the new
+trigger bar to be built INSIDE this component. A trigger owned by the component needs to be able to
+open a drawer whose `open` state jg's original code expected the CONSUMER to own — these two
+requirements only reconcile with the standard optional-controlled React pattern (the same shape MUI's
+own components use):
+```js
+const [internalOpen, setInternalOpen] = useState(false);
+const isControlled = open !== undefined;
+const drawerOpen = isControlled ? open : internalOpen;
+const handleTriggerClick = () => { if (!isControlled) setInternalOpen(true); };
+const handleDrawerClose = () => { if (!isControlled) setInternalOpen(false); onClose?.(); };
+```
+`AccountPage` (this WO's consumer) passes neither `open` nor `onClose` — fully uncontrolled, the
+trigger manages itself. This also leaves the door open for jg's later migration (a separate WO) to
+pass `open`/`onClose` in controlled mode if it turns out to still want its own external trigger
+instead of this component's built-in one — not solved here, just not foreclosed.
+
+**i18n split — two different kinds of text, do not conflate them:**
+- **Group/item labels are finished strings** the consumer supplies via the `groups` prop (per
+  `SHELL-1`/`SHELL-3`/`DS-11`'s settled convention) — the component does not call `t()` on them.
+- **The component's own chrome text is NOT consumer-supplied and needs its own i18n keys**, registered
+  in a new `src/i18n/sectionNavTranslations.ts`, following `src/i18n/userMenuTranslations.ts`'s exact
+  shape (`{ 'SectionNav.KEY': { de, fr, en, sw } }`) and exported from `src/index.js`'s translations
+  section (see `export { userMenuTranslations }`). Needed keys: a default drawer `title` (jg's
+  `t("SectionSwitcher.TITLE")` **had no fallback at all** — the Envelope calls this out explicitly as
+  a trap: in the kit that key must exist or the raw key renders on screen) and the trigger's "Bereich"
+  eyebrow label (jg hardcodes this as static JSX text in the prototype, not a translation call today —
+  give it one here, e.g. `SectionNav.TRIGGER_EYEBROW`). Both `title` and any future eyebrow-override
+  stay optional props with these keys as the default, same pattern as `UserMenu`'s `profileLink`.
+
+**`kitSxRegistry.js` registration is mandatory, not optional — this is new territory `SHELL-3` predates
+knowing about:** `THEME-4`/`THEME-5` wired a hard-failing kit-wide check
+(`src/theme/themeCompleteness.js`: `assertKitSxDisjoint`, `reportKitSxBypasses`,
+`reportOffPaletteColours`) that runs against `src/theme/kitSxRegistry.js`. Any `sx` this new component
+owns for a baseline-styled MUI component (check `BASELINE_STYLED_MUI_COMPONENTS` in
+`themeCompleteness.js` for the 23-key list — `MuiDrawer`/`MuiPaper` are both on it) **must** be
+exported as a top-level `const X_SX = {...}` (follow `MOBILE_BOTTOM_NAV_ROOT_SX`'s exact shape) and
+added to `kitSxRegistry.js`'s imports/`SX_EXPORTS`/`KIT_COMPONENT_SX_REGISTRY` — an inline, unexported
+`sx={{ borderTopLeftRadius: 18, ... }}` on the `Drawer`'s `PaperProps` would otherwise trip
+`reportKitSxBypasses` in the affected-set test run. Also: no colour literal (`SHELL-4`/`THEME-5`'s
+`reportOffPaletteColours` scan) — jg's code already uses no hex here (all values are numeric/px/token
+strings), so this should be a non-issue if the port is faithful, but verify.
+
+**`zIndex` default:** keep jg's `theme.zIndex.drawer + 3` as the literal default (a plain JS function
+default parameter on the component, exactly like `MobileBottomNav`'s `defaultZIndex` — NOT registered
+in the theme, since `SHELL-4` established functions cannot live in the static baseline tree). The
+Envelope's own reasoning: `SHELL-3`'s bottom bar sits at `+2`, so this must render above it — document
+that ordering as a comment, do not silently pick a different offset.
+
+**`AccountPage.jsx` grouping** (`src/pages/AccountPage.jsx`, current flat `tabs` `useMemo` at
+`:125-160`, current `<Tabs>`/`<Tab>` block at `:196-206`): the prototype's footer states the fixed
+grouping explicitly — **"Mein Konto"** (`profile`, `security`), **"Verwaltung"** (`users`, `invite`),
+**"Hilfe"** (`support`), and a trailing **"Weitere"** catch-all for anything else (this is exactly
+where `extraTabs` without a named group lands — the prototype's own worked example is cockpit's
+"Benachrichtigungen" `extraTab` falling into "Weitere"). No standalone "Übersicht" entry — the
+prototype explicitly starts at the first group (panel 1's own caption: `AccountPage` has no overview
+page for one to point at) — so **do not pass `overviewItem`**. Group labels need their own i18n keys
+(new `Account.GROUP_MY_ACCOUNT` / `Account.GROUP_MANAGEMENT` / `Account.GROUP_HELP` /
+`Account.GROUP_MORE` — this repo already has an `Account.*` key family, e.g. `Account.TAB_PROFILE` at
+`:130` — follow that naming). Build the `groups` array by mapping the existing flat `tabs` list into
+these four buckets by `value`, preserving each tab's already-computed `label`; do not change the
+permission logic that produces `tabs` in the first place. `activeKey`/`onSelect` continue to be driven
+by the existing `safeTab`/`handleTabChange` — the `?tab=` contract and `activeTabExists` fallback logic
+at `:182-188` are unchanged (Non-goal, explicit parity guardrail).
+
+**Mode switching in `AccountPage`:** add `const isMobile = useMediaQuery(theme.breakpoints.down('md'))`
+(needs `useTheme`/`useMediaQuery` imports) — same breakpoint jg's `EventInfoPage.jsx:138` uses and the
+same one `SHELL-3`'s `MobileBottomNav` defaults `hideAbove` to, so this is the estate's established
+mobile/desktop split, not a new number to justify. Desktop: render `<SectionNav mode="desktop">`
+beside content in the two-column grid (the component now owns this grid — do not keep
+`AccountPage`'s own `gridTemplateColumns` if you add one, the component takes it over per Part 1's
+last bullet). Mobile: render `<SectionNav mode="mobile">` (uncontrolled, no `open`/`onClose` passed)
+ahead of the tab content — its own trigger renders first per the prototype ("the first thing rendered
+on mobile").
+
+**Dev harness:** add one specimen to `dev/entries.jsx` (follow the existing pattern, e.g.
+`MobileBottomNavEntry`) exercising both `mode="desktop"` and `mode="mobile"` side by side if
+practical, using the same four-group shape as the prototype, so the two-width verification below has
+something to point the preview browser at beyond `AccountPage` itself (which needs a full
+`AuthContext`/backend-shaped fixture to render meaningfully in the harness).
+
+### Verification procedure
+
+Per `preview-running-app` skill: `ui-core-micha-dev` launch config exists (`.claude/launch.json`,
+port 5199) — a prior session in this repo could not get the Browser pane to composite frames at all
+(not a rendering bug, the pane itself did not display). Attempt it again fresh; if it fails again,
+DOM/computed-style inspection is the declared, accepted substitution per this WO's own Risks section
+— state which happened in the register note, and specifically capture the two numbers the WO frames
+as the actual deliverable: the strip's now-absent overflow (should be 0, there is no strip anymore)
+and confirm every section's item is reachable in the rendered `groups` list at 375px without
+horizontal scroll.
+
 ### Mini-handover
 
 Repo: `ui-core-micha` (`C:\Users\biglmi\Documents\webapps\ui-core-micha`), branch `main`.
