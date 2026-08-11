@@ -8,12 +8,18 @@ import { Box, Button, ButtonGroup, CssBaseline, FormControl, InputLabel, MenuIte
 import { chartsTranslations } from '../src/i18n/chartsTranslations';
 import { notificationsTranslations } from '../src/i18n/notificationsTranslations';
 import { messagingTranslations } from '../src/i18n/messagingTranslations';
+import { sectionNavTranslations } from '../src/i18n/sectionNavTranslations';
 import { createAppTheme } from '../src/theme/createAppTheme';
 import { entries } from './entries';
 import { MockTransportProvider } from './mockTransport';
 
 const translations = Object.fromEntries(
-  Object.entries({ ...notificationsTranslations, ...chartsTranslations, ...messagingTranslations }).map(([key, value]) => [key, value.en]),
+  Object.entries({
+    ...notificationsTranslations,
+    ...chartsTranslations,
+    ...messagingTranslations,
+    ...sectionNavTranslations,
+  }).map(([key, value]) => [key, value.en]),
 );
 Object.assign(translations, {
   'harness.caseUpdated': 'Case updated',

@@ -1667,6 +1667,30 @@ export const authTranslations = {
     "en": "Support",
     "sw": "Usaidizi"
   },
+  "Account.GROUP_MY_ACCOUNT": {
+    "de": "Mein Konto",
+    "fr": "Mon compte",
+    "en": "My account",
+    "sw": "Akaunti yangu"
+  },
+  "Account.GROUP_MANAGEMENT": {
+    "de": "Verwaltung",
+    "fr": "Administration",
+    "en": "Management",
+    "sw": "Usimamizi"
+  },
+  "Account.GROUP_HELP": {
+    "de": "Hilfe",
+    "fr": "Aide",
+    "en": "Help",
+    "sw": "Msaada"
+  },
+  "Account.GROUP_MORE": {
+    "de": "Weitere",
+    "fr": "Autres",
+    "en": "More",
+    "sw": "Zaidi"
+  },
   "Account.ACCESS_CODES_HINT": {
     "de": "Verwalten Sie Zugangscodes für die Selbstregistrierung.",
     "fr": "Gérer les codes d'accès pour l'auto-inscription.",

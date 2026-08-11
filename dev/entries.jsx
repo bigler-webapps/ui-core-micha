@@ -35,6 +35,7 @@ import { ThemeProvider, createTheme } from '@mui/material/styles';
 
 import { AuthContext } from '../src/auth/AuthContext';
 import { MobileBottomNav } from '../src/components/MobileBottomNav';
+import { SectionNav } from '../src/layout/SectionNav';
 import { BarChart } from '../src/components/charts/BarChart';
 import { ChartFrame } from '../src/components/charts/ChartFrame';
 import { LineChart } from '../src/components/charts/LineChart';
@@ -112,6 +113,83 @@ function MobileBottomNavEntry() {
         </ThemeProvider>
       </Stack>
     </Box>
+  );
+}
+
+const SECTION_NAV_GROUPS = [
+  {
+    key: 'my-account',
+    label: 'Mein Konto',
+    items: [
+      { key: 'profile', label: 'Profil' },
+      { key: 'security', label: 'Sicherheit' },
+    ],
+  },
+  {
+    key: 'management',
+    label: 'Verwaltung',
+    items: [
+      { key: 'users', label: 'Benutzer' },
+      { key: 'invite', label: 'Einladen' },
+    ],
+  },
+  {
+    key: 'help',
+    label: 'Hilfe',
+    items: [{ key: 'support', label: 'Support' }],
+  },
+  {
+    key: 'more',
+    label: 'Weitere',
+    items: [{ key: 'notifications', label: 'Benachrichtigungen' }],
+  },
+];
+
+function SectionNavEntry() {
+  const [desktopKey, setDesktopKey] = useState('users');
+  const [mobileKey, setMobileKey] = useState('users');
+
+  return (
+    <Stack spacing={2}>
+      <Box>
+        <Typography component="h1" variant="h5">Secondary section navigation</Typography>
+        <Typography color="text.secondary">
+          The promoted grouped shell in desktop and mobile modes, using the prototype's four groups.
+        </Typography>
+      </Box>
+      <Stack direction={{ xs: 'column', xl: 'row' }} spacing={4} alignItems="flex-start">
+        <Box sx={{ flex: 1, minWidth: 0, width: '100%' }}>
+          <Typography variant="subtitle2" sx={{ mb: 1 }}>Desktop mode</Typography>
+          <SectionNav
+            mode="desktop"
+            groups={SECTION_NAV_GROUPS}
+            activeKey={desktopKey}
+            onSelect={setDesktopKey}
+          >
+            <Paper variant="outlined" sx={{ p: 3, minHeight: 280 }}>
+              <Typography variant="h6">{SECTION_NAV_GROUPS.flatMap((group) => group.items).find((item) => item.key === desktopKey)?.label}</Typography>
+              <Typography color="text.secondary">Desktop content remains beside the sticky 280 px sidebar.</Typography>
+            </Paper>
+          </SectionNav>
+        </Box>
+        <Box sx={{ width: '100%', maxWidth: 375 }}>
+          <Typography variant="subtitle2" sx={{ mb: 1 }}>Mobile mode (375 px)</Typography>
+          <SectionNav
+            mode="mobile"
+            groups={SECTION_NAV_GROUPS}
+            activeKey={mobileKey}
+            onSelect={setMobileKey}
+            title="Bereich wechseln"
+            triggerEyebrow="Bereich"
+          >
+            <Paper variant="outlined" sx={{ p: 3, minHeight: 220 }}>
+              <Typography variant="h6">{SECTION_NAV_GROUPS.flatMap((group) => group.items).find((item) => item.key === mobileKey)?.label}</Typography>
+              <Typography color="text.secondary">Open the trigger to reach every section in the drawer.</Typography>
+            </Paper>
+          </SectionNav>
+        </Box>
+      </Stack>
+    </Stack>
   );
 }
 
@@ -459,6 +537,7 @@ function MessagingScopeConfigEntry() { return <MessagingProvider api={messagingH
 export const entries = [
   { id: 'theme-baseline', label: 'Theme / Shared baseline', Component: ThemeBaselineEntry },
   { id: 'mobile-bottom-nav', label: 'Navigation / Mobile bottom nav', Component: MobileBottomNavEntry },
+  { id: 'section-nav', label: 'Navigation / Section nav', Component: SectionNavEntry },
   { id: 'notification-bell', label: 'Notifications / Bell', Component: NotificationBellEntry },
   { id: 'bar-chart', label: 'Charts / BarChart', Component: BarChartEntry },
   { id: 'time-series-chart', label: 'Charts / TimeSeriesChart', Component: TimeSeriesChartEntry },

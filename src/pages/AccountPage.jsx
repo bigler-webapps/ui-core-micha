@@ -2,15 +2,15 @@ import React, { useContext, useEffect, useMemo, useState } from 'react';
 import { Helmet } from 'react-helmet';
 import { useSearchParams } from 'react-router-dom';
 import { 
-  Tabs, 
-  Tab, 
   Box, 
   Typography, 
   Alert, 
   CircularProgress,
   Paper,
   Stack,
+  useMediaQuery,
 } from '@mui/material';
+import { useTheme } from '@mui/material/styles';
 import { useTranslation } from 'react-i18next';
 
 // Internal context
@@ -20,6 +20,7 @@ export const ACCOUNT_PAGE_SECTION_PAPER_SX = { p: 2.5 };
 
 // Falls die Komponenten noch lokal sind:
 import { WidePage } from '../layout/PageLayout';
+import { SectionNav } from '../layout/SectionNav';
 import { ProfileComponent } from '../components/ProfileComponent';
 import { SecurityComponent } from '../components/SecurityComponent';
 import { UserListComponent } from '../components/UserListComponent';
@@ -57,6 +58,8 @@ export function AccountPage({
   const [searchParams, setSearchParams] = useSearchParams();
   const [authPolicy, setAuthPolicy] = useState(null);
   const [authPolicyError, setAuthPolicyError] = useState('');
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
   // 1. URL State Management
   const currentTabRaw = searchParams.get('tab') || 'profile';
@@ -159,6 +162,49 @@ export function AccountPage({
     return list;
   }, [user, perms, t, isSuperUser, extraTabs, canViewUsers, canViewInvite]);
 
+  const groups = useMemo(() => {
+    const groupDefinitions = [
+      {
+        key: 'my-account',
+        label: t('Account.GROUP_MY_ACCOUNT', 'My account'),
+        values: new Set(['profile', 'security']),
+      },
+      {
+        key: 'management',
+        label: t('Account.GROUP_MANAGEMENT', 'Management'),
+        values: new Set(['users', 'invite']),
+      },
+      {
+        key: 'help',
+        label: t('Account.GROUP_HELP', 'Help'),
+        values: new Set(['support']),
+      },
+    ];
+    const assignedValues = new Set(
+      groupDefinitions.flatMap((group) => [...group.values]),
+    );
+    const mappedGroups = groupDefinitions.map((group) => ({
+      key: group.key,
+      label: group.label,
+      items: tabs
+        .filter((tab) => group.values.has(tab.value))
+        .map((tab) => ({ key: tab.value, label: tab.label })),
+    }));
+    const extraItems = tabs
+      .filter((tab) => !assignedValues.has(tab.value))
+      .map((tab) => ({ key: tab.value, label: tab.label }));
+
+    if (extraItems.length > 0) {
+      mappedGroups.push({
+        key: 'more',
+        label: t('Account.GROUP_MORE', 'More'),
+        items: extraItems,
+      });
+    }
+
+    return mappedGroups.filter((group) => group.items.length > 0);
+  }, [tabs, t]);
+
   // 4. Loading & Auth Checks
   if (loading) {
     return (
@@ -193,19 +239,13 @@ export function AccountPage({
         <title>{t('Account.PAGE_TITLE', 'Account')} – {user.email}</title>
       </Helmet>
 
-      <Tabs
-        value={safeTab}
-        onChange={handleTabChange}
-        variant="scrollable"
-        scrollButtons="auto"
-        sx={{ mb: 3, borderBottom: 1, borderColor: 'divider' }}
+      <SectionNav
+        mode={isMobile ? 'mobile' : 'desktop'}
+        groups={groups}
+        activeKey={safeTab}
+        onSelect={(key) => handleTabChange(null, key)}
       >
-        {tabs.map((tab) => (
-          <Tab key={tab.value} label={tab.label} value={tab.value} />
-        ))}
-      </Tabs>
-
-      {/* --- TAB CONTENT --- */}
+        {/* --- TAB CONTENT --- */}
 
       {safeTab === 'profile' && (
         <Box sx={{ mt: 2 }}>
@@ -347,6 +387,7 @@ export function AccountPage({
           {activeExtraTab.render?.({ user, perms, isSuperUser, t })}
         </Box>
       )}
+      </SectionNav>
     </WidePage>
   );
 }

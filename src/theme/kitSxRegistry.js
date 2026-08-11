@@ -57,6 +57,10 @@ import {
 import { CHART_FRAME_ALERT_SX, CHART_FRAME_ROOT_SX } from '../components/charts/ChartFrame';
 import { PAGE_LAYOUT_CONTAINER_SX } from '../layout/PageLayout';
 import {
+  SECTION_NAV_DRAWER_PAPER_SX,
+  SECTION_NAV_GROUP_PAPER_SX,
+} from '../layout/SectionNav';
+import {
   ATTACHMENT_LIST_ALERT_SX,
   ATTACHMENT_LIST_LIGHTBOX_ACTION_SX,
 } from '../messaging/AttachmentList';
@@ -142,6 +146,8 @@ const SX_EXPORTS = {
   REGISTRATION_METHODS_INFO_SX,
   SECURITY_ALERT_SX,
   SECURITY_DIVIDER_SX,
+  SECTION_NAV_DRAWER_PAPER_SX,
+  SECTION_NAV_GROUP_PAPER_SX,
   SIGNUP_CONFIRM_PAGE_ALERT_SX,
   SIGN_UP_PAGE_ALERT_SX,
   SUPPORT_RECOVERY_AGENT_BUTTON_SX,
@@ -161,10 +167,11 @@ const SX_EXPORT_NAMES = new Map(
   Object.entries(SX_EXPORTS).map(([name, sx]) => [sx, name]),
 );
 
-const entry = (component, muiComponent, sx) => ({
+const entry = (component, muiComponent, sx, slots) => ({
   component,
   muiComponent,
   sx,
+  slots,
   exportName: SX_EXPORT_NAMES.get(sx),
 });
 
@@ -219,6 +226,9 @@ export const KIT_COMPONENT_SX_REGISTRY = [
   entry('ChartFrame.root', 'MuiPaper', CHART_FRAME_ROOT_SX),
   entry('ChartFrame.alert', 'MuiAlert', CHART_FRAME_ALERT_SX),
   entry('PageLayout.container', 'MuiContainer', PAGE_LAYOUT_CONTAINER_SX),
+  entry('SectionNav.drawerPaper', 'MuiDrawer', SECTION_NAV_DRAWER_PAPER_SX, ['paper']),
+  entry('SectionNav.drawerPaperBase', 'MuiPaper', SECTION_NAV_DRAWER_PAPER_SX),
+  entry('SectionNav.groupPaper', 'MuiPaper', SECTION_NAV_GROUP_PAPER_SX),
   entry('AttachmentList.lightboxAction', 'MuiIconButton', ATTACHMENT_LIST_LIGHTBOX_ACTION_SX),
   entry('AttachmentList.alert', 'MuiAlert', ATTACHMENT_LIST_ALERT_SX),
   entry('Composer.emojiAction', 'MuiIconButton', COMPOSER_EMOJI_BUTTON_SX),

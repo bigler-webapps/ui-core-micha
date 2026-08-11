@@ -32,6 +32,7 @@ export * from './utils/authService';  // Service-Funktionen (Passkeys, Social)
 
 // --- 3. Layouts ---
 export { NarrowPage, WidePage } from './layout/PageLayout';
+export { SectionNav } from './layout/SectionNav';
 
 // --- 4. Pages (Vollständige Seiten für Routing) ---
 export { LoginPage } from './pages/LoginPage';
@@ -78,6 +79,7 @@ export {
 // --- 7. Translations ---
 export { authTranslations } from './i18n/authTranslations';
 export { userMenuTranslations } from './i18n/userMenuTranslations';
+export { sectionNavTranslations } from './i18n/sectionNavTranslations';
 
 // --- 8. Notifications ---
 export { NotificationSettings } from './notifications/NotificationSettings';
