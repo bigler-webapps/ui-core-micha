@@ -22,7 +22,7 @@ import { fetchAuthenticators, requestTotpKey, activateTotp, deactivateTotp, fetc
 
 export const MFA_ALERT_SX = { mb: 2 };
 export const MFA_CARD_SX = { mb: 3 };
-export const MFA_ACTIVE_CARD_SX = { bgcolor: '#f0fdf4' };
+export const MFA_ACTIVE_CARD_SX = { bgcolor: 'success.bg' };
 export const MFA_TEXT_FIELD_SX = { mb: 2 };
 export const MFA_DIVIDER_SX = { my: 3 };
 export const MFA_RECOVERY_BUTTON_SX = { mt: 2 };
@@ -228,7 +228,7 @@ export function MFAComponent() {
               alignItems="center"
             >
               {/* QR CODE */}
-              <Box sx={{ p: 2, bgcolor: 'white', border: '1px solid #eee' }}>
+              <Box sx={{ p: 2, bgcolor: 'background.paper', border: '1px solid', borderColor: 'divider' }}>
                 <QRCodeSVG value={totpData.key_uri} size={150} />
               </Box>
 
@@ -241,7 +241,7 @@ export function MFAComponent() {
                   variant="mono"
                   sx={{
                     fontFamily: 'monospace',
-                    bgcolor: '#eee',
+                    bgcolor: 'background.subtle',
                     p: 1,
                     borderRadius: 1,
                     display: 'inline-block',
@@ -300,7 +300,7 @@ export function MFAComponent() {
           {t('Auth.MFA_RECOVERY_VIEW_BUTTON')}
         </Button>
       ) : (
-        <Box sx={{ bgcolor: '#f5f5f5', p: 2, borderRadius: 1 }}>
+        <Box sx={{ bgcolor: 'background.subtle', p: 2, borderRadius: 1 }}>
           <Alert severity="warning" sx={MFA_ALERT_SX}>
             {t('Auth.MFA_RECOVERY_WARNING')}
           </Alert>
@@ -310,8 +310,9 @@ export function MFAComponent() {
                 <Box
                   key={code}
                   sx={{
-                    bgcolor: 'white',
-                    border: '1px solid #ddd',
+                    bgcolor: 'background.paper',
+                    border: '1px solid',
+                    borderColor: 'divider',
                     p: 1,
                     borderRadius: 1,
                     fontFamily: 'monospace',

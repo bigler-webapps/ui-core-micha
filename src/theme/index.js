@@ -3,6 +3,7 @@ export {
   assertThemeComplete,
   assertKitSxDisjoint,
   calculateContrastRatio,
+  reportOffPaletteColours,
   reportKitSxBypasses,
   reportThemeAdoption,
   THEME_COMPLETENESS_SURFACES,

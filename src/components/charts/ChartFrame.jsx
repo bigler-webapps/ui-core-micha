@@ -9,6 +9,7 @@ import {
   Typography,
 } from '@mui/material';
 import { useTranslation } from 'react-i18next';
+import { useTheme } from '@mui/material/styles';
 import { exportChartPng, exportChartSvg } from './exportChart';
 
 export const CHART_FRAME_ROOT_SX = { p: 2 };
@@ -39,6 +40,7 @@ export function ChartFrame({
   sx,
 }) {
   const { t } = useTranslation();
+  const theme = useTheme();
   const titleId = useId();
   const chartRef = useRef(null);
   const [exportError, setExportError] = useState(false);
@@ -55,7 +57,11 @@ export function ChartFrame({
       const filename = options.filename || 'chart';
       const result = type === 'svg'
         ? exportChartSvg(chartRef.current, `${filename}.svg`)
-        : await exportChartPng(chartRef.current, `${filename}.png`);
+        : await exportChartPng(
+          chartRef.current,
+          `${filename}.png`,
+          theme.palette.background.paper,
+        );
       const callback = type === 'svg' ? onExportSvg : onExportPng;
       callback?.(result);
     } catch (_error) {

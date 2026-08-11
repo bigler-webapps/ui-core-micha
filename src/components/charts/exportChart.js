@@ -29,7 +29,7 @@ export function exportChartSvg(chartContainer, filename = 'chart.svg') {
 }
 
 /** Rasterizes the first SVG rendered inside a chart container at two-times scale and downloads it. */
-export function exportChartPng(chartContainer, filename = 'chart.png') {
+export function exportChartPng(chartContainer, filename = 'chart.png', backgroundColour) {
   const source = svgBlob(chartContainer);
 
   return new Promise((resolve, reject) => {
@@ -45,7 +45,7 @@ export function exportChartPng(chartContainer, filename = 'chart.png') {
         canvas.width = width * 2;
         canvas.height = height * 2;
         const context = canvas.getContext('2d');
-        context.fillStyle = 'white';
+        context.fillStyle = backgroundColour;
         context.fillRect(0, 0, canvas.width, canvas.height);
         context.drawImage(image, 0, 0, canvas.width, canvas.height);
         canvas.toBlob((blob) => {

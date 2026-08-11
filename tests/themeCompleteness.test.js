@@ -10,15 +10,17 @@ import {
   calculateContrastRatio,
   createAppTheme,
   KIT_COMPONENT_SX_REGISTRY,
+  reportOffPaletteColours,
   reportKitSxBypasses,
   THEME_COMPLETENESS_SURFACES,
 } from '../src/theme';
+import { BASELINE_PALETTE } from '../src/theme/tokens';
 
-function jsxSources(directory) {
+function sourceFiles(directory) {
   return fs.readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
     const entryPath = path.join(directory, entry.name);
-    if (entry.isDirectory()) return jsxSources(entryPath);
-    if (!entry.name.endsWith('.jsx')) return [];
+    if (entry.isDirectory()) return sourceFiles(entryPath);
+    if (!/\.jsx?$/.test(entry.name)) return [];
     return [{ path: path.relative(process.cwd(), entryPath), source: fs.readFileSync(entryPath, 'utf8') }];
   });
 }
@@ -209,6 +211,27 @@ describe('kit sx disjointness', () => {
     expect(bottomNavActionResult.findings).toEqual([]);
   });
 
+  it('normalises bgcolor against a backgroundColor baseline default', () => {
+    const result = assertKitSxDisjoint({
+      components: {
+        MuiPaper: {
+          styleOverrides: { root: { backgroundColor: '#FFFFFF' } },
+        },
+      },
+    }, {
+      registry: [{
+        component: 'FixturePaper',
+        muiComponent: 'MuiPaper',
+        sx: { bgcolor: '#FFFFFF' },
+      }],
+    });
+
+    expect(result.findings).toEqual([{
+      surface: 'FixturePaper.MuiPaper.bgcolor',
+      reason: expect.stringMatching(/FixturePaper.*MuiPaper.*bgcolor/),
+    }]);
+  });
+
   it('keeps every registered kit sx object disjoint from the baseline', () => {
     expect(KIT_COMPONENT_SX_REGISTRY.length).toBeGreaterThan(2);
     expect(assertKitSxDisjoint(theme, {
@@ -290,7 +313,7 @@ describe('kit sx disjointness', () => {
 
   it('does not let current kit source bypass the exported-object convention', () => {
     expect(reportKitSxBypasses(
-      jsxSources(path.resolve('src')),
+      sourceFiles(path.resolve('src')),
       { registry: KIT_COMPONENT_SX_REGISTRY },
     ).findings).toEqual([]);
   });
@@ -351,5 +374,134 @@ describe('kit sx disjointness', () => {
       'exemption.FixtureButton.MuiButton.minHeight',
       'FixtureButton.MuiButton.minHeight',
     ]);
+  });
+});
+
+describe('off-palette colour reporting', () => {
+  it('flags an unknown hex literal and accepts a baseline palette value', () => {
+    const result = reportOffPaletteColours([
+      { path: 'Unknown.jsx', source: "const sx = { bgcolor: '#123456' };" },
+      { path: 'Baseline.jsx', source: "const sx = { bgcolor: '#F4F5F6' };" },
+      { path: 'Token.jsx', source: "const sx = { bgcolor: 'background.subtle' };" },
+    ]);
+
+    expect(result.findings).toEqual([{
+      surface: 'Unknown.jsx:1.colour',
+      reason: expect.stringMatching(/#123456.*baseline palette/i),
+    }]);
+  });
+
+  it('flags a named CSS colour used by sx', () => {
+    const result = reportOffPaletteColours([{
+      path: 'Named.jsx',
+      source: "const sx = { bgcolor: 'white' };",
+    }]);
+
+    expect(result.findings).toEqual([{
+      surface: 'Named.jsx:1.colour',
+      reason: expect.stringMatching(/named CSS colour.*white.*baseline palette/i),
+    }]);
+  });
+
+  it('flags rgba literals and named Canvas fill colours', () => {
+    const result = reportOffPaletteColours([
+      {
+        path: 'Border.jsx',
+        source: "const sx = { border: '1px solid rgba(0,0,0,0.2)' };",
+      },
+      {
+        path: 'exportChart.js',
+        source: "context.fillStyle = 'white';",
+      },
+      {
+        path: 'NamedBorder.jsx',
+        source: "const sx = { border: '1px solid white', boxShadow: '0 0 1px black' };",
+      },
+    ]);
+
+    expect(result.findings).toEqual([
+      {
+        surface: 'Border.jsx:1.colour',
+        reason: expect.stringMatching(/rgba\(0,0,0,0\.2\).*baseline palette/i),
+      },
+      {
+        surface: 'exportChart.js:1.colour',
+        reason: expect.stringMatching(/named CSS colour.*white.*baseline palette/i),
+      },
+      {
+        surface: 'NamedBorder.jsx:1.colour',
+        reason: expect.stringMatching(/named CSS colour.*white.*baseline palette/i),
+      },
+      {
+        surface: 'NamedBorder.jsx:1.colour',
+        reason: expect.stringMatching(/named CSS colour.*black.*baseline palette/i),
+      },
+    ]);
+  });
+
+  it('excludes only QrSignupManager print-document HTML', () => {
+    const result = reportOffPaletteColours([{
+      path: 'src/components/QrSignupManager.jsx',
+      source: [
+        "const panel = { bgcolor: '#123456' };",
+        'printWindow.document.write(`',
+        '  <style>body { background: #654321; }</style>',
+        '`);',
+      ].join('\n'),
+    }]);
+
+    expect(result.findings).toHaveLength(1);
+    expect(result.findings[0]).toEqual({
+      surface: 'src/components/QrSignupManager.jsx:1.colour',
+      reason: expect.stringMatching(/#123456/),
+    });
+  });
+
+  it('derives its allowlist from the supplied palette', () => {
+    const source = [{ path: 'NewToken.jsx', source: "const sx = { bgcolor: '#123456' };" }];
+    const extendedPalette = {
+      ...BASELINE_PALETTE,
+      fixture: { main: '#123456' },
+    };
+
+    expect(reportOffPaletteColours(source).findings).toHaveLength(1);
+    expect(reportOffPaletteColours(source, { palette: extendedPalette }).findings).toEqual([]);
+  });
+
+  it('reports MUI numeric ramps separately without treating token paths as literals', () => {
+    const result = reportOffPaletteColours([{
+      path: 'Ramp.jsx',
+      source: "const sx = { bgcolor: 'grey.50', borderColor: 'divider', color: 'success.bg', transition: 'release.50' };",
+    }]);
+
+    expect(result.findings).toEqual([{
+      surface: 'Ramp.jsx:1.colour',
+      reason: expect.stringMatching(/^Report only:.*grey\.50.*untouched numeric palette ramp/i),
+    }]);
+  });
+
+  it('ignores comment issue numbers and theme implementation sources', () => {
+    const result = reportOffPaletteColours([
+      {
+        path: 'src/components/charts/chartLabels.js',
+        source: '// MUI issues mui-x#18768 and #18399',
+      },
+      {
+        path: 'src/theme/createAppTheme.js',
+        source: "const contrastSurface = '#123456';",
+      },
+    ]);
+
+    expect(result.findings).toEqual([]);
+  });
+
+  it('keeps current kit source free of hard off-palette findings', () => {
+    const result = reportOffPaletteColours(sourceFiles(path.resolve('src')));
+    const hardFindings = result.findings.filter(
+      ({ reason }) => !reason.startsWith('Report only:'),
+    );
+
+    expect(hardFindings).toEqual([]);
+    expect(result.findings.some(({ reason }) => reason.includes('grey.50'))).toBe(true);
   });
 });

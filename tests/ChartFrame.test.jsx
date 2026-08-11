@@ -154,6 +154,11 @@ describe('ChartFrame', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Export PNG' }));
     await vi.waitFor(() => expect(chartExport.exportChartPng).toHaveBeenCalledOnce());
+    expect(chartExport.exportChartPng).toHaveBeenCalledWith(
+      expect.any(HTMLElement),
+      'chart.png',
+      '#fff',
+    );
     await vi.waitFor(() => expect(onExportPng).toHaveBeenCalledOnce());
   });
 

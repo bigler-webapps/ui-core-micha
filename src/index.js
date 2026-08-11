@@ -7,6 +7,7 @@ export {
   assertKitSxDisjoint,
   calculateContrastRatio,
   KIT_COMPONENT_SX_REGISTRY,
+  reportOffPaletteColours,
   reportKitSxBypasses,
   reportThemeAdoption,
   THEME_COMPLETENESS_SURFACES,

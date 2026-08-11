@@ -1,6 +1,11 @@
 import { createTheme, getContrastRatio as getMuiContrastRatio } from '@mui/material/styles';
 
-import { STATUS_KEYS, TYPOGRAPHY_VARIANTS } from './tokens';
+import {
+  BASELINE_PALETTE,
+  BASELINE_STATIC,
+  STATUS_KEYS,
+  TYPOGRAPHY_VARIANTS,
+} from './tokens';
 import { KIT_COMPONENT_SX_REGISTRY } from './kitSxRegistry';
 
 const MUI_DEFAULT_THEME = createTheme();
@@ -373,18 +378,28 @@ const SAME_ROOT_STYLE_OVERRIDE_SLOTS = {
   MuiChip: ['root', 'outlined'],
 };
 
-// MUI's sx prop accepts CSS spacing shorthands (`py`, `px`, `pt`, ...) that
-// styleOverrides' plain CSS-in-JS objects do not -- a baseline `padding`
-// default and a component's own `sx={{ py: 1 }}` collide on the vertical
-// axis even though the two key strings never match literally. Each key is
-// expanded to the canonical longhand properties it can affect so the
-// disjointness check compares axes, not raw key spellings; a property
+// MUI's sx prop accepts aliases and CSS spacing shorthands that
+// styleOverrides' plain CSS-in-JS objects do not. Each known alias is
+// expanded to the canonical CSS properties it can affect so the
+// disjointness check compares effects, not raw key spellings; a property
 // outside this table expands to itself.
 const SPACING_SHORTHAND_LONGHANDS = {
+  bgcolor: ['backgroundColor'],
+  typography: [
+    'fontFamily',
+    'fontSize',
+    'fontStyle',
+    'fontWeight',
+    'letterSpacing',
+    'lineHeight',
+    'textTransform',
+  ],
   p: ['paddingTop', 'paddingRight', 'paddingBottom', 'paddingLeft'],
   padding: ['paddingTop', 'paddingRight', 'paddingBottom', 'paddingLeft'],
   px: ['paddingLeft', 'paddingRight'],
+  paddingX: ['paddingLeft', 'paddingRight'],
   py: ['paddingTop', 'paddingBottom'],
+  paddingY: ['paddingTop', 'paddingBottom'],
   pt: ['paddingTop'],
   pr: ['paddingRight'],
   pb: ['paddingBottom'],
@@ -392,7 +407,9 @@ const SPACING_SHORTHAND_LONGHANDS = {
   m: ['marginTop', 'marginRight', 'marginBottom', 'marginLeft'],
   margin: ['marginTop', 'marginRight', 'marginBottom', 'marginLeft'],
   mx: ['marginLeft', 'marginRight'],
+  marginX: ['marginLeft', 'marginRight'],
   my: ['marginTop', 'marginBottom'],
+  marginY: ['marginTop', 'marginBottom'],
   mt: ['marginTop'],
   mr: ['marginRight'],
   mb: ['marginBottom'],
@@ -415,14 +432,12 @@ function styleOverrideKeys(componentConfig, slots = ['root']) {
 
 /**
  * Reports top-level property collisions between registered kit sx objects and
- * the baseline MUI component they target. Spacing shorthands (`py`/`px`/...)
- * are compared by the longhand axis they affect, not by literal key name --
- * see `SPACING_SHORTHAND_LONGHANDS`.
+ * the baseline MUI component they target. Known sx aliases are compared by
+ * the CSS properties they affect, not by literal key name.
  *
- * This is deliberately a lower bound on shadowing: conditional sx, nested sx,
- * callback results, and nested selector properties are not inspected. A clean
- * result therefore proves only that the registered top-level key sets are
- * disjoint; it is not proof that no component can shadow the baseline.
+ * This is deliberately a lower bound on shadowing: unknown normalisation gaps
+ * remain. A clean result proves only that the registered top-level key sets
+ * are disjoint; it is not proof that no component can shadow the baseline.
  */
 export function assertKitSxDisjoint(
   theme,
@@ -587,6 +602,214 @@ export function reportKitSxBypasses(sources = [], { registry } = {}) {
             ? `${match[1]} uses exported sx object "${identifier}" without a ${muiComponent} registry entry.`
             : `${match[1]} uses non-exported sx object "${identifier}".`,
       });
+    }
+  }
+
+  return { findings };
+}
+
+const BASIC_CSS_COLOUR_NAMES = new Set([
+  'aqua',
+  'black',
+  'blue',
+  'fuchsia',
+  'gray',
+  'green',
+  'grey',
+  'lime',
+  'maroon',
+  'navy',
+  'olive',
+  'purple',
+  'red',
+  'silver',
+  'teal',
+  'white',
+  'yellow',
+]);
+
+const MUI_DEFAULT_NUMERIC_RAMP_NAMES = new Set([
+  'amber',
+  'blue',
+  'bluegrey',
+  'brown',
+  'cyan',
+  'deeporange',
+  'deeppurple',
+  'green',
+  'grey',
+  'indigo',
+  'lightblue',
+  'lightgreen',
+  'lime',
+  'orange',
+  'pink',
+  'purple',
+  'red',
+  'teal',
+  'yellow',
+]);
+
+const HEX_COLOUR_PATTERN = /#(?:[\da-f]{3,4}|[\da-f]{6}|[\da-f]{8})(?![\da-f])/gi;
+const RGB_COLOUR_PATTERN = /rgba?\(\s*[\d.]+\s*,\s*[\d.]+\s*,\s*[\d.]+(?:\s*,\s*[\d.]+)?\s*\)/gi;
+const NAMED_COLOUR_PATTERN = new RegExp(
+  `\\b(?:${[...BASIC_CSS_COLOUR_NAMES].join('|')})\\b`,
+  'gi',
+);
+const COLOUR_PROPERTY_PATTERN = /\b(?:background(?:Color)?|bgcolor|border(?:Top|Right|Bottom|Left)?(?:Color)?|boxShadow|caretColor|color|fill|fillStyle|outline(?:Color)?|stroke|strokeStyle|textShadow|WebkitTextFillColor)\s*(?::|=)\s*$/;
+
+function colourKey(value) {
+  const colour = parseColour(value);
+  return colour ? `${colour.r},${colour.g},${colour.b},${colour.a}` : null;
+}
+
+function collectBaselineColourKeys(...roots) {
+  const keys = new Set();
+  const visit = (value) => {
+    if (typeof value === 'string') {
+      for (const match of value.matchAll(HEX_COLOUR_PATTERN)) {
+        const key = colourKey(match[0]);
+        if (key) keys.add(key);
+      }
+      for (const match of value.matchAll(RGB_COLOUR_PATTERN)) {
+        const key = colourKey(match[0]);
+        if (key) keys.add(key);
+      }
+      return;
+    }
+    if (Array.isArray(value)) {
+      value.forEach(visit);
+      return;
+    }
+    if (value && typeof value === 'object') Object.values(value).forEach(visit);
+  };
+  roots.forEach(visit);
+  return keys;
+}
+
+function maskComments(source) {
+  const characters = [...source];
+  let quote = null;
+  for (let index = 0; index < characters.length; index += 1) {
+    const character = characters[index];
+    if (quote) {
+      if (character === quote && characters[index - 1] !== '\\') quote = null;
+      continue;
+    }
+    if (character === '"' || character === "'" || character === '`') {
+      quote = character;
+      continue;
+    }
+    if (character === '/' && characters[index + 1] === '/') {
+      for (; index < characters.length && characters[index] !== '\n'; index += 1) {
+        characters[index] = ' ';
+      }
+      index -= 1;
+    } else if (character === '/' && characters[index + 1] === '*') {
+      characters[index] = ' ';
+      characters[index + 1] = ' ';
+      index += 2;
+      while (index < characters.length
+        && !(characters[index] === '*' && characters[index + 1] === '/')) {
+        if (characters[index] !== '\n' && characters[index] !== '\r') characters[index] = ' ';
+        index += 1;
+      }
+      if (index < characters.length) {
+        characters[index] = ' ';
+        characters[index + 1] = ' ';
+        index += 1;
+      }
+    }
+  }
+  return characters.join('');
+}
+
+function maskQrPrintDocument(source, path) {
+  if (!path.replaceAll('\\', '/').endsWith('/QrSignupManager.jsx')) return source;
+  const call = /\bprintWindow\.document\.write\s*\(\s*`/g.exec(source);
+  if (!call) return source;
+  const start = call.index + call[0].lastIndexOf('`');
+  let end = start + 1;
+  while (end < source.length) {
+    if (source[end] === '`' && source[end - 1] !== '\\') break;
+    end += 1;
+  }
+  if (end >= source.length) return source;
+
+  // The generated print document is standalone HTML rendered outside the
+  // React tree, where no application theme is available. Mask the region as
+  // one unit instead of accumulating permanent per-colour exemptions.
+  return source.slice(0, start)
+    + source.slice(start, end + 1).replace(/[^\r\n]/g, ' ')
+    + source.slice(end + 1);
+}
+
+function normalizedSources(sources) {
+  return sources.map((entry, index) =>
+    typeof entry === 'string'
+      ? { path: `source-${index + 1}`, source: entry }
+      : { path: entry.path || `source-${index + 1}`, source: entry.source || '' },
+  );
+}
+
+/**
+ * Reports colour literals in component source that do not come from the
+ * baseline palette, plus report-only uses of MUI's untouched numeric ramps.
+ */
+export function reportOffPaletteColours(
+  sources = [],
+  { palette = BASELINE_PALETTE, baselineStatic = BASELINE_STATIC } = {},
+) {
+  const allowedColours = collectBaselineColourKeys(palette, baselineStatic);
+  const findings = [];
+  const stringPattern = /(["'`])((?:\\.|(?!\1)[\s\S])*)\1/g;
+
+  for (const { path, source } of normalizedSources(sources)) {
+    const normalizedPath = path.replaceAll('\\', '/');
+    if (/(^|\/)src\/theme\//.test(normalizedPath)) continue;
+    const scanSource = maskComments(maskQrPrintDocument(source, normalizedPath));
+
+    for (const match of scanSource.matchAll(stringPattern)) {
+      const value = match[2].trim();
+      const line = source.slice(0, match.index).split(/\r?\n/).length;
+      const surface = `${path}:${line}.colour`;
+
+      for (const hex of value.matchAll(HEX_COLOUR_PATTERN)) {
+        if (!allowedColours.has(colourKey(hex[0]))) {
+          findings.push({
+            surface,
+            reason: `Off-palette hex colour "${hex[0]}" is not derived from the baseline palette.`,
+          });
+        }
+      }
+
+      for (const rgb of value.matchAll(RGB_COLOUR_PATTERN)) {
+        if (!allowedColours.has(colourKey(rgb[0]))) {
+          findings.push({
+            surface,
+            reason: `Off-palette rgb colour "${rgb[0]}" is not derived from the baseline palette.`,
+          });
+        }
+      }
+
+      const before = scanSource.slice(Math.max(0, match.index - 40), match.index);
+      const isColourProperty = COLOUR_PROPERTY_PATTERN.test(before);
+      const numericRamp = value.match(/^([a-z]+)\.(\d+)$/i);
+      if (isColourProperty && !numericRamp) {
+        for (const namedColour of value.matchAll(NAMED_COLOUR_PATTERN)) {
+          findings.push({
+            surface,
+            reason: `Named CSS colour "${namedColour[0]}" bypasses the baseline palette.`,
+          });
+        }
+      }
+
+      if (numericRamp && MUI_DEFAULT_NUMERIC_RAMP_NAMES.has(numericRamp[1].toLowerCase())) {
+        findings.push({
+          surface,
+          reason: `Report only: "${value}" uses MUI's untouched numeric palette ramp, not a baseline token.`,
+        });
+      }
     }
   }
 
