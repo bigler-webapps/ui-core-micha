@@ -1,0 +1,624 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DS-5 — Dashboard primitives: StatTile and SoftChip</title>
+<style>
+  /* ------------------------------------------------------------------
+     Token values are read from ui-core-micha/src/theme/tokens.js, not
+     chosen here. Where a value is derived (SoftChip's tints and text),
+     the derivation is stated next to it.
+     ------------------------------------------------------------------ */
+  :root {
+    /* text */
+    --text-primary: #212529;
+    --text-secondary: #5B6670;
+    --text-disabled: #6A7178;
+    /* surfaces */
+    --bg-default: #FAFAFA;
+    --bg-paper: #FFFFFF;
+    --bg-subtle: #F4F5F6;
+    --divider: rgba(33,37,41,.10);
+    /* shape */
+    --radius-base: 3px;   /* shape.borderRadius */
+    --radius-card: 8px;   /* radius.card */
+    /* the four semantic tones: main as authored, dark = darken(main, .3) */
+    --success-main: #1B8038;  --success-dark: #135A27;
+    --warning-main: #976100;  --warning-dark: #6A4400;
+    --error-main:   #BF3227;  --error-dark:   #86231B;
+    --info-main:    #01579B;  --info-dark:    #013D6D;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 32px 24px 64px;
+    background: var(--bg-default);
+    color: var(--text-primary);
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    font-size: 14px; line-height: 1.55;   /* body1 */
+  }
+  .wrap { max-width: 1180px; margin: 0 auto; }
+
+  h1 { font-size: 32px; font-weight: 600; line-height: 1.2; margin: 0 0 8px; }
+  h2 { font-size: 20px; font-weight: 600; line-height: 1.3; margin: 44px 0 4px; }
+  h3 { font-size: 15px; font-weight: 600; line-height: 1.4; margin: 26px 0 10px; }
+  .lede { color: var(--text-secondary); max-width: 74ch; margin: 0 0 4px; }
+  .note {
+    color: var(--text-secondary); font-size: 13px; line-height: 1.55;
+    max-width: 78ch; margin: 8px 0 0;
+  }
+  code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: .92em; background: var(--bg-subtle);
+    padding: 1px 5px; border-radius: var(--radius-base);
+  }
+
+  .panel {
+    background: var(--bg-paper); border: 1px solid var(--divider);
+    border-radius: var(--radius-card); padding: 20px; margin-top: 14px;
+  }
+  .panel--flush { padding: 0; overflow: hidden; }
+
+  /* ============ StatTile — the actual component, faithfully ============
+     border 1px divider · radius 1 (=3px) · px 1.5 (12px) · py 1 (8px)
+     minWidth 120 · label caption 12/400 secondary · value h6 16/600
+     tabular-nums · caption 12/400 secondary                            */
+  .stat-row { display: flex; flex-wrap: wrap; gap: 12px; }
+  .stat-tile {
+    flex: 1 1 auto;                       /* decided: flex with a minWidth floor */
+    border: 1px solid var(--divider);
+    border-radius: var(--radius-base);
+    padding: 8px;                         /* decided: responsive, xs */
+    min-width: 120px;
+    background: var(--bg-paper);
+  }
+  @media (min-width: 600px) { .stat-tile { padding: 12px; } }   /* sm and up */
+  .stat-tile--accent { border-width: 2px; border-color: #1F6FA8; }  /* decided: accent kept */
+  .stat-tile__label,
+  .stat-tile__caption {
+    display: block;
+    font-size: 12px; font-weight: 400; line-height: 1.4;
+    color: var(--text-secondary);
+  }
+  .stat-tile__value {                     /* decided: h5 18/600, tabular-nums */
+    font-size: 18px; font-weight: 600; line-height: 1.3;
+    font-variant-numeric: tabular-nums;
+    color: var(--text-primary);
+  }
+
+  /* ============ SoftChip — as it exists today ============
+     dot 6px in tone.dark · bg alpha(main,.12) · border alpha(main,.30)
+     text tone.dark · caveat radius 3px 12/500 · status pill 11/600     */
+  .chip-row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+  .chip {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 4px 8px;
+    border: 1px solid; border-radius: var(--radius-base);
+    font-size: 12px; font-weight: 500; line-height: 1.4;
+    white-space: nowrap;
+  }
+  /* decided: status uses the baseline's `overline` — 11/600, uppercase, .4px tracking */
+  .chip--status {
+    border-radius: 999px; font-size: 11px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: .4px;
+  }
+  .chip--borderless { border-color: transparent; }
+  .chip__dot { width: 6px; height: 6px; border-radius: 50%; flex: none; }
+
+  .t-success { background: rgba(27,128,56,.12);  border-color: rgba(27,128,56,.30);  color: var(--success-dark); }
+  .t-warning { background: rgba(151,97,0,.12);   border-color: rgba(151,97,0,.30);   color: var(--warning-dark); }
+  .t-error   { background: rgba(191,50,39,.12);  border-color: rgba(191,50,39,.30);  color: var(--error-dark); }
+  .t-info    { background: rgba(1,87,155,.12);   border-color: rgba(1,87,155,.30);   color: var(--info-dark); }
+  .t-success .chip__dot { background: var(--success-dark); }
+  .t-warning .chip__dot { background: var(--warning-dark); }
+  .t-error   .chip__dot { background: var(--error-dark); }
+  .t-info    .chip__dot { background: var(--info-dark); }
+
+  /* measurement table */
+  table { border-collapse: collapse; width: 100%; font-size: 13px; }
+  th, td { padding: 10px 16px; text-align: left; border-bottom: 1px solid var(--divider); }
+  th {
+    font-size: 11px; font-weight: 600; line-height: 1.4;
+    text-transform: uppercase; letter-spacing: .4px;
+    color: var(--text-secondary); background: var(--bg-subtle);
+  }
+  tbody tr:last-child td { border-bottom: 0; }
+  td.num { font-variant-numeric: tabular-nums; }
+  .verdict { font-weight: 600; }
+  .pass { color: var(--success-dark); }
+  .fail { color: var(--error-dark); }
+
+  /* the two-width frames */
+  .frames { display: flex; gap: 24px; align-items: flex-start; flex-wrap: wrap; margin-top: 14px; }
+  .frame { border: 1px solid var(--divider); border-radius: var(--radius-card); background: var(--bg-paper); overflow: hidden; }
+  .frame__bar {
+    font-size: 11px; font-weight: 600; letter-spacing: .4px; text-transform: uppercase;
+    color: var(--text-secondary); background: var(--bg-subtle);
+    padding: 8px 12px; border-bottom: 1px solid var(--divider);
+  }
+  .frame__body { padding: 16px; }
+  .frame--mobile { width: 375px; }
+  .frame--mobile .frame__body { width: 375px; }
+  .frame--desktop { flex: 1 1 620px; min-width: 320px; }
+
+  /* the THEME-4 comparison */
+  .cmp { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; margin-top: 12px; }
+  .cmp__cell { border: 1px solid var(--divider); border-radius: var(--radius-base); padding: 14px; background: var(--bg-paper); }
+  .cmp__head { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .4px; color: var(--text-secondary); margin-bottom: 10px; }
+  .spec { font-size: 12px; color: var(--text-secondary); margin-top: 8px; font-variant-numeric: tabular-nums; }
+
+  .flag {
+    border-left: 3px solid var(--warning-main);
+    background: rgba(151,97,0,.06);
+    padding: 12px 16px; margin-top: 14px;
+    border-radius: 0 var(--radius-base) var(--radius-base) 0;
+  }
+  .flag strong { color: var(--warning-dark); }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>Dashboard primitives</h1>
+  <p class="lede">
+    <code>StatTile</code> and <code>SoftChip</code> drawn at the shared baseline's own token values.
+    A decision artifact for <code>DS-5</code> / <code>PRIM-1</code>, not an approved spec. <strong>Each component already
+    exists twice</strong> — hram as a file, and a second build inline inside a page in
+    <strong>fitness-monitor</strong> (<code>StatTile</code>) and <strong>cockpit</strong>
+    (<code>SoftChip</code>). The promotion trigger is met on evidence, and the
+    <a href="#divergences" style="color:var(--info-dark)">seven divergences between the two builds</a>
+    were <a href="#decided" style="color:var(--info-dark)">decided on 2026-08-12</a> — everything drawn
+    here is the promoted spec.
+  </p>
+  <p class="note">
+    Every colour, size and radius below is read from <code>ui-core-micha/src/theme/tokens.js</code>.
+    The chip tints are derived the way the component derives them — <code>alpha(main, .12)</code> fill,
+    <code>alpha(main, .30)</code> border, <code>darken(main, .3)</code> text and dot — so nothing here
+    is a hand-picked hex. Contrast ratios are computed in the page against the <em>blended</em>
+    background, because a ratio taken against the raw <code>rgba()</code> would be meaningless.
+  </p>
+
+  <!-- ================= StatTile ================= -->
+  <h2>StatTile — the KPI tile</h2>
+  <p class="lede">
+    A small bordered card: muted label, one bold tabular number, optional caption. Two call sites in
+    hram today — the Calibration KPI row and the Allocation rail.
+  </p>
+
+  <div class="frames">
+    <div class="frame frame--desktop">
+      <div class="frame__bar">1280 px — Calibration KPI row (three tiles)</div>
+      <div class="frame__body">
+        <div class="stat-row">
+          <div class="stat-tile">
+            <span class="stat-tile__label">theta*</span>
+            <div class="stat-tile__value">0.8421</div>
+          </div>
+          <div class="stat-tile">
+            <span class="stat-tile__label">Recovered</span>
+            <div class="stat-tile__value">0.8397</div>
+            <span class="stat-tile__caption">bias −0.0024</span>
+          </div>
+          <div class="stat-tile">
+            <span class="stat-tile__label">Interval covers theta*</span>
+            <div class="stat-tile__value">Yes</div>
+            <span class="stat-tile__caption">94.2 % of draws</span>
+          </div>
+        </div>
+
+        <h3>Allocation rail (two tiles, with a child slot)</h3>
+        <div class="stat-row">
+          <div class="stat-tile" style="min-width:180px">
+            <span class="stat-tile__label">Coverage at budget</span>
+            <div class="stat-tile__value">71.4 %</div>
+            <span class="stat-tile__caption">of maximum realizable</span>
+          </div>
+          <div class="stat-tile" style="min-width:180px">
+            <span class="stat-tile__label">Deaths averted</span>
+            <div class="stat-tile__value">63.8 %</div>
+            <div style="margin-top:6px">
+              <span class="chip chip--status t-info"><span class="chip__dot"></span>children slot</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="frame frame--mobile">
+      <div class="frame__bar">375 px</div>
+      <div class="frame__body">
+        <div class="stat-row">
+          <div class="stat-tile">
+            <span class="stat-tile__label">theta*</span>
+            <div class="stat-tile__value">0.8421</div>
+          </div>
+          <div class="stat-tile">
+            <span class="stat-tile__label">Recovered</span>
+            <div class="stat-tile__value">0.8397</div>
+            <span class="stat-tile__caption">bias −0.0024</span>
+          </div>
+          <div class="stat-tile">
+            <span class="stat-tile__label">Interval covers theta*</span>
+            <div class="stat-tile__value">Yes</div>
+            <span class="stat-tile__caption">94.2 % of draws</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <p class="note">
+    At 375 px the tiles fill the width and wrap once they hit the 120 px floor — the decided
+    <code>flex: 1</code> plus <code>minWidth</code> rule, which is why two fit here where hram's
+    original <code>minWidth</code>-only version dropped to one per line.
+  </p>
+
+  <div class="flag">
+    <strong>StatTile passes <code>THEME-4</code> as written.</strong> It references tokens throughout —
+    <code>variant="caption"</code>, <code>variant="h5"</code>, <code>text.secondary</code>,
+    <code>divider</code> — and its only raw numbers are theme-relative multipliers
+    (<code>borderRadius: 1</code>, the spacing steps), not literals. What it lacks is a test:
+    <strong>neither build has one</strong>, in either app, and tests are part of promotion.
+  </div>
+
+  <!-- ================= SoftChip ================= -->
+  <h2>SoftChip — the annotation chip</h2>
+  <p class="lede">
+    Soft tinted chips that read as annotation rather than alarm. Two variants, four tones, a 6 px
+    leading dot. Replaced loud saturated fills — a bright-orange pill and a full-width green banner.
+  </p>
+
+  <div class="panel">
+    <h3 style="margin-top:0">caveat — radius 3 px, 12/500</h3>
+    <div class="chip-row">
+      <span class="chip t-warning"><span class="chip__dot"></span>Provisional ranges</span>
+      <span class="chip t-info"><span class="chip__dot"></span>Derived value</span>
+      <span class="chip t-error"><span class="chip__dot"></span>Outside calibrated range</span>
+      <span class="chip t-success"><span class="chip__dot"></span>Within tolerance</span>
+    </div>
+
+    <h3>status — pill radius, 11/600</h3>
+    <div class="chip-row">
+      <span class="chip chip--status t-success"><span class="chip__dot"></span>passed</span>
+      <span class="chip chip--status t-warning"><span class="chip__dot"></span>degraded</span>
+      <span class="chip chip--status t-error"><span class="chip__dot"></span>failed</span>
+      <span class="chip chip--status t-info"><span class="chip__dot"></span>queued</span>
+    </div>
+
+    <h3>In place — a card header, where the chip actually sits</h3>
+    <div style="border:1px solid var(--divider);border-radius:var(--radius-card);padding:16px;max-width:520px">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px">
+        <div>
+          <div style="font-size:15px;font-weight:600;line-height:1.4">Sensitivity analysis</div>
+          <div style="font-size:12px;color:var(--text-secondary)">Tornado over 14 parameters</div>
+        </div>
+        <span class="chip t-warning"><span class="chip__dot"></span>Provisional ranges</span>
+      </div>
+    </div>
+  </div>
+
+  <h3>Computed contrast — text on the blended fill, not on the raw rgba</h3>
+  <div class="panel panel--flush">
+    <table id="contrast">
+      <thead>
+        <tr>
+          <th>Tone</th><th>main</th><th>text = darken(main,.3)</th>
+          <th>effective fill over paper</th><th>ratio</th><th>WCAG AA (4.5)</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+  <p class="note">
+    The fill is <code>alpha(main, .12)</code> over <code>background.paper</code>, so the real
+    background is a blend. <code>getContrastRatio</code> ignores alpha and would return the ratio
+    against white — which is close here but is the wrong number for the wrong reason. These are
+    computed from the blend.
+  </p>
+
+  <!-- ================= the THEME-4 problem ================= -->
+  <h2>The typography problem, and how it was resolved</h2>
+  <p class="lede">
+    SoftChip set typography as raw numbers, which is exactly what <code>THEME-4</code>'s shadowing check
+    forbids in a kit component. The four cells below are the options as they stood; the
+    <em>status</em> variant now uses <code>overline</code>, and <em>caveat</em> is deliberately left
+    unresolved (see the end of this page).
+  </p>
+
+  <div class="cmp">
+    <div class="cmp__cell">
+      <div class="cmp__head">status, as hram authored it</div>
+      <span class="chip chip--status t-success" style="text-transform:none;letter-spacing:normal">
+        <span class="chip__dot"></span>passed
+      </span>
+      <div class="spec">raw <code>fontSize: 11</code>, <code>fontWeight: 600</code> — no variant</div>
+    </div>
+    <div class="cmp__cell" style="border-color:var(--success-main)">
+      <div class="cmp__head"><code>overline</code> — chosen</div>
+      <span class="chip chip--status t-success"><span class="chip__dot"></span>passed</span>
+      <div class="spec">11/600 — identical metrics, <strong>plus uppercase + .4 px tracking</strong></div>
+    </div>
+    <div class="cmp__cell">
+      <div class="cmp__head">caveat, as authored</div>
+      <span class="chip t-warning"><span class="chip__dot"></span>Provisional ranges</span>
+      <div class="spec">raw <code>fontSize: 12</code>, <code>fontWeight: 500</code></div>
+    </div>
+    <div class="cmp__cell">
+      <div class="cmp__head">baseline <code>caption</code></div>
+      <span class="chip t-warning" style="font-weight:400"><span class="chip__dot"></span>Provisional ranges</span>
+      <div class="spec">12/<strong>400</strong> — the nearest variant, one weight step lighter</div>
+    </div>
+  </div>
+
+  <div class="flag">
+    <strong>Two clean ways out, and they are not equivalent.</strong>
+    Use <code>overline</code> for <em>status</em> and accept uppercase — which changes how every status
+    chip reads, from <span style="white-space:nowrap">“passed”</span> to
+    <span style="white-space:nowrap">“PASSED”</span>. Or add one variant to the baseline for chip text
+    and let both variants reference it — which is a baseline change, so an app-level decision that does
+    not belong inside a component promotion. <em>caveat</em> has the same shape of problem at 12/500
+    against <code>caption</code>'s 12/400: visually a hair bolder, but there is no variant for it.
+  </div>
+
+  <!-- ================= the two builds ================= -->
+  <h2 id="divergences">Both components exist twice already — and the differences are the decision</h2>
+  <p class="lede">
+    The second build of each is an <strong>inline component inside a page</strong>, not a file, which is
+    why a filename search misses it. The promotion rule is met: two independent builds each, three
+    apps consuming.
+  </p>
+
+  <h3>StatTile — hram vs fitness-monitor</h3>
+  <div class="frames">
+    <div class="frame frame--desktop">
+      <div class="frame__bar">hram — <code>ResearchComponents/StatTile.jsx</code></div>
+      <div class="frame__body">
+        <div class="stat-row">
+          <div class="stat-tile" style="flex:0 0 auto">
+            <span class="stat-tile__label">Recovered</span>
+            <div class="stat-tile__value" style="font-size:16px;line-height:1.35">0.8397</div>
+            <span class="stat-tile__caption">bias −0.0024</span>
+          </div>
+        </div>
+        <div class="spec">
+          value <code>h6</code> 16/600 · <strong>tabular-nums</strong> · padding 12/8 fixed ·
+          <code>minWidth</code> 120 · caption sub-line · <code>children</code> slot
+        </div>
+      </div>
+    </div>
+    <div class="frame frame--desktop">
+      <div class="frame__bar">fitness-monitor — <code>BodyHistoryPage.jsx:554</code></div>
+      <div class="frame__body">
+        <div class="stat-row">
+          <div class="stat-tile" style="flex:1">
+            <span class="stat-tile__label">Body fat</span>
+            <div class="stat-tile__value" style="font-size:18px;font-variant-numeric:normal">18.4 %</div>
+          </div>
+          <div class="stat-tile stat-tile--accent" style="flex:1">
+            <span class="stat-tile__label">Lean mass</span>
+            <div class="stat-tile__value" style="font-variant-numeric:normal">62.1 kg</div>
+          </div>
+        </div>
+        <div class="spec">
+          value <code>h5</code> 18/600 · <strong>no tabular-nums</strong> · padding responsive
+          <code>{xs:1, sm:1.5}</code> · <code>flex: 1</code> · <strong><code>accent</code></strong>
+          = 2 px <code>primary.main</code> border (right-hand tile)
+        </div>
+      </div>
+    </div>
+  </div>
+  <p class="note">
+    Five decisions fall out of this, and none is arbitrary: <strong>h6 or h5</strong> for the value;
+    <strong>tabular-nums</strong> (hram has it, fm does not — for a KPI row it is what makes digits line
+    up between tiles, so this one has a right answer); whether <strong><code>accent</code></strong>
+    survives as a variant; <strong>fixed or responsive padding</strong>; and
+    <strong><code>flex: 1</code> vs <code>minWidth</code></strong>, which is the 375 px wrap behaviour
+    above expressed as an API choice.
+  </p>
+
+  <h3>SoftChip — hram vs cockpit</h3>
+  <div class="cmp">
+    <div class="cmp__cell">
+      <div class="cmp__head">hram — <code>SoftChip.jsx</code>, status variant</div>
+      <span class="chip chip--status t-success"><span class="chip__dot"></span>passed</span>
+      <div class="spec">
+        11/<strong>600</strong> · lowercase · 6 px dot · <strong>1 px border</strong> at
+        <code>alpha(main,.30)</code> · fill <code>alpha(main,.12)</code> · auto height
+      </div>
+    </div>
+    <div class="cmp__cell">
+      <div class="cmp__head">cockpit — <code>BoardView.jsx:65</code>, lane pill</div>
+      <span class="chip chip--status t-info"
+            style="text-transform:uppercase;letter-spacing:.4px;font-weight:700;border-color:transparent;height:22px;padding:0 9px">
+        <span class="chip__dot"></span>recurring 3
+      </span>
+      <div class="spec">
+        11/<strong>700</strong> · <strong>uppercase + .4 px tracking</strong> · leading
+        <strong>icon</strong>, not a dot · <strong>no border</strong> · fixed height 22 ·
+        tabular-nums
+      </div>
+    </div>
+  </div>
+
+  <div class="flag">
+    <strong>cockpit's build resolves the typography question the section above left open.</strong>
+    Its pill is already 11-with-uppercase-and-.4 px-tracking — which is the baseline's
+    <code>overline</code> in all but the weight step. So <code>overline</code> is not an imposition on
+    the shared component; it is what the second consumer independently chose, and hram's lowercase is
+    the outlier. That turned “changes how every status chip reads” from a cost into a
+    <em>one-app</em> cost — which is how it was decided.
+  </div>
+
+  <!-- ================= resolved ================= -->
+  <h2 id="decided">Decided — the promoted spec</h2>
+  <p class="lede">
+    Operator decisions, 2026-08-12. Everything rendered above the divergence section already reflects
+    them; the two comparison panels keep the original values as the record of what changed.
+  </p>
+
+  <div class="panel panel--flush">
+    <table>
+      <thead>
+        <tr><th>Divergence</th><th>Decision</th><th>Which app changes</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>StatTile value size</td>
+          <td><strong>h5 — 18/600</strong></td>
+          <td>hram (16 → 18)</td>
+        </tr>
+        <tr>
+          <td>StatTile digit alignment</td>
+          <td><strong>tabular-nums, always</strong> — the reason a KPI row reads as a row</td>
+          <td>fitness-monitor</td>
+        </tr>
+        <tr>
+          <td>StatTile row behaviour</td>
+          <td><strong><code>flex: 1</code> with a <code>minWidth</code> floor</strong> — covers both
+              existing behaviours with one rule, no prop</td>
+          <td>hram (tiles now share the row)</td>
+        </tr>
+        <tr>
+          <td>StatTile <code>accent</code></td>
+          <td><strong>kept</strong> — 2 px <code>primary.main</code>; without it fitness-monitor cannot
+              adopt</td>
+          <td>neither</td>
+        </tr>
+        <tr>
+          <td>StatTile padding</td>
+          <td><strong>responsive</strong> <code>{xs: 1, sm: 1.5}</code></td>
+          <td>hram (was fixed)</td>
+        </tr>
+        <tr>
+          <td>SoftChip status typography</td>
+          <td><strong><code>overline</code> — 11/600, uppercase, .4 px tracking.</strong> No new
+              baseline variant, so <code>THEME-4</code> is satisfied without a theme change</td>
+          <td>hram (<span style="white-space:nowrap">passed → PASSED</span>); cockpit drops 700 → 600</td>
+        </tr>
+        <tr>
+          <td>SoftChip leading element + border</td>
+          <td><strong>dot by default, any icon via prop; border optional</strong></td>
+          <td>neither — both adopt unchanged</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>The promoted components, as decided</h3>
+  <div class="frames">
+    <div class="frame frame--desktop">
+      <div class="frame__bar">1280 px</div>
+      <div class="frame__body">
+        <div class="stat-row">
+          <div class="stat-tile">
+            <span class="stat-tile__label">Coverage at budget</span>
+            <div class="stat-tile__value">71.4 %</div>
+            <span class="stat-tile__caption">of maximum realizable</span>
+          </div>
+          <div class="stat-tile">
+            <span class="stat-tile__label">Deaths averted</span>
+            <div class="stat-tile__value">63.8 %</div>
+            <span class="stat-tile__caption">of max avertable</span>
+          </div>
+          <div class="stat-tile stat-tile--accent">
+            <span class="stat-tile__label">Lean mass</span>
+            <div class="stat-tile__value">62.1 kg</div>
+            <span class="stat-tile__caption">accent variant</span>
+          </div>
+        </div>
+        <div style="margin-top:14px" class="chip-row">
+          <span class="chip chip--status t-success"><span class="chip__dot"></span>passed</span>
+          <span class="chip chip--status t-warning"><span class="chip__dot"></span>degraded</span>
+          <span class="chip chip--status t-error chip--borderless"><span class="chip__dot"></span>failed</span>
+          <span class="chip t-info"><span class="chip__dot"></span>Derived value</span>
+        </div>
+        <div class="spec">
+          third chip borderless · fourth is the <code>caveat</code> variant, unchanged at 12/500
+        </div>
+      </div>
+    </div>
+    <div class="frame frame--mobile">
+      <div class="frame__bar">375 px</div>
+      <div class="frame__body">
+        <div class="stat-row">
+          <div class="stat-tile">
+            <span class="stat-tile__label">Coverage at budget</span>
+            <div class="stat-tile__value">71.4 %</div>
+          </div>
+          <div class="stat-tile stat-tile--accent">
+            <span class="stat-tile__label">Lean mass</span>
+            <div class="stat-tile__value">62.1 kg</div>
+          </div>
+        </div>
+        <div style="margin-top:12px" class="chip-row">
+          <span class="chip chip--status t-success"><span class="chip__dot"></span>passed</span>
+          <span class="chip chip--status t-warning"><span class="chip__dot"></span>degraded</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="flag">
+    <strong>Still open, and not part of the promotion:</strong> the <code>caveat</code> variant keeps its
+    raw 12/500, which has no baseline variant (<code>caption</code> is 12/400). It is left as-is
+    deliberately — resolving it needs either a baseline addition or a visible weight change, and neither
+    belongs in the same change as the promotion. It will surface as a <code>THEME-4</code> finding on the
+    promoted component and should be exempted with that reason, not silently flattened to 400.
+  </div>
+  <p class="note">
+    Not shown, because it cannot be: motion, focus and hover states, and how the chips read on a real
+    dense results screen rather than a specimen sheet.
+  </p>
+
+</div>
+
+<script>
+  // Contrast computed from the blended fill. Alpha-aware on purpose:
+  // getContrastRatio() ignores alpha and would answer a different question.
+  const TONES = [
+    ['success', [27, 128, 56],  [19, 90, 39]],
+    ['warning', [151, 97, 0],   [106, 68, 0]],
+    ['error',   [191, 50, 39],  [134, 35, 27]],
+    ['info',    [1, 87, 155],   [1, 61, 109]],
+  ];
+  const PAPER = [255, 255, 255];
+  const FILL_ALPHA = 0.12;
+
+  const hex = ([r, g, b]) =>
+    '#' + [r, g, b].map((v) => v.toString(16).padStart(2, '0').toUpperCase()).join('');
+
+  const blend = (fg, bg, a) => fg.map((c, i) => Math.round(c * a + bg[i] * (1 - a)));
+
+  const lum = ([r, g, b]) => {
+    const f = (v) => {
+      const s = v / 255;
+      return s <= 0.03928 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4);
+    };
+    return 0.2126 * f(r) + 0.7152 * f(g) + 0.0722 * f(b);
+  };
+
+  const ratio = (a, b) => {
+    const [hi, lo] = [lum(a), lum(b)].sort((x, y) => y - x);
+    return (hi + 0.05) / (lo + 0.05);
+  };
+
+  const tbody = document.querySelector('#contrast tbody');
+  TONES.forEach(([name, main, dark]) => {
+    const fill = blend(main, PAPER, FILL_ALPHA);
+    const r = ratio(dark, fill);
+    const ok = r >= 4.5;
+    tbody.insertAdjacentHTML('beforeend', `
+      <tr>
+        <td>${name}</td>
+        <td class="num">${hex(main)}</td>
+        <td class="num">${hex(dark)}</td>
+        <td class="num">${hex(fill)}</td>
+        <td class="num">${r.toFixed(2)}</td>
+        <td class="verdict ${ok ? 'pass' : 'fail'}">${ok ? 'pass' : 'FAIL'}</td>
+      </tr>`);
+  });
+</script>
+</body>
+</html>
