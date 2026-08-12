@@ -245,6 +245,22 @@ describe('kit sx disjointness', () => {
           surface: 'UserListComponent.emptyCell.MuiTableCell.py',
           reason: 'The empty-state message intentionally uses more vertical breathing room than the baseline TableCell default.',
         },
+        {
+          surface: 'SoftChip.root.MuiChip.height',
+          reason: 'SoftChip is a small annotation chip, deliberately auto-height rather than the baseline interactive Chip\'s fixed 32px.',
+        },
+        {
+          surface: 'SoftChip.caveat.MuiChip.borderRadius',
+          reason: 'The caveat variant uses the shared square-ish radius token (shape.borderRadius), not the baseline Chip\'s pill radius.',
+        },
+        {
+          surface: 'SoftChip.caveat.MuiChip.fontSize',
+          reason: 'PRIM-1 token delta: caveat text is 12/500, one weight step above the nearest baseline variant (caption, 12/400). Adding a variant for this is an app-level baseline decision out of scope for this promotion; deliberately left unresolved.',
+        },
+        {
+          surface: 'SoftChip.status.MuiChip.borderRadius',
+          reason: 'The status variant is a pill, matching cockpit\'s existing lane-status pill shape, not the baseline Chip\'s default radius.',
+        },
       ],
     }).findings).toEqual([]);
   });

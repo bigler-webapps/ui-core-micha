@@ -63,6 +63,8 @@ export { AuthFactorRequirementCard } from './components/AuthFactorRequirementCar
 export { AccessCodeSingleUseToggle } from './components/AccessCodeSingleUseToggle';
 export { QrSignupManager } from './components/QrSignupManager';
 export { MobileBottomNav } from './components/MobileBottomNav';
+export { default as StatTile } from './components/StatTile';
+export { default as SoftChip } from './components/SoftChip';
 
 // --- 6. Charts ---
 export { ChartFrame } from './components/charts/ChartFrame';

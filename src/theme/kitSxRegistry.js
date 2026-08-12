@@ -42,6 +42,11 @@ import {
 } from '../components/RegistrationMethodsManager';
 import { SECURITY_ALERT_SX, SECURITY_DIVIDER_SX } from '../components/SecurityComponent';
 import {
+  SOFT_CHIP_CAVEAT_SX,
+  SOFT_CHIP_ROOT_SX,
+  SOFT_CHIP_STATUS_SX,
+} from '../components/SoftChip';
+import {
   SUPPORT_RECOVERY_AGENT_BUTTON_SX,
   SUPPORT_RECOVERY_AGENT_PAPER_SX,
   SUPPORT_RECOVERY_ALERT_SX,
@@ -148,6 +153,9 @@ const SX_EXPORTS = {
   SECURITY_DIVIDER_SX,
   SECTION_NAV_DRAWER_PAPER_SX,
   SECTION_NAV_GROUP_PAPER_SX,
+  SOFT_CHIP_CAVEAT_SX,
+  SOFT_CHIP_ROOT_SX,
+  SOFT_CHIP_STATUS_SX,
   SIGNUP_CONFIRM_PAGE_ALERT_SX,
   SIGN_UP_PAGE_ALERT_SX,
   SUPPORT_RECOVERY_AGENT_BUTTON_SX,
@@ -213,6 +221,9 @@ export const KIT_COMPONENT_SX_REGISTRY = [
   entry('RegistrationMethodsManager.info', 'MuiAlert', REGISTRATION_METHODS_INFO_SX),
   entry('SecurityComponent.alert', 'MuiAlert', SECURITY_ALERT_SX),
   entry('SecurityComponent.divider', 'MuiDivider', SECURITY_DIVIDER_SX),
+  entry('SoftChip.root', 'MuiChip', SOFT_CHIP_ROOT_SX),
+  entry('SoftChip.caveat', 'MuiChip', SOFT_CHIP_CAVEAT_SX),
+  entry('SoftChip.status', 'MuiChip', SOFT_CHIP_STATUS_SX),
   entry('SupportRecoveryRequestsTab.agentPaper', 'MuiPaper', SUPPORT_RECOVERY_AGENT_PAPER_SX),
   entry('SupportRecoveryRequestsTab.alert', 'MuiAlert', SUPPORT_RECOVERY_ALERT_SX),
   entry('SupportRecoveryRequestsTab.agentAction', 'MuiButton', SUPPORT_RECOVERY_AGENT_BUTTON_SX),

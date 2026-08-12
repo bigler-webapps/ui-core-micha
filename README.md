@@ -9,3 +9,7 @@ To add an entry, create a small component in `dev/entries.jsx` and append it to 
 ## Internationalization
 
 Spread `uiCoreTranslations` into the default i18n namespace as the supported aggregate; per-feature translation exports remain available to selective apps that accept responsibility for pairing every adopted feature with its bundle.
+
+## Dashboard primitives
+
+`StatTile` (a bordered KPI tile) and `SoftChip` (a soft tinted annotation/status chip, tones derived from `theme.palette[tone]`) live under `src/components/` and are exported from the package root.
