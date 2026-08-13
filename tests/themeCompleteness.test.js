@@ -171,6 +171,21 @@ describe('theme completeness', () => {
       ]),
     );
   });
+
+  it('anchors the select touch target on the input root, not the inner select slot', () => {
+    // THEME-8: a min-height on styleOverrides.select lands on a display:block
+    // element with variant-dependent, top-anchored padding -- the surplus
+    // height collects entirely below the text instead of centring it. The
+    // root is already flex/align-items:center, so anchoring there is what
+    // actually centres the text. A test only checking "44px somewhere" would
+    // pass on the broken version too.
+    const theme = createAppTheme({ palette: { primary: { main: '#0F62FE' } } });
+    const selectOverrides = theme.components.MuiSelect.styleOverrides;
+
+    expect(selectOverrides.select?.minHeight).toBeUndefined();
+    expect(selectOverrides.root.minHeight).toBe(40);
+    expect(selectOverrides.root['@media (any-pointer: coarse)'].minHeight).toBe(44);
+  });
 });
 
 describe('kit sx disjointness', () => {

@@ -255,7 +255,7 @@ export const BASELINE_STATIC = {
     MuiSelect: {
       defaultProps: { variant: 'outlined' },
       styleOverrides: {
-        select: {
+        root: {
           minHeight: 40,
           boxSizing: 'border-box',
           '@media (any-pointer: coarse)': { minHeight: 44 },
