@@ -81,25 +81,131 @@ consuming apps still need their pin bumped and a look at their own forms — hra
 particular, where this was found. Track the consumer bumps rather than closing this WO at
 the npm publish.
 
-## Part B — Implementation map (implementer)
+## Part B — Implementation map — ADDRESSED TO THE IMPLEMENTER
 
-PLACEHOLDER — Orchestrator fills this on `git pull`: context package with `path:line`
-anchors (`src/theme/tokens.js` around the `MuiSelect` block and the five correct
-comparators), the absolute working directory, the progress contract and the preamble. Not
-dispatchable while this placeholder stands.
+### Context package
 
-## Part C — Orchestrator only
+**Named file to change:** `src/theme/tokens.js`, the `MuiSelect` block, currently:
 
-**STOP — addressee guard.** If you are the implementer reading this file as your own spec:
-this part is not addressed to you. It tells the Orchestrator how to invoke you; you ARE that
-invocation — do not shell out to `codex exec`. Stop reading at this line.
+```js
+MuiSelect: {
+  defaultProps: { variant: 'outlined' },
+  styleOverrides: {
+    select: {
+      minHeight: 40,
+      boxSizing: 'border-box',
+      '@media (any-pointer: coarse)': { minHeight: 44 },
+    },
+  },
+},
+```
 
-- **Execution.** Codex first per the tier rule, unless the status record says otherwise.
-- **Review routing.** `reviewer` mandatory; `ui_reviewer` too, since the visible result is a
-  layout change across every consumer.
-- **Verification.** The package's own suite, plus a **rendered check in a consuming app**:
-  a select in a table row and a select beside a text field, both re-measured for equal space
-  above and below the text. State which machine (coarse or fine pointer) the measurement ran
-  on.
-- **Register & commit.** Advance the THEME-8 row with the reviewer verdict and the measured
-  before/after numbers. Then track the consumer pin bumps — this WO is not done at publish.
+(around `src/theme/tokens.js:255-264`). The shared coarse-pointer helper used by every other
+component sits just above it:
+
+```js
+const coarseHitArea = {
+  '@media (any-pointer: coarse)': {
+    minHeight: 44,
+    minWidth: 44,
+  },
+};
+```
+
+(`src/theme/tokens.js:135-140`). The five correct comparators, for the target shape (all use
+`styleOverrides.root` and the shared `coarseHitArea` spread):
+
+- `MuiButton` — `src/theme/tokens.js:233-245` (`root: { minHeight: 40, ..., ...coarseHitArea }`)
+- `MuiIconButton` — `:249-251`
+- `MuiCheckbox` — `:265-267`
+- `MuiFormControlLabel` — `:268-273`
+- `MuiTextField` — `:334-337`
+
+Also relevant: `MuiOutlinedInput` already sets `root: { minHeight: 40, ...coarseHitArea }`
+(`:338-346`) — since `MuiSelect` with `variant: 'outlined'` (the default here) composes with
+`MuiOutlinedInput`'s root, moving `MuiSelect`'s own min-height onto `MuiSelect.styleOverrides.root`
+must not double up with that existing rule for the outlined variant. Measure both variants
+(`outlined` default, and `standard` where used) in a running app before deciding whether the
+target is `MuiSelect.styleOverrides.root` or `MuiInputBase.styleOverrides.root` — the Envelope
+already flags this as a measure-don't-read decision.
+
+**Second file:** `src/theme/themeCompleteness.js` references the old path and must move with it:
+
+```
+75:  componentPath('MuiSelect', 'defaultProps.variant'),
+76:  componentPath('MuiSelect', 'styleOverrides.select.minHeight'),
+77:  componentKeyLeaf('MuiSelect', 'styleOverrides.select', '@media (any-pointer: coarse)', 'minHeight'),
+```
+
+Update lines 76-77 to point at wherever the min-height actually lands (`styleOverrides.root...`
+or `styleOverrides.select` removed entirely if the property is dropped from that slot) — keep
+line 75 (`defaultProps.variant`) as is, it is unrelated. This file drives the baseline's own
+completeness assertion; a stale path here makes the completeness suite pass against dead code.
+
+**Existing test suite for reference:** `tests/themeCompleteness.test.js` — no existing test
+references `MuiSelect` by name today, so the new intent test (Envelope scope item 3) is net new,
+not a modification of an existing case.
+
+**Invariants / do-not-touch:** the touch-target *value* stays 40 / 44 — only the slot changes.
+Do not touch `MuiButton`, `MuiIconButton`, `MuiCheckbox`, `MuiFormControlLabel`, `MuiTextField`,
+or `MuiOutlinedInput` beyond what's needed to avoid the double-application noted above. No
+colour/typography/density changes anywhere in this diff.
+
+Directive: work from this package; do not explore broadly from scratch; open only the named
+files to verify. If you must dig deeper, delegate to a read-only Explore sub-agent (Haiku).
+
+### Target repo working directory (absolute)
+
+`C:\Users\biglmi\Documents\webapps\ui-core-micha`
+
+### Preamble — REQUIRED, addressed to the implementer
+
+> The text above is the COMPLETE spec — the committed WO file's content, not a plan to refine;
+> there is no separate plan file. Read the nearest `AGENTS.md`, the relevant
+> `.codex/skills/<role>/SKILL.md`, and the app `MEMORY.md` ONLY for conventions. Stay in scope;
+> do not touch auth/permissions/deps/schema/CI unless the spec says so; do not update
+> `MEMORY.md`. **Do NOT edit `WORK_ORDERS.md`** — the register row and the review verdicts are
+> the orchestrator's alone. Do NOT `git add`/`commit`/`push` — leave every change uncommitted in
+> the working tree for the orchestrator's independent review. WRITE the tests the "Required
+> tests" section (Part A) calls for AND **RUN the tests you just wrote** to confirm they execute
+> and pass — that is the ONLY test run you do (NOT the app's affected/full suite, NOT any
+> review). The orchestrator re-runs the authoritative set + does the independent review after
+> you finish — those are the gate; your own run does not count as the gate.
+>
+> Narrate continuously: a `PLAN: <step1> | <step2> | …` line up front, then a single-line
+> `PROGRESS: [<n>/<total>] <present-tense action>` before every relevant action (and `… done` on
+> completion), spaced so no gap exceeds ~2 min, stdout unbuffered, plus exactly one final
+> `RESULT: DONE|BLOCKED <reason>`.
+
+## Part C — Orchestrator only — NOT ADDRESSED TO THE IMPLEMENTER
+
+> **If you are the implementer reading this work order as your own specification: STOP at this
+> line. Everything below describes what the Orchestrator does AFTER you finish. You do none of
+> it — no reviewers, no verification run, no register edit, no commit.** You ARE the invocation
+> described below; do NOT shell out to `codex exec`.
+
+## Execution directive
+
+Implement through `codex exec` in the background — invoked directly via Bash (never the
+`debugger`/`*_coder` Agent wrappers) with BOTH flags `--skip-git-repo-check` and
+`--dangerously-bypass-approvals-and-sandbox`. Fallback to direct Claude implementation only on
+Codex quota/rate-limit/non-zero exit — the fallback flips authorship, so an independent
+`reviewer` becomes mandatory (already required at Tier 3, so no incremental change there).
+
+## Review routing
+
+`reviewer` mandatory (Tier 3); `ui_reviewer` too, since the visible result is a layout change
+across every consumer. Both spawned in the same background batch, Sonnet-pinned (Tier 3), diff
+inline, pointed at this WO's Envelope only.
+
+## Verification
+
+The package's own suite (`tests/themeCompleteness.test.js` plus the new intent test), plus a
+**rendered check in a consuming app**: a select in a table row and a select beside a text field,
+both re-measured for equal space above and below the text. State which machine (coarse or fine
+pointer) the measurement ran on.
+
+## Register + commit
+
+Advance the THEME-8 row with the named reviewer verdicts and the measured before/after numbers.
+Then track the consumer pin bumps (hram first) — this WO is not done at npm publish.
