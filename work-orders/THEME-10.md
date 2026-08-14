@@ -127,6 +127,19 @@ duplicated here, the helpers were not reused.
   the real panel shapes — cloud + envelope + three special points, and bubble cloud + labelled
   diagonal — not against a synthetic example.
 
+**This WO is commissioned before the requirement set is closed — deliberately.** The operator
+dispatched it on 2026-08-14 knowing that the access and optimization panels will each get their
+own prototype, and that **those prototypes are expected to carry additional requirements**. The
+three shapes listed above are what is known now, not the final set. Two consequences the
+implementer must honour:
+
+- **Keep the surface additively extensible.** A later requirement must be satisfiable by adding
+  a prop, not by changing the meaning of an existing one or reshaping the contract. Prefer an
+  explicit option over an inferred behaviour wherever the two cost the same.
+- **Do not read this as licence to pre-build for the unknown.** The rule stands: every option
+  ships because a listed panel needs it. "A prototype might later want X" is not a consumer.
+  The insurance against the unknown is that the API can grow, not that it already did.
+
 **Delivery is not done at publish.** hram `FIX-15` (allocation) is the first consumer and is
 blocked on this package; the pin bump and that panel's rebuild are what prove the preset works.
 The access and optimization panels are known consumers with **no WO yet** — they are what this
