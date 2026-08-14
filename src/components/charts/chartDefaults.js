@@ -50,8 +50,39 @@ function cssLengthToPixels(value) {
 }
 
 const MUI_LABELLED_X_AXIS_HEIGHT = 45;
-const MUI_CHART_MARGIN_BOTTOM = 20;
+// THEME-11: this used to mirror MUI's own DEFAULT_MARGINS.bottom (20) -- the "resting" bottom
+// margin the rotated-tick path adds its extra height on top of. Now that PACKAGE_DEFAULT_MARGIN
+// below sets the package's own non-rotated bottom to 8, this constant must track THAT value, not
+// MUI's, or a rotated chart would add its extra height to the wrong (too generous) base while
+// every non-rotated chart got trimmed -- an inconsistent baseline between the two paths.
+const MUI_CHART_MARGIN_BOTTOM = 8;
 const AVERAGE_GLYPH_WIDTH_EM = 0.6;
+
+// THEME-11: this package never formed an opinion on chart margins, so every chart fell back to
+// MUI's own DEFAULT_MARGINS (20px on all four sides) -- measured live (hram's KPI cards) as 167
+// of a 270px-tall chart being furniture. Per-side, not a uniform trim, because each side is for
+// something different: `left`/`bottom` are pure padding (the tick labels already live inside
+// axisSizeLeft / DEFAULT_AXIS_SIZE_HEIGHT), `top` keeps room for the topmost y-tick label's own
+// ~9px overhang past the plot (it is centred on its gridline, not below it), and `right` stays
+// less trimmed than `left` because a LINEAR x-axis's last tick label sits AT the edge and
+// overhangs by about half its width (~13px at caption size) -- a band axis wouldn't need it, but
+// making this conditional on scale type would be inferred behaviour with no named consumer.
+export const PACKAGE_DEFAULT_MARGIN = {
+  top: 10, bottom: 8, left: 8, right: 16,
+};
+
+/**
+ * Applies the package's own margin default, per side -- a caller's own value on any side (or
+ * the rotated-tick path's own computed `bottom`) always wins on that side; only an UNSET side
+ * gets the package default. A caller passing `{ left: 60 }` therefore keeps that 60 on the
+ * left and gets the package defaults on the other three sides, never MUI's wider ones.
+ */
+export function withMarginDefaults(margin) {
+  const explicit = typeof margin === 'number'
+    ? { top: margin, bottom: margin, left: margin, right: margin }
+    : margin;
+  return { ...PACKAGE_DEFAULT_MARGIN, ...explicit };
+}
 
 function formattedTickText(axis, value) {
   if (!axis.valueFormatter) return String(value);

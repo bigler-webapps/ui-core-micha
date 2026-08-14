@@ -12,6 +12,7 @@ import {
   withAxisDefaults,
   withChartSlotDefaults,
   withGridDefaults,
+  withMarginDefaults,
 } from './chartDefaults';
 
 /**
@@ -77,7 +78,7 @@ export function BarChart({
         colors={palette || neutralPalette.categorical}
         grid={withGridDefaults(grid)}
         hideLegend={hideLegend}
-        margin={rotatedTickSpace.margin}
+        margin={withMarginDefaults(rotatedTickSpace.margin)}
         slotProps={withChartSlotDefaults(slotProps, legendPosition)}
       />
     </Box>

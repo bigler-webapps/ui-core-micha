@@ -80,7 +80,9 @@ export function ChartFrame({
 
   return (
     <Paper variant={variant} sx={[CHART_FRAME_ROOT_SX, ...callerSx]}>
-      <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 2, mb: 2 }}>
+      {/* THEME-11: mb: 2 -> mb: 1 (16 -> 8px) -- one line item in the estate-wide chart-furniture
+          trim; the controls row below keeps its own mb: 2, not named in that WO's scope. */}
+      <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 2, mb: 1 }}>
         <Box>
           <Typography id={titleId} variant={titleVariant}>{title}</Typography>
           {subtitle && <Typography variant="body2" color="text.secondary">{subtitle}</Typography>}

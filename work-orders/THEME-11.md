@@ -109,28 +109,100 @@ consuming app has been paying those 20 px since.
 THEME-8, THEME-9 and THEME-10 are all already open. Take this one in the same bump rather than
 adding a fourth pending hop.
 
-## Part B — Implementation map (implementer)
+## Part B — Implementation map — ADDRESSED TO THE IMPLEMENTER
 
-PLACEHOLDER — Orchestrator fills this on `git pull`: context package with `path:line` anchors
-(`src/components/charts/chartDefaults.js` — `MUI_CHART_MARGIN_BOTTOM` at :53 and
-`spaceForRotatedTicks` at :94-111 including the `callerSetBottom` check at :105;
-`src/components/charts/BarChart.jsx` :64-83 where `rotatedTickSpace.margin` reaches
-`MuiBarChart`; `ChartFrame.jsx` :15 and :83 for the root padding and title box; the equivalent
-call sites in `LineChart` and `TimeSeriesChart`), the absolute working directory, the progress
-contract and the preamble. Not dispatchable while this placeholder stands.
+Codex not dispatched: `.claude/codex-status.md` already carried a same-day `unavailable` line —
+implemented directly in Claude, authorship flip, `reviewer` + `ui_reviewer` mandatory (already
+required at Tier 3).
 
-## Part C — Orchestrator only
+### What landed
 
-**STOP — addressee guard.** If you are the implementer reading this file as your own spec: this
-part is not addressed to you. It tells the Orchestrator how to invoke you; you ARE that
-invocation — do not shell out to `codex exec`. Stop reading at this line.
+- `chartDefaults.js`: `PACKAGE_DEFAULT_MARGIN = { top: 10, bottom: 8, left: 8, right: 16 }`
+  (exported) and `withMarginDefaults(margin)` (per-side merge, number-shorthand expansion).
+  `MUI_CHART_MARGIN_BOTTOM` moved `20 → 8` to match the new baseline (trap 2).
+- `BarChart.jsx`/`LineChart.jsx`: `spaceForRotatedTicks` still runs FIRST, on the caller's
+  UNMODIFIED `margin` — its own `callerSetBottom` check (`margin?.bottom != null`) therefore
+  still tells a genuine caller margin from "nothing set" correctly (trap 1 avoided by ordering,
+  not by threading a flag through the shared helper). `withMarginDefaults` is applied AFTER,
+  wrapping `rotatedTickSpace.margin` on the way into `MuiBarChart`/`MuiLineChart` — so a
+  rotation-computed `bottom` (already present on that object) is preserved by the merge, and
+  only genuinely-unset sides get the package default.
+- `TimeSeriesChart.jsx`: no change needed — it never sets its own `margin`, so it inherits
+  `BarChart`'s new default automatically through composition.
+- `ChartFrame.jsx`: title row `mb: 2 → mb: 1`. Controls row `mb: 2` left untouched (not named).
+  **Deliberately unconditional** (`ui_reviewer` U3 asked whether this should be scoped to only
+  chart-preset consumers, matching the margin trim's scope): `ChartFrame` wraps non-chart
+  content too, and scope item 2 names the title box specifically, with no "only when a chart
+  preset is the child" qualifier anywhere in Part A — a scatter-backed or bespoke-SVG panel
+  gets the tighter title spacing but keeps whatever margin its own content uses, which is
+  correct: the title row and the plot margin are two independent pieces of furniture, not one
+  setting that should move together.
 
-- **Execution.** Codex first per the tier rule, unless the status record carries a same-day
-  unavailable line.
+### Scope gap surfaced, not silently folded in
+
+`ScatterChart` (THEME-10, same day, not yet published) passes its `margin` prop straight
+through with no default handling at all — it would keep MUI's flat 20px default while
+`BarChart`/`LineChart`/`TimeSeriesChart` get 8/10/16. THEME-11's own scope item 3 names exactly
+three presets, not four, and `ScatterChart` didn't exist when this WO's Part A was authored.
+Flagging this explicitly rather than extending scope silently: `ScatterChart` should likely get
+`withMarginDefaults` too, in a follow-up (or when `ScatterChart`'s own version bumps). **This is
+NOT the same seam as the right-margin note below** — `ScatterChart`'s X axis is always linear by
+construction (THEME-10 scope), so if/when it does adopt `withMarginDefaults`, its own rendered
+check needs to re-examine the right-margin question specifically, not inherit this WO's
+"no consumer has it" conclusion by assumption.
+
+### Verification detail beyond the WO's own risk note — corrected after review
+
+The rendered check found that a wide, locale-grouped tick value (`"1,000"`, 6 characters)
+leaves only ~1px of clearance at the new `right: 16` before MUI's own internal `shortenLabels`
+truncates it to `"1,0…"` — never actual overflow-clipping past the SVG boundary in either the
+narrow or wide case. Two corrections to the original note, from `reviewer`/`ui_reviewer`:
+
+- **The grouped formatting is MUI's OWN default tick rendering, not THEME-9's
+  `defaultNumericTickFormatter`** (`reviewer`/`ui_reviewer` finding, independently confirmed:
+  neither `BarChart.jsx` nor `LineChart.jsx` wires a `valueFormatter` onto the x-axis — only the
+  y-axis gets THEME-9's default — and the dev fixture that produced `"1,000"` set none either).
+  This means the tight case is not a THEME-9-introduced interaction; it is how MUI itself has
+  always formatted a linear axis's ticks, now simply more VISIBLE because `right` shrank from
+  20 to 16.
+- **No real consumer hits this today** (`reviewer`, verified by grepping every hram panel that
+  actually consumes `BarChart`/`LineChart`/`TimeSeriesChart`: `CostMetricsPanel`,
+  `RatioMetricsPanel`, `AccessibilityPanel`, `TotalMetricsPanel`, `ReferralMetricsPanel`,
+  `GroupMetricsPanel`, `GenericAnalysisPlot` — every one uses `scaleType: 'band'`, none
+  `'linear'`. `AllocationPerformancePanel`, the panel this note originally worried about,
+  imports only `ChartFrame` from this package and draws its own bespoke SVG axes — it does not
+  go through `BarChart`/`LineChart` at all, so it is unaffected by this WO regardless.) The WO's
+  own explicit "do not build for a case no consumer has; state the assumption" therefore applies
+  cleanly, not just plausibly. The residual risk (`ui_reviewer`) is real but one hop removed: the
+  first FUTURE consumer that renders a linear x-axis through `BarChart`/`LineChart` with wide
+  values should re-check this margin before shipping, and there is no code-level guard that would
+  catch it automatically — recorded here so that check doesn't get skipped.
+
+### Target repo
+
+`C:\Users\biglmi\Documents\webapps\ui-core-micha`
+
+## Part C — Orchestrator only — NOT ADDRESSED TO THE IMPLEMENTER
+
+> **If you are the implementer reading this work order as your own specification: STOP at this
+> line.**
+
+- **Execution.** Codex known-unavailable today — implemented directly in Claude.
 - **Review routing.** `reviewer` + `ui_reviewer`, concurrent, one background batch.
-- **Verification.** The package's own suite plus a rendered check. The rendered check must
-  include **a rotated-tick chart** (trap 1) and **a linear x-axis chart** (right-margin
-  clipping), not only the KPI cards that prompted this — those two are where a wrong value
-  shows up as a defect rather than as slightly tighter spacing.
+- **Verification.** Package suite: `chartDefaults.test.js` gained a dedicated
+  `withMarginDefaults` describe block (pure-function contract) plus integration tests against
+  `BarChart`/`LineChart` (package default applied, rotated-tick chart still gets its enlarged
+  bottom margin — not the flat package default, partial-margin per-side merge, full-margin
+  passthrough, right > left/bottom by construction); full affected set (`BarChart.test.jsx`,
+  `LineChart.test.jsx`, `TimeSeriesChart.test.jsx`, `timeSeriesLegend.test.js`,
+  `ScatterChart.test.jsx`, `chartsPalette.test.js`) — 91 tests, green.
+  **Rendered check, done live** in the package's own dev harness: (1) the existing "Caller
+  overrides" `LineChart` fixture (−25° rotated ticks, no explicit margin — exactly trap 1's
+  shape) measured with NO overlap between the rotated tick labels and the axis title (15px
+  clear gap) — trap 1 confirmed avoided; (2) a new `LineChart (linear x-axis)` fixture added
+  and measured at two magnitudes — narrow (`"100"`) with 5px clearance from the SVG edge, wide
+  locale-grouped (`"1,000"`) with MUI's own truncation kicking in at ~1px clearance but never
+  actual clipping past the boundary (see the "beyond the WO's risk note" section above).
 - **Register & commit.** Advance the THEME-11 row with the reviewer verdicts. Coordinate the
-  consumer pin bump with THEME-8, THEME-9 and THEME-10.
+  consumer pin bump with THEME-8, THEME-9 and THEME-10 — all still open at publish time,
+  pending this WO's own reviews and a bundled version bump.

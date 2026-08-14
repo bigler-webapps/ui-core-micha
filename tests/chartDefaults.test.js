@@ -16,8 +16,10 @@ import { LineChart } from '../src/components/charts/LineChart';
 import { TimeSeriesChart } from '../src/components/charts/TimeSeriesChart';
 import {
   defaultNumericTickFormatter,
+  PACKAGE_DEFAULT_MARGIN,
   sizeYAxisForContent,
   withAxisDefaults,
+  withMarginDefaults,
 } from '../src/components/charts/chartDefaults';
 import { createAppTheme } from '../src/theme/createAppTheme';
 
@@ -158,15 +160,64 @@ describe('chart chrome defaults', () => {
     expect(barSpy.mock.calls.at(-1)[0].xAxis[0].scaleType).toBe('band');
   });
 
-  it('adds a font-and-angle-derived bottom margin only for rotated tick labels', () => {
+  it('adds a font-and-angle-derived EXTRA bottom margin, on top of the package default, only for rotated tick labels', () => {
     renderBar({ xAxis: [{ data: ['Jan', 'Feb'], tickLabelStyle: { angle: -45 } }] });
     const rotatedProps = barSpy.mock.calls.at(-1)[0];
-    expect(rotatedProps.margin.bottom).toBeGreaterThan(20);
+    expect(rotatedProps.margin.bottom).toBeGreaterThan(PACKAGE_DEFAULT_MARGIN.bottom);
     expect(rotatedProps.xAxis[0].height).toBeGreaterThan(45);
 
     cleanup();
     renderBar({ xAxis: [{ data: ['Jan', 'Feb'], tickLabelStyle: { angle: 0 } }] });
-    expect(barSpy.mock.calls.at(-1)[0].margin).toBeUndefined();
+    expect(barSpy.mock.calls.at(-1)[0].margin).toEqual(PACKAGE_DEFAULT_MARGIN);
+  });
+
+  // THEME-11 -- the package now forms an opinion on chart margins (was: MUI's own flat 20px on
+  // every side, unconditionally, because this package never set one).
+  describe('withMarginDefaults / package margin default (THEME-11)', () => {
+    it('applies the package default on every side when the caller sets no margin', () => {
+      renderBar();
+      expect(barSpy.mock.calls.at(-1)[0].margin).toEqual(PACKAGE_DEFAULT_MARGIN);
+    });
+
+    // Trap 1 named in the WO: a package-level default injected BEFORE spaceForRotatedTicks'
+    // own `margin?.bottom != null` check would make every rotated-tick chart think the caller
+    // set bottom, and lose its extra rotation space entirely.
+    it('still gives a rotated-tick chart its enlarged bottom margin, not the flat package default', () => {
+      renderBar({ xAxis: [{ data: ['January', 'February'], tickLabelStyle: { angle: -90 } }] });
+      const props = barSpy.mock.calls.at(-1)[0];
+      expect(props.margin.bottom).toBeGreaterThan(PACKAGE_DEFAULT_MARGIN.bottom + 10);
+    });
+
+    // Scope 1's merge semantics: a caller-supplied PARTIAL margin keeps its own value on the
+    // side it set and gets the package default on the others -- never MUI's wider 20px, and
+    // never silently reset to the package default on the side the caller DID set.
+    it('merges a caller-supplied partial margin per side, not wholesale', () => {
+      renderBar({ margin: { left: 60 } });
+      const { margin } = barSpy.mock.calls.at(-1)[0];
+      expect(margin.left).toBe(60);
+      expect(margin.top).toBe(PACKAGE_DEFAULT_MARGIN.top);
+      expect(margin.bottom).toBe(PACKAGE_DEFAULT_MARGIN.bottom);
+      expect(margin.right).toBe(PACKAGE_DEFAULT_MARGIN.right);
+    });
+
+    it('keeps every side a caller sets when they supply a full margin object', () => {
+      renderBar({ margin: { top: 1, bottom: 2, left: 3, right: 4 } });
+      expect(barSpy.mock.calls.at(-1)[0].margin).toEqual({ top: 1, bottom: 2, left: 3, right: 4 });
+    });
+
+    // A LINEAR x-axis's last tick label sits AT the plot edge (unlike a band axis's centred
+    // ticks) and overhangs by about half its width -- the reason `right` is trimmed less than
+    // `left`/`bottom`. Pinned here as a value; the actual no-clip claim is verified by the
+    // rendered check (WO Part C), not derivable from a mocked MUI component.
+    it('keeps a wider default right margin than left/bottom, for a linear x-axis\'s edge-sitting last tick', () => {
+      expect(PACKAGE_DEFAULT_MARGIN.right).toBeGreaterThan(PACKAGE_DEFAULT_MARGIN.left);
+      expect(PACKAGE_DEFAULT_MARGIN.right).toBeGreaterThan(PACKAGE_DEFAULT_MARGIN.bottom);
+    });
+
+    it('applies the SAME package default to LineChart as BarChart', () => {
+      renderLine();
+      expect(lineSpy.mock.calls.at(-1)[0].margin).toEqual(PACKAGE_DEFAULT_MARGIN);
+    });
   });
 
   it('uses the series colour as the fill when a caller opts line markers back in', () => {
@@ -359,5 +410,26 @@ describe('sizeYAxisForContent (THEME-9)', () => {
     // "both axes silently untouched" or "both matched the same series" would
     // produce).
     expect(secondary.width).toBeGreaterThan(primary.width);
+  });
+});
+
+// THEME-11 -- pure-function contract of the merge helper itself, independent of any chart
+// component wiring (that's covered above, in 'chart chrome defaults').
+describe('withMarginDefaults (THEME-11)', () => {
+  it('returns the package default untouched when the caller sets no margin', () => {
+    expect(withMarginDefaults(undefined)).toEqual(PACKAGE_DEFAULT_MARGIN);
+  });
+
+  it('merges a partial object per side', () => {
+    expect(withMarginDefaults({ top: 40 })).toEqual({ ...PACKAGE_DEFAULT_MARGIN, top: 40 });
+  });
+
+  it('expands a numeric shorthand margin to all four sides before merging', () => {
+    expect(withMarginDefaults(5)).toEqual({ top: 5, bottom: 5, left: 5, right: 5 });
+  });
+
+  it('leaves a fully-specified caller margin untouched', () => {
+    const full = { top: 1, bottom: 2, left: 3, right: 4 };
+    expect(withMarginDefaults(full)).toEqual(full);
   });
 });

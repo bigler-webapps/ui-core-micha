@@ -206,6 +206,23 @@ function BarChartEntry() {
   );
 }
 
+// THEME-11 rendered-verification fixture -- a genuinely LINEAR (not band/point) x-axis, whose
+// last tick label sits AT the plot edge rather than centred like a band axis. Right margin is
+// the one side deliberately trimmed less (16 vs 8) for exactly this case.
+function LinearXAxisLineChartEntry() {
+  return (
+    <ChartFrame title="Linear x-axis (shape check)" subtitle="THEME-11: last tick label must not clip against the trimmed right margin" minHeight={360}>
+      <LineChart
+        xAxis={[{ scaleType: 'linear', data: [0, 250, 500, 750, 1000] }]}
+        series={[{ label: 'Value', data: [4, 9, 6, 14, 11] }]}
+        xAxisLabel="Budget"
+        yAxisLabel="Outcome"
+        height={320}
+      />
+    </ChartFrame>
+  );
+}
+
 // THEME-10 rendered-verification fixture -- shape 1: allocation-performance's cloud + computed
 // envelope curve + individually marked points, including a hollow status-quo marker and a
 // continuous per-point colour the caller resolves itself (`getPointStyle`).
@@ -677,6 +694,7 @@ export const entries = [
   { id: 'section-nav', label: 'Navigation / Section nav', Component: SectionNavEntry },
   { id: 'notification-bell', label: 'Notifications / Bell', Component: NotificationBellEntry },
   { id: 'bar-chart', label: 'Charts / BarChart', Component: BarChartEntry },
+  { id: 'linear-x-line-chart', label: 'Charts / LineChart (linear x-axis)', Component: LinearXAxisLineChartEntry },
   { id: 'scatter-chart-allocation-shape', label: 'Charts / ScatterChart (allocation shape)', Component: AllocationShapeScatterEntry },
   { id: 'scatter-chart-access-shape', label: 'Charts / ScatterChart (access shape)', Component: AccessShapeScatterEntry },
   { id: 'scatter-chart-optimization-shape', label: 'Charts / ScatterChart (optimization shape)', Component: OptimizationShapeScatterEntry },

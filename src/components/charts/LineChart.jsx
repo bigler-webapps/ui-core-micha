@@ -15,6 +15,7 @@ import {
   withAxisDefaults,
   withChartSlotDefaults,
   withGridDefaults,
+  withMarginDefaults,
 } from './chartDefaults';
 
 // Fixes MUI's hollow `background.paper`-filled marker (MarkElement.js's own
@@ -100,7 +101,7 @@ export function LineChart({
         colors={palette || neutralPalette.categorical}
         grid={withGridDefaults(grid)}
         hideLegend={hideLegend}
-        margin={rotatedTickSpace.margin}
+        margin={withMarginDefaults(rotatedTickSpace.margin)}
         slots={{ mark: FilledMarkElement, ...slots }}
         slotProps={withChartSlotDefaults(slotProps, legendPosition)}
       />
