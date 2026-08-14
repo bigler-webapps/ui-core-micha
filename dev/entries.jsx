@@ -40,6 +40,11 @@ import { BarChart } from '../src/components/charts/BarChart';
 import { ChartFrame } from '../src/components/charts/ChartFrame';
 import { LineChart } from '../src/components/charts/LineChart';
 import { TimeSeriesChart } from '../src/components/charts/TimeSeriesChart';
+import {
+  ScatterChart,
+  ScatterReferenceCurve,
+  ScatterReferenceLine,
+} from '../src/components/charts/ScatterChart';
 import { NotificationBell } from '../src/notifications/NotificationBell';
 import { NotificationsProvider } from '../src/notifications/NotificationsProvider';
 import { useRealtime } from '../src/notifications/realtime';
@@ -197,6 +202,138 @@ function BarChartEntry() {
   return (
     <ChartFrame title="Monthly cases" subtitle="Standalone BarChart entry" minHeight={360}>
       <BarChart {...barChartFixture} xAxisLabel="Month" yAxisLabel="Cases" height={320} />
+    </ChartFrame>
+  );
+}
+
+// THEME-10 rendered-verification fixture -- shape 1: allocation-performance's cloud + computed
+// envelope curve + individually marked points, including a hollow status-quo marker and a
+// continuous per-point colour the caller resolves itself (`getPointStyle`).
+const ALLOCATION_POINTS = [
+  { id: 'sq', x: 0, y: 0, equity: 0.5, isStatusQuo: true },
+  { id: 'p1', x: 100000, y: 400, equity: 0.2 },
+  { id: 'p2', x: 250000, y: 900, equity: 0.35 },
+  { id: 'p3', x: 400000, y: 1500, equity: 0.55 },
+  { id: 'p4', x: 550000, y: 1900, equity: 0.72 },
+  { id: 'p5', x: 700000, y: 2100, equity: 0.9, isSelected: true },
+];
+const ALLOCATION_ENVELOPE = [
+  { x: 0, y: 0 }, { x: 250000, y: 900 }, { x: 550000, y: 1900 }, { x: 700000, y: 2100 },
+];
+
+function equityColor(value) {
+  // Stand-in continuous scale: the app owns this in reality (getColorScale); the preset only
+  // needs to APPLY a resolved colour per point via getPointStyle.
+  const hue = 220 - value * 160;
+  return `hsl(${hue}, 55%, 45%)`;
+}
+
+function AllocationShapeScatterEntry() {
+  return (
+    <ChartFrame title="Allocation performance (shape check)" subtitle="Cloud + envelope + hollow status-quo + selected diamond" minHeight={420}>
+      <ScatterChart
+        series={[{ id: 'candidates', data: ALLOCATION_POINTS }]}
+        xAxisLabel="Cost"
+        yAxisLabel="DALYs averted"
+        getPointStyle={(point) => ({
+          hollow: point.isStatusQuo,
+          shape: point.isSelected ? 'diamond' : 'circle',
+          color: point.isStatusQuo ? undefined : equityColor(point.equity),
+          radius: point.isStatusQuo || point.isSelected ? 7 : 6,
+        })}
+        height={360}
+      >
+        <ScatterReferenceCurve points={ALLOCATION_ENVELOPE} color="#2E7D32" dashed={false} />
+      </ScatterChart>
+    </ChartFrame>
+  );
+}
+
+// THEME-10 rendered-verification fixture -- shape 2: access-gap's bubble cloud (data-driven
+// radius, explicit z-order) + labelled y=x reference diagonal + categorical colouring with a
+// discrete legend + both axes pinned 0-1 with a fixed tick set.
+const ACCESS_DIVISION_COLORS = { north: '#0F62FE', south: '#24A148', east: '#FF832B' };
+const ACCESS_POINTS = {
+  north: [
+    { id: 'n1', x: 0.62, y: 0.7, pop: 12000 },
+    { id: 'n2', x: 0.4, y: 0.5, pop: 3000 },
+    { id: 'n3', x: 0.8, y: 0.75, pop: 18000 },
+  ],
+  south: [
+    { id: 's1', x: 0.3, y: 0.35, pop: 5000 },
+    { id: 's2', x: 0.55, y: 0.5, pop: 9000 },
+  ],
+  east: [
+    { id: 'e1', x: 0.7, y: 0.6, pop: 2000 },
+    { id: 'e2', x: 0.45, y: 0.4, pop: 30000 },
+  ],
+};
+const ACCESS_TICKS = [0, 0.25, 0.5, 0.75, 1];
+const pctFormatter = (value, context) => (context?.location === 'tick'
+  ? `${Math.round(value * 100)}%`
+  : `${(value * 100).toFixed(1)}%`);
+
+function AccessShapeScatterEntry() {
+  return (
+    <ChartFrame title="Access gap (shape check)" subtitle="Bubble cloud + labelled y=x diagonal + categorical legend, fixed 0-1 axes" minHeight={420}>
+      <ScatterChart
+        series={Object.entries(ACCESS_POINTS).map(([division, data]) => ({
+          id: division,
+          label: division,
+          data,
+          color: ACCESS_DIVISION_COLORS[division],
+        }))}
+        xAxisLabel="Coverage"
+        yAxisLabel="Care-seeking rate"
+        xAxis={[{ min: 0, max: 1, tickInterval: ACCESS_TICKS, valueFormatter: pctFormatter }]}
+        yAxis={[{ min: 0, max: 1, tickInterval: ACCESS_TICKS, valueFormatter: pctFormatter }]}
+        sizeAccessor={(point) => point.pop}
+        height={360}
+      >
+        <ScatterReferenceLine
+          from={{ x: 0, y: 0 }}
+          to={{ x: 1, y: 1 }}
+          color="#B0B0B0"
+          dashed
+          label="No gap"
+          labelAt={{ x: 0.88, y: 0.93 }}
+          labelAngle={-45}
+        />
+      </ScatterChart>
+    </ChartFrame>
+  );
+}
+
+// THEME-10 rendered-verification fixture -- shape 3: optimization-results' cloud (no bubble
+// sizing, no categorical colour -- the plainest of the three shapes) + a dashed reference
+// threshold line + a hollow status-quo marker, added per ui_reviewer finding U2: the other two
+// fixtures don't exercise "no yAxis min/max set, no explicit palette" together, which is exactly
+// the combination reviewer finding R1 (sizeYAxisForContent's number-vs-point-object mismatch)
+// slipped through on.
+const OPTIMIZATION_POINTS = [
+  { id: 'sq', x: 0, y: 0.42, isStatusQuo: true },
+  { id: 'c1', x: 120000, y: 0.55 },
+  { id: 'c2', x: 260000, y: 0.68 },
+  { id: 'c3', x: 400000, y: 0.79 },
+];
+
+function OptimizationShapeScatterEntry() {
+  return (
+    <ChartFrame title="Optimization results (shape check)" subtitle="Cloud + dashed threshold + hollow status-quo, no bubble/no categorical colour" minHeight={420}>
+      <ScatterChart
+        series={[{ id: 'candidates', data: OPTIMIZATION_POINTS }]}
+        xAxisLabel="Cost"
+        yAxisLabel="Coverage"
+        getPointStyle={(point) => (point.isStatusQuo ? { hollow: true } : {})}
+        height={360}
+      >
+        <ScatterReferenceLine
+          from={{ x: 0, y: 0.6 }}
+          to={{ x: 400000, y: 0.6 }}
+          color="#0F62FE"
+          dashed
+        />
+      </ScatterChart>
     </ChartFrame>
   );
 }
@@ -540,6 +677,9 @@ export const entries = [
   { id: 'section-nav', label: 'Navigation / Section nav', Component: SectionNavEntry },
   { id: 'notification-bell', label: 'Notifications / Bell', Component: NotificationBellEntry },
   { id: 'bar-chart', label: 'Charts / BarChart', Component: BarChartEntry },
+  { id: 'scatter-chart-allocation-shape', label: 'Charts / ScatterChart (allocation shape)', Component: AllocationShapeScatterEntry },
+  { id: 'scatter-chart-access-shape', label: 'Charts / ScatterChart (access shape)', Component: AccessShapeScatterEntry },
+  { id: 'scatter-chart-optimization-shape', label: 'Charts / ScatterChart (optimization shape)', Component: OptimizationShapeScatterEntry },
   { id: 'time-series-chart', label: 'Charts / TimeSeriesChart', Component: TimeSeriesChartEntry },
   { id: 'realtime-adapter', label: 'Transport / Realtime adapter', Component: RealtimeAdapterEntry },
   { id: 'messaging-provider', label: 'Messaging / Provider state', Component: MessagingProviderEntry },

@@ -37,6 +37,26 @@ describe('chart palette and formatters', () => {
     expect(createChartFormatters('fr-FR').ratio(1.5)).toContain('1');
   });
 
+  // THEME-10: an undifferentiated scatter cloud (no colour dimension encoded) needs a single
+  // neutral tone, distinct from the categorical/sequential arrays above.
+  it('resolves a single neutral tone from theme.palette.text.secondary', () => {
+    const theme = {
+      palette: {
+        mode: 'light',
+        primary: { main: 'primary-main' },
+        secondary: { main: 'secondary-main' },
+        info: { main: 'info-main' },
+        success: { main: 'success-main' },
+        warning: { main: 'warning-main' },
+        action: { disabled: 'action-disabled' },
+        text: { secondary: 'text-secondary' },
+        divider: 'divider',
+      },
+    };
+
+    expect(getNeutralChartPalette(theme).neutral).toBe('text-secondary');
+  });
+
   it('uses the theme categorical ramp when one is present', () => {
     const ramp = ['series-1', 'series-2', 'series-3'];
     const theme = {

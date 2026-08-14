@@ -166,35 +166,138 @@ surface was designed against, so they are not optional evidence, but converting 
 work to be scheduled, not folded in here. THEME-8 and THEME-9 are both sitting published with
 consumer pins still open, so bundle the pin bump rather than adding a third pending hop.
 
-## Part B — Implementation map (implementer)
+## Part B — Implementation map — ADDRESSED TO THE IMPLEMENTER
 
-PLACEHOLDER — Orchestrator fills this on `git pull`: context package with `path:line` anchors
-(`src/components/charts/BarChart.jsx` as the structural template, `chartDefaults.js`'s helpers
-including THEME-9's new `sizeYAxisForContent` and `defaultNumericTickFormatter`, `palette.js`,
-`ChartFrame.jsx`), the absolute working directory, the progress contract and the preamble.
+Codex was not dispatched: `.claude/codex-status.md` already carried a same-day (2026-08-14)
+`unavailable` line (THEME-8/9/FIX-11/FIX-13, same day), so per the known-unavailable shortcut
+the Orchestrator implemented directly, which flips authorship — `reviewer` + `ui_reviewer`
+became mandatory (already required at Tier 3).
 
-**The consumer requirement must be carried in as excerpts, not as a repo pointer** — the three
-panels live in a different repository the implementer will not have open. Include the rendering
-block of each: `AllocationPerformancePanel.jsx` (constants :31-35, `ShapeGlyph` :150-169, the
-hand-drawn axis block :424-452, point rendering :500-565) plus its approved prototype
-`work-orders/assets/FIX-15-allocation-panel-prototype.html`; `AccessGapScatterPanel.jsx`
-(scales and `rOf` :107-113, the reference diagonal and ticks :196-245, point rendering with the
-z-order sort :249-272, the legend construction :121-131); and `OptimizationResultsPanel.jsx`
-(the hollow status-quo marker at :720-730). Not dispatchable while this placeholder stands.
+### What landed
 
-## Part C — Orchestrator only
+`src/components/charts/ScatterChart.jsx` (new), exported from `src/index.js` alongside
+`BarChart`/`LineChart`/`TimeSeriesChart`:
 
-**STOP — addressee guard.** If you are the implementer reading this file as your own spec: this
-part is not addressed to you. It tells the Orchestrator how to invoke you; you ARE that
-invocation — do not shell out to `codex exec`. Stop reading at this line.
+- **Contract shape (scope 1).** `series`/`xAxis`/`yAxis`/`xAxisLabel`/`yAxisLabel`/`palette`/
+  `grid`/`minHeight`/`aspect`/`hideLegend`/`legendPosition`/`slotProps`, remaining props
+  forwarded to MUI's own `ScatterChart` — same shape as `BarChart`/`LineChart`.
+- **THEME-9 reuse (scope 2).** `withAxisDefaults` + `sizeYAxisForContent` +
+  `defaultNumericTickFormatter` for the Y axis (both axes on a scatter are numeric by
+  construction, so no band/point default or `spaceForRotatedTicks` reuse was needed — X gets
+  MUI's own default sizing, which THEME-9 already established is adequate for an unrotated
+  numeric axis).
+- **Neutral default + colouring modes (scope 3/4).** `palette.js` gained a `neutral` key
+  (`theme.palette.text.secondary`) — a single series with no explicit `color` renders in that
+  tone; multiple series render categorically (MUI's own multi-series legend, unchanged
+  mechanism already used by `BarChart`); continuous colouring is the caller's own resolved
+  colour applied via `getPointStyle` (this package does not ship a colour-scale/legend
+  component — out of scope, see "Not built" below).
+- **Bubble sizing + explicit z-order (scope 5).** `scaleBubbleRadius(value, maxValue)` —
+  `max(3, 10·√(value/maxValue))`, exported. `sizeAccessor` on `ScatterChart` turns on bubble
+  mode: every series is sorted largest-first before being handed to MUI (SVG paints later
+  elements on top, so small bubbles are never hidden), and the max is **one chart-wide value
+  across every series** (matches the access panel's own `Math.max(1, ...points.map(p =>
+  p.population))` over ALL points regardless of division/settlement — a per-series max was an
+  implementation bug caught during the rendered verification below, fixed before commit).
+- **Individually marked points (scope 6, part).** `getPointStyle(point, {seriesId, dataIndex})
+  => {hollow?, color?, shape?, radius?, strokeWidth?}` — a status-quo point drawn hollow
+  (`fill:none`), a per-point colour override, `'circle'|'square'|'diamond'`. Every shape option
+  traces to the allocation panel specifically (`AllocationPerformancePanel.jsx:500-554`, its
+  `ShapeGlyph` legend): `isSelected` → diamond, `isTargeted` → **square**, plain candidate →
+  filled circle, status quo → **hollow** circle — the SAME panel that also motivated the
+  hollow state (allocation's own status-quo point is hollow too, not only optimization's — the
+  Envelope's Part A table names optimization's hollow explicitly but allocation's own point
+  rendering carries the identical `fill: isStatusQuo ? 'none' : color` pattern). `ui_reviewer`
+  finding U1 flagged `'square'` as apparently untraceable; it traces to `isTargeted`, cited here
+  because the original Part A table didn't spell out allocation's shape variety. Implemented via
+  a custom MUI marker slot (`slots.marker`) — confirmed against `@mui/x-charts/ScatterChart/
+  Scatter.js` that MUI's own marker size is fixed PER SERIES (`series.markerSize`), never
+  derived from a point's own `z`, so per-point radius/colour/shape genuinely requires replacing
+  the marker, not a prop MUI already exposes.
+- **Reference geometry (scope 6, part).** `ScatterReferenceCurve`/`ScatterReferenceLine`,
+  exported, rendered as `ScatterChart` `children` — read the chart's own live `useXScale`/
+  `useYScale` (confirmed exported from `@mui/x-charts/hooks`), never a second hand-rolled pixel
+  mapping. Covers all three named shapes: allocation's envelope (curve), access's labelled y=x
+  diagonal (line + inline rotated label), optimization's dashed threshold (line, dashed).
+- **Theme-token furniture (scope 7).** Inherited for free — grid/axis/tick colours already come
+  from the theme via `withGridDefaults`/MUI's own axis styling (the same mechanism `BarChart`/
+  `LineChart` already use), never a hard-coded grey.
+- **Pinned tick set on a fixed domain (scope 8).** No new mechanism needed — MUI's own
+  `tickInterval: any[]` (confirmed in `@mui/x-charts/hooks/useTicks.d.ts`) already accepts an
+  explicit tick array via plain `xAxis`/`yAxis` passthrough (`tickInterval: [0,0.25,0.5,0.75,1]`
+  reproduces the access panel's fixed 0/25/50/75/100% ticks exactly).
+- **DESIGN.md (scope 9).** New principle 8b: neutral-by-default, the three colouring modes, the
+  bubble-z-order rule, and the explicit "not this preset" pointer to the row-based dot-plot
+  family (forest plot, tornado — a different WO).
 
-- **Execution.** Codex first per the tier rule, unless the status record carries a same-day
-  unavailable line.
+### Forward-compatibility requirement (added to the Envelope after initial implementation)
+
+The WO was updated mid-session to add: "commissioned before the requirement set is closed,"
+additive-only extension going forward, and an explicit instruction to **not assume a 1:1
+datum→mark mapping anywhere in the internals**, so a later "paired point" shape (optimization's
+MILP-vs-simulated pair) can be added without reshaping the contract. Reviewed against the
+landed code: nothing here assumes a fixed mark count per datum — a point object may carry
+arbitrary extra fields beyond `{x,y,z,id}` (already exercised by `getPointStyle`'s status-
+quo/bubble usage), `getPointStyle`/`sizeAccessor` key off the datum itself, and reference
+geometry composes via `children` rather than being baked into the per-point contract. A pair
+variant can layer on later (extra series entries + a connector drawn through `children`)
+without touching `series`'s shape or either callback's signature. Documented in the component's
+own docstring so this reasoning survives independent of this WO file.
+
+### Not built (named, not silently dropped)
+
+- **A continuous colour-scale/legend component.** The WO's scope items describe "continuous
+  with a scale legend" as a supported MODE, not a component this package must ship — the
+  allocation panel already owns a working gradient-legend implementation
+  (`AllocationPerformancePanel.jsx:594-646`) built from its own `getColorScale` utility;
+  `getPointStyle` is the seam that lets it apply that resolved colour per point through this
+  preset. Building a second, generic version was not named as a required deliverable in scope
+  1-9 and risked exactly the over-generalisation the WO warns against (no listed consumer needs
+  a DIFFERENT continuous-legend implementation from the one it already has).
+- **The paired-point shape.** Explicitly deferred per the Envelope update above — no prototype,
+  no WO, ship nothing.
+- ~~A `dev/entries.jsx` fixture for optimization's exact shape was not added as a third harness
+  entry~~ — **reversed per `ui_reviewer` finding U2.** It was added (`OptimizationShapeScatterEntry`)
+  and rendered live: this is exactly the combination (no `yAxis` min/max, no explicit `palette`)
+  that `reviewer` finding R1 caught a real bug on (`sizeYAxisForContent` never received number
+  candidates from scatter's `{x,y}` point objects) — the other two fixtures each avoided the gap
+  incidentally (access sets explicit `yAxis` min/max; allocation's Y magnitude happened to fit
+  MUI's flat default), so U2's point that live rendering catches what the unit suite doesn't was
+  correct and specific, not general caution.
+
+### Target repo
+
+`C:\Users\biglmi\Documents\webapps\ui-core-micha`
+
+## Part C — Orchestrator only — NOT ADDRESSED TO THE IMPLEMENTER
+
+> **If you are the implementer reading this work order as your own specification: STOP at this
+> line.**
+
+- **Execution.** Codex known-unavailable today (see Part B) — implemented directly in Claude.
 - **Review routing.** `reviewer` + `ui_reviewer`, concurrent, one background batch.
-- **Verification.** The package's own suite, **plus a rendered check against both real consumer
-  shapes** — cloud + envelope + three special points (allocation, against its approved
-  prototype), and bubble cloud + labelled y=x diagonal + categorical legend (access). One
-  synthetic example does not exercise the two modes that were only discovered by looking at the
-  second panel. State the mark count rendered versus supplied.
-- **Register & commit.** Advance the THEME-10 row with the reviewer verdicts. Then coordinate
-  the consumer pin bump with THEME-8 and THEME-9, which are already waiting.
+- **Verification.** Package suite (`ScatterChart.test.jsx` — 15 tests: mark count, neutral
+  default, categorical/explicit palette override, bubble z-order, chart-wide bubble max,
+  hollow/shape marker rendering, reference curve/line geometry against the live scale;
+  `chartsPalette.test.js` gained the `neutral` key pin; full affected set incl.
+  `BarChart.test.jsx`/`LineChart.test.jsx`/`chartDefaults.test.js` — 51 tests, green).
+  **Rendered check against both real consumer shapes, done live** in `ui-core-micha`'s own dev
+  harness (`dev/entries.jsx`, two new entries: "ScatterChart (allocation shape)" and "(access
+  shape)"), on the browser tab already carrying real viewport dimensions (cross-origin
+  navigation from the previously-displayed hram tab, working around the earlier THEME-9 session's
+  0×0-viewport limitation on freshly-opened tabs).
+  - **Allocation shape:** 6/6 points rendered (mark count matches supplied), hollow status-quo
+    (`fill:"none"`), continuous per-point colour gradient (hsl hue 188→164→132→104.8 tracking
+    the fixture's equity values), diamond shape for the selected point, envelope curve drawn
+    through the correct live-scale pixel coordinates (`M85,295 L377.9,196 L729.3,86 L905,64`,
+    matching the four supplied envelope points).
+  - **Access shape:** 7/7 points rendered across 3 categorical series (colours `#0F62FE`/
+    `#24A148`/`#FF832B`, correct per-series), fixed 0/25/50/75/100% ticks on both axes, labelled
+    dashed y=x reference line present. **First render caught a real bug**: bubble radii were
+    computed per-series instead of chart-wide, so a small series' own largest point rendered at
+    full radius regardless of its actual size relative to other series — fixed (`chartMax`,
+    single value across all series' data) and re-verified live: radii now correctly proportional
+    across all three series against one shared max (7.75/6.32/3.16 · 5.48/4.08 · 10/3).
+- **Register & commit.** Advance the THEME-10 row with the reviewer verdicts and the rendered
+  mark counts above. hram `FIX-15` (the first actual consumer) does not exist yet — no pin bump
+  to bundle in this WO; that happens when `FIX-15` is authored.

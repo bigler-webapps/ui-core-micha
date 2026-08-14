@@ -18,6 +18,12 @@ export function getNeutralChartPalette(theme) {
     sequential: isDark
       ? [palette.action.disabled, palette.text.secondary, palette.primary.light, palette.primary.main, palette.primary.dark]
       : [palette.action.disabled, palette.divider, palette.text.secondary, palette.primary.light, palette.primary.main],
+    // THEME-10: an undifferentiated mass (e.g. a scatter cloud with no colour
+    // dimension encoded) is ink-neutral, not a series hue -- a KPI identity
+    // colour there implies a meaning the cloud does not carry. `text.secondary`
+    // reads as neutral ink in both palette modes without competing with an
+    // actual categorical/sequential encoding drawn on top of it.
+    neutral: palette.text.secondary,
   };
 }
 
