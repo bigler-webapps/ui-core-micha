@@ -140,6 +140,25 @@ implementer must honour:
   ships because a listed panel needs it. "A prototype might later want X" is not a consumer.
   The insurance against the unknown is that the API can grow, not that it already did.
 
+**One forthcoming shape is already named — do NOT build it, but do not foreclose it.** The
+optimization panel will want its MILP solution and its simulated solution shown as a **paired
+point** (two marks joined by a connector, with the difference between them displayed). The
+plumbing is largely there: that panel already puts both on shared scales
+(`buildScale([...cloud.map(p => p.cost), ...milp.map(p => p.x)])`) and already joins the MILP
+points with a `polyline`. The part that is **not** additive is the data unit: every contract in
+this WO is *one mark per datum*, whereas a pair is two marks plus a link that must travel
+together — shared tooltip, shared colour, one hit target, and a delta label anchored between
+them. Retrofitting that means reshaping `series`, not adding a prop.
+
+So: **design the point contract so a "pair" variant can be added later without changing what a
+single point means** — most simply, by not assuming a 1:1 datum→mark mapping anywhere in the
+internals. Ship nothing for it now. It has no prototype yet, and two of its questions are
+app-level rather than preset-level: which key joins a MILP point to its simulated counterpart
+(the scatter's points come from `planningPoints`, the deltas from a separate `getDivergence`
+call keyed by regime), and whether the difference is rendered as a per-pair numeric label —
+which would be genuine mark labelling, absent from this preset — or carried by the connector
+length plus the tooltip, which costs nothing.
+
 **Delivery is not done at publish.** hram `FIX-15` (allocation) is the first consumer and is
 blocked on this package; the pin bump and that panel's rebuild are what prove the preset works.
 The access and optimization panels are known consumers with **no WO yet** — they are what this
