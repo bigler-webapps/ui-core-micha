@@ -14,6 +14,11 @@ vi.mock('@mui/x-charts/LineChart', () => ({ LineChart: lineSpy, MarkElement: 'pa
 import { BarChart } from '../src/components/charts/BarChart';
 import { LineChart } from '../src/components/charts/LineChart';
 import { TimeSeriesChart } from '../src/components/charts/TimeSeriesChart';
+import {
+  defaultNumericTickFormatter,
+  sizeYAxisForContent,
+  withAxisDefaults,
+} from '../src/components/charts/chartDefaults';
 import { createAppTheme } from '../src/theme/createAppTheme';
 
 const theme = createAppTheme({ palette: { primary: { main: '#3D5A99' } } });
@@ -204,5 +209,155 @@ describe('chart chrome defaults', () => {
       vertical: 'bottom',
       horizontal: 'end',
     });
+  });
+});
+
+// THEME-9 #2 -- `withAxisDefaults` broadcast the caller's single xAxisLabel/
+// yAxisLabel string onto EVERY entry of a multi-axis array via `.map()`.
+// Measured live: hram's dual-axis chart carried the identical 43-character
+// label on both y-axes. This is the defect that actually shipped, pinned
+// directly against the exported function rather than only through a
+// rendered BarChart (which never happens to build a multi-axis array).
+describe('withAxisDefaults label broadcast (THEME-9)', () => {
+  it('applies the single label argument only to the first axis of a multi-entry array', () => {
+    const result = withAxisDefaults(
+      [{ id: 'primary' }, { id: 'secondary' }],
+      'Shared label',
+      { scaleType: 'linear' },
+      '12px',
+    );
+    expect(result[0].label).toBe('Shared label');
+    expect(result[1].label).toBeUndefined();
+    // The exact defect: never let one string land on two axes.
+    expect(result.filter((axis) => axis.label === 'Shared label')).toHaveLength(1);
+  });
+
+  it('leaves axes that set their own label untouched, whatever position they are in', () => {
+    const result = withAxisDefaults(
+      [{ label: 'Primary' }, { label: 'Secondary' }],
+      'Fallback',
+      { scaleType: 'linear' },
+      '12px',
+    );
+    expect(result[0].label).toBe('Primary');
+    expect(result[1].label).toBe('Secondary');
+  });
+
+  it('still labels the common single-axis case unchanged', () => {
+    const result = withAxisDefaults([{ id: 'only' }], 'Cases', { scaleType: 'linear' }, '12px');
+    expect(result[0].label).toBe('Cases');
+
+    const synthesized = withAxisDefaults(undefined, 'Cases', { scaleType: 'linear' }, '12px');
+    expect(synthesized[0].label).toBe('Cases');
+  });
+});
+
+// THEME-9 #4 -- BarChart set no default tick formatter at all (raw domain
+// numbers); a hand-rolled `Intl` compact-notation default was measured to be
+// actively wrong in two of the four locales this package's consumers use:
+// German does not compact thousands at all, and Swahili prepends a word
+// ("elfu") that is WIDER than the raw number. Plain grouped formatting (no
+// `notation: 'compact'`) is pinned here against a live `Intl.NumberFormat`
+// computation rather than hardcoded locale punctuation, so the assertion
+// survives ICU data updates.
+describe('defaultNumericTickFormatter (THEME-9)', () => {
+  it.each(['de-CH', 'en', 'fr', 'sw'])('formats %s ticks the same way Intl grouping would, with no compact notation', (locale) => {
+    const formatter = defaultNumericTickFormatter(locale);
+    for (const value of [12500, 998000, 1000000000]) {
+      const expected = new Intl.NumberFormat(locale, { maximumFractionDigits: 1 }).format(value);
+      expect(formatter(value, { location: 'tick' })).toBe(expected);
+      // The exact failure mode measured live: compact notation prepending a
+      // wider word in Swahili, or a 'K'/'M'/'B' suffix elsewhere.
+      expect(formatter(value, { location: 'tick' })).not.toMatch(/[KMB]|elfu/i);
+    }
+  });
+
+  it('keeps full precision outside the tick context (tooltip/legend) rather than rounding away a meaningful difference', () => {
+    const formatter = defaultNumericTickFormatter('en');
+    expect(formatter(12500.456, { location: 'tooltip' })).toBe('12,500.456');
+    expect(formatter(12500.456, { location: 'tick' })).toBe('12,500.5');
+  });
+});
+
+// THEME-9 #1/#3 -- MUI's own y-axis width default is a flat 45px (ticks) +
+// 20px (label) regardless of what the ticks actually say (confirmed against
+// @mui/x-charts' own DEFAULT_AXIS_SIZE_WIDTH/AXIS_LABEL_DEFAULT_HEIGHT and
+// its useChartDimensions selector, where margin and axis size are additive).
+// That is both too generous for short ticks and too stingy for wide
+// unit-suffixed ones -- the measured Accessibility-panel overlap. Margins
+// and the exact rendered overlap are verified live, not by unit test (per
+// the WO); this pins the sizing FUNCTION's own contract.
+describe('sizeYAxisForContent (THEME-9)', () => {
+  it('sizes a linear axis from its own caller-supplied min/max', () => {
+    const [axis] = sizeYAxisForContent(
+      [{ scaleType: 'linear', min: 0, max: 1, label: 'Coverage (%)' }],
+      [],
+      '12px',
+    );
+    expect(axis.width).toBeGreaterThan(0);
+  });
+
+  it('reserves more width for a longer formatted tick, all else equal', () => {
+    const [shortTick] = sizeYAxisForContent(
+      [{ scaleType: 'linear', min: 0, max: 1 }], [], '12px',
+    );
+    const [wideTick] = sizeYAxisForContent(
+      [{ scaleType: 'linear', min: 0, max: 1, valueFormatter: (v) => `${v} minutes` }],
+      [], '12px',
+    );
+    expect(wideTick.width).toBeGreaterThan(shortTick.width);
+  });
+
+  it('falls back to the plotted series when the caller sets neither min nor max', () => {
+    const [axis] = sizeYAxisForContent(
+      [{ scaleType: 'linear' }],
+      [{ data: [1, 250000] }],
+      '12px',
+    );
+    expect(axis.width).toBeGreaterThan(0);
+  });
+
+  it('leaves the axis untouched when there is nothing to measure against', () => {
+    const [axis] = sizeYAxisForContent([{ scaleType: 'linear' }], [], '12px');
+    expect(axis.width).toBeUndefined();
+  });
+
+  it('never overrides a caller-supplied width', () => {
+    const [axis] = sizeYAxisForContent(
+      [{ scaleType: 'linear', min: 0, max: 1, width: 42 }], [], '12px',
+    );
+    expect(axis.width).toBe(42);
+  });
+
+  it('leaves a categorical (band/point) axis alone -- its ticks are names, not numbers', () => {
+    const [axis] = sizeYAxisForContent(
+      [{ scaleType: 'band', data: ['a', 'b'] }], [], '12px',
+    );
+    expect(axis.width).toBeUndefined();
+  });
+
+  // Reviewer-caught regression (THEME-9): a series with no explicit
+  // `yAxisId` is NOT "assigned to no axis" -- MUI defaults it to the FIRST
+  // axis in the array (`yAxisIds[0]`), whatever that axis' id is. Matching
+  // only `undefined === undefined` left the primary axis of a genuine
+  // dual-axis chart (id set, series unmarked) with zero matched series and
+  // therefore MUI's untouched flat default -- a silent no-op on exactly the
+  // dual-axis case this WO was measured against (TimeSeriesChart's own
+  // secondary-axis feature, CHART-5).
+  it('assigns an unmarked series to the FIRST axis in a dual-axis array, matching MUI\'s own default', () => {
+    const dualAxis = [{ scaleType: 'linear', id: 'primary' }, { scaleType: 'linear', id: 'secondary' }];
+    const series = [
+      { data: [1, 2, 3] }, // no yAxisId -- MUI assigns this to 'primary'
+      { data: [400000, 500000], yAxisId: 'secondary' },
+    ];
+
+    const [primary, secondary] = sizeYAxisForContent(dualAxis, series, '12px');
+    expect(primary.width).toBeGreaterThan(0);
+    expect(secondary.width).toBeGreaterThan(0);
+    // The secondary axis' series format much wider numbers -- it must
+    // reserve more width than the primary axis, not the same (which is what
+    // "both axes silently untouched" or "both matched the same series" would
+    // produce).
+    expect(secondary.width).toBeGreaterThan(primary.width);
   });
 });

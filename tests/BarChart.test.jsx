@@ -50,9 +50,25 @@ describe('BarChart preset', () => {
     expect(chartSpy.mock.calls.at(-1)[0].colors).toEqual(['var(--application-chart-colour)']);
   });
 
-  it('requires labels for both axes', () => {
-    expect(() => render(
-      <ThemeProvider theme={createTheme()}><BarChart series={[]} xAxisLabel="Year" /></ThemeProvider>,
-    )).toThrow('BarChart requires xAxisLabel and yAxisLabel.');
+  // THEME-9: DESIGN.md #8a makes an axis title the caller's per-axis
+  // decision (categorical axes default to none) -- a hard "both required"
+  // throw made that default unachievable through this preset. Omitting a
+  // label now renders no title for that axis rather than crashing.
+  it('renders without a title on an axis whose label was omitted', () => {
+    render(
+      <ThemeProvider theme={createTheme()}><BarChart series={[{ data: [1] }]} xAxisLabel="Year" /></ThemeProvider>,
+    );
+    const props = chartSpy.mock.calls.at(-1)[0];
+    expect(props.xAxis[0].label).toBe('Year');
+    expect(props.yAxis[0].label).toBeUndefined();
+  });
+
+  it('renders with no title on either axis when both labels are omitted', () => {
+    render(
+      <ThemeProvider theme={createTheme()}><BarChart series={[{ data: [1] }]} /></ThemeProvider>,
+    );
+    const props = chartSpy.mock.calls.at(-1)[0];
+    expect(props.xAxis[0].label).toBeUndefined();
+    expect(props.yAxis[0].label).toBeUndefined();
   });
 });

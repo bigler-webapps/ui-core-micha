@@ -216,12 +216,17 @@ describe('TimeSeriesChart', () => {
     ],
   };
 
-  it('CHART-5: no custom yAxis when the shared single axis is not all-integer (today\'s real case)', () => {
+  it('CHART-5: no custom (integer-blanking) yAxis formatter when the shared single axis is not all-integer (today\'s real case)', () => {
     renderChart({ data: MIXED_DATA });
 
     const props = chartSpy.mock.calls.at(-1)[0];
     expect(props.yAxis).toHaveLength(1);
-    expect(props.yAxis[0].valueFormatter).toBeUndefined();
+    // THEME-9: BarChart now always supplies a default (locale-grouped, non-
+    // blanking) tick formatter, so this is no longer undefined -- but it
+    // must still be BarChart's generic default, not CHART-5's own
+    // integer-blanking one (which would wrongly blank the 4.5/5.2/6.1 ticks).
+    expect(typeof props.yAxis[0].valueFormatter).toBe('function');
+    expect(props.yAxis[0].valueFormatter(4.5, { location: 'tick' })).not.toBe('');
     expect(props.yAxis[0].label).toBe('Count');
   });
 
@@ -293,8 +298,13 @@ describe('TimeSeriesChart', () => {
     const props = chartSpy.mock.calls.at(-1)[0];
     const primaryAxis = props.yAxis.find((axis) => axis.id === 'primary');
     const secondaryAxis = props.yAxis.find((axis) => axis.id === 'secondary');
-    expect(typeof primaryAxis.valueFormatter).toBe('function');
-    expect(secondaryAxis.valueFormatter).toBeUndefined();
+    expect(primaryAxis.valueFormatter(2, { location: 'tick' })).toBe('2');
+    expect(primaryAxis.valueFormatter(2.5, { location: 'tick' })).toBe('');
+    // THEME-9: BarChart's own default formatter now covers the secondary
+    // axis too (a function, not undefined) -- distinguished from the
+    // integer-blanking one above by NOT blanking a non-integer tick.
+    expect(typeof secondaryAxis.valueFormatter).toBe('function');
+    expect(secondaryAxis.valueFormatter(4.5, { location: 'tick' })).not.toBe('');
   });
 
   it('CHART-5: throws when a series declares axis "secondary" without secondaryYAxisLabel', () => {
@@ -318,12 +328,15 @@ describe('TimeSeriesChart', () => {
 
   it('CHART-5: toggling the non-integer series off switches the shared axis to integer-formatted', () => {
     renderChart({ data: MIXED_DATA });
-    expect(chartSpy.mock.calls.at(-1)[0].yAxis[0].valueFormatter).toBeUndefined();
+    // THEME-9: BarChart's default formatter is present from the start now,
+    // so the CHART-5-specific signal is that a non-integer tick is NOT
+    // blanked yet -- the integer-blanking formatter isn't active.
+    expect(chartSpy.mock.calls.at(-1)[0].yAxis[0].valueFormatter(4.5, { location: 'tick' })).not.toBe('');
 
     fireEvent.click(screen.getByRole('checkbox', { name: 'Presence hours' }));
 
     const props = chartSpy.mock.calls.at(-1)[0];
-    expect(typeof props.yAxis[0].valueFormatter).toBe('function');
+    expect(props.yAxis[0].valueFormatter(4.5, { location: 'tick' })).toBe('');
   });
 
   it('CHART-5: x-axis tickLabelInterval guarantees some labels always show, evenly spread', () => {

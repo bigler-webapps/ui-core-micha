@@ -102,25 +102,93 @@ by the rendered check, not by unit tests.
 looked at — hram first, where all of this was measured, and where the app-side follow-up is
 tracked as `FIX-13`.
 
-## Part B — Implementation map (implementer)
+## Part B — Implementation map — ADDRESSED TO THE IMPLEMENTER
 
-PLACEHOLDER — Orchestrator fills this on `git pull`: context package with `path:line` anchors
-(`src/components/charts/chartDefaults.js` — `withAxisDefaults`, `spaceForRotatedTicks`, the
-margin constants; `src/components/charts/BarChart.jsx`; `src/components/charts/formatters.js`;
-`DESIGN.md`), the absolute working directory, the progress contract and the preamble. Not
-dispatchable while this placeholder stands.
+Codex was not dispatched: `.claude/codex-status.md` already carried a same-day (2026-08-14)
+`unavailable` line (recorded earlier during `THEME-8`), so per the known-unavailable shortcut
+the Orchestrator implemented directly, which flips authorship — `reviewer` + `ui_reviewer`
+became mandatory (already required at Tier 3).
 
-## Part C — Orchestrator only
+### What landed, and why (measured, not guessed)
 
-**STOP — addressee guard.** If you are the implementer reading this file as your own spec: this
-part is not addressed to you. It tells the Orchestrator how to invoke you; you ARE that
-invocation — do not shell out to `codex exec`. Stop reading at this line.
+- **`withAxisDefaults` label broadcast (scope 2).** Fixed: the single `label` argument now falls
+  back only onto `index === 0` of a multi-entry axis array — mirrors MUI's own
+  `position: 'left'`-only-on-first-entry default. Test: `chartDefaults.test.js`.
+- **`sizeYAxisForContent`, new (scope 1/3).** MUI's own y-axis width default is a flat 45px+20px
+  regardless of tick content (verified against `@mui/x-charts`' `DEFAULT_AXIS_SIZE_WIDTH` /
+  `AXIS_LABEL_DEFAULT_HEIGHT` and its `useChartDimensions` selector: margin and axis-size are
+  ADDITIVE, not nested — confirmed pixel-for-pixel against a live hram render, see below). This
+  sizes a linear y-axis from its own `min`/`max` or the plotted series, mirroring
+  `spaceForRotatedTicks`'s existing glyph-width heuristic.
+- **`defaultNumericTickFormatter`, new (scope 4).** Locale-grouped, non-compact by default —
+  verified live against `Intl.NumberFormat` output for all four locales (de-CH does not compact
+  thousands at all; sw's compact form is WIDER than the raw number).
+- **DESIGN.md #8a, new (scope 5).** The categorical/numeric axis-title rule.
+- **Not originally scoped, added because scope 5 required it:** `BarChart`/`LineChart` used to
+  hard-`throw` unless BOTH `xAxisLabel` and `yAxisLabel` were supplied — this made #8a's stated
+  "categorical axis gets no title by default" unachievable through either preset (`ui_reviewer`
+  finding U1). Both labels are now optional; omitting one renders no title for that axis. This is
+  the change FIX-13 needs to actually remove a title.
 
-- **Execution.** Codex first per the tier rule, unless the status record says otherwise.
-- **Review routing.** `reviewer` + `ui_reviewer`, concurrent, one background batch.
-- **Verification.** The package's own suite, **plus a rendered check in hram** (the stack runs
-  locally on `:8000`; see the `preview-running-app` skill): re-measure the Coverage KPI card's
-  plot-area share, and confirm no tick label overlaps an axis label on the Accessibility and
-  Ward Metrics charts. State the numbers, before and after.
-- **Register & commit.** Advance the THEME-9 row with the reviewer verdicts and the measured
-  before/after. Then track the consumer pin bumps — this WO is not done at publish.
+### The Coverage-KPI-card measurement itself was NOT a package-level bug
+
+Live DOM measurement in the running hram app (`localhost:8000`, Basic Results → Coverage card)
+traced the Envelope's own "60px blank / 30px dead" numbers to their exact source:
+`drawingArea.left = margin.left + axisSizeLeft` (MUI's own `useChartDimensions` selector) — the
+60px is hram's OWN `margin={{left: 60, ...}}` prop on `TotalMetricsPanel.jsx`, stacking
+ADDITIVELY with MUI's separate ~65px axis-width reservation, not one containing the other. That
+duplication is `FIX-13`'s item 6 to fix (trim the app's own margin now that this package sizes
+the axis itself), not something `THEME-9` could fix by itself — packages can right-size their own
+axis reservation, not an app's separately-chosen margin.
+
+### Review findings, fixed before commit
+
+- **`reviewer` R1 (P1):** `sizeYAxisForContent`'s series-to-axis matching used
+  `(item.yAxisId ?? undefined) === (axis.id ?? undefined)`, which only matches when BOTH sides are
+  literally `undefined` — but MUI assigns an unmarked series to the FIRST axis in the array
+  (`yAxisIds[0]`), not to "no axis". This made the sizer a silent no-op for the PRIMARY axis of
+  exactly the dual-axis case (`TimeSeriesChart`'s `CHART-5` feature) that motivated this WO. Fixed:
+  match against `yAxis[0]?.id` as the default, not `undefined`. Regression test added.
+- **`ui_reviewer` U1 (P1):** see "not originally scoped" above — labels made optional.
+- **`ui_reviewer` U3 (P2):** the sizer used the theme-wide tick font size even when a caller
+  overrode `tickLabelStyle.fontSize` per-axis. Fixed: reads the axis' own (already-merged)
+  `tickLabelStyle.fontSize` first, falling back to the theme default only if absent.
+- **`ui_reviewer` U5 (P3):** the label-thickness term was derived from `theme.typography.body1`,
+  which only coincidentally matches MUI's own HARDCODED 14px axis-label font
+  (`ChartsYAxisImpl.js` sets `fontSize: 14` after spreading `body1`, so it always wins regardless
+  of theme). Fixed: a named `MUI_AXIS_LABEL_FONT_SIZE_PX = 14` constant, decoupled from theme.
+- **`ui_reviewer` U2 (P2, accepted as a documented limitation, not fixed):** the width estimate is
+  driven by the axis' own `min`/`max`/series values, not MUI's actual "nice-tick" rounding, which
+  can occasionally round a domain's extremes outward to a longer string. The existing 1.1x safety
+  factor absorbs small overshoots; a tighter fix would require duplicating MUI's own tick
+  algorithm, out of proportion for this WO. The rendered check below is the actual proof either way.
+- **`ui_reviewer` U4:** claimed `TimeSeriesChart.jsx` bypasses `withAxisDefaults`/
+  `sizeYAxisForContent` entirely. Verified against source: `TimeSeriesChart` renders through this
+  package's own `<BarChart>` (not `MuiLineChart` directly), so its `yAxis` array — including the
+  dual-axis case — DOES flow through both functions. Not acted on; recorded here so the claim
+  isn't silently dropped.
+
+### Target repo
+
+`C:\Users\biglmi\Documents\webapps\ui-core-micha`
+
+## Part C — Orchestrator only — NOT ADDRESSED TO THE IMPLEMENTER
+
+> **If you are the implementer reading this work order as your own specification: STOP at this
+> line.**
+
+- **Execution.** Codex known-unavailable today (see Part B) — implemented directly in Claude.
+- **Review routing.** `reviewer` + `ui_reviewer`, concurrent, one background batch — both ran,
+  findings above, all in-scope findings fixed before commit.
+- **Verification.** The package's own affected-set suite (`BarChart.test.jsx`, `LineChart.test.jsx`,
+  `TimeSeriesChart.test.jsx`, `timeSeriesLegend.test.js`, `chartDefaults.test.js` — 60 tests,
+  green). **The rendered check in hram could NOT be completed live in this session** — the Browser
+  pane only carries real viewport dimensions for the tab the operator has actually displayed;
+  freshly-opened tabs (both a new hram tab and ui-core-micha's own dev harness) measured 0×0 and
+  produced negative-width SVG rect errors as a direct consequence, not a code defect. The BEFORE
+  numbers (Coverage KPI card) WERE captured live from the properly-displayed hram tab and are
+  quoted above; the AFTER re-measurement is deferred to `FIX-13`, which needs it anyway once
+  hram's pin is bumped (its own WO already orders re-measurement after the pin bump, so this
+  doesn't lose anything — it was always going to happen there).
+- **Register & commit.** Advance the THEME-9 row with the reviewer verdicts. Track the consumer
+  pin bumps (hram = `FIX-13`) — this WO is not done at publish.
