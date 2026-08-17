@@ -24,10 +24,7 @@ import {
 } from '../src/index';
 
 const I18N_DIRECTORY = path.resolve('src/i18n');
-// Scoped to the three locales every bundle already carries. `messagingTranslations`'s 116 keys
-// have no `sw` value yet (pre-existing gap, out of I18N-1's scope — see the Notiz on the
-// I18N-1 register row for the tracked follow-up to backfill it and restore `sw` here).
-const REQUIRED_LOCALES = ['de', 'en', 'fr'];
+const REQUIRED_LOCALES = ['de', 'en', 'fr', 'sw'];
 const bundleImporters = import.meta.glob('../src/i18n/*.ts');
 const PUBLIC_BUNDLES = {
   authTranslations: publicAuthTranslations,

@@ -99,7 +99,7 @@ describe('MSG-6 messaging regressions', () => {
     await waitFor(() => expect(screen.queryByLabelText(/MessagingThread.UNREAD_REPLIES/)).toBeNull());
   });
 
-  it('defines singular reply labels for de, en, and fr', () => {
-    expect(messagingTranslations['MessagingThread.SHOW_REPLIES_one']).toEqual({ de: '{{count}} Antwort anzeigen', en: 'Show {{count}} reply', fr: 'Afficher {{count}} réponse' });
+  it('defines singular reply labels for de, en, fr, and sw', () => {
+    expect(messagingTranslations['MessagingThread.SHOW_REPLIES_one']).toEqual({ de: '{{count}} Antwort anzeigen', en: 'Show {{count}} reply', fr: 'Afficher {{count}} réponse', sw: 'Onyesha jibu {{count}}' });
   });
 });
