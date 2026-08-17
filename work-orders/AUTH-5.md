@@ -80,9 +80,36 @@ auch wenn Teile davon aus variablen Segmenten bestehen.
 
 ## B. Implementation map
 
-*Vom Orchestrator beim `git pull` zu füllen — siehe `AGENTS.md` → „Work Order". Dispatch-Blocker:
-Codex nicht aufrufen, solange dieser Platzhalter hier steht oder der Preamble-Block in dieser Datei
-fehlt.*
+**Selbst umgesetzt (nicht per Codex)** — laufende Operator-Anweisung für diese Session.
+
+### Design-Entscheidungen
+
+- **`addPublicPath`/`removePublicPath`** akzeptieren jetzt zusätzlich `instanceof RegExp` neben
+  `string`; `CONSUMER_PUBLIC_PATHS` bleibt ein `Set`, das für `RegExp`-Objekte automatisch
+  Identitäts-Löschung liefert (`Set.delete` nutzt SameValueZero) — kein Sonderfall nötig.
+- **`matchesPublicPath`** prüft `entry instanceof RegExp` zuerst und ruft `entry.test(pathname)` —
+  ausschliesslich gegen `window.location.pathname`, nie gegen `search`/`hash`, da die Funktion
+  ohnehin nur `pathname` als Parameter erhält (kein Risiko einer versehentlichen Konkatenation).
+- **`BUILTIN_PUBLIC_PATHS` unverändert** — bleibt string-only und eingefroren, keine Berührung.
+- Dokumentation an `addPublicPath`/`removePublicPath` erweitert: Anker-Pflicht (`^…$`) für
+  `RegExp`-Muster und Identitäts-Hinweis für `removePublicPath`.
+
+### Kontextpaket
+
+- `src/auth/apiClient.jsx` — einzige geänderte Quelldatei.
+
+### Tests
+
+`tests/apiClientPublicPaths.test.js` (neu, 11 Fälle) — fährt durch den echten
+Response-Interceptor (nicht durch eine Nachbildung von `matchesPublicPath`), damit ein Fehler in
+der Verdrahtung selbst auffällt, nicht nur ein Fehler im Matcher. Jeder Test importiert das Modul
+frisch (`vi.resetModules()` + dynamisches `import()`), weil `redirectingToLogin` ein
+Modul-Level-Riegel ist, der sich in jsdom nie durch echte Navigation zurücksetzt.
+`window.location` wird durch ein rein synthetisches Objekt ersetzt (jsdoms echtes
+`location.assign` ist nicht konfigurierbar, und `pushState` bindet nicht an ein ersetztes
+`location`-Objekt) — deckt exakt das ab, was der Interceptor liest (`pathname`) und aufruft
+(`assign`). Affected set: `authApiRegistration.test.js`, `AuthContext.test.jsx`,
+`feedApi.test.js`, `messagingApi.test.js`, `notificationsApi.test.js` — alle grün.
 
 ---
 

@@ -32,16 +32,36 @@ const CONSUMER_PUBLIC_PATHS = new Set();
  * Register an additional public path so a 401 on that route does not auto-redirect
  * to `/login`. Typical use: a public landing on `/` in an otherwise authenticated app.
  *
+ * Accepts a `string` (matched like the builtins: exact for "/", prefix otherwise) or
+ * a `RegExp` (AUTH-5) for consumers whose public area includes a dynamic segment —
+ * e.g. `/<slug>`, `/<slug>/team` — that no finite set of string prefixes can describe.
+ *
+ * A `RegExp` is tested via `.test()` against `window.location.pathname` ONLY — never
+ * against the query string or fragment. Anchor it (`^…$`): this library does not add
+ * anchors for you, and an unanchored pattern like `/team` also matches `/admin/team`,
+ * silently suppressing the redirect somewhere it's still needed. That failure is
+ * invisible until someone opens the over-matched page anonymously and lands on a
+ * blank error instead of `/login` — so test the non-matching direction too, not just
+ * the intended match.
+ *
  * MUST be called before the AuthProvider mounts (i.e. before `ReactDOM.render`).
  * Calling it later won't help the bootstrap probe which fires on AuthProvider mount.
  */
 export function addPublicPath(path) {
   if (typeof path === "string" && path) {
     CONSUMER_PUBLIC_PATHS.add(path);
+  } else if (path instanceof RegExp) {
+    CONSUMER_PUBLIC_PATHS.add(path);
   }
 }
 
-/** Remove a consumer-added public path. Library-internal paths are protected. */
+/**
+ * Remove a consumer-added public path. Library-internal paths are protected.
+ *
+ * For a `RegExp` entry, removal is by object identity (`Set.delete` uses SameValueZero
+ * equality) — pass the exact same `RegExp` instance `addPublicPath` was given, not a
+ * new literal that merely looks the same. Two `/^\/team$/` literals are not equal.
+ */
 export function removePublicPath(path) {
   CONSUMER_PUBLIC_PATHS.delete(path);
 }
@@ -50,10 +70,19 @@ function isPublicSitePath(pathname) {
   return pathname === "/sites" || pathname.startsWith("/sites/");
 }
 
-// Match rule: an entry of exactly "/" requires strict equality (avoids matching
-// every path with startsWith). Other entries keep the looser prefix match so
-// dynamic routes like /invite/:uid/:token still work.
+// Match rule: a RegExp entry is tested against pathname only (AUTH-5). A string entry
+// of exactly "/" requires strict equality (avoids matching every path with
+// startsWith); other string entries keep the looser prefix match so dynamic routes
+// like /invite/:uid/:token still work.
 function matchesPublicPath(pathname, entry) {
+  if (entry instanceof RegExp) {
+    // `g`/`y` flags make `.test()` stateful (`lastIndex` advances on match), which would
+    // make the same pathname alternate matched/unmatched across calls to this
+    // long-lived, module-scoped RegExp — a redirect that only fires every other time.
+    // Reset before every test so a consumer's flags can't leak state across calls.
+    entry.lastIndex = 0;
+    return entry.test(pathname);
+  }
   if (entry === "/") return pathname === "/";
   return pathname.startsWith(entry);
 }
