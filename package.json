@@ -1,8 +1,20 @@
 {
   "name": "@micha.bigler/ui-core-micha",
-  "version": "2.41.1",
+  "version": "2.41.2",
   "main": "dist/index.js",
   "module": "dist/index.js",
+  "sideEffects": [
+    "./src/index.js",
+    "./dist/index.js",
+    "./src/theme/index.js",
+    "./dist/theme/index.js",
+    "./src/theme/createAppTheme.js",
+    "./dist/theme/createAppTheme.js",
+    "./src/theme/fonts.js",
+    "./dist/theme/fonts.js",
+    "./src/notifications/serviceWorker/sw.js",
+    "./dist/notifications/serviceWorker/sw.js"
+  ],
   "repository": {
     "type": "git",
     "url": "https://github.com/bigler-webapps/ui-core-micha"

@@ -1,3 +1,5 @@
+import './fonts';
+
 export { createAppTheme } from './createAppTheme';
 export {
   assertThemeComplete,
