@@ -105,6 +105,51 @@ No source, API, behaviour or visual change. What changes is the order two CI ste
 
 *Filled by the Orchestrator on `git pull` — see `AGENTS.md` → "Work Order".*
 
+**Repo root:** `ui-core-micha` (workflow lives at repo root, `.github/workflows/publish.yml`).
+
+**Exact change:** in [`.github/workflows/publish.yml`](../.github/workflows/publish.yml), the step
+order today (verified on `git pull`, lines 112-118) is:
+
+```yaml
+      - name: Run tests
+        if: steps.version_check.outputs.should_publish == 'true'
+        run: pnpm run test
+
+      - name: Build
+        if: steps.version_check.outputs.should_publish == 'true'
+        run: pnpm run build
+```
+
+Swap so `Build` runs first, `Run tests` second — same two `if:` conditions, unchanged, one on each
+step. Nothing else in the file (`Check out code`, `Set up Node`, `Decide whether to publish`,
+`Set up pnpm`, `Show version from package.json`, `Install dependencies (pnpm)`,
+`Ensure recent npm for trusted publishing`, `Publish to npm`) moves or changes.
+
+**Do-not-touch (repeat of the Envelope's non-goals, stated here for the implementer):**
+`tests/packageTreeShaking.test.js`, the `sideEffects` array / `src/theme/fonts.js` (DX-2, already
+landed and reviewed), the `on: push: paths` trigger list, `package.json`'s version (stays `2.41.2`).
+This WO touches exactly one file.
+
+**Progress contract:** `PLAN: …` naming the single edit, `PROGRESS: [1/1] swap Build/Run-tests order
+in publish.yml … done`, then `RESULT: DONE`.
+
+## Preamble
+
+The text above is the COMPLETE spec — the committed WO file's content, not a plan to refine; there is
+no separate plan file. Read the nearest `AGENTS.md`, the relevant `.codex/skills/<role>/SKILL.md`, and
+the app `MEMORY.md` ONLY for conventions. Stay in scope; do not touch auth/permissions/deps/schema/CI
+beyond the one named swap. Do not update `MEMORY.md`. **Do NOT edit `WORK_ORDERS.md`** — the register
+row and the review verdicts are the orchestrator's alone. Do NOT `git add`/`commit`/`push`, and do NOT
+dispatch any workflow — leave every change uncommitted in the working tree for the orchestrator's
+independent review. This WO's "Required tests to WRITE" is explicitly **none** — do not write or run
+any test; there is nothing to verify locally that the orchestrator's own read of the diff and the
+reviewer's pass don't already cover.
+
+Narrate continuously: a `PLAN: <step1> | …` line up front, then a single-line
+`PROGRESS: [<n>/<total>] <present-tense action>` before every relevant action (and `… done` on
+completion), spaced so no gap exceeds ~2 min, stdout unbuffered, plus exactly one final
+`RESULT: DONE|BLOCKED <reason>`.
+
 ---
 
 ## C. Orchestrator only
