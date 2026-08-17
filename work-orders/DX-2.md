@@ -86,6 +86,64 @@ what a consumer's bundler may discard.
 
 *Filled by the Orchestrator on `git pull` — see `AGENTS.md` → "Work Order".*
 
+**Repo root:** `ui-core-micha` (this is the package root — `package.json` lives here, `src/index.js` is
+the package entry per `"main"`/`"module"`). Build: `pnpm run build` (tsc, `tsconfig.build.json`,
+`rootDir: src` → `outDir: dist`). Tests: `pnpm test` (vitest run), config likely under `tests/` or
+`vite.config.mjs`.
+
+**Entry point to walk:** [`src/index.js`](../src/index.js) — every export re-exported from here is a
+module the audit must cover. Rough module groups, in the order they're exported: `theme/` (7 exports),
+`auth/` (AuthContext, UserMenu, apiClient, authApi, authService), `layout/` (PageLayout, SectionNav),
+`pages/` (7 page components), `components/` (12 components incl. charts subtree), `i18n/` (7 translation
+bundle modules, pure data objects), `notifications/` (7 exports incl. a `realtime` module — check for
+WebSocket/EventSource construction at module scope, not just component-body), `messaging/` (13 exports,
+same realtime-connection caution), `onboarding/` (8 exports).
+
+**Known non-trivial finding — do not silently "fix" this, report it:**
+[`src/theme/createAppTheme.js:1-3`](../src/theme/createAppTheme.js) has three top-level
+`import '@fontsource/dm-sans/400.css'` (+ `/500.css`, `/600.css`) — these ARE import-level side effects
+(CSS injected into the document on import, unconditionally, regardless of whether `createAppTheme` is
+even called). This module must be **excluded** from a blanket `sideEffects: false` — either list
+`src/theme/createAppTheme.js` explicitly in the array form, or (better, since it's a source-level fix
+consistent with the WO's "no false negatives" risk framing) move the three font-CSS imports into a
+separate module (e.g. `src/theme/fonts.css.js` or inline at the one leaf that needs them) so the rest of
+`theme/` stays tree-shakeable and only that one file is excluded. Whichever path is taken, it must be
+**reported explicitly** in the WO's audit output, not folded in silently (Envelope: "each must be
+reported rather than folded in silently").
+
+**Areas most likely to hide further side effects (audit these hardest, per the Envelope's own risk
+note):** `theme/` (registry singletons — `KIT_COMPONENT_SX_REGISTRY` is exported as a value; confirm it's
+a plain object literal built at import with no external registration call), `notifications/realtime.js`
+and `messaging/` (anything opening a socket/listener at module scope rather than inside a hook/effect),
+`auth/apiClient.js` (axios instance creation is fine — a side-effect-free object build — but check for
+any `axios.interceptors.*.use(...)` called at module scope outside a factory function, which would be a
+real side effect since it mutates a shared axios default instance).
+
+**Do-not-touch:** no `exports` map in `package.json` (Envelope non-goal). No component/theme/chart/i18n
+behaviour change — only source edits that make a module genuinely side-effect-free, each reported.
+
+**Progress contract:** emit `PLAN: …` first, then `PROGRESS: [n/total] <module-group>` before auditing
+each group above and `… done` after, and a final `RESULT: DONE` or `RESULT: BLOCKED <reason>`. No gap
+> ~2 min. Work from this package — open files only to verify specific claims, not a blind full-repo read.
+
+## Preamble
+
+The text above is the COMPLETE spec — the committed WO file's content, not a plan to refine; there is
+no separate plan file. Read the nearest `AGENTS.md`, the relevant `.codex/skills/<role>/SKILL.md`, and
+the app `MEMORY.md` ONLY for conventions. Stay in scope; do not touch auth/permissions/deps/schema/CI
+unless the spec says so; do not update `MEMORY.md`. **Do NOT edit `WORK_ORDERS.md`** — the register row
+and the review verdicts are the orchestrator's alone. Do NOT `git add`/`commit`/`push` — leave every
+change uncommitted in the working tree for the orchestrator's independent review. WRITE the tests the
+"Required tests to WRITE" section calls for AND **RUN the tests you just wrote** to confirm they execute
+and pass — that is the ONLY test run you do (NOT the app's affected/full suite, NOT any review). The
+orchestrator re-runs the authoritative set + does the independent review after you finish — those are
+the gate; your own run does not count as the gate.
+
+Narrate continuously: a `PLAN: <step1> | <step2> | …` line up front, then a single-line
+`PROGRESS: [<n>/<total>] <present-tense action>` before every relevant action (and `… done` on
+completion), spaced so no gap exceeds ~2 min, stdout unbuffered, plus exactly one final
+`RESULT: DONE|BLOCKED <reason>`.
+
 ---
 
 ## C. Orchestrator only
