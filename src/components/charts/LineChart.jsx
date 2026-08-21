@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Box } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import { useTranslation } from 'react-i18next';
@@ -10,8 +10,10 @@ import { useNeutralChartPalette } from './palette';
 import {
   DEFAULT_LEGEND_POSITION,
   defaultNumericTickFormatter,
+  resolveChartHeight,
   sizeYAxisForContent,
   spaceForRotatedTicks,
+  warnOnHeightMismatch,
   withAxisDefaults,
   withChartSlotDefaults,
   withGridDefaults,
@@ -41,6 +43,11 @@ function FilledMarkElement({ color, style, ...props }) {
  * the quantity. Omitting one never suppresses a label the caller DID set
  * (`withAxisDefaults` only ever falls back onto an axis without its own
  * `label`).
+ *
+ * `minHeight` (CHART-8): a floor under an `aspect`-derived responsive height when `aspect` is
+ * set and `height` is not; otherwise (no `height`, no `aspect`) it sizes the chart itself. Once
+ * `height` is set, `height` sizes the chart and the wrapper never reserves more than that, even
+ * if `minHeight` is also passed and larger.
  */
 export function LineChart({
   series = [],
@@ -50,6 +57,7 @@ export function LineChart({
   yAxis,
   palette,
   minHeight,
+  height,
   aspect,
   grid,
   hideLegend = series.length <= 1,
@@ -62,6 +70,9 @@ export function LineChart({
   const theme = useTheme();
   const { i18n } = useTranslation();
   const neutralPalette = useNeutralChartPalette();
+
+  useEffect(() => warnOnHeightMismatch('LineChart', { minHeight, height }), [minHeight, height]);
+  const { wrapperMinHeight, chartHeight } = resolveChartHeight({ minHeight, height, aspect });
 
   const labelledXAxis = withAxisDefaults(
     xAxis,
@@ -92,9 +103,10 @@ export function LineChart({
   );
 
   return (
-    <Box data-testid="line-chart-container" sx={{ width: '100%', minHeight, aspectRatio: aspect }}>
+    <Box data-testid="line-chart-container" sx={{ width: '100%', minHeight: wrapperMinHeight, aspectRatio: aspect }}>
       <MuiLineChart
         {...chartProps}
+        height={chartHeight}
         series={defaultedSeries}
         xAxis={rotatedTickSpace.xAxis}
         yAxis={sizedYAxis}

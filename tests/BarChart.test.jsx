@@ -71,4 +71,52 @@ describe('BarChart preset', () => {
     expect(props.xAxis[0].label).toBeUndefined();
     expect(props.yAxis[0].label).toBeUndefined();
   });
+
+  // CHART-8: minHeight/height/aspect resolution, wired through the actual component.
+  describe('minHeight/height resolution (CHART-8)', () => {
+    it('sizes the chart from minHeight alone when neither height nor aspect is set', () => {
+      renderChart({ series: [{ data: [1] }], minHeight: 300 });
+      expect(chartSpy.mock.calls.at(-1)[0].height).toBe(300);
+      expect(window.getComputedStyle(screen.getByTestId('bar-chart-container')).minHeight).toBe('300px');
+    });
+
+    it('leaves minHeight as a floor and gives the chart no fixed height when aspect is set (no height)', () => {
+      renderChart({ series: [{ data: [1] }], minHeight: 320, aspect: 1.8 });
+      expect(chartSpy.mock.calls.at(-1)[0].height).toBeUndefined();
+      const style = window.getComputedStyle(screen.getByTestId('bar-chart-container'));
+      expect(style.minHeight).toBe('320px');
+      expect(style.aspectRatio).toBe('1.8 / 1');
+    });
+
+    it('caps the wrapper at height when minHeight is larger, closing the dead-space gap', () => {
+      renderChart({ series: [{ data: [1] }], minHeight: 420, height: 380 });
+      expect(chartSpy.mock.calls.at(-1)[0].height).toBe(380);
+      expect(window.getComputedStyle(screen.getByTestId('bar-chart-container')).minHeight).toBe('380px');
+    });
+
+    it('is byte-identical when minHeight equals height', () => {
+      renderChart({ series: [{ data: [1] }], minHeight: 320, height: 320 });
+      expect(chartSpy.mock.calls.at(-1)[0].height).toBe(320);
+      expect(window.getComputedStyle(screen.getByTestId('bar-chart-container')).minHeight).toBe('320px');
+    });
+
+    it('is unchanged when height is passed alone', () => {
+      renderChart({ series: [{ data: [1] }], height: 280 });
+      expect(chartSpy.mock.calls.at(-1)[0].height).toBe(280);
+      expect(window.getComputedStyle(screen.getByTestId('bar-chart-container')).minHeight).toBe('auto');
+    });
+
+    it('warns only on the disagreeing pair, naming both values, and not on the aspect combination', () => {
+      const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      renderChart({ series: [{ data: [1] }], minHeight: 420, height: 380 });
+      expect(warn).toHaveBeenCalledOnce();
+      expect(warn.mock.calls[0][0]).toContain('420');
+      expect(warn.mock.calls[0][0]).toContain('380');
+      warn.mockClear();
+
+      renderChart({ series: [{ data: [1] }], minHeight: 320, aspect: 1.8 });
+      expect(warn).not.toHaveBeenCalled();
+      warn.mockRestore();
+    });
+  });
 });

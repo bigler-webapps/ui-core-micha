@@ -271,6 +271,49 @@ export function defaultNumericTickFormatter(locale) {
     : new Intl.NumberFormat(locale).format(value));
 }
 
+/**
+ * CHART-8: resolves the `{minHeight, height, aspect}` trio these presets accept into what the
+ * wrapper reserves and what height (if any) sizes the chart itself. Three-way, not two-way --
+ * `aspect` changes the answer:
+ *  - `height` set -> it sizes the chart; the wrapper never reserves more than that (a caller-set
+ *    `minHeight` larger than `height` is capped here, closing the dead-space gap this WO exists
+ *    to fix -- equal values, or no `minHeight` at all, pass through unchanged).
+ *  - no `height`, `aspect` set -> unchanged from before this WO: the wrapper's own `aspectRatio`
+ *    derives its height from its width, and `minHeight` stays exactly what its name says, a floor
+ *    stopping it collapsing on a narrow viewport. Do not give the chart a fixed height here --
+ *    that would remove the responsive behaviour four live call sites rely on.
+ *  - no `height`, no `aspect` -> `minHeight` sizes the chart itself. There is no other sizing
+ *    information to go on, and a caller in this shape meant the chart to have that height, not
+ *    merely a wrapper floor around an unsized chart.
+ */
+export function resolveChartHeight({ minHeight, height, aspect }) {
+  if (height != null) {
+    const wrapperMinHeight = minHeight != null && minHeight > height ? height : minHeight;
+    return { wrapperMinHeight, chartHeight: height };
+  }
+  if (aspect != null) {
+    return { wrapperMinHeight: minHeight, chartHeight: undefined };
+  }
+  return { wrapperMinHeight: minHeight, chartHeight: minHeight };
+}
+
+/**
+ * CHART-8: dev-only warning when a caller passes both `minHeight` and `height` and they disagree
+ * -- the incoherent pair this WO closes. Not a throw: a shared package throwing on a prop
+ * combination in production would break a consumer's page over a layout nit. Silent on the
+ * equal-value majority and on the legitimate `minHeight` + `aspect` (no `height`) combination.
+ */
+export function warnOnHeightMismatch(componentName, { minHeight, height }) {
+  if (process.env.NODE_ENV === 'production') return;
+  if (minHeight == null || height == null || minHeight === height) return;
+  // eslint-disable-next-line no-console
+  console.warn(
+    `[ui-core-micha] <${componentName}> received both minHeight={${minHeight}} and height={${height}}; `
+    + 'they disagree, so height wins and the wrapper no longer reserves the extra space below the '
+    + 'chart. Pass only height, or drop minHeight if it should just track height.',
+  );
+}
+
 export function withChartSlotDefaults(slotProps, legendPosition) {
   const position = {
     ...DEFAULT_LEGEND_POSITION,

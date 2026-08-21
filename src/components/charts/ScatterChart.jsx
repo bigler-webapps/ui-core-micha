@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { Box } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import { useTranslation } from 'react-i18next';
@@ -8,7 +8,9 @@ import { useNeutralChartPalette } from './palette';
 import {
   DEFAULT_LEGEND_POSITION,
   defaultNumericTickFormatter,
+  resolveChartHeight,
   sizeYAxisForContent,
+  warnOnHeightMismatch,
   withAxisDefaults,
   withChartSlotDefaults,
   withGridDefaults,
@@ -151,6 +153,11 @@ export function ScatterReferenceLine({
  * Reference geometry (a computed curve, a straight line, either with an optional label) is
  * composed as `children` using `ScatterReferenceCurve`/`ScatterReferenceLine` above.
  *
+ * `minHeight` (CHART-8): a floor under an `aspect`-derived responsive height when `aspect` is
+ * set and `height` is not; otherwise (no `height`, no `aspect`) it sizes the chart itself. Once
+ * `height` is set, `height` sizes the chart and the wrapper never reserves more than that, even
+ * if `minHeight` is also passed and larger.
+ *
  * Tested magnitude: a few hundred marks (hram's largest cloud is ~300 points). Not verified,
  * and not implied to hold, at thousands+.
  *
@@ -171,6 +178,7 @@ export function ScatterChart({
   yAxis,
   palette,
   minHeight,
+  height,
   aspect,
   grid,
   hideLegend = series.length <= 1,
@@ -186,6 +194,9 @@ export function ScatterChart({
   const theme = useTheme();
   const { i18n } = useTranslation();
   const neutralPalette = useNeutralChartPalette();
+
+  useEffect(() => warnOnHeightMismatch('ScatterChart', { minHeight, height }), [minHeight, height]);
+  const { wrapperMinHeight, chartHeight } = resolveChartHeight({ minHeight, height, aspect });
 
   const labelledXAxis = withAxisDefaults(
     xAxis,
@@ -257,9 +268,10 @@ export function ScatterChart({
   );
 
   return (
-    <Box data-testid="scatter-chart-container" sx={{ width: '100%', minHeight, aspectRatio: aspect }}>
+    <Box data-testid="scatter-chart-container" sx={{ width: '100%', minHeight: wrapperMinHeight, aspectRatio: aspect }}>
       <MuiScatterChart
         {...chartProps}
+        height={chartHeight}
         series={orderedSeries.map((item) => ({ markerSize, ...item }))}
         xAxis={labelledXAxis}
         yAxis={sizedYAxis}

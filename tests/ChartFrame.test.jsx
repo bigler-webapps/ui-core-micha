@@ -211,4 +211,47 @@ describe('ChartFrame', () => {
     renderFrame({ isEmpty: true }, 'fr');
     expect(screen.getByText('Aucune donnée disponible.')).toBeTruthy();
   });
+
+  // CHART-8: minHeight/height/aspect resolution on ChartFrame's own content box.
+  describe('minHeight/height resolution (CHART-8)', () => {
+    function contentBoxStyle() {
+      return window.getComputedStyle(screen.getByTestId('chart-body').parentElement);
+    }
+
+    it('sizes the content box from minHeight alone when neither height nor aspect is set', () => {
+      renderFrame({ minHeight: 300 });
+      const style = contentBoxStyle();
+      expect(style.minHeight).toBe('300px');
+      expect(style.height).toBe('300px');
+    });
+
+    it('leaves minHeight as a floor and gives no fixed height when aspect is set (no height)', () => {
+      renderFrame({ minHeight: 320, aspect: 1.8 });
+      const style = contentBoxStyle();
+      expect(style.minHeight).toBe('320px');
+      expect(style.height).toBe('auto');
+      expect(style.aspectRatio).toBe('1.8 / 1');
+    });
+
+    it('caps the wrapper at height when minHeight is larger, closing the dead-space gap', () => {
+      renderFrame({ minHeight: 420, height: 380 });
+      const style = contentBoxStyle();
+      expect(style.minHeight).toBe('380px');
+      expect(style.height).toBe('380px');
+    });
+
+    it('is byte-identical when minHeight equals height', () => {
+      renderFrame({ minHeight: 320, height: 320 });
+      const style = contentBoxStyle();
+      expect(style.minHeight).toBe('320px');
+      expect(style.height).toBe('320px');
+    });
+
+    it('is unchanged when height is passed alone', () => {
+      renderFrame({ height: 280 });
+      const style = contentBoxStyle();
+      expect(style.minHeight).toBe('auto');
+      expect(style.height).toBe('280px');
+    });
+  });
 });

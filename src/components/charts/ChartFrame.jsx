@@ -1,4 +1,4 @@
-import React, { useId, useRef, useState } from 'react';
+import React, { useEffect, useId, useRef, useState } from 'react';
 import {
   Alert,
   Box,
@@ -11,12 +11,18 @@ import {
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '@mui/material/styles';
 import { exportChartPng, exportChartSvg } from './exportChart';
+import { resolveChartHeight, warnOnHeightMismatch } from './chartDefaults';
 
 export const CHART_FRAME_ROOT_SX = { p: 2 };
 export const CHART_FRAME_ALERT_SX = { mt: 2 };
 
 /**
  * Chart-type-agnostic chart scaffolding. Children may be an X-Charts primitive or a bespoke SVG.
+ *
+ * `minHeight` (CHART-8): a floor under an `aspect`-derived responsive height when `aspect` is
+ * set and `height` is not; otherwise (no `height`, no `aspect`) it sizes the content box itself.
+ * Once `height` is set, `height` sizes the box and it never reserves more than that, even if
+ * `minHeight` is also passed and larger.
  */
 export function ChartFrame({
   title,
@@ -28,6 +34,7 @@ export function ChartFrame({
   isEmpty = false,
   emptyMessage,
   minHeight,
+  height,
   aspect,
   exportOptions = false,
   onExportSvg,
@@ -50,6 +57,9 @@ export function ChartFrame({
   const hasCustomAriaLabel = Boolean(ariaLabel);
   const chartLabel = ariaLabel || title;
   const callerSx = Array.isArray(sx) ? sx : [sx];
+
+  useEffect(() => warnOnHeightMismatch('ChartFrame', { minHeight, height }), [minHeight, height]);
+  const { wrapperMinHeight, chartHeight } = resolveChartHeight({ minHeight, height, aspect });
 
   const runExport = async (type) => {
     setExportError(false);
@@ -103,7 +113,8 @@ export function ChartFrame({
         aria-labelledby={hasCustomAriaLabel ? undefined : titleId}
         sx={{
           width: '100%',
-          minHeight,
+          minHeight: wrapperMinHeight,
+          height: chartHeight,
           aspectRatio: aspect,
           display: 'flex',
           alignItems: 'center',

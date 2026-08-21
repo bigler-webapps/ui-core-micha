@@ -17,7 +17,9 @@ import { TimeSeriesChart } from '../src/components/charts/TimeSeriesChart';
 import {
   defaultNumericTickFormatter,
   PACKAGE_DEFAULT_MARGIN,
+  resolveChartHeight,
   sizeYAxisForContent,
+  warnOnHeightMismatch,
   withAxisDefaults,
   withMarginDefaults,
 } from '../src/components/charts/chartDefaults';
@@ -431,5 +433,76 @@ describe('withMarginDefaults (THEME-11)', () => {
   it('leaves a fully-specified caller margin untouched', () => {
     const full = { top: 1, bottom: 2, left: 3, right: 4 };
     expect(withMarginDefaults(full)).toEqual(full);
+  });
+});
+
+// CHART-8 -- pure-function contract of the minHeight/height/aspect resolver, independent of any
+// chart component wiring (component-level wiring is covered per-preset in each own test file).
+describe('resolveChartHeight (CHART-8)', () => {
+  it('sizes the chart from minHeight alone when neither height nor aspect is set', () => {
+    expect(resolveChartHeight({ minHeight: 300 })).toEqual({ wrapperMinHeight: 300, chartHeight: 300 });
+  });
+
+  it('leaves minHeight as a floor and gives the chart no fixed height when aspect is set (no height)', () => {
+    expect(resolveChartHeight({ minHeight: 320, aspect: 1.8 })).toEqual({
+      wrapperMinHeight: 320,
+      chartHeight: undefined,
+    });
+  });
+
+  it('caps the wrapper at height when minHeight is larger, closing the dead-space gap', () => {
+    expect(resolveChartHeight({ minHeight: 420, height: 380 })).toEqual({
+      wrapperMinHeight: 380,
+      chartHeight: 380,
+    });
+  });
+
+  it('is byte-identical (both values unchanged) when minHeight equals height', () => {
+    expect(resolveChartHeight({ minHeight: 320, height: 320 })).toEqual({
+      wrapperMinHeight: 320,
+      chartHeight: 320,
+    });
+  });
+
+  it('leaves the wrapper unset when height is passed alone', () => {
+    expect(resolveChartHeight({ height: 280 })).toEqual({ wrapperMinHeight: undefined, chartHeight: 280 });
+  });
+
+  it('does not cap the wrapper when minHeight is smaller than height', () => {
+    expect(resolveChartHeight({ minHeight: 200, height: 380 })).toEqual({
+      wrapperMinHeight: 200,
+      chartHeight: 380,
+    });
+  });
+});
+
+describe('warnOnHeightMismatch (CHART-8)', () => {
+  afterEach(() => vi.restoreAllMocks());
+
+  it('warns, naming the component and both values, when minHeight and height disagree', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    warnOnHeightMismatch('BarChart', { minHeight: 420, height: 380 });
+    expect(warn).toHaveBeenCalledOnce();
+    expect(warn.mock.calls[0][0]).toContain('BarChart');
+    expect(warn.mock.calls[0][0]).toContain('420');
+    expect(warn.mock.calls[0][0]).toContain('380');
+  });
+
+  it('does not warn when minHeight equals height', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    warnOnHeightMismatch('BarChart', { minHeight: 320, height: 320 });
+    expect(warn).not.toHaveBeenCalled();
+  });
+
+  it('does not warn on the legitimate minHeight + aspect (no height) combination', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    warnOnHeightMismatch('BarChart', { minHeight: 320, height: undefined });
+    expect(warn).not.toHaveBeenCalled();
+  });
+
+  it('does not warn when only one of the pair is set', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    warnOnHeightMismatch('BarChart', { minHeight: undefined, height: 280 });
+    expect(warn).not.toHaveBeenCalled();
   });
 });
