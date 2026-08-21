@@ -5,7 +5,11 @@
 - **Status:** planned
 - **Workstream:** `CHART-*` (chart presets)
 - **Files:** `src/components/charts/ScatterChart.jsx`, `BarChart.jsx`, `LineChart.jsx`,
-  `TimeSeriesChart.jsx` (whichever of them accept `minHeight`), plus their tests.
+  `TimeSeriesChart.jsx`, **`ChartFrame.jsx`** — all five destructure `minHeight` **and** `aspect`
+  (verified 2026-08-21) — plus their tests. **Note for the implementer: only `ScatterChart` and
+  `TimeSeriesChart` reference `height` at all.** `BarChart`, `LineChart` and `ChartFrame` never
+  destructure it, so for them the incoherent "pair" exists only via the rest spread into the MUI
+  chart. Do not go looking for a declared `height` prop there.
 
 > **Why.** `minHeight` and `height` are two different things on these presets, and the API lets a
 > caller pass both. `minHeight` lands on the **wrapper `Box`** —
@@ -45,10 +49,19 @@ themselves, and the incoherent combination becomes impossible rather than merely
 
 ### Definition of Done
 
-- [ ] **`minHeight` alone sizes the chart.** When `height` is absent, `minHeight` is used as the
-      chart height — not only as wrapper padding. This is what every caller passing `minHeight`
-      already meant (`GroupMetricsPanel` is the proof: `minHeight={300}` and no `height`, and the
-      chart is unsized today).
+- [ ] **The resolution is three-way, not two-way — `aspect` is the third input and it changes the
+      answer.** Amended 2026-08-21; the original two-way rule would have broken four live call sites.
+      - **`height` present** → it sizes the chart, and the wrapper reserves no more than that.
+      - **No `height`, no `aspect`** → **`minHeight` sizes the chart**, not merely the wrapper.
+        This is what a caller in that shape meant (`GroupMetricsPanel`: `minHeight={300}`, no
+        `height`, no `aspect` — chart unsized today).
+      - **No `height`, but `aspect` present** → **today's behaviour is correct and must not change.**
+        The wrapper is `width: 100%` with `aspectRatio`, so its height derives from its width, and
+        `minHeight` is the floor that stops it collapsing on a narrow viewport. Here `minHeight`
+        means exactly what its name says.
+
+      **Same prop shape, opposite intent** — which is why the rule cannot be stated on
+      `minHeight`/`height` alone.
 - [ ] **`minHeight > height` produces no wrapper padding.** The chart is sized by `height` and the
       wrapper does not reserve more than the chart occupies. The extra space was never intentional.
 - [ ] **Equal values behave exactly as today** — that is the majority of call sites and they must
@@ -77,20 +90,43 @@ a consumer installs it.
 
 ### Risks
 
-- **A consumer may be relying on the padding as spacing** without knowing it. Unlikely — nobody
-  writes `minHeight` to get a gap under a chart — but it is the one way this change could look like
-  a regression. Check the other consumers (`django-core-micha`-based apps, `survey-renderer`) for
-  `minHeight` on a chart preset before publishing, and name what was found.
+- **The consumer check is done, and it found something — 2026-08-21.** It was written here as a
+  hypothetical ("a consumer may be relying on the padding as spacing"); the real finding is
+  different and larger. **Four live call sites pass `aspect` together with `minHeight` and no
+  `height`:**
+
+  | call site | props |
+  |---|---|
+  | `hram/AccessGapScatterPanel.jsx:182` | `aspect={1.8}` + `minHeight={320}` |
+  | `fitness-monitor/BodyHistoryPage.jsx:~328` | `aspect="960 / 380"` + `minHeight={320}` |
+  | `fitness-monitor/BodyHistoryPage.jsx:~355` | `aspect="960 / 380"` + `minHeight={320}` |
+  | `fitness-monitor/BodyHistoryPage.jsx:~450` | `aspect="400 / 220"` + `minHeight={220}` |
+
+  These are not relying on padding-as-spacing. They are using `minHeight` **as a floor under an
+  aspect-derived height**, which is legitimate and is what the name promises. The original
+  Definition of Done would have turned all four into fixed-height charts and removed their
+  responsive behaviour. **That is the reason for the three-way rule above**, and it is the case to
+  hold onto when reading the rest of this order.
+
+  Scope note: `survey-renderer` is named above as a consumer to check. **The standalone repo is
+  retired** (2026-07-31); the widget now lives at `survey_app/frontend/packages/survey-renderer`,
+  and neither it nor `cockpit` or `jg-ferien` passes `aspect` to a chart preset. jg's one `aspect=`
+  hit is an `ImageCropDialog`, unrelated.
 - The dev warning must not fire on the equal-value majority, or it becomes noise that trains people
   to ignore it.
 
 ### Tests to WRITE — narrow
 
-- `minHeight` alone → the chart receives that height.
+- `minHeight` alone, **no `aspect`** → the chart receives that height.
+- **`minHeight` + `aspect`, no `height` → unchanged from today**: the wrapper keeps its
+  `aspectRatio` and `minHeight` stays a floor, and the chart is **not** given a fixed height. This is
+  the four-call-site case in Risks and the one a two-way rule would have broken — **it is the test
+  that has to fail if someone later re-simplifies the resolution.**
 - `minHeight > height` → the chart receives `height` and the wrapper reserves no more than that.
 - `minHeight === height` → byte-identical to the current output.
 - `height` alone → unchanged.
-- The dev warning fires only on the disagreeing pair, and names the values.
+- The dev warning fires only on the disagreeing pair, and names the values. It must **not** fire on
+  `minHeight` + `aspect` without `height`, which is a legitimate combination.
 
 No full suite.
 
