@@ -2,6 +2,21 @@
 
 Only notable, user-facing changes. Not every version — see `WORK_ORDERS.md` for the full history.
 
+## 3.1.2 — UCM-CHART-14 follow-up
+
+**The census script shipped in `3.1.1` worked; its test suite never ran.** `scripts/chart-api-census.mjs`
+began with `#!/usr/bin/env node`. Node strips a shebang when executing a file directly, so the script
+behaved correctly and its output was trustworthy — but Vite's module runner does not strip it, so any
+test importing the module died at collection with `SyntaxError: Invalid or unexpected token`. The
+suite reported `1 failed | 2 passed` with **0 of its 22 census tests collected**.
+
+- Shebang removed; the script is invoked as `node scripts/chart-api-census.mjs <workspace-root>`, which
+  is how it was already documented and run. A comment in its place records why: a shebang is invisible
+  to direct execution but breaks any loader that pulls the file through an ESM graph, so re-adding one
+  fails nothing user-facing and only takes out the tests.
+- No change to the census logic, its output, or anything in the published runtime surface. The 22
+  fixture tests were already correct; they now execute (118 passing across the chart suite, up from 96).
+
 ## 3.1.1 — UCM-CHART-14
 
 **Corrects a wrong record from `3.1.0`, and a runtime error message that stated the opposite of
