@@ -302,15 +302,25 @@ export function resolveChartHeight({ minHeight, height, aspect }) {
  * -- the incoherent pair this WO closes. Not a throw: a shared package throwing on a prop
  * combination in production would break a consumer's page over a layout nit. Silent on the
  * equal-value majority and on the legitimate `minHeight` + `aspect` (no `height`) combination.
+ *
+ * CHART-9: `heightWins` distinguishes the two shapes this fires from. The four chart presets
+ * (default, `heightWins: true`) DO apply `resolveChartHeight`'s `height` to their box, so the
+ * original "height wins" wording is accurate there. `ChartFrame` (`heightWins: false`) never
+ * applies `height` to its box at all -- `minHeight` always keeps reserving the floor -- so it gets
+ * its own accurate wording instead of reusing the presets' story.
  */
-export function warnOnHeightMismatch(componentName, { minHeight, height }) {
+export function warnOnHeightMismatch(componentName, { minHeight, height }, { heightWins = true } = {}) {
   if (process.env.NODE_ENV === 'production') return;
   if (minHeight == null || height == null || minHeight === height) return;
+  const resolution = heightWins
+    ? 'they disagree, so height wins and the wrapper no longer reserves the extra space below the '
+      + 'chart. Pass only height, or drop minHeight if it should just track height.'
+    : 'they disagree; height is ignored here and minHeight keeps sizing the wrapper as a floor. '
+      + 'Pass only minHeight, or drop height if it was meant to size the whole card.';
   // eslint-disable-next-line no-console
   console.warn(
     `[ui-core-micha] <${componentName}> received both minHeight={${minHeight}} and height={${height}}; `
-    + 'they disagree, so height wins and the wrapper no longer reserves the extra space below the '
-    + 'chart. Pass only height, or drop minHeight if it should just track height.',
+    + resolution,
   );
 }
 

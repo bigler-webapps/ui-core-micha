@@ -212,17 +212,37 @@ describe('ChartFrame', () => {
     expect(screen.getByText('Aucune donnée disponible.')).toBeTruthy();
   });
 
-  // CHART-8: minHeight/height/aspect resolution on ChartFrame's own content box.
-  describe('minHeight/height resolution (CHART-8)', () => {
+  // CHART-9: ChartFrame's content box is a whole CARD (title, toolbar, chart, legend, footnotes,
+  // export links), not a single chart -- unlike the four chart presets, which do apply
+  // resolveChartHeight's height/aspect resolution to their own box. ChartFrame's box must never
+  // take a fixed `height`; `minHeight` is always just a floor content can exceed.
+  describe('minHeight/height resolution (CHART-9)', () => {
     function contentBoxStyle() {
       return window.getComputedStyle(screen.getByTestId('chart-body').parentElement);
     }
 
-    it('sizes the content box from minHeight alone when neither height nor aspect is set', () => {
+    it('sizes the content box from minHeight alone as a floor, never a fixed height', () => {
       renderFrame({ minHeight: 300 });
       const style = contentBoxStyle();
       expect(style.minHeight).toBe('300px');
-      expect(style.height).toBe('300px');
+      expect(style.height).toBe('auto');
+    });
+
+    it('does not receive a fixed height when content exceeds minHeight -- the regression itself', () => {
+      const i18n = i18next.createInstance();
+      i18n.init({ lng: 'en', resources, interpolation: { escapeValue: false } });
+      render(
+        <ThemeProvider theme={createTheme()}>
+          <I18nextProvider i18n={i18n}>
+            <ChartFrame title="Chart title" minHeight={100}>
+              <svg data-testid="chart-body" style={{ height: 500 }} />
+            </ChartFrame>
+          </I18nextProvider>
+        </ThemeProvider>,
+      );
+      const style = contentBoxStyle();
+      expect(style.minHeight).toBe('100px');
+      expect(style.height).toBe('auto');
     });
 
     it('leaves minHeight as a floor and gives no fixed height when aspect is set (no height)', () => {
@@ -233,25 +253,29 @@ describe('ChartFrame', () => {
       expect(style.aspectRatio).toBe('1.8 / 1');
     });
 
-    it('caps the wrapper at height when minHeight is larger, closing the dead-space gap', () => {
-      renderFrame({ minHeight: 420, height: 380 });
+    it('does not apply height as a fixed box height even when passed explicitly, and does not throw', () => {
+      expect(() => renderFrame({ minHeight: 420, height: 380 })).not.toThrow();
       const style = contentBoxStyle();
-      expect(style.minHeight).toBe('380px');
-      expect(style.height).toBe('380px');
+      expect(style.minHeight).toBe('420px');
+      expect(style.height).toBe('auto');
     });
 
-    it('is byte-identical when minHeight equals height', () => {
-      renderFrame({ minHeight: 320, height: 320 });
-      const style = contentBoxStyle();
-      expect(style.minHeight).toBe('320px');
-      expect(style.height).toBe('320px');
-    });
-
-    it('is unchanged when height is passed alone', () => {
+    it('ignores height when passed alone, with no minHeight floor either', () => {
       renderFrame({ height: 280 });
       const style = contentBoxStyle();
       expect(style.minHeight).toBe('auto');
-      expect(style.height).toBe('280px');
+      expect(style.height).toBe('auto');
+    });
+
+    it('warns with wording accurate to its own behaviour -- minHeight wins, not height', () => {
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      renderFrame({ minHeight: 420, height: 380 });
+      expect(warnSpy).toHaveBeenCalledOnce();
+      const message = warnSpy.mock.calls[0][0];
+      expect(message).toContain('ChartFrame');
+      expect(message).toContain('height is ignored');
+      expect(message).not.toContain('height wins');
+      warnSpy.mockRestore();
     });
   });
 });

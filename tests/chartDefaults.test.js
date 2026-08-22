@@ -505,4 +505,14 @@ describe('warnOnHeightMismatch (CHART-8)', () => {
     warnOnHeightMismatch('BarChart', { minHeight: undefined, height: 280 });
     expect(warn).not.toHaveBeenCalled();
   });
+
+  it('gives ChartFrame-accurate wording when heightWins is false (CHART-9)', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    warnOnHeightMismatch('ChartFrame', { minHeight: 420, height: 380 }, { heightWins: false });
+    expect(warn).toHaveBeenCalledOnce();
+    const message = warn.mock.calls[0][0];
+    expect(message).toContain('ChartFrame');
+    expect(message).toContain('height is ignored');
+    expect(message).not.toContain('height wins');
+  });
 });

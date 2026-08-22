@@ -11,7 +11,7 @@ import {
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '@mui/material/styles';
 import { exportChartPng, exportChartSvg } from './exportChart';
-import { resolveChartHeight, warnOnHeightMismatch } from './chartDefaults';
+import { warnOnHeightMismatch } from './chartDefaults';
 
 export const CHART_FRAME_ROOT_SX = { p: 2 };
 export const CHART_FRAME_ALERT_SX = { mt: 2 };
@@ -19,10 +19,11 @@ export const CHART_FRAME_ALERT_SX = { mt: 2 };
 /**
  * Chart-type-agnostic chart scaffolding. Children may be an X-Charts primitive or a bespoke SVG.
  *
- * `minHeight` (CHART-8): a floor under an `aspect`-derived responsive height when `aspect` is
- * set and `height` is not; otherwise (no `height`, no `aspect`) it sizes the content box itself.
- * Once `height` is set, `height` sizes the box and it never reserves more than that, even if
- * `minHeight` is also passed and larger.
+ * `minHeight` (CHART-9): always just a floor on the content box, which holds a whole card --
+ * title, toolbar, chart, legend, footnotes, export links -- not a single chart. `height` is never
+ * applied to the box (unlike the four chart presets, whose box holds exactly one chart and do use
+ * `resolveChartHeight`'s `height`/`aspect` resolution); it is only compared against `minHeight` for
+ * `warnOnHeightMismatch`'s dev-mode note.
  */
 export function ChartFrame({
   title,
@@ -58,8 +59,10 @@ export function ChartFrame({
   const chartLabel = ariaLabel || title;
   const callerSx = Array.isArray(sx) ? sx : [sx];
 
-  useEffect(() => warnOnHeightMismatch('ChartFrame', { minHeight, height }), [minHeight, height]);
-  const { wrapperMinHeight, chartHeight } = resolveChartHeight({ minHeight, height, aspect });
+  useEffect(
+    () => warnOnHeightMismatch('ChartFrame', { minHeight, height }, { heightWins: false }),
+    [minHeight, height],
+  );
 
   const runExport = async (type) => {
     setExportError(false);
@@ -113,8 +116,7 @@ export function ChartFrame({
         aria-labelledby={hasCustomAriaLabel ? undefined : titleId}
         sx={{
           width: '100%',
-          minHeight: wrapperMinHeight,
-          height: chartHeight,
+          minHeight,
           aspectRatio: aspect,
           display: 'flex',
           alignItems: 'center',
