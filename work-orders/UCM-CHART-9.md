@@ -70,11 +70,14 @@ three-way resolution unchanged.
   publish, and the rendered check below is what proves it.
 - 2.42.0 is `latest` on the registry and carries this regression. Publish 2.42.1 promptly; note in
   the register that 2.42.0 should not be adopted by a new consumer.
-- **Unresolved, and worth watching:** hram's Detailed Results tab, which crashed with React #185
-  before the bump (`HRAM-RES-29` item 1), **stopped crashing after it**. The plausible mechanism is
-  that deterministic sizing removed a resize-driven `setState` loop. That is a hypothesis, not a
-  finding. If this WO changes `ChartFrame`'s sizing back toward a floor, **re-check whether the crash
-  returns** — and if it does, that is a real finding for `HRAM-RES-29`, not a reason to undo this.
+- **hram's Detailed Results tab is fixed as of 2.42.0** (operator-confirmed, 2026-08-21) — it
+  crashed with React #185 before the bump (`HRAM-RES-29` item 1) and does not any more. What is
+  **not** established is *why*: the plausible mechanism is that deterministic sizing removed a
+  resize-driven `setState` loop, but nobody has traced it.
+  **Consequence for this WO, and the only reason it is mentioned here:** since we do not know what
+  fixed it, we cannot know whether moving `ChartFrame` back toward a floor disturbs it. Re-check the
+  tab after this lands. If the crash returns, that is a finding for `HRAM-RES-29` and a sizing
+  dependency worth understanding — not a reason to undo this fix.
 
 ### Tests to WRITE — narrow
 
