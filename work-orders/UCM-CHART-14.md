@@ -1,7 +1,7 @@
 # UCM-CHART-14 — The removal was right. The reason on the record is false, and the error message says the opposite of the docblock.
 
 - **Repo:** `ui-core-micha`, branch `main`
-- **Tier:** 3 — shared-core. Version correction `3.1.0` → **`4.0.0`**.
+- **Tier:** 3 — shared-core. Version **`3.1.1`** (patch — see "Why 3.1.1 and not 4.0.0").
 - **Status:** planned
 - **Workstream:** `CHART-*`
 - **Files:** `src/components/charts/ChartFrame.jsx`, `docs/CHART-LAYOUT.md`,
@@ -59,15 +59,15 @@ This WO's predecessor argued that "a prop accepted and silently ignored is worse
 errors" — an error that misdescribes what it is guarding is worse than both.
 `tests/ChartFrame.test.jsx:254` repeats the same false claim in a comment.
 
-**F3 — `3.1.0` is a minor for removing an applied prop with four live call sites.** It is breaking,
-and the minor was chosen *because* of F1. `3.1.0` is already published and cannot be unpublished; the
-correction is that the **next** release is `4.0.0`, not that history is rewritten.
+**F3 — `3.1.0` is a minor for removing an applied prop with four live call sites.** The removal is
+breaking, and the minor was chosen *because* of F1. `3.1.0` is published and cannot be unpublished.
+**The remedy is a corrected record and a truthful error message, NOT a compensating major** — see
+below; this was argued the other way first and the operator was right.
 
 ### Goal
 
 The record matches what was measured, the error message tells the truth to the four callers who will
-see it, the version reflects that the change is breaking — and **the consumer count stops being a
-claim and becomes a command.**
+see it — and **the consumer count stops being a claim and becomes a command.**
 
 ### The actual deliverable: a census, not three corrected sentences
 
@@ -112,17 +112,44 @@ instead of a sentence somebody has to trust.**
       at `tests/ChartFrame.test.jsx:254`. Replace "no consumer passed it" with what the census
       reports: four call sites in fitness-monitor, removed by `FM-CHART-1`. **Do not quietly delete
       the sentence** — the point is that a measurement was wrong, and that is worth leaving legible.
-- [ ] **Version `4.0.0`**, with the release note saying plainly that `3.1.0` removed an applied prop
-      under a minor and that four call sites were affected.
+- [ ] **Version `3.1.1`**, with a CHANGELOG entry saying plainly that **`3.1.0` removed an applied
+      prop under a minor**, that four call sites were affected, and that the dev-mode error is what
+      makes the break loud. Do not publish a compensating `4.0.0`.
 - [ ] **Run the census and paste its output into this WO's register Notiz.** A WO about unverified
       counts that lands with an unverified count is self-refuting.
+
+### Why `3.1.1` and not `4.0.0`
+
+**This WO changes no API.** Corrected prose, one error-message string, one dev script that never
+ships. On its own diff it is a patch, and labelling it `4.0.0` would announce a breaking change it
+does not contain.
+
+The counter-argument, made first in this WO and **withdrawn**: no consumer has crossed `3.1.0` —
+hram is on `3.0.1` (`HRAM-CHT-4`, landed), fitness-monitor on `2.37.0` committed / `3.0.1` in its
+working tree, jg-ferien on `2.41.1` — so the break is still ahead of all three, and a major would put
+the boundary where they will actually meet it.
+
+**What settles it: the break is not silent.** `assertRemovedChartProp` throws on first render in dev
+and names the replacement. The protection a major version buys — "read the notes before upgrading" —
+is already delivered by a hard error at the exact call site, which is strictly better than a version
+number nobody reads. A major would buy a second copy of a signal that already exists, at the cost of
+a version number that lies about its own contents.
+
+**This is conditional, and the condition is F2.** The guard is only a safety net if it tells the
+truth. An error saying `aspect` "was never applied" invites precisely the wrong action from the four
+callers whose cards change shape. **`3.1.1` is defensible because F2 is fixed in it — not
+independently of that.** If F2 were deferred, this argument collapses and the major comes back.
+
+`3.1.0` may additionally be deprecated on npm (`npm deprecate`, operator-only — a registry mutation).
+Low value here since nobody is on it and `3.1.1` supersedes it immediately; noted as available, not
+recommended.
 
 ### Non-goals
 
 - **Do not reinstate `aspect`, and do not touch `minHeight`.** The removal stands; only its stated
   reason and its error text are wrong.
 - Do not migrate fitness-monitor's four call sites — `FM-CHART-1` owns them.
-- Do not rewrite history or attempt to unpublish `3.1.0`.
+- Do not rewrite history, unpublish `3.1.0`, or publish a compensating `4.0.0`.
 - Do not extend the census beyond chart props. It answers "who passes what to the chart API", not
   "who uses ucm".
 
@@ -168,4 +195,4 @@ No full suite.
 
 > **TO BE FILLED BY THE ORCHESTRATOR.** Review routing (Tier 3: `reviewer` + `ui_reviewer`
 > concurrent), register maintenance including the pasted census output, publish verification for
-> `4.0.0`, commit, and the execution directive with its self-address guard.
+> `3.1.1`, commit, and the execution directive with its self-address guard.
