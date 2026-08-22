@@ -39,20 +39,37 @@ labels reserves what those labels occupy — not what a character-count estimate
 
 ### Definition of Done
 
-- [ ] **`extraHeight` is derived from measured text extent, not from character count.** Whether that
-      is a canvas `measureText`, a transient hidden SVG `<text>`, or MUI's own measurement is the
-      implementer's call — but `AVERAGE_GLYPH_WIDTH_EM` as the basis goes. State in the commit which
-      mechanism was chosen and why.
-- [ ] **MUI's own truncation is accounted for.** Cost's labels arrive at the axis already shortened
-      to `Ching'a…`. If the estimate is taken from the untruncated string while MUI renders the
-      truncated one, the error returns in a new form. Measure what will render.
-- [ ] **Numeric acceptance, on the same four live cards.** Ward Metrics and Access Ladder: unused band
-      from 52 px to under ~15 px. Division Metrics: from 41 px. Cost: unchanged at ~15 px, since its
-      estimate was already close. Measured at 1280 px on hram Teaching → Basic Plots.
-- [ ] **Nothing is clipped, at any width.** The mirror failure is worse than the defect: an
-      under-reserved band cuts label text, which loses information rather than space.
-- [ ] **Angle 0 stays byte-identical.** `rotatedTickMetrics` returns `null` there and the axis passes
-      through untouched — `UCM-CHART-10`'s test for this must stay green unchanged.
+- [x] **`extraHeight` is derived from measured text extent, not from character count.** Chose a
+      transient, invisible, shared SVG `<text>` node (`measureTickTextWidthPx`), not canvas: it is
+      the same element type MUI's own axis ticks render as, so it inherits font metrics via the
+      page's own cascade with no extra plumbing. Verified live against hram: a hidden node measuring
+      "Msolwa Station" at 13px returned 91.203125, and the REAL rendered tick's own
+      `getComputedTextLength()` for the same string was 91.203125 — exact match. `AVERAGE_GLYPH_WIDTH_EM`
+      stays (still used by the unrelated `sizeYAxisForContent`, Y-axis width, THEME-9) but is no
+      longer read by the rotated-tick path; a new per-character-width table
+      (`estimateTextWidthPx`) is the explicitly-declared ESTIMATE fallback for when no DOM is
+      available (confirmed live: jsdom's `getComputedTextLength` throws "not a function", so the
+      fallback is what the unit tests actually exercise; the real measurement only runs in a browser).
+      `measureTextWidth` is also injectable (`spaceForRotatedTicks`'s new optional 4th param) so
+      tests stub it for determinism instead of depending on either environment.
+- [x] **MUI's own truncation is accounted for.** The estimate is always taken from
+      `longestFormattedTick`'s OUTPUT (i.e. whatever `axis.valueFormatter` produces), never the raw
+      `axis.data` value — already true structurally before this WO, confirmed and locked in by a new
+      test (`measures the formatted (already-truncated) tick text...`) using a formatter that
+      truncates. Cost's own axis sets an explicit `height: 60` (bypasses this helper entirely,
+      confirmed by reading `CostMetricsPanel.jsx`), so it was never affected either way.
+- [x] **Numeric acceptance, on the same four live cards**, Teaching → Basic Plots, 1280 px, real data:
+      Ward Metrics 129.6 px → **14.6 px**; Access Ladder 156.9 px → **14.6 px**; Division Metrics
+      85.2 px → **14.2 px**; Cost 92.3 px → **14.6 px** (unchanged, as expected — its axis.height is
+      caller-fixed). All four land under the ~15 px target. Getting there needed correcting not just
+      the width term but how it combines with the `MUI_LABELLED_X_AXIS_HEIGHT` baseline — see the
+      code comment on `ROTATED_TICK_CLEARANCE_PX` for why an accurate width alone left ~38 px
+      unused, verified by direct DOM inspection before adding the second half of the fix.
+- [x] **Nothing is clipped, at any width.** Checked at 1280 px and 375 px on all four cards: 0 of the
+      35 (Ward Metrics/Access Ladder/Cost) or 5 (Division Metrics) x-axis tick labels exceeded their
+      SVG's bottom edge at either width.
+- [x] **Angle 0 stays byte-identical.** `UCM-CHART-10`'s own byte-identical-by-reference test for
+      this is unchanged and still green (137/137 total, no rewrite needed).
 
 ### One trap, and I walked into it myself
 

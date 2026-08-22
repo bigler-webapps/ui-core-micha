@@ -164,7 +164,9 @@ describe('chart chrome defaults', () => {
   });
 
   it('CHART-10: grows only xAxis.height for rotated tick labels, never margin.bottom on top of it', () => {
-    renderBar({ xAxis: [{ data: ['Jan', 'Feb'], tickLabelStyle: { angle: -45 } }] });
+    // CHART-11: a long label -- short ones like "Jan"/"Feb" now correctly need no extra height
+    // at all once the estimate stopped over-reserving (asserted separately below).
+    renderBar({ xAxis: [{ data: ['A label long enough to need real rotation room'], tickLabelStyle: { angle: -45 } }] });
     const rotatedProps = barSpy.mock.calls.at(-1)[0];
     expect(rotatedProps.margin.bottom).toBe(PACKAGE_DEFAULT_MARGIN.bottom);
     expect(rotatedProps.xAxis[0].height).toBeGreaterThan(45);
@@ -477,6 +479,83 @@ describe('spaceForRotatedTicks (CHART-10)', () => {
     const axis = [{ data: ['January'], tickLabelStyle: { angle: -45 }, height: 200 }];
     const result = spaceForRotatedTicks(axis, undefined);
     expect(result.xAxis[0].height).toBe(200);
+  });
+});
+
+// CHART-11 -- the rotated-tick reservation now derives from a MEASURED (or injected-stub, for
+// determinism) text width instead of a flat character-count multiplier, which systematically
+// overestimated real ward-name-shaped strings. jsdom has no SVG text layout
+// (`getComputedTextLength` is not implemented there), so these tests inject `measureTextWidth`
+// (spaceForRotatedTicks's 4th, optional parameter) rather than depending on a real measurement.
+describe('spaceForRotatedTicks measured width (CHART-11)', () => {
+  it('derives extraHeight from the injected measurement, not a character-count guess', () => {
+    const measurer = vi.fn(() => 100);
+    const axis = [{ data: ['x'], tickLabelStyle: { angle: -45, fontSize: 12 } }];
+    const result = spaceForRotatedTicks(axis, undefined, 1, measurer);
+
+    // Same projection formula as `rotatedTickMetrics`, worked by hand for a deterministic
+    // expectation -- a single-character label would give almost no height under the old
+    // character-count formula, but the stub reports 100px measured, so the result must reflect
+    // that, not the string's length. Axis height is the larger of the un-rotated baseline (45)
+    // and the rotated projection plus the small clearance (CHART-11).
+    const radians = (-45 * Math.PI) / 180;
+    const projectedHeight = Math.abs(Math.cos(radians)) * 12 * 1 + Math.abs(Math.sin(radians)) * 100;
+    const neededAxisHeight = Math.ceil(projectedHeight) + 8;
+    expect(result.xAxis[0].height).toBe(Math.max(45, neededAxisHeight));
+    expect(measurer).toHaveBeenCalledWith('x', 12);
+  });
+
+  it('measures the formatted (already-truncated) tick text, not a hypothetical fuller string', () => {
+    const measurer = vi.fn((text) => text.length * 10);
+    const axis = [{
+      data: ['A Very Long Ward Name That MUI Would Truncate'],
+      valueFormatter: () => "Ching'a…", // simulates MUI's own rendered, truncated tick text
+      tickLabelStyle: { angle: -45, fontSize: 12 },
+    }];
+    spaceForRotatedTicks(axis, undefined, 1, measurer);
+    expect(measurer).toHaveBeenCalledWith("Ching'a…", 12);
+  });
+
+  it('falls back to a per-character estimate, tighter than the pre-CHART-11 flat multiplier, when no measurer is available', () => {
+    const label = 'Msolwa Station'; // spaces + mixed case, representative of a real ward name
+    const nullMeasurer = () => null;
+    const axis = [{ data: [label], tickLabelStyle: { angle: -45, fontSize: 13 } }];
+    const result = spaceForRotatedTicks(axis, undefined, 1, nullMeasurer);
+
+    // Reconstruct the height the retired flat-multiplier formula (AVERAGE_GLYPH_WIDTH_EM = 0.6)
+    // would have produced for the same label, as the comparison baseline this WO exists to beat.
+    const oldFlatTextWidth = label.length * 13 * 0.6;
+    const radians = (-45 * Math.PI) / 180;
+    const oldProjected = Math.abs(Math.cos(radians)) * 13 * 1 + Math.abs(Math.sin(radians)) * oldFlatTextWidth;
+    const oldHeight = 45 + Math.max(1, Math.ceil(oldProjected - 13));
+    expect(result.xAxis[0].height).toBeLessThan(oldHeight);
+  });
+
+  it('floors exactly at the un-rotated baseline (45), not one above it, when a short label needs no extra room', () => {
+    const measurer = () => 5; // a tiny measured width -- shorter than the clearance alone needs
+    const axis = [{ data: ['x'], tickLabelStyle: { angle: -45, fontSize: 8 } }];
+    const result = spaceForRotatedTicks(axis, undefined, 1, measurer);
+    expect(result.xAxis[0].height).toBe(45);
+  });
+
+  // Review finding (ui_reviewer): only -45deg was live-verified against hram (its one real -90deg
+  // consumer, VillageMetricsPanel.jsx, is not wired into the app -- unreachable, so it could not be
+  // live-checked). At -90deg, cos(angle) is ~0, so the lineHeight term drops out almost entirely and
+  // the projection is driven by textWidth alone -- a materially different shape from -45deg, worth
+  // its own deterministic test rather than trusting the same formula by extrapolation.
+  it('generalizes to -90deg, where the line-height term vanishes and textWidth alone drives the projection', () => {
+    const measurer = () => 130; // a long village name, matching RatioMetricsPanel's own
+    // "-90 for village (many labels)" case (fontSize 11 there)
+    const axis = [{ data: ['A Very Long Village Name'], tickLabelStyle: { angle: -90, fontSize: 11 } }];
+    const result = spaceForRotatedTicks(axis, undefined, 1, measurer);
+
+    const radians = (-90 * Math.PI) / 180;
+    const projectedHeight = Math.abs(Math.cos(radians)) * 11 * 1 + Math.abs(Math.sin(radians)) * 130;
+    const expectedHeight = Math.max(45, Math.ceil(projectedHeight) + 8);
+    expect(result.xAxis[0].height).toBe(expectedHeight);
+    // Confirms the line-height term is genuinely near-zero at -90deg -- height tracks textWidth
+    // alone within rounding, not some residual line-height contribution.
+    expect(result.xAxis[0].height).toBe(Math.max(45, 130 + 8));
   });
 });
 
