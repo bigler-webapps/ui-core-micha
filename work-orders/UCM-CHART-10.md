@@ -53,18 +53,29 @@ for the plot, not for an empty band under the axis.
 
 ### Definition of Done
 
-- [ ] **`extraHeight` is applied once, not twice.** Either the axis band carries it (`axis.height`)
-      or the chart margin does (`margin.bottom`) — not both. **Establish which one MUI actually needs
-      before choosing**, and say so in the commit: the two are additive, so the wrong choice moves the
-      dead space rather than removing it.
-- [ ] **The plot area grows by the reclaimed amount.** Acceptance is numeric, on a real chart with
-      long rotated labels: with 35 rotated labels on a 340 px surface, the empty band below the axis
-      drops from ~130 px to the ordinary axis padding, and the plot area grows correspondingly.
-- [ ] **Tick labels are not clipped.** Reserving once must not tip into reserving too little — the
-      lowest label's bounding box stays inside the surface at every width tested.
-- [ ] **Charts with no rotation are byte-identical.** `rotatedTickMetrics` returns `null` at angle 0
-      and the helper already passes the axis through untouched; that path must not shift.
-- [ ] **A caller-set `margin.bottom` still wins.** The existing `callerSetBottom` escape hatch stays.
+- [x] **`extraHeight` is applied once, not twice.** Kept on `axis.height` only; `margin.bottom`'s
+      addition removed. MUI needs `axis.height` — the live measurement below shows rendered labels
+      sit fully inside the axis band with nothing below them, i.e. the band already fully
+      accommodates the rotation; `margin.bottom`'s copy was reserving space nothing used.
+- [x] **The plot area grows by the reclaimed amount.** Measured live on hram (`CLI-Kilombero_2026-per_cell-network`,
+      real data, 1280 px), same three cards, same candidate, before vs. after swapping in the fixed
+      build: Ward Metrics (35 labels, 340 px) 129.6 px → 51.6 px empty; Access Ladder (35 labels,
+      369 px) 156.9 px → 80.6 px; Division Metrics (5 labels, 340 px) 85.2 px → 41.2 px — each
+      roughly halved, matching "remove exactly one of two equal additive reservations." The residual
+      is the legitimate rotation-geometry padding this WO's non-goals say not to chase.
+- [x] **Tick labels are not clipped.** Checked at both 1280 px and 375 px on the same three live
+      cards (lowest label's rendered bottom never exceeded the SVG's own bottom edge at either
+      width) — no clipping introduced by reserving less.
+- [x] **Charts with no rotation are byte-identical.** Unit-tested directly against
+      `spaceForRotatedTicks` (angle-0 axis entry and margin object both pass through by reference,
+      not just by value) — see `tests/chartDefaults.test.js`, `spaceForRotatedTicks (CHART-10)`.
+- [x] **A caller-set `margin.bottom` still wins.** Implemented as an unconditional guarantee rather
+      than the named `callerSetBottom` escape hatch: `spaceForRotatedTicks` no longer writes to
+      `margin` in any branch, so a caller-set value is never at risk regardless of rotation — a
+      strict superset of the old conditional guard, confirmed by both independent reviewers as a
+      clean simplification, not a behaviour gap. The named variable/constant it used
+      (`callerSetBottom`, `MUI_CHART_MARGIN_BOTTOM`) were removed as dead code once nothing reads
+      them.
 
 ### Investigate in the same pass — likely the same helper
 
@@ -74,9 +85,21 @@ open. A formatter exists on both axes (`ScatterChart.jsx:193,199`), so it is not
 **The suspicion is that it is this same function in the other direction:** `axis.height` set to a
 band the labels do not fit, so MUI draws the ticks and clips the text.
 
-- [ ] Confirm or refute that, with a measurement, and say which. If confirmed, fix it here — it is
-      the same arithmetic. If refuted, hand the finding back to `HRAM-RES-29` with what was measured,
-      so that WO stops carrying a guess.
+- [x] **Refuted.** `ScatterChart.jsx` never calls `spaceForRotatedTicks` at all (grep-confirmed:
+      only `BarChart.jsx`/`LineChart.jsx` import it) — its x-axis `height` is never touched by this
+      helper in either direction, so this function cannot be the cause. Confirmed further at the two
+      named hram call sites (`AccessGapScatterPanel.jsx:203`, `OptimizationResultsPanel.jsx:1014`):
+      neither sets `tickLabelStyle.angle` on its `xAxis`, so `rotatedTickMetrics` would return `null`
+      even if the helper were in the path. This matches hram's own `HRAM-RES-29` register row
+      (`WORK_ORDERS.md`), which had already independently traced and closed item 2 the same day
+      (2026-08-22, before this WO's own "still open" line was written): the real cause was
+      `ScatterChart.jsx` rendering `<MuiScatterChart>` with no explicit `height` pre-`11d362c`
+      (`UCM-CHART-8`, `2.41.3`), racing MUI's own collision-avoidance against the wrapper's
+      `aspect-ratio` CSS and clipping tick text with no missing formatter involved. `2.42.0` already
+      fixes it for every consumer by passing a resolved `height` explicitly; hram's `develop` already
+      pinned `2.42.0` (why local measurement looked clean) and only `main`/`hram.ch` (still on
+      `2.41.3` at the time) showed it — closing on hram's next `develop -> main` promotion. No action
+      needed here or in `HRAM-RES-29`; this WO's own suspicion is retired, not carried forward.
 
 ### Non-goals
 

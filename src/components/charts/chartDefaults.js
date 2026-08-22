@@ -50,12 +50,6 @@ function cssLengthToPixels(value) {
 }
 
 const MUI_LABELLED_X_AXIS_HEIGHT = 45;
-// THEME-11: this used to mirror MUI's own DEFAULT_MARGINS.bottom (20) -- the "resting" bottom
-// margin the rotated-tick path adds its extra height on top of. Now that PACKAGE_DEFAULT_MARGIN
-// below sets the package's own non-rotated bottom to 8, this constant must track THAT value, not
-// MUI's, or a rotated chart would add its extra height to the wrong (too generous) base while
-// every non-rotated chart got trimmed -- an inconsistent baseline between the two paths.
-const MUI_CHART_MARGIN_BOTTOM = 8;
 const AVERAGE_GLYPH_WIDTH_EM = 0.6;
 
 // THEME-11: this package never formed an opinion on chart margins, so every chart fell back to
@@ -72,10 +66,11 @@ export const PACKAGE_DEFAULT_MARGIN = {
 };
 
 /**
- * Applies the package's own margin default, per side -- a caller's own value on any side (or
- * the rotated-tick path's own computed `bottom`) always wins on that side; only an UNSET side
- * gets the package default. A caller passing `{ left: 60 }` therefore keeps that 60 on the
- * left and gets the package defaults on the other three sides, never MUI's wider ones.
+ * Applies the package's own margin default, per side -- a caller's own value on any side always
+ * wins on that side; only an UNSET side gets the package default. A caller passing `{ left: 60 }`
+ * therefore keeps that 60 on the left and gets the package defaults on the other three sides,
+ * never MUI's wider ones. CHART-10: this applies identically whether or not the x-axis carries
+ * rotated labels -- `spaceForRotatedTicks` no longer computes a `bottom` of its own.
  */
 export function withMarginDefaults(margin) {
   const explicit = typeof margin === 'number'
@@ -117,28 +112,27 @@ function rotatedTickMetrics(axis, defaultLineHeight) {
 }
 
 /**
- * Rotated labels project both their line box and text width vertically.
- * X-Charts uses xAxis.height when deciding whether a label fits, while margin
- * only separates the axis from the SVG edge, so both surfaces must grow.
- * Explicit caller height and bottom-margin values always remain untouched.
+ * CHART-10: rotated labels project both their line box and text width vertically, and X-Charts
+ * uses `xAxis.height` -- not `margin.bottom` -- to size the band that actually CONTAINS them.
+ * `margin.bottom` only separates that axis band from the SVG edge; it plays no part in whether a
+ * label fits. Measured live (hram, 2026-08-22, real data): once `axis.height` carries the
+ * allowance, the rendered tick labels sit fully INSIDE the axis band with nothing below them --
+ * `margin.bottom` growing by the same allowance on top was reserving space nothing ever used, up
+ * to 130px (38% of a 340px card) on long rotated labels. Only `axis.height` grows here now;
+ * `margin` is returned untouched (whatever the caller passed, or didn't) so `withMarginDefaults`
+ * downstream applies the package's ordinary bottom default in every case, rotated or not -- a
+ * caller-set `margin.bottom` was never touched by this function even before this fix, and still
+ * isn't.
  */
 export function spaceForRotatedTicks(xAxis, margin, defaultLineHeight = 1) {
-  let largestExtraHeight = 0;
   const spacedXAxis = xAxis.map((axis) => {
     const metrics = rotatedTickMetrics(axis, defaultLineHeight);
     if (!metrics) return axis;
-
-    largestExtraHeight = Math.max(largestExtraHeight, metrics.extraHeight);
     if (axis.height != null) return axis;
     return { ...axis, height: MUI_LABELLED_X_AXIS_HEIGHT + metrics.extraHeight };
   });
 
-  const callerSetBottom = typeof margin === 'number' || margin?.bottom != null;
-  const spacedMargin = largestExtraHeight > 0 && !callerSetBottom
-    ? { ...margin, bottom: MUI_CHART_MARGIN_BOTTOM + largestExtraHeight }
-    : margin;
-
-  return { xAxis: spacedXAxis, margin: spacedMargin };
+  return { xAxis: spacedXAxis, margin };
 }
 
 // THEME-9: MUI X-Charts' own default y-axis width is a flat 45px (ticks) +

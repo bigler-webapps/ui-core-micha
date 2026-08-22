@@ -19,6 +19,7 @@ import {
   PACKAGE_DEFAULT_MARGIN,
   resolveChartHeight,
   sizeYAxisForContent,
+  spaceForRotatedTicks,
   warnOnHeightMismatch,
   withAxisDefaults,
   withMarginDefaults,
@@ -162,10 +163,10 @@ describe('chart chrome defaults', () => {
     expect(barSpy.mock.calls.at(-1)[0].xAxis[0].scaleType).toBe('band');
   });
 
-  it('adds a font-and-angle-derived EXTRA bottom margin, on top of the package default, only for rotated tick labels', () => {
+  it('CHART-10: grows only xAxis.height for rotated tick labels, never margin.bottom on top of it', () => {
     renderBar({ xAxis: [{ data: ['Jan', 'Feb'], tickLabelStyle: { angle: -45 } }] });
     const rotatedProps = barSpy.mock.calls.at(-1)[0];
-    expect(rotatedProps.margin.bottom).toBeGreaterThan(PACKAGE_DEFAULT_MARGIN.bottom);
+    expect(rotatedProps.margin.bottom).toBe(PACKAGE_DEFAULT_MARGIN.bottom);
     expect(rotatedProps.xAxis[0].height).toBeGreaterThan(45);
 
     cleanup();
@@ -181,13 +182,14 @@ describe('chart chrome defaults', () => {
       expect(barSpy.mock.calls.at(-1)[0].margin).toEqual(PACKAGE_DEFAULT_MARGIN);
     });
 
-    // Trap 1 named in the WO: a package-level default injected BEFORE spaceForRotatedTicks'
-    // own `margin?.bottom != null` check would make every rotated-tick chart think the caller
-    // set bottom, and lose its extra rotation space entirely.
-    it('still gives a rotated-tick chart its enlarged bottom margin, not the flat package default', () => {
+    // CHART-10: the axis band, not the margin, carries the rotated-tick allowance -- a
+    // rotated-tick chart gets the SAME flat package bottom margin as any other chart. Named
+    // "still gives" in CHART-8/9 history; the correct behaviour is now the opposite of that name.
+    it('gives a rotated-tick chart the same flat package bottom margin as an unrotated one', () => {
       renderBar({ xAxis: [{ data: ['January', 'February'], tickLabelStyle: { angle: -90 } }] });
       const props = barSpy.mock.calls.at(-1)[0];
-      expect(props.margin.bottom).toBeGreaterThan(PACKAGE_DEFAULT_MARGIN.bottom + 10);
+      expect(props.margin.bottom).toBe(PACKAGE_DEFAULT_MARGIN.bottom);
+      expect(props.xAxis[0].height).toBeGreaterThan(45);
     });
 
     // Scope 1's merge semantics: a caller-supplied PARTIAL margin keeps its own value on the
@@ -433,6 +435,48 @@ describe('withMarginDefaults (THEME-11)', () => {
   it('leaves a fully-specified caller margin untouched', () => {
     const full = { top: 1, bottom: 2, left: 3, right: 4 };
     expect(withMarginDefaults(full)).toEqual(full);
+  });
+});
+
+describe('spaceForRotatedTicks (CHART-10)', () => {
+  const rotatedAxis = [{ data: ['January', 'February'], tickLabelStyle: { angle: -45, fontSize: 12 } }];
+
+  it('reserves the allowance once, on axis.height, and leaves margin untouched', () => {
+    const result = spaceForRotatedTicks(rotatedAxis, undefined);
+    expect(result.xAxis[0].height).toBeGreaterThan(45);
+    expect(result.margin).toBeUndefined();
+  });
+
+  it('is byte-identical at angle 0 -- each axis entry and the margin pass through untouched', () => {
+    const flatAxis = [{ data: ['Jan', 'Feb'], tickLabelStyle: { angle: 0 } }];
+    const margin = { top: 1 };
+    const result = spaceForRotatedTicks(flatAxis, margin);
+    expect(result.xAxis[0]).toBe(flatAxis[0]);
+    expect(result.margin).toBe(margin);
+  });
+
+  it('preserves a caller-set margin.bottom untouched -- the allowance is never added on top of it', () => {
+    const margin = { bottom: 50 };
+    const result = spaceForRotatedTicks(rotatedAxis, margin);
+    expect(result.margin).toBe(margin);
+    expect(result.margin.bottom).toBe(50);
+  });
+
+  it('drives the height estimate from the longest formatted tick, not a flat constant', () => {
+    const shortLabels = [{ data: ['A', 'B'], tickLabelStyle: { angle: -45, fontSize: 12 } }];
+    const longLabels = [{
+      data: ['A much longer ward name than the others', 'B'],
+      tickLabelStyle: { angle: -45, fontSize: 12 },
+    }];
+    const shortResult = spaceForRotatedTicks(shortLabels, undefined);
+    const longResult = spaceForRotatedTicks(longLabels, undefined);
+    expect(longResult.xAxis[0].height).toBeGreaterThan(shortResult.xAxis[0].height);
+  });
+
+  it('does not override an axis that already sets its own height', () => {
+    const axis = [{ data: ['January'], tickLabelStyle: { angle: -45 }, height: 200 }];
+    const result = spaceForRotatedTicks(axis, undefined);
+    expect(result.xAxis[0].height).toBe(200);
   });
 });
 
