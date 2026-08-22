@@ -556,12 +556,18 @@ export function resolveChartLayout({
  * migration path instead of a layout that quietly stops matching what the prop says) -- gated on
  * `NODE_ENV !== 'production'` like the deleted `warnOnHeightMismatch` was, so a shared package
  * cannot crash a consumer's production page over a layout prop; loud in dev, inert in prod.
+ *
+ * `removedIn` (codex review finding, UCM-CHART-13): a shared helper hardcoding ONE WO/version
+ * string would misattribute the removal for every OTHER call site that reuses it -- `ChartFrame`
+ * (UCM-CHART-13, v3.1.0) removes `height`/`aspect` for a different reason, in a different WO, than
+ * the four presets' own `minHeight`/`aspect`/`margin` (UCM-CHART-12, v3.0.0). The default keeps
+ * every existing call site's message byte-identical; only a NEW call site needs to override it.
  */
-export function assertRemovedChartProp(componentName, propName, value, replacement) {
+export function assertRemovedChartProp(componentName, propName, value, replacement, removedIn = 'UCM-CHART-12, v3.0.0') {
   if (value === undefined || process.env.NODE_ENV === 'production') return;
   throw new Error(
-    `[ui-core-micha] <${componentName}> no longer accepts "${propName}" (removed in UCM-CHART-12, `
-    + `v3.0.0 -- see docs/CHART-LAYOUT.md). ${replacement}`,
+    `[ui-core-micha] <${componentName}> no longer accepts "${propName}" (removed in ${removedIn} `
+    + `-- see docs/CHART-LAYOUT.md). ${replacement}`,
   );
 }
 

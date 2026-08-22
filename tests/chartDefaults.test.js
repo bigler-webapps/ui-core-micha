@@ -292,6 +292,15 @@ describe('removed chart props throw in dev, naming their replacement (UCM-CHART-
       .toThrow(/BarChart.*minHeight.*Use size instead\./s);
   });
 
+  // UCM-CHART-13 (codex review finding): a shared helper hardcoding one WO/version string would
+  // misattribute the removal for a different call site's own, different removal.
+  it('defaults removedIn to UCM-CHART-12/v3.0.0 (the four presets\' own call sites), but a caller can override it', () => {
+    expect(() => assertRemovedChartProp('BarChart', 'minHeight', 320, 'Use size instead.'))
+      .toThrow(/UCM-CHART-12, v3\.0\.0/);
+    expect(() => assertRemovedChartProp('ChartFrame', 'aspect', 1.8, 'Use size instead.', 'UCM-CHART-13, v3.1.0'))
+      .toThrow(/UCM-CHART-13, v3\.1\.0/);
+  });
+
   it('assertRemovedChartProp stays inert in production', () => {
     const original = process.env.NODE_ENV;
     process.env.NODE_ENV = 'production';

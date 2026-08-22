@@ -1,4 +1,4 @@
-import React, { useEffect, useId, useRef, useState } from 'react';
+import React, { useId, useRef, useState } from 'react';
 import {
   Alert,
   Box,
@@ -11,38 +11,27 @@ import {
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '@mui/material/styles';
 import { exportChartPng, exportChartSvg } from './exportChart';
+import { assertRemovedChartProp } from './chartDefaults';
 
 export const CHART_FRAME_ROOT_SX = { p: 2 };
 export const CHART_FRAME_ALERT_SX = { mt: 2 };
 
 /**
- * UCM-CHART-12: `warnOnHeightMismatch` (the shared helper this note used to call into
- * `chartDefaults`) was deleted along with `resolveChartHeight` -- both belonged to the
- * `{minHeight, height, aspect}` trio the four chart presets used to accept, which that WO
- * replaced with `resolveChartLayout`'s `size`/`height` model. `ChartFrame` keeps its OWN
- * `minHeight`/`height`/`aspect` props unchanged (CHART-9: it is a card floor, not a chart size),
- * so it keeps this note too -- same text, same condition, just no longer routed through the
- * now-deleted shared function.
- */
-function warnOnChartFrameHeightMismatch(minHeight, height) {
-  if (process.env.NODE_ENV === 'production') return;
-  if (minHeight == null || height == null || minHeight === height) return;
-  // eslint-disable-next-line no-console
-  console.warn(
-    `[ui-core-micha] <ChartFrame> received both minHeight={${minHeight}} and height={${height}}; `
-    + 'they disagree; height is ignored here and minHeight keeps sizing the wrapper as a floor. '
-    + 'Pass only minHeight, or drop height if it was meant to size the whole card.',
-  );
-}
-
-/**
  * Chart-type-agnostic chart scaffolding. Children may be an X-Charts primitive or a bespoke SVG.
  *
  * `minHeight` (CHART-9): always just a floor on the content box, which holds a whole card --
- * title, toolbar, chart, legend, footnotes, export links -- not a single chart. `height` is never
- * applied to the box (unlike the four chart presets, whose box holds exactly one chart and use
- * `resolveChartLayout`'s `size`/`height` resolution); it is only compared against `minHeight` for
- * this component's own dev-mode mismatch note.
+ * title, toolbar, chart, legend, footnotes, export links -- not a single chart.
+ *
+ * UCM-CHART-13: `height` and `aspect` are GONE. `height` was destructured and only ever fed a
+ * dev-mode mismatch warning, never applied to the box -- genuinely dead. `aspect` is a DIFFERENT
+ * case (codex review finding, corrected from this WO's own Envelope, which claimed it too was
+ * applied nowhere): it WAS wired to `aspectRatio` on the box at 3.0.1, and worked. It is removed
+ * anyway, because no consumer across the five apps passes it (measured against 3.0.1) and
+ * `ChartFrame` accepting a sizing prop it is the only one of the four+frame components to apply is
+ * exactly the kind of inconsistency this WO exists to close -- a working-but-unused prop is still
+ * unused surface, just not dead code the way `height` was. Passing either now throws in dev via the
+ * same `assertRemovedChartProp` the four chart presets use (`UCM-CHART-12`), naming `minHeight` (a
+ * card floor) or the chart's own `size` prop as the replacement.
  */
 export function ChartFrame({
   title,
@@ -54,8 +43,6 @@ export function ChartFrame({
   isEmpty = false,
   emptyMessage,
   minHeight,
-  height,
-  aspect,
   exportOptions = false,
   onExportSvg,
   onExportPng,
@@ -65,6 +52,10 @@ export function ChartFrame({
   variant = 'outlined',
   titleVariant = 'h6',
   sx,
+  // UCM-CHART-13: `height`/`aspect` are gone from the signature itself (DoD) -- captured via rest,
+  // not named parameters, so they read as "detected leftovers", not "accepted props" a reader might
+  // assume are still wired to something.
+  ...legacyProps
 }) {
   const { t } = useTranslation();
   const theme = useTheme();
@@ -78,9 +69,15 @@ export function ChartFrame({
   const chartLabel = ariaLabel || title;
   const callerSx = Array.isArray(sx) ? sx : [sx];
 
-  useEffect(
-    () => warnOnChartFrameHeightMismatch(minHeight, height),
-    [minHeight, height],
+  assertRemovedChartProp(
+    'ChartFrame', 'height', legacyProps.height,
+    'Use minHeight for the card floor, or size on the chart inside the frame if you meant the chart\'s own height.',
+    'UCM-CHART-13, v3.1.0',
+  );
+  assertRemovedChartProp(
+    'ChartFrame', 'aspect', legacyProps.aspect,
+    'Removed -- it was never applied to the frame. Use size on the chart inside the frame if you meant the chart\'s own aspect.',
+    'UCM-CHART-13, v3.1.0',
   );
 
   const runExport = async (type) => {
@@ -136,7 +133,6 @@ export function ChartFrame({
         sx={{
           width: '100%',
           minHeight,
-          aspectRatio: aspect,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',

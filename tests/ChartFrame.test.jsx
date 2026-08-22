@@ -213,10 +213,8 @@ describe('ChartFrame', () => {
   });
 
   // CHART-9: ChartFrame's content box is a whole CARD (title, toolbar, chart, legend, footnotes,
-  // export links), not a single chart -- unlike the four chart presets, which do apply
-  // resolveChartHeight's height/aspect resolution to their own box. ChartFrame's box must never
-  // take a fixed `height`; `minHeight` is always just a floor content can exceed.
-  describe('minHeight/height resolution (CHART-9)', () => {
+  // export links), not a single chart. `minHeight` is always just a floor content can exceed.
+  describe('minHeight resolution (CHART-9)', () => {
     function contentBoxStyle() {
       return window.getComputedStyle(screen.getByTestId('chart-body').parentElement);
     }
@@ -245,37 +243,56 @@ describe('ChartFrame', () => {
       expect(style.height).toBe('auto');
     });
 
-    it('leaves minHeight as a floor and gives no fixed height when aspect is set (no height)', () => {
-      renderFrame({ minHeight: 320, aspect: 1.8 });
-      const style = contentBoxStyle();
-      expect(style.minHeight).toBe('320px');
-      expect(style.height).toBe('auto');
-      expect(style.aspectRatio).toBe('1.8 / 1');
-    });
-
-    it('does not apply height as a fixed box height even when passed explicitly, and does not throw', () => {
-      expect(() => renderFrame({ minHeight: 420, height: 380 })).not.toThrow();
-      const style = contentBoxStyle();
-      expect(style.minHeight).toBe('420px');
-      expect(style.height).toBe('auto');
-    });
-
-    it('ignores height when passed alone, with no minHeight floor either', () => {
-      renderFrame({ height: 280 });
+    it('leaves minHeight unset (auto) when the caller passes none', () => {
+      renderFrame();
       const style = contentBoxStyle();
       expect(style.minHeight).toBe('auto');
       expect(style.height).toBe('auto');
     });
+  });
 
-    it('warns with wording accurate to its own behaviour -- minHeight wins, not height', () => {
-      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
-      renderFrame({ minHeight: 420, height: 380 });
-      expect(warnSpy).toHaveBeenCalledOnce();
-      const message = warnSpy.mock.calls[0][0];
-      expect(message).toContain('ChartFrame');
-      expect(message).toContain('height is ignored');
-      expect(message).not.toContain('height wins');
-      warnSpy.mockRestore();
+  // UCM-CHART-13: `height`/`aspect` were destructured but never applied to the box -- measured
+  // against 3.0.1, no consumer passed either. Both are now gone; passing one throws in dev, naming
+  // the replacement, the same as the four chart presets' removed props (`UCM-CHART-12`).
+  describe('removed height/aspect props throw in dev, naming their replacement (UCM-CHART-13)', () => {
+    it('throws when a caller still passes height, naming minHeight AND size as the replacement', () => {
+      expect(() => renderFrame({ height: 380 })).toThrow(/ChartFrame.*height.*minHeight.*size/s);
+    });
+
+    it('throws when a caller still passes aspect, naming size as the replacement', () => {
+      expect(() => renderFrame({ aspect: 1.8 })).toThrow(/ChartFrame.*aspect.*size/s);
+    });
+
+    it('attributes the removal to UCM-CHART-13/v3.1.0, not the presets\' own UCM-CHART-12 message', () => {
+      expect(() => renderFrame({ height: 380 })).toThrow(/UCM-CHART-13.*v3\.1\.0/);
+    });
+
+    it('does not throw when only minHeight is passed', () => {
+      expect(() => renderFrame({ minHeight: 320 })).not.toThrow();
+    });
+
+    it('stays inert in production even when height/aspect are passed', () => {
+      const original = process.env.NODE_ENV;
+      process.env.NODE_ENV = 'production';
+      try {
+        expect(() => renderFrame({ height: 380, aspect: 1.8 })).not.toThrow();
+      } finally {
+        process.env.NODE_ENV = original;
+      }
+    });
+
+    it('applies nothing to the box for a still-passed height/aspect (dev-mode error aside) -- confirmed via the production path', () => {
+      const original = process.env.NODE_ENV;
+      process.env.NODE_ENV = 'production';
+      try {
+        renderFrame({ minHeight: 320, height: 380, aspect: 1.8 });
+        const style = window.getComputedStyle(screen.getByTestId('chart-body').parentElement);
+        expect(style.minHeight).toBe('320px');
+        expect(style.height).toBe('auto');
+        expect(style.aspectRatio).toBe('auto');
+      } finally {
+        process.env.NODE_ENV = original;
+      }
     });
   });
 });
