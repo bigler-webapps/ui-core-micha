@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { Box } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import { useTranslation } from 'react-i18next';
@@ -9,15 +9,12 @@ import {
 import { useNeutralChartPalette } from './palette';
 import {
   DEFAULT_LEGEND_POSITION,
+  assertRemovedChartProp,
   defaultNumericTickFormatter,
-  resolveChartHeight,
-  sizeYAxisForContent,
-  spaceForRotatedTicks,
-  warnOnHeightMismatch,
+  resolveChartLayout,
   withAxisDefaults,
   withChartSlotDefaults,
   withGridDefaults,
-  withMarginDefaults,
 } from './chartDefaults';
 
 // Fixes MUI's hollow `background.paper`-filled marker (MarkElement.js's own
@@ -44,10 +41,9 @@ function FilledMarkElement({ color, style, ...props }) {
  * (`withAxisDefaults` only ever falls back onto an axis without its own
  * `label`).
  *
- * `minHeight` (CHART-8): a floor under an `aspect`-derived responsive height when `aspect` is
- * set and `height` is not; otherwise (no `height`, no `aspect`) it sizes the chart itself. Once
- * `height` is set, `height` sizes the chart and the wrapper never reserves more than that, even
- * if `minHeight` is also passed and larger.
+ * `size` (UCM-CHART-12): `"compact" | "standard" | "tall"`, resolved through the theme's
+ * spacing scale by `resolveChartLayout`. `height` (px) is the documented escape for a justified
+ * special case -- prefer `size`. `minHeight`/`aspect`/`margin` are gone (see docs/CHART-LAYOUT.md).
  */
 export function LineChart({
   series = [],
@@ -56,13 +52,15 @@ export function LineChart({
   xAxis,
   yAxis,
   palette,
-  minHeight,
+  size = 'standard',
   height,
+  minHeight,
   aspect,
+  margin,
+  xLabels = 'auto',
   grid,
   hideLegend = series.length <= 1,
   legendPosition = DEFAULT_LEGEND_POSITION,
-  margin,
   slots,
   slotProps,
   ...chartProps
@@ -71,8 +69,9 @@ export function LineChart({
   const { i18n } = useTranslation();
   const neutralPalette = useNeutralChartPalette();
 
-  useEffect(() => warnOnHeightMismatch('LineChart', { minHeight, height }), [minHeight, height]);
-  const { wrapperMinHeight, chartHeight } = resolveChartHeight({ minHeight, height, aspect });
+  assertRemovedChartProp('LineChart', 'minHeight', minHeight, 'Use size="compact" | "standard" | "tall", or height for the documented escape.');
+  assertRemovedChartProp('LineChart', 'aspect', aspect, 'Removed with no replacement -- pick a size token; the chart no longer tracks width.');
+  assertRemovedChartProp('LineChart', 'margin', margin, 'Removed -- the layout model owns margins completely.');
 
   const labelledXAxis = withAxisDefaults(
     xAxis,
@@ -91,29 +90,32 @@ export function LineChart({
     labelMarkType: 'square',
     ...item,
   }));
-  const sizedYAxis = sizeYAxisForContent(
-    labelledYAxis,
-    defaultedSeries,
-    theme.typography.caption.fontSize,
-  );
-  const rotatedTickSpace = spaceForRotatedTicks(
-    labelledXAxis,
-    margin,
-    theme.typography.caption.lineHeight,
-  );
+  const layout = resolveChartLayout({
+    size,
+    height,
+    xAxis: labelledXAxis,
+    yAxis: labelledYAxis,
+    series: defaultedSeries,
+    xLabels,
+    hideLegend,
+    legendPosition,
+    tickFontSize: theme.typography.caption.fontSize,
+    spacing: theme.spacing,
+    defaultLineHeight: theme.typography.caption.lineHeight,
+  });
 
   return (
-    <Box data-testid="line-chart-container" sx={{ width: '100%', minHeight: wrapperMinHeight, aspectRatio: aspect }}>
+    <Box data-testid="line-chart-container" sx={layout.sx}>
       <MuiLineChart
         {...chartProps}
-        height={chartHeight}
+        height={layout.chartHeight}
         series={defaultedSeries}
-        xAxis={rotatedTickSpace.xAxis}
-        yAxis={sizedYAxis}
+        xAxis={layout.xAxis}
+        yAxis={layout.yAxis}
         colors={palette || neutralPalette.categorical}
         grid={withGridDefaults(grid)}
         hideLegend={hideLegend}
-        margin={withMarginDefaults(rotatedTickSpace.margin)}
+        margin={layout.margin}
         slots={{ mark: FilledMarkElement, ...slots }}
         slotProps={withChartSlotDefaults(slotProps, legendPosition)}
       />

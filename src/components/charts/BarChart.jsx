@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { Box } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import { useTranslation } from 'react-i18next';
@@ -6,15 +6,12 @@ import { BarChart as MuiBarChart } from '@mui/x-charts/BarChart';
 import { useNeutralChartPalette } from './palette';
 import {
   DEFAULT_LEGEND_POSITION,
+  assertRemovedChartProp,
   defaultNumericTickFormatter,
-  resolveChartHeight,
-  sizeYAxisForContent,
-  spaceForRotatedTicks,
-  warnOnHeightMismatch,
+  resolveChartLayout,
   withAxisDefaults,
   withChartSlotDefaults,
   withGridDefaults,
-  withMarginDefaults,
 } from './chartDefaults';
 
 /**
@@ -27,10 +24,9 @@ import {
  * a label the caller DID set (`withAxisDefaults` only ever falls back onto
  * an axis without its own `label`).
  *
- * `minHeight` (CHART-8): a floor under an `aspect`-derived responsive height when `aspect` is
- * set and `height` is not; otherwise (no `height`, no `aspect`) it sizes the chart itself. Once
- * `height` is set, `height` sizes the chart and the wrapper never reserves more than that, even
- * if `minHeight` is also passed and larger.
+ * `size` (UCM-CHART-12): `"compact" | "standard" | "tall"`, resolved through the theme's
+ * spacing scale by `resolveChartLayout`. `height` (px) is the documented escape for a justified
+ * special case -- prefer `size`. `minHeight`/`aspect`/`margin` are gone (see docs/CHART-LAYOUT.md).
  */
 export function BarChart({
   series = [],
@@ -39,13 +35,15 @@ export function BarChart({
   xAxis,
   yAxis,
   palette,
-  minHeight,
+  size = 'standard',
   height,
+  minHeight,
   aspect,
+  margin,
+  xLabels = 'auto',
   grid,
   hideLegend = series.length <= 1,
   legendPosition = DEFAULT_LEGEND_POSITION,
-  margin,
   slotProps,
   ...chartProps
 }) {
@@ -53,8 +51,9 @@ export function BarChart({
   const { i18n } = useTranslation();
   const neutralPalette = useNeutralChartPalette();
 
-  useEffect(() => warnOnHeightMismatch('BarChart', { minHeight, height }), [minHeight, height]);
-  const { wrapperMinHeight, chartHeight } = resolveChartHeight({ minHeight, height, aspect });
+  assertRemovedChartProp('BarChart', 'minHeight', minHeight, 'Use size="compact" | "standard" | "tall", or height for the documented escape.');
+  assertRemovedChartProp('BarChart', 'aspect', aspect, 'Removed with no replacement -- pick a size token; the chart no longer tracks width.');
+  assertRemovedChartProp('BarChart', 'margin', margin, 'Removed -- the layout model owns margins completely.');
 
   const labelledXAxis = withAxisDefaults(
     xAxis,
@@ -68,29 +67,32 @@ export function BarChart({
     { scaleType: 'linear', valueFormatter: defaultNumericTickFormatter(i18n.language) },
     theme.typography.caption.fontSize,
   );
-  const sizedYAxis = sizeYAxisForContent(
-    labelledYAxis,
+  const layout = resolveChartLayout({
+    size,
+    height,
+    xAxis: labelledXAxis,
+    yAxis: labelledYAxis,
     series,
-    theme.typography.caption.fontSize,
-  );
-  const rotatedTickSpace = spaceForRotatedTicks(
-    labelledXAxis,
-    margin,
-    theme.typography.caption.lineHeight,
-  );
+    xLabels,
+    hideLegend,
+    legendPosition,
+    tickFontSize: theme.typography.caption.fontSize,
+    spacing: theme.spacing,
+    defaultLineHeight: theme.typography.caption.lineHeight,
+  });
 
   return (
-    <Box data-testid="bar-chart-container" sx={{ width: '100%', minHeight: wrapperMinHeight, aspectRatio: aspect }}>
+    <Box data-testid="bar-chart-container" sx={layout.sx}>
       <MuiBarChart
         {...chartProps}
-        height={chartHeight}
+        height={layout.chartHeight}
         series={series}
-        xAxis={rotatedTickSpace.xAxis}
-        yAxis={sizedYAxis}
+        xAxis={layout.xAxis}
+        yAxis={layout.yAxis}
         colors={palette || neutralPalette.categorical}
         grid={withGridDefaults(grid)}
         hideLegend={hideLegend}
-        margin={withMarginDefaults(rotatedTickSpace.margin)}
+        margin={layout.margin}
         slotProps={withChartSlotDefaults(slotProps, legendPosition)}
       />
     </Box>

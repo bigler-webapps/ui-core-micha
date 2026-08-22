@@ -20,7 +20,7 @@ function renderChart(props) {
 describe('BarChart preset', () => {
   afterEach(cleanup);
 
-  it('passes both axis labels, tooltip, responsive sizing, and hides a single-series legend', () => {
+  it('passes both axis labels, tooltip, the default "standard" height, and hides a single-series legend', () => {
     renderChart({ series: [{ data: [1, 2] }] });
     const props = chartSpy.mock.calls[0][0];
 
@@ -31,7 +31,10 @@ describe('BarChart preset', () => {
       legend: { position: { vertical: 'bottom', horizontal: 'start' } },
     });
     expect(props.hideLegend).toBe(true);
-    expect(screen.getByTestId('bar-chart-container').getAttribute('style') || '').not.toContain('px');
+    // UCM-CHART-12: size defaults to "standard" (320px, the historical default) -- the wrapper
+    // always carries an explicit height now, width stays responsive.
+    expect(props.height).toBe(320);
+    expect(window.getComputedStyle(screen.getByTestId('bar-chart-container')).height).toBe('320px');
   });
 
   it.each([
@@ -72,51 +75,36 @@ describe('BarChart preset', () => {
     expect(props.yAxis[0].label).toBeUndefined();
   });
 
-  // CHART-8: minHeight/height/aspect resolution, wired through the actual component.
-  describe('minHeight/height resolution (CHART-8)', () => {
-    it('sizes the chart from minHeight alone when neither height nor aspect is set', () => {
-      renderChart({ series: [{ data: [1] }], minHeight: 300 });
-      expect(chartSpy.mock.calls.at(-1)[0].height).toBe(300);
-      expect(window.getComputedStyle(screen.getByTestId('bar-chart-container')).minHeight).toBe('300px');
+  // UCM-CHART-12: `size`/`height` resolution, wired through the actual component. Replaces the
+  // deleted `minHeight`/`aspect` CHART-8 trio -- see the removed-prop assertions below for the
+  // migration side of this.
+  describe('size/height resolution (UCM-CHART-12)', () => {
+    it.each([
+      ['compact', 240],
+      ['standard', 320],
+      ['tall', 400],
+    ])('resolves size="%s" to %ipx, on both the chart height and the wrapper', (size, px) => {
+      renderChart({ series: [{ data: [1] }], size });
+      expect(chartSpy.mock.calls.at(-1)[0].height).toBe(px);
+      expect(window.getComputedStyle(screen.getByTestId('bar-chart-container')).height).toBe(`${px}px`);
     });
 
-    it('leaves minHeight as a floor and gives the chart no fixed height when aspect is set (no height)', () => {
-      renderChart({ series: [{ data: [1] }], minHeight: 320, aspect: 1.8 });
-      expect(chartSpy.mock.calls.at(-1)[0].height).toBeUndefined();
-      const style = window.getComputedStyle(screen.getByTestId('bar-chart-container'));
-      expect(style.minHeight).toBe('320px');
-      expect(style.aspectRatio).toBe('1.8 / 1');
-    });
-
-    it('caps the wrapper at height when minHeight is larger, closing the dead-space gap', () => {
-      renderChart({ series: [{ data: [1] }], minHeight: 420, height: 380 });
-      expect(chartSpy.mock.calls.at(-1)[0].height).toBe(380);
-      expect(window.getComputedStyle(screen.getByTestId('bar-chart-container')).minHeight).toBe('380px');
-    });
-
-    it('is byte-identical when minHeight equals height', () => {
-      renderChart({ series: [{ data: [1] }], minHeight: 320, height: 320 });
-      expect(chartSpy.mock.calls.at(-1)[0].height).toBe(320);
-      expect(window.getComputedStyle(screen.getByTestId('bar-chart-container')).minHeight).toBe('320px');
-    });
-
-    it('is unchanged when height is passed alone', () => {
-      renderChart({ series: [{ data: [1] }], height: 280 });
+    it('lets height override size entirely, as the documented escape', () => {
+      renderChart({ series: [{ data: [1] }], size: 'tall', height: 280 });
       expect(chartSpy.mock.calls.at(-1)[0].height).toBe(280);
-      expect(window.getComputedStyle(screen.getByTestId('bar-chart-container')).minHeight).toBe('auto');
+      expect(window.getComputedStyle(screen.getByTestId('bar-chart-container')).height).toBe('280px');
     });
 
-    it('warns only on the disagreeing pair, naming both values, and not on the aspect combination', () => {
-      const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
-      renderChart({ series: [{ data: [1] }], minHeight: 420, height: 380 });
-      expect(warn).toHaveBeenCalledOnce();
-      expect(warn.mock.calls[0][0]).toContain('420');
-      expect(warn.mock.calls[0][0]).toContain('380');
-      warn.mockClear();
+    it('throws in dev when a caller still passes minHeight, naming the replacement', () => {
+      expect(() => renderChart({ series: [{ data: [1] }], minHeight: 300 })).toThrow(/size=.*standard.*tall/);
+    });
 
-      renderChart({ series: [{ data: [1] }], minHeight: 320, aspect: 1.8 });
-      expect(warn).not.toHaveBeenCalled();
-      warn.mockRestore();
+    it('throws in dev when a caller still passes aspect, naming the removal', () => {
+      expect(() => renderChart({ series: [{ data: [1] }], aspect: 1.8 })).toThrow(/aspect/);
+    });
+
+    it('throws in dev when a caller still passes margin, naming the removal', () => {
+      expect(() => renderChart({ series: [{ data: [1] }], margin: { top: 1 } })).toThrow(/margin/);
     });
   });
 });

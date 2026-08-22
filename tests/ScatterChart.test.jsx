@@ -233,39 +233,36 @@ describe('ScatterReferenceCurve / ScatterReferenceLine (THEME-10)', () => {
   });
 });
 
-// CHART-8: minHeight/height/aspect resolution, wired through the actual component.
-describe('ScatterChart minHeight/height resolution (CHART-8)', () => {
+// UCM-CHART-12: `size`/`height` resolution, wired through the actual component. Replaces the
+// deleted `minHeight`/`aspect` CHART-8 trio.
+describe('ScatterChart size/height resolution (UCM-CHART-12)', () => {
   afterEach(() => { cleanup(); vi.clearAllMocks(); });
 
-  it('sizes the chart from minHeight alone when neither height nor aspect is set', () => {
-    renderScatter({ minHeight: 300 });
-    expect(scatterSpy.mock.calls.at(-1)[0].height).toBe(300);
-    expect(window.getComputedStyle(screen.getByTestId('scatter-chart-container')).minHeight).toBe('300px');
+  it.each([
+    ['compact', 240],
+    ['standard', 320],
+    ['tall', 400],
+  ])('resolves size="%s" to %ipx, on both the chart height and the wrapper', (size, px) => {
+    renderScatter({ size });
+    expect(scatterSpy.mock.calls.at(-1)[0].height).toBe(px);
+    expect(window.getComputedStyle(screen.getByTestId('scatter-chart-container')).height).toBe(`${px}px`);
   });
 
-  it('leaves minHeight as a floor and gives the chart no fixed height when aspect is set (no height)', () => {
-    renderScatter({ minHeight: 320, aspect: 1.8 });
-    expect(scatterSpy.mock.calls.at(-1)[0].height).toBeUndefined();
-    const style = window.getComputedStyle(screen.getByTestId('scatter-chart-container'));
-    expect(style.minHeight).toBe('320px');
-    expect(style.aspectRatio).toBe('1.8 / 1');
-  });
-
-  it('caps the wrapper at height when minHeight is larger, closing the dead-space gap', () => {
-    renderScatter({ minHeight: 420, height: 380 });
-    expect(scatterSpy.mock.calls.at(-1)[0].height).toBe(380);
-    expect(window.getComputedStyle(screen.getByTestId('scatter-chart-container')).minHeight).toBe('380px');
-  });
-
-  it('is byte-identical when minHeight equals height', () => {
-    renderScatter({ minHeight: 320, height: 320 });
-    expect(scatterSpy.mock.calls.at(-1)[0].height).toBe(320);
-    expect(window.getComputedStyle(screen.getByTestId('scatter-chart-container')).minHeight).toBe('320px');
-  });
-
-  it('is unchanged when height is passed alone', () => {
-    renderScatter({ height: 280 });
+  it('lets height override size entirely, as the documented escape', () => {
+    renderScatter({ size: 'tall', height: 280 });
     expect(scatterSpy.mock.calls.at(-1)[0].height).toBe(280);
-    expect(window.getComputedStyle(screen.getByTestId('scatter-chart-container')).minHeight).toBe('auto');
+    expect(window.getComputedStyle(screen.getByTestId('scatter-chart-container')).height).toBe('280px');
+  });
+
+  it('throws in dev when a caller still passes minHeight, naming the replacement', () => {
+    expect(() => renderScatter({ minHeight: 300 })).toThrow(/size=.*standard.*tall/);
+  });
+
+  it('throws in dev when a caller still passes aspect, naming the removal', () => {
+    expect(() => renderScatter({ aspect: 1.8 })).toThrow(/aspect/);
+  });
+
+  it('throws in dev when a caller still passes margin, naming the removal', () => {
+    expect(() => renderScatter({ margin: { top: 1 } })).toThrow(/margin/);
   });
 });

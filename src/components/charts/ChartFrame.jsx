@@ -11,19 +11,38 @@ import {
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '@mui/material/styles';
 import { exportChartPng, exportChartSvg } from './exportChart';
-import { warnOnHeightMismatch } from './chartDefaults';
 
 export const CHART_FRAME_ROOT_SX = { p: 2 };
 export const CHART_FRAME_ALERT_SX = { mt: 2 };
+
+/**
+ * UCM-CHART-12: `warnOnHeightMismatch` (the shared helper this note used to call into
+ * `chartDefaults`) was deleted along with `resolveChartHeight` -- both belonged to the
+ * `{minHeight, height, aspect}` trio the four chart presets used to accept, which that WO
+ * replaced with `resolveChartLayout`'s `size`/`height` model. `ChartFrame` keeps its OWN
+ * `minHeight`/`height`/`aspect` props unchanged (CHART-9: it is a card floor, not a chart size),
+ * so it keeps this note too -- same text, same condition, just no longer routed through the
+ * now-deleted shared function.
+ */
+function warnOnChartFrameHeightMismatch(minHeight, height) {
+  if (process.env.NODE_ENV === 'production') return;
+  if (minHeight == null || height == null || minHeight === height) return;
+  // eslint-disable-next-line no-console
+  console.warn(
+    `[ui-core-micha] <ChartFrame> received both minHeight={${minHeight}} and height={${height}}; `
+    + 'they disagree; height is ignored here and minHeight keeps sizing the wrapper as a floor. '
+    + 'Pass only minHeight, or drop height if it was meant to size the whole card.',
+  );
+}
 
 /**
  * Chart-type-agnostic chart scaffolding. Children may be an X-Charts primitive or a bespoke SVG.
  *
  * `minHeight` (CHART-9): always just a floor on the content box, which holds a whole card --
  * title, toolbar, chart, legend, footnotes, export links -- not a single chart. `height` is never
- * applied to the box (unlike the four chart presets, whose box holds exactly one chart and do use
- * `resolveChartHeight`'s `height`/`aspect` resolution); it is only compared against `minHeight` for
- * `warnOnHeightMismatch`'s dev-mode note.
+ * applied to the box (unlike the four chart presets, whose box holds exactly one chart and use
+ * `resolveChartLayout`'s `size`/`height` resolution); it is only compared against `minHeight` for
+ * this component's own dev-mode mismatch note.
  */
 export function ChartFrame({
   title,
@@ -60,7 +79,7 @@ export function ChartFrame({
   const callerSx = Array.isArray(sx) ? sx : [sx];
 
   useEffect(
-    () => warnOnHeightMismatch('ChartFrame', { minHeight, height }, { heightWins: false }),
+    () => warnOnChartFrameHeightMismatch(minHeight, height),
     [minHeight, height],
   );
 

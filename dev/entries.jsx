@@ -496,6 +496,11 @@ function ThemeBaselineEntry() {
           <LineChart
             xAxis={[{
               data: ['Jan', 'Feb', 'Mar', 'Apr'],
+              // UCM-CHART-12: rotation is now REQUESTED via xLabels="angled" below, not implied by
+              // this angle alone -- but an "angled" axis still honours a caller-set angle as an
+              // override of its own -45deg default, so this keeps the fixture's original -25deg
+              // shape (reviewer finding R3: an unannounced drift to -45deg here would have been a
+              // pure demo-visual accident, not an intended change).
               tickLabelStyle: { fontSize: 14, angle: -25 },
             }]}
             series={[
@@ -506,6 +511,7 @@ function ThemeBaselineEntry() {
             yAxisLabel="Cases"
             grid={{ vertical: true }}
             legendPosition={{ vertical: 'top', horizontal: 'end' }}
+            xLabels="angled"
             height={320}
           />
         </ChartFrame>

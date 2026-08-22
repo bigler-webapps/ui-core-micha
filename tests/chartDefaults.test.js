@@ -15,14 +15,13 @@ import { BarChart } from '../src/components/charts/BarChart';
 import { LineChart } from '../src/components/charts/LineChart';
 import { TimeSeriesChart } from '../src/components/charts/TimeSeriesChart';
 import {
-  defaultNumericTickFormatter,
+  CHART_SIZE_SPACING_UNITS,
   PACKAGE_DEFAULT_MARGIN,
-  resolveChartHeight,
+  assertRemovedChartProp,
+  defaultNumericTickFormatter,
+  resolveChartLayout,
   sizeYAxisForContent,
-  spaceForRotatedTicks,
-  warnOnHeightMismatch,
   withAxisDefaults,
-  withMarginDefaults,
 } from '../src/components/charts/chartDefaults';
 import { createAppTheme } from '../src/theme/createAppTheme';
 
@@ -113,6 +112,9 @@ describe('chart chrome defaults', () => {
     expect(timeSeriesProps.yAxis[0].tickLabelStyle.fontSize).toBe(theme.typography.caption.fontSize);
     expect(timeSeriesProps.grid).toEqual({ horizontal: true });
     expect(timeSeriesProps.skipAnimation).toBe(true);
+    // UCM-CHART-12: TimeSeriesChart's inner BarChart now takes size="standard" instead of a
+    // fixed height prop -- the resolved height must still land on the historical 320px default.
+    expect(timeSeriesProps.height).toBe(320);
   });
 
   it('keeps caller tick font, grid, showMark, and legendPosition values instead of the defaults', () => {
@@ -163,66 +165,70 @@ describe('chart chrome defaults', () => {
     expect(barSpy.mock.calls.at(-1)[0].xAxis[0].scaleType).toBe('band');
   });
 
-  it('CHART-10: grows only xAxis.height for rotated tick labels, never margin.bottom on top of it', () => {
-    // CHART-11: a long label -- short ones like "Jan"/"Feb" now correctly need no extra height
-    // at all once the estimate stopped over-reserving (asserted separately below).
-    renderBar({ xAxis: [{ data: ['A label long enough to need real rotation room'], tickLabelStyle: { angle: -45 } }] });
+  // UCM-CHART-12: rotation is now an explicit xLabels="angled" request, not an implicit
+  // consequence of a caller-supplied tickLabelStyle.angle -- replaces the old CHART-10 regression
+  // test (grows only xAxis.height, never margin.bottom on top of it) against the new API.
+  it('grows only xAxis.height for xLabels="angled", never margin.bottom on top of it', () => {
+    renderBar({
+      xAxis: [{ data: ['A label long enough to need real rotation room'] }],
+      xLabels: 'angled',
+    });
     const rotatedProps = barSpy.mock.calls.at(-1)[0];
     expect(rotatedProps.margin.bottom).toBe(PACKAGE_DEFAULT_MARGIN.bottom);
     expect(rotatedProps.xAxis[0].height).toBeGreaterThan(45);
 
     cleanup();
-    renderBar({ xAxis: [{ data: ['Jan', 'Feb'], tickLabelStyle: { angle: 0 } }] });
-    expect(barSpy.mock.calls.at(-1)[0].margin).toEqual(PACKAGE_DEFAULT_MARGIN);
+    renderBar({ xAxis: [{ data: ['Jan', 'Feb'] }], xLabels: 'horizontal' });
+    expect(barSpy.mock.calls.at(-1)[0].margin.bottom).toBe(PACKAGE_DEFAULT_MARGIN.bottom);
   });
 
-  // THEME-11 -- the package now forms an opinion on chart margins (was: MUI's own flat 20px on
-  // every side, unconditionally, because this package never set one).
-  describe('withMarginDefaults / package margin default (THEME-11)', () => {
-    it('applies the package default on every side when the caller sets no margin', () => {
-      renderBar();
+  // THEME-11 -- the package forms its own opinion on chart margins (was: MUI's own flat 20px on
+  // every side). UCM-CHART-12: there is no caller-facing `margin` prop any more (the model owns
+  // spacing completely), so these assert the rendered default directly rather than through
+  // `withMarginDefaults`, which UCM-CHART-12 removed as dead code once its only caller (the
+  // deleted `margin` prop) was gone.
+  describe('package margin default (THEME-11 / UCM-CHART-12)', () => {
+    it('applies the package default on every side when there is no legend to make room for', () => {
+      renderBar({ hideLegend: true });
       expect(barSpy.mock.calls.at(-1)[0].margin).toEqual(PACKAGE_DEFAULT_MARGIN);
     });
 
-    // CHART-10: the axis band, not the margin, carries the rotated-tick allowance -- a
-    // rotated-tick chart gets the SAME flat package bottom margin as any other chart. Named
-    // "still gives" in CHART-8/9 history; the correct behaviour is now the opposite of that name.
     it('gives a rotated-tick chart the same flat package bottom margin as an unrotated one', () => {
-      renderBar({ xAxis: [{ data: ['January', 'February'], tickLabelStyle: { angle: -90 } }] });
+      renderBar({
+        xAxis: [{ data: ['January', 'February'] }],
+        xLabels: 'angled',
+        hideLegend: true,
+      });
       const props = barSpy.mock.calls.at(-1)[0];
       expect(props.margin.bottom).toBe(PACKAGE_DEFAULT_MARGIN.bottom);
       expect(props.xAxis[0].height).toBeGreaterThan(45);
     });
 
-    // Scope 1's merge semantics: a caller-supplied PARTIAL margin keeps its own value on the
-    // side it set and gets the package default on the others -- never MUI's wider 20px, and
-    // never silently reset to the package default on the side the caller DID set.
-    it('merges a caller-supplied partial margin per side, not wholesale', () => {
-      renderBar({ margin: { left: 60 } });
-      const { margin } = barSpy.mock.calls.at(-1)[0];
-      expect(margin.left).toBe(60);
-      expect(margin.top).toBe(PACKAGE_DEFAULT_MARGIN.top);
-      expect(margin.bottom).toBe(PACKAGE_DEFAULT_MARGIN.bottom);
-      expect(margin.right).toBe(PACKAGE_DEFAULT_MARGIN.right);
-    });
-
-    it('keeps every side a caller sets when they supply a full margin object', () => {
-      renderBar({ margin: { top: 1, bottom: 2, left: 3, right: 4 } });
-      expect(barSpy.mock.calls.at(-1)[0].margin).toEqual({ top: 1, bottom: 2, left: 3, right: 4 });
-    });
-
-    // A LINEAR x-axis's last tick label sits AT the plot edge (unlike a band axis's centred
-    // ticks) and overhangs by about half its width -- the reason `right` is trimmed less than
-    // `left`/`bottom`. Pinned here as a value; the actual no-clip claim is verified by the
-    // rendered check (WO Part C), not derivable from a mocked MUI component.
     it('keeps a wider default right margin than left/bottom, for a linear x-axis\'s edge-sitting last tick', () => {
       expect(PACKAGE_DEFAULT_MARGIN.right).toBeGreaterThan(PACKAGE_DEFAULT_MARGIN.left);
       expect(PACKAGE_DEFAULT_MARGIN.right).toBeGreaterThan(PACKAGE_DEFAULT_MARGIN.bottom);
     });
 
     it('applies the SAME package default to LineChart as BarChart', () => {
-      renderLine();
+      renderLine({ hideLegend: true });
       expect(lineSpy.mock.calls.at(-1)[0].margin).toEqual(PACKAGE_DEFAULT_MARGIN);
+    });
+
+    it('grows margin.bottom by the legend band when a legend renders at the bottom (the default)', () => {
+      renderBar({ series: [{ data: [1] }, { data: [2] }] }); // 2 series -> legend shown
+      const props = barSpy.mock.calls.at(-1)[0];
+      expect(props.margin.bottom).toBeGreaterThan(PACKAGE_DEFAULT_MARGIN.bottom);
+      expect(props.margin.top).toBe(PACKAGE_DEFAULT_MARGIN.top);
+    });
+
+    it('grows margin.top instead when legendPosition.vertical is "top"', () => {
+      renderBar({
+        series: [{ data: [1] }, { data: [2] }],
+        legendPosition: { vertical: 'top' },
+      });
+      const props = barSpy.mock.calls.at(-1)[0];
+      expect(props.margin.top).toBeGreaterThan(PACKAGE_DEFAULT_MARGIN.top);
+      expect(props.margin.bottom).toBe(PACKAGE_DEFAULT_MARGIN.bottom);
     });
   });
 
@@ -266,6 +272,269 @@ describe('chart chrome defaults', () => {
       vertical: 'bottom',
       horizontal: 'end',
     });
+  });
+});
+
+// UCM-CHART-12: removed props (`minHeight`, `aspect`, `margin`) throw a dev-mode error naming
+// their replacement instead of being silently ignored -- 38 existing call sites across the estate
+// hit this. Gated on NODE_ENV so a shared package cannot crash a consumer's production page.
+describe('removed chart props throw in dev, naming their replacement (UCM-CHART-12)', () => {
+  afterEach(cleanup);
+
+  it('assertRemovedChartProp is a no-op when the value is unset', () => {
+    expect(() => assertRemovedChartProp('BarChart', 'minHeight', undefined, 'x')).not.toThrow();
+  });
+
+  it('assertRemovedChartProp throws in development, naming the component, prop, and replacement', () => {
+    expect(() => assertRemovedChartProp('BarChart', 'minHeight', 320, 'Use size instead.'))
+      .toThrow(/BarChart.*minHeight.*Use size instead\./s);
+  });
+
+  it('assertRemovedChartProp stays inert in production', () => {
+    const original = process.env.NODE_ENV;
+    process.env.NODE_ENV = 'production';
+    try {
+      expect(() => assertRemovedChartProp('BarChart', 'minHeight', 320, 'Use size instead.')).not.toThrow();
+    } finally {
+      process.env.NODE_ENV = original;
+    }
+  });
+
+  it.each([
+    ['BarChart', BarChart, 'minHeight', 320],
+    ['BarChart', BarChart, 'aspect', 1.8],
+    ['BarChart', BarChart, 'margin', { top: 1 }],
+    ['LineChart', LineChart, 'minHeight', 320],
+    ['LineChart', LineChart, 'aspect', 1.8],
+    ['LineChart', LineChart, 'margin', { top: 1 }],
+  ])('%s throws when a caller still passes %s', (_name, Component, prop, value) => {
+    expect(() => render(withProviders(React.createElement(Component, {
+      series: [{ label: 'Cases', data: [1, 2] }],
+      [prop]: value,
+    })))).toThrow();
+  });
+});
+
+// UCM-CHART-12 -- the composition invariant, the actual deliverable of this WO. Two things are
+// asserted per case, and they are NOT the same guarantee (reviewer finding R1):
+// (1) the SUM `plotHeight + xAxisBand + xTitleBand + legendBand === chartHeight` -- true by
+//     construction (`plotHeight` is defined as the residual of the other three), so on its own
+//     this proves only that `resolveChartLayout`'s return shape is internally consistent, NOT the
+//     absence of a double-counted term.
+// (2) the PER-TERM MAPPING -- `xAxis[0].height` carries EXACTLY `xAxisBand + xTitleBand` and
+//     nothing else, `margin`'s growth over the package baseline carries EXACTLY `legendBand` and
+//     nothing else. THIS is what would have caught a `UCM-CHART-10`-shaped bug (the same
+//     allowance reserved twice, once in axis height and again in margin) -- assertion (1) alone
+//     would not have, since a term double-counted in both places still sums correctly.
+describe('resolveChartLayout composition invariant (UCM-CHART-12)', () => {
+  const bandAxis = (data) => [{ scaleType: 'band', data, label: undefined }];
+
+  it.each([
+    ['none', []],
+    ['short', ['Jan', 'Feb']],
+    ['long', ['A much longer ward name than the others']],
+    ['long-and-many', Array.from({ length: 12 }, (_, i) => `Ward number ${i} with a longish name`)],
+    ['empty-strings', ['', '', '']],
+  ])('holds the height invariant for the "%s" label load, with no term double-counted', (_label, data) => {
+    const layout = resolveChartLayout({
+      size: 'standard',
+      xAxis: bandAxis(data),
+      yAxis: [{ scaleType: 'linear', min: 0, max: 100 }],
+      spacing: theme.spacing,
+      measureTextWidth: () => null, // force the deterministic estimate fallback
+    });
+    const { bands } = layout;
+    expect(bands.plotHeight + bands.xAxisBand + bands.xTitleBand + bands.legendBand)
+      .toBe(layout.chartHeight);
+    // The per-term mapping -- the actual double-count guard (see the describe-level comment).
+    expect(layout.xAxis[0].height).toBe(bands.xAxisBand + bands.xTitleBand);
+    expect(layout.margin.top + layout.margin.bottom - PACKAGE_DEFAULT_MARGIN.top - PACKAGE_DEFAULT_MARGIN.bottom)
+      .toBe(bands.legendBand);
+  });
+
+  it('collapses the x-axis band to zero when every tick label is blank (the Access-scatter case)', () => {
+    const layout = resolveChartLayout({
+      xAxis: [{ scaleType: 'band', data: ['', '', ''] }],
+      yAxis: [{ scaleType: 'linear' }],
+      spacing: theme.spacing,
+    });
+    expect(layout.bands.xAxisBand).toBe(0);
+    expect(layout.xAxis[0].height).toBe(0);
+  });
+
+  it('collapses the x-axis band to zero when there is no tick data at all', () => {
+    const layout = resolveChartLayout({
+      xAxis: [{ scaleType: 'band', data: [] }],
+      yAxis: [{ scaleType: 'linear' }],
+      spacing: theme.spacing,
+    });
+    expect(layout.bands.xAxisBand).toBe(0);
+  });
+
+  it('assumes non-empty content when the axis has no data array at all (a numeric scale)', () => {
+    const layout = resolveChartLayout({
+      xAxis: [{ scaleType: 'linear' }],
+      yAxis: [{ scaleType: 'linear' }],
+      spacing: theme.spacing,
+    });
+    expect(layout.bands.xAxisBand).toBeGreaterThan(0);
+  });
+
+  it('reserves the x-title band only when the x-axis carries a label', () => {
+    const withoutTitle = resolveChartLayout({
+      xAxis: [{ scaleType: 'band', data: ['Jan'] }],
+      yAxis: [{ scaleType: 'linear' }],
+      spacing: theme.spacing,
+    });
+    expect(withoutTitle.bands.xTitleBand).toBe(0);
+
+    const withTitle = resolveChartLayout({
+      xAxis: [{ scaleType: 'band', data: ['Jan'], label: 'Month' }],
+      yAxis: [{ scaleType: 'linear' }],
+      spacing: theme.spacing,
+    });
+    expect(withTitle.bands.xTitleBand).toBeGreaterThan(0);
+  });
+
+  it('reserves the legend band only when the legend is not hidden', () => {
+    const hidden = resolveChartLayout({
+      xAxis: [{ scaleType: 'band', data: ['Jan'] }],
+      yAxis: [{ scaleType: 'linear' }],
+      hideLegend: true,
+      spacing: theme.spacing,
+    });
+    expect(hidden.bands.legendBand).toBe(0);
+
+    const shown = resolveChartLayout({
+      xAxis: [{ scaleType: 'band', data: ['Jan'] }],
+      yAxis: [{ scaleType: 'linear' }],
+      hideLegend: false,
+      spacing: theme.spacing,
+    });
+    expect(shown.bands.legendBand).toBeGreaterThan(0);
+  });
+
+  // Reviewer finding R2: a `vertical: 'middle'` legend renders on the SIDE (consuming width, not
+  // height) -- it must not reserve a height band or grow margin.top/bottom, or the height
+  // invariant would over-reserve height for space the legend never occupies there.
+  it('reserves no height band for a side-placed ("middle") legend', () => {
+    const layout = resolveChartLayout({
+      xAxis: [{ scaleType: 'band', data: ['Jan'] }],
+      yAxis: [{ scaleType: 'linear' }],
+      hideLegend: false,
+      legendPosition: { vertical: 'middle' },
+      spacing: theme.spacing,
+    });
+    expect(layout.bands.legendBand).toBe(0);
+    expect(layout.margin.top).toBe(PACKAGE_DEFAULT_MARGIN.top);
+    expect(layout.margin.bottom).toBe(PACKAGE_DEFAULT_MARGIN.bottom);
+  });
+
+  it('holds the width invariant when a containerWidth is supplied (test-only -- presets never pass this)', () => {
+    const layout = resolveChartLayout({
+      xAxis: [{ scaleType: 'band', data: ['Jan', 'Feb'] }],
+      yAxis: [{ scaleType: 'linear', min: 0, max: 250000 }],
+      tickFontSize: 12,
+      spacing: theme.spacing,
+      containerWidth: 600,
+    });
+    const { bands } = layout;
+    expect(bands.yAxisBand + bands.plotWidth + bands.rightPad).toBe(600);
+    expect(bands.yAxisBand).toBeGreaterThan(0);
+  });
+});
+
+describe('resolveChartLayout size tokens and height escape (UCM-CHART-12)', () => {
+  it.each(Object.entries(CHART_SIZE_SPACING_UNITS))('resolves size="%s" through the theme spacing scale', (size, units) => {
+    const layout = resolveChartLayout({ size, spacing: theme.spacing });
+    expect(layout.chartHeight).toBe(units * 8);
+  });
+
+  it('pins "standard" to the historical 320px default', () => {
+    const layout = resolveChartLayout({ size: 'standard', spacing: theme.spacing });
+    expect(layout.chartHeight).toBe(320);
+  });
+
+  it('lets height override the size token entirely', () => {
+    const layout = resolveChartLayout({ size: 'tall', height: 111, spacing: theme.spacing });
+    expect(layout.chartHeight).toBe(111);
+  });
+
+  it('throws on an unknown size token', () => {
+    expect(() => resolveChartLayout({ size: 'huge', spacing: theme.spacing })).toThrow(/Unknown chart size/);
+  });
+
+  it('falls back to a numeric 8px unit when no spacing function is given', () => {
+    const layout = resolveChartLayout({ size: 'standard' });
+    expect(layout.chartHeight).toBe(320);
+  });
+});
+
+describe('resolveChartLayout xLabels rotation (UCM-CHART-12)', () => {
+  it('"horizontal" never rotates, regardless of tick count or label length', () => {
+    const layout = resolveChartLayout({
+      xAxis: [{ scaleType: 'band', data: Array.from({ length: 20 }, (_, i) => `A rather long label ${i}`) }],
+      yAxis: [{ scaleType: 'linear' }],
+      xLabels: 'horizontal',
+      spacing: theme.spacing,
+    });
+    expect(layout.xAxis[0].tickLabelStyle?.angle).toBeFalsy();
+  });
+
+  it('"angled" always rotates, even for a single short label', () => {
+    const layout = resolveChartLayout({
+      xAxis: [{ scaleType: 'band', data: ['Jan'] }],
+      yAxis: [{ scaleType: 'linear' }],
+      xLabels: 'angled',
+      spacing: theme.spacing,
+    });
+    expect(layout.xAxis[0].tickLabelStyle.angle).toBe(-45);
+  });
+
+  it('"auto" stays horizontal for a few short labels, rotates for many long ones', () => {
+    const few = resolveChartLayout({
+      xAxis: [{ scaleType: 'band', data: ['Jan', 'Feb', 'Mar'] }],
+      yAxis: [{ scaleType: 'linear' }],
+      xLabels: 'auto',
+      spacing: theme.spacing,
+    });
+    expect(few.xAxis[0].tickLabelStyle?.angle).toBeFalsy();
+
+    const many = resolveChartLayout({
+      xAxis: [{ scaleType: 'band', data: Array.from({ length: 12 }, (_, i) => `Ward name ${i}`) }],
+      yAxis: [{ scaleType: 'linear' }],
+      xLabels: 'auto',
+      spacing: theme.spacing,
+    });
+    expect(many.xAxis[0].tickLabelStyle.angle).toBe(-45);
+  });
+
+  it('drives the rotated tick band from a measured width, not a flat constant', () => {
+    const short = resolveChartLayout({
+      xAxis: [{ scaleType: 'band', data: ['A'], tickLabelStyle: { fontSize: 12 } }],
+      yAxis: [{ scaleType: 'linear' }],
+      xLabels: 'angled',
+      spacing: theme.spacing,
+      measureTextWidth: () => 10,
+    });
+    const long = resolveChartLayout({
+      xAxis: [{ scaleType: 'band', data: ['A much longer label'], tickLabelStyle: { fontSize: 12 } }],
+      yAxis: [{ scaleType: 'linear' }],
+      xLabels: 'angled',
+      spacing: theme.spacing,
+      measureTextWidth: () => 140,
+    });
+    expect(long.bands.xAxisBand).toBeGreaterThan(short.bands.xAxisBand);
+  });
+
+  it('does not override an axis that already sets its own height', () => {
+    const layout = resolveChartLayout({
+      xAxis: [{ scaleType: 'band', data: ['January'], height: 200 }],
+      yAxis: [{ scaleType: 'linear' }],
+      xLabels: 'angled',
+      spacing: theme.spacing,
+    });
+    expect(layout.xAxis[0].height).toBe(200);
   });
 });
 
@@ -416,226 +685,5 @@ describe('sizeYAxisForContent (THEME-9)', () => {
     // "both axes silently untouched" or "both matched the same series" would
     // produce).
     expect(secondary.width).toBeGreaterThan(primary.width);
-  });
-});
-
-// THEME-11 -- pure-function contract of the merge helper itself, independent of any chart
-// component wiring (that's covered above, in 'chart chrome defaults').
-describe('withMarginDefaults (THEME-11)', () => {
-  it('returns the package default untouched when the caller sets no margin', () => {
-    expect(withMarginDefaults(undefined)).toEqual(PACKAGE_DEFAULT_MARGIN);
-  });
-
-  it('merges a partial object per side', () => {
-    expect(withMarginDefaults({ top: 40 })).toEqual({ ...PACKAGE_DEFAULT_MARGIN, top: 40 });
-  });
-
-  it('expands a numeric shorthand margin to all four sides before merging', () => {
-    expect(withMarginDefaults(5)).toEqual({ top: 5, bottom: 5, left: 5, right: 5 });
-  });
-
-  it('leaves a fully-specified caller margin untouched', () => {
-    const full = { top: 1, bottom: 2, left: 3, right: 4 };
-    expect(withMarginDefaults(full)).toEqual(full);
-  });
-});
-
-describe('spaceForRotatedTicks (CHART-10)', () => {
-  const rotatedAxis = [{ data: ['January', 'February'], tickLabelStyle: { angle: -45, fontSize: 12 } }];
-
-  it('reserves the allowance once, on axis.height, and leaves margin untouched', () => {
-    const result = spaceForRotatedTicks(rotatedAxis, undefined);
-    expect(result.xAxis[0].height).toBeGreaterThan(45);
-    expect(result.margin).toBeUndefined();
-  });
-
-  it('is byte-identical at angle 0 -- each axis entry and the margin pass through untouched', () => {
-    const flatAxis = [{ data: ['Jan', 'Feb'], tickLabelStyle: { angle: 0 } }];
-    const margin = { top: 1 };
-    const result = spaceForRotatedTicks(flatAxis, margin);
-    expect(result.xAxis[0]).toBe(flatAxis[0]);
-    expect(result.margin).toBe(margin);
-  });
-
-  it('preserves a caller-set margin.bottom untouched -- the allowance is never added on top of it', () => {
-    const margin = { bottom: 50 };
-    const result = spaceForRotatedTicks(rotatedAxis, margin);
-    expect(result.margin).toBe(margin);
-    expect(result.margin.bottom).toBe(50);
-  });
-
-  it('drives the height estimate from the longest formatted tick, not a flat constant', () => {
-    const shortLabels = [{ data: ['A', 'B'], tickLabelStyle: { angle: -45, fontSize: 12 } }];
-    const longLabels = [{
-      data: ['A much longer ward name than the others', 'B'],
-      tickLabelStyle: { angle: -45, fontSize: 12 },
-    }];
-    const shortResult = spaceForRotatedTicks(shortLabels, undefined);
-    const longResult = spaceForRotatedTicks(longLabels, undefined);
-    expect(longResult.xAxis[0].height).toBeGreaterThan(shortResult.xAxis[0].height);
-  });
-
-  it('does not override an axis that already sets its own height', () => {
-    const axis = [{ data: ['January'], tickLabelStyle: { angle: -45 }, height: 200 }];
-    const result = spaceForRotatedTicks(axis, undefined);
-    expect(result.xAxis[0].height).toBe(200);
-  });
-});
-
-// CHART-11 -- the rotated-tick reservation now derives from a MEASURED (or injected-stub, for
-// determinism) text width instead of a flat character-count multiplier, which systematically
-// overestimated real ward-name-shaped strings. jsdom has no SVG text layout
-// (`getComputedTextLength` is not implemented there), so these tests inject `measureTextWidth`
-// (spaceForRotatedTicks's 4th, optional parameter) rather than depending on a real measurement.
-describe('spaceForRotatedTicks measured width (CHART-11)', () => {
-  it('derives extraHeight from the injected measurement, not a character-count guess', () => {
-    const measurer = vi.fn(() => 100);
-    const axis = [{ data: ['x'], tickLabelStyle: { angle: -45, fontSize: 12 } }];
-    const result = spaceForRotatedTicks(axis, undefined, 1, measurer);
-
-    // Same projection formula as `rotatedTickMetrics`, worked by hand for a deterministic
-    // expectation -- a single-character label would give almost no height under the old
-    // character-count formula, but the stub reports 100px measured, so the result must reflect
-    // that, not the string's length. Axis height is the larger of the un-rotated baseline (45)
-    // and the rotated projection plus the small clearance (CHART-11).
-    const radians = (-45 * Math.PI) / 180;
-    const projectedHeight = Math.abs(Math.cos(radians)) * 12 * 1 + Math.abs(Math.sin(radians)) * 100;
-    const neededAxisHeight = Math.ceil(projectedHeight) + 8;
-    expect(result.xAxis[0].height).toBe(Math.max(45, neededAxisHeight));
-    expect(measurer).toHaveBeenCalledWith('x', 12);
-  });
-
-  it('measures the formatted (already-truncated) tick text, not a hypothetical fuller string', () => {
-    const measurer = vi.fn((text) => text.length * 10);
-    const axis = [{
-      data: ['A Very Long Ward Name That MUI Would Truncate'],
-      valueFormatter: () => "Ching'a…", // simulates MUI's own rendered, truncated tick text
-      tickLabelStyle: { angle: -45, fontSize: 12 },
-    }];
-    spaceForRotatedTicks(axis, undefined, 1, measurer);
-    expect(measurer).toHaveBeenCalledWith("Ching'a…", 12);
-  });
-
-  it('falls back to a per-character estimate, tighter than the pre-CHART-11 flat multiplier, when no measurer is available', () => {
-    const label = 'Msolwa Station'; // spaces + mixed case, representative of a real ward name
-    const nullMeasurer = () => null;
-    const axis = [{ data: [label], tickLabelStyle: { angle: -45, fontSize: 13 } }];
-    const result = spaceForRotatedTicks(axis, undefined, 1, nullMeasurer);
-
-    // Reconstruct the height the retired flat-multiplier formula (AVERAGE_GLYPH_WIDTH_EM = 0.6)
-    // would have produced for the same label, as the comparison baseline this WO exists to beat.
-    const oldFlatTextWidth = label.length * 13 * 0.6;
-    const radians = (-45 * Math.PI) / 180;
-    const oldProjected = Math.abs(Math.cos(radians)) * 13 * 1 + Math.abs(Math.sin(radians)) * oldFlatTextWidth;
-    const oldHeight = 45 + Math.max(1, Math.ceil(oldProjected - 13));
-    expect(result.xAxis[0].height).toBeLessThan(oldHeight);
-  });
-
-  it('floors exactly at the un-rotated baseline (45), not one above it, when a short label needs no extra room', () => {
-    const measurer = () => 5; // a tiny measured width -- shorter than the clearance alone needs
-    const axis = [{ data: ['x'], tickLabelStyle: { angle: -45, fontSize: 8 } }];
-    const result = spaceForRotatedTicks(axis, undefined, 1, measurer);
-    expect(result.xAxis[0].height).toBe(45);
-  });
-
-  // Review finding (ui_reviewer): only -45deg was live-verified against hram (its one real -90deg
-  // consumer, VillageMetricsPanel.jsx, is not wired into the app -- unreachable, so it could not be
-  // live-checked). At -90deg, cos(angle) is ~0, so the lineHeight term drops out almost entirely and
-  // the projection is driven by textWidth alone -- a materially different shape from -45deg, worth
-  // its own deterministic test rather than trusting the same formula by extrapolation.
-  it('generalizes to -90deg, where the line-height term vanishes and textWidth alone drives the projection', () => {
-    const measurer = () => 130; // a long village name, matching RatioMetricsPanel's own
-    // "-90 for village (many labels)" case (fontSize 11 there)
-    const axis = [{ data: ['A Very Long Village Name'], tickLabelStyle: { angle: -90, fontSize: 11 } }];
-    const result = spaceForRotatedTicks(axis, undefined, 1, measurer);
-
-    const radians = (-90 * Math.PI) / 180;
-    const projectedHeight = Math.abs(Math.cos(radians)) * 11 * 1 + Math.abs(Math.sin(radians)) * 130;
-    const expectedHeight = Math.max(45, Math.ceil(projectedHeight) + 8);
-    expect(result.xAxis[0].height).toBe(expectedHeight);
-    // Confirms the line-height term is genuinely near-zero at -90deg -- height tracks textWidth
-    // alone within rounding, not some residual line-height contribution.
-    expect(result.xAxis[0].height).toBe(Math.max(45, 130 + 8));
-  });
-});
-
-// CHART-8 -- pure-function contract of the minHeight/height/aspect resolver, independent of any
-// chart component wiring (component-level wiring is covered per-preset in each own test file).
-describe('resolveChartHeight (CHART-8)', () => {
-  it('sizes the chart from minHeight alone when neither height nor aspect is set', () => {
-    expect(resolveChartHeight({ minHeight: 300 })).toEqual({ wrapperMinHeight: 300, chartHeight: 300 });
-  });
-
-  it('leaves minHeight as a floor and gives the chart no fixed height when aspect is set (no height)', () => {
-    expect(resolveChartHeight({ minHeight: 320, aspect: 1.8 })).toEqual({
-      wrapperMinHeight: 320,
-      chartHeight: undefined,
-    });
-  });
-
-  it('caps the wrapper at height when minHeight is larger, closing the dead-space gap', () => {
-    expect(resolveChartHeight({ minHeight: 420, height: 380 })).toEqual({
-      wrapperMinHeight: 380,
-      chartHeight: 380,
-    });
-  });
-
-  it('is byte-identical (both values unchanged) when minHeight equals height', () => {
-    expect(resolveChartHeight({ minHeight: 320, height: 320 })).toEqual({
-      wrapperMinHeight: 320,
-      chartHeight: 320,
-    });
-  });
-
-  it('leaves the wrapper unset when height is passed alone', () => {
-    expect(resolveChartHeight({ height: 280 })).toEqual({ wrapperMinHeight: undefined, chartHeight: 280 });
-  });
-
-  it('does not cap the wrapper when minHeight is smaller than height', () => {
-    expect(resolveChartHeight({ minHeight: 200, height: 380 })).toEqual({
-      wrapperMinHeight: 200,
-      chartHeight: 380,
-    });
-  });
-});
-
-describe('warnOnHeightMismatch (CHART-8)', () => {
-  afterEach(() => vi.restoreAllMocks());
-
-  it('warns, naming the component and both values, when minHeight and height disagree', () => {
-    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
-    warnOnHeightMismatch('BarChart', { minHeight: 420, height: 380 });
-    expect(warn).toHaveBeenCalledOnce();
-    expect(warn.mock.calls[0][0]).toContain('BarChart');
-    expect(warn.mock.calls[0][0]).toContain('420');
-    expect(warn.mock.calls[0][0]).toContain('380');
-  });
-
-  it('does not warn when minHeight equals height', () => {
-    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
-    warnOnHeightMismatch('BarChart', { minHeight: 320, height: 320 });
-    expect(warn).not.toHaveBeenCalled();
-  });
-
-  it('does not warn on the legitimate minHeight + aspect (no height) combination', () => {
-    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
-    warnOnHeightMismatch('BarChart', { minHeight: 320, height: undefined });
-    expect(warn).not.toHaveBeenCalled();
-  });
-
-  it('does not warn when only one of the pair is set', () => {
-    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
-    warnOnHeightMismatch('BarChart', { minHeight: undefined, height: 280 });
-    expect(warn).not.toHaveBeenCalled();
-  });
-
-  it('gives ChartFrame-accurate wording when heightWins is false (CHART-9)', () => {
-    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
-    warnOnHeightMismatch('ChartFrame', { minHeight: 420, height: 380 }, { heightWins: false });
-    expect(warn).toHaveBeenCalledOnce();
-    const message = warn.mock.calls[0][0];
-    expect(message).toContain('ChartFrame');
-    expect(message).toContain('height is ignored');
-    expect(message).not.toContain('height wins');
   });
 });

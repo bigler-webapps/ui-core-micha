@@ -30,6 +30,11 @@ import { useNeutralChartPalette } from './palette';
 // zero-height chart in the first place (CHART-4). Do not "fix" this back
 // to a responsive/aspect-ratio height without re-verifying the underlying
 // MUI measurement bug is actually resolved.
+//
+// UCM-CHART-12: `CHART_HEIGHT` (320) is the number `"standard"` (BarChart's new `size` token) was
+// deliberately pinned to, specifically so this preset's own default did not silently move under
+// this migration -- still used here as ChartFrame's own `minHeight` floor (a card concern,
+// unaffected by CHART-12), and the inner BarChart now takes `size="standard"` instead of `height`.
 const CHART_HEIGHT = 320;
 
 // Dynamic sx factories are outside the registry's documented top-level-object
@@ -283,7 +288,7 @@ export function TimeSeriesChart({
             ...(hasSecondaryAxis && series.axis === 'secondary' ? { yAxisId: 'secondary' } : {}),
           }))}
           palette={visiblePalette}
-          height={CHART_HEIGHT}
+          size="standard"
           hideLegend={seriesConfig.length > 0}
           skipAnimation={skipAnimation}
         />

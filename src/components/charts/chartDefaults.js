@@ -139,103 +139,19 @@ function measureTickTextWidthPx(text, fontSizePx) {
 // less trimmed than `left` because a LINEAR x-axis's last tick label sits AT the edge and
 // overhangs by about half its width (~13px at caption size) -- a band axis wouldn't need it, but
 // making this conditional on scale type would be inferred behaviour with no named consumer.
+//
+// UCM-CHART-12 Rule 3: no caller-supplied `margin` exists any more (the model owns spacing
+// completely, `resolveChartLayout` builds the final margin object directly) -- this is now only
+// the base every side starts from before `resolveChartLayout` adds the legend band to one side.
 export const PACKAGE_DEFAULT_MARGIN = {
   top: 10, bottom: 8, left: 8, right: 16,
 };
-
-/**
- * Applies the package's own margin default, per side -- a caller's own value on any side always
- * wins on that side; only an UNSET side gets the package default. A caller passing `{ left: 60 }`
- * therefore keeps that 60 on the left and gets the package defaults on the other three sides,
- * never MUI's wider ones. CHART-10: this applies identically whether or not the x-axis carries
- * rotated labels -- `spaceForRotatedTicks` no longer computes a `bottom` of its own.
- */
-export function withMarginDefaults(margin) {
-  const explicit = typeof margin === 'number'
-    ? { top: margin, bottom: margin, left: margin, right: margin }
-    : margin;
-  return { ...PACKAGE_DEFAULT_MARGIN, ...explicit };
-}
 
 // CHART-11: small clearance between the rotated text block's own projected extent and the
 // bottom of the axis's reserved band -- the same order of magnitude as the package's own
 // PACKAGE_DEFAULT_MARGIN breathing-room, applied here for the same reason (a hard 0px gap reads
 // as clipped even when nothing is actually cut off).
 const ROTATED_TICK_CLEARANCE_PX = 8;
-
-/**
- * CHART-11: `measureTextWidth` is injectable (defaults to the real `measureTickTextWidthPx`) so
- * tests can stub it for a deterministic result instead of depending on jsdom's SVG text layout
- * (unimplemented) or a real browser's font rendering.
- *
- * CHART-11 also corrects how the projection combines with `MUI_LABELLED_X_AXIS_HEIGHT`. The old
- * formula (`extraHeight = projectedHeight - fontSize`, added unconditionally on top of the full
- * 45px baseline) double-counts: the baseline already budgets tick+gap+one-line-of-text for the
- * NORMAL case, and adding the rotated projection's own full height on top of it, minus only a
- * bare `fontSize`, keeps far more of that baseline than a rotated label actually needs from it.
- * Measured live against hram real data: with an accurate measured `textWidth`, the OLD combine
- * step alone still left ~38px unused (axis.height 118 vs a real rendered tick-group height of
- * ~79px) -- the width term was not the only source of over-reservation. The axis height is now
- * the larger of the un-rotated baseline (a floor -- a barely-rotated label still gets the normal
- * allowance) and the rotated projection itself plus a small clearance -- verified live to close
- * the gap to single digits with no label clipping at 1280px or 375px (register note, CHART-11).
- */
-function rotatedTickMetrics(axis, defaultLineHeight, measureTextWidth = measureTickTextWidthPx) {
-  const angle = Number(axis.tickLabelStyle?.angle) || 0;
-  if (angle === 0) return null;
-
-  const fontSize = cssLengthToPixels(axis.tickLabelStyle?.fontSize);
-  if (fontSize === 0) return null;
-
-  const lineHeight = Number(axis.tickLabelStyle?.lineHeight) || defaultLineHeight;
-  const longestLabel = longestFormattedTick(axis.data || [], axis.valueFormatter);
-  const measuredWidth = measureTextWidth(longestLabel, fontSize);
-  const textWidth = Math.max(
-    fontSize,
-    Number.isFinite(measuredWidth) && measuredWidth > 0
-      ? measuredWidth
-      : estimateTextWidthPx(longestLabel, fontSize),
-  );
-  const radians = (angle * Math.PI) / 180;
-  const projectedHeight = Math.abs(Math.cos(radians)) * fontSize * lineHeight
-    + Math.abs(Math.sin(radians)) * textWidth;
-  const neededAxisHeight = Math.ceil(projectedHeight) + ROTATED_TICK_CLEARANCE_PX;
-  // `max(0, …)`, not `max(1, …)`: axis.height (= MUI_LABELLED_X_AXIS_HEIGHT + extraHeight) must be
-  // able to land exactly ON the baseline (45) when a barely-rotated label needs less than it --
-  // a leftover `max(1, …)` here would silently make 46 the true floor while every doc comment and
-  // test says 45 (caught in review: harmless in direction, but the two must actually agree).
-  const extraHeight = Math.max(0, neededAxisHeight - MUI_LABELLED_X_AXIS_HEIGHT);
-
-  return { extraHeight };
-}
-
-/**
- * CHART-10: rotated labels project both their line box and text width vertically, and X-Charts
- * uses `xAxis.height` -- not `margin.bottom` -- to size the band that actually CONTAINS them.
- * `margin.bottom` only separates that axis band from the SVG edge; it plays no part in whether a
- * label fits. Measured live (hram, 2026-08-22, real data): once `axis.height` carries the
- * allowance, the rendered tick labels sit fully INSIDE the axis band with nothing below them --
- * `margin.bottom` growing by the same allowance on top was reserving space nothing ever used, up
- * to 130px (38% of a 340px card) on long rotated labels. Only `axis.height` grows here now;
- * `margin` is returned untouched (whatever the caller passed, or didn't) so `withMarginDefaults`
- * downstream applies the package's ordinary bottom default in every case, rotated or not -- a
- * caller-set `margin.bottom` was never touched by this function even before this fix, and still
- * isn't.
- *
- * CHART-11: `measureTextWidth` is an optional injection point (defaults to a real DOM
- * measurement) that only exists for deterministic tests -- neither preset caller passes it, so
- * neither needs to change.
- */
-export function spaceForRotatedTicks(xAxis, margin, defaultLineHeight = 1, measureTextWidth) {
-  const spacedXAxis = xAxis.map((axis) => {
-    const metrics = rotatedTickMetrics(axis, defaultLineHeight, measureTextWidth);
-    if (!metrics) return axis;
-    if (axis.height != null) return axis;
-    return { ...axis, height: MUI_LABELLED_X_AXIS_HEIGHT + metrics.extraHeight };
-  });
-
-  return { xAxis: spacedXAxis, margin };
-}
 
 // THEME-9: MUI X-Charts' own default y-axis width is a flat 45px (ticks) +
 // 20px (label, if present) = 65px regardless of what the ticks actually say
@@ -367,56 +283,247 @@ export function defaultNumericTickFormatter(locale) {
     : new Intl.NumberFormat(locale).format(value));
 }
 
-/**
- * CHART-8: resolves the `{minHeight, height, aspect}` trio these presets accept into what the
- * wrapper reserves and what height (if any) sizes the chart itself. Three-way, not two-way --
- * `aspect` changes the answer:
- *  - `height` set -> it sizes the chart; the wrapper never reserves more than that (a caller-set
- *    `minHeight` larger than `height` is capped here, closing the dead-space gap this WO exists
- *    to fix -- equal values, or no `minHeight` at all, pass through unchanged).
- *  - no `height`, `aspect` set -> unchanged from before this WO: the wrapper's own `aspectRatio`
- *    derives its height from its width, and `minHeight` stays exactly what its name says, a floor
- *    stopping it collapsing on a narrow viewport. Do not give the chart a fixed height here --
- *    that would remove the responsive behaviour four live call sites rely on.
- *  - no `height`, no `aspect` -> `minHeight` sizes the chart itself. There is no other sizing
- *    information to go on, and a caller in this shape meant the chart to have that height, not
- *    merely a wrapper floor around an unsized chart.
- */
-export function resolveChartHeight({ minHeight, height, aspect }) {
-  if (height != null) {
-    const wrapperMinHeight = minHeight != null && minHeight > height ? height : minHeight;
-    return { wrapperMinHeight, chartHeight: height };
-  }
-  if (aspect != null) {
-    return { wrapperMinHeight: minHeight, chartHeight: undefined };
-  }
-  return { wrapperMinHeight: minHeight, chartHeight: minHeight };
+// UCM-CHART-12: named size tokens, resolved through the theme's 8px spacing unit
+// (`src/theme/tokens.js`'s `spacing: 8`). `standard` is pinned to the pre-existing deployed
+// default (`TimeSeriesChart`'s old `CHART_HEIGHT = 320`) so this migration does not also
+// silently redraw every already-shipped default-sized chart; `compact`/`tall` are proportional.
+// Documented plainly in `docs/CHART-LAYOUT.md` -- these are visible product decisions, not
+// internal plumbing.
+export const CHART_SIZE_SPACING_UNITS = { compact: 30, standard: 40, tall: 50 };
+
+// UCM-CHART-12 Rule 2: every band is its own measured content, or zero -- no band is ever a
+// constant taken on faith. These two ARE constants, but only for the "content is present" case;
+// each one collapses to 0 the moment its content is absent (`resolveXAxisGeometry`,
+// `resolveChartLayout` below).
+//
+// ui_reviewer finding U1: before this WO, a plain (unrotated, untitled) axis got NO explicit
+// `axis.height` at all -- MUI computed its own default internally. This resolver now always sets
+// `axis.height` explicitly (Rule 1: nothing outside the resolver does chart arithmetic), which
+// looked like a silent behaviour change until checked against MUI's own source
+// (`@mui/x-charts/constants`): `DEFAULT_AXIS_SIZE_HEIGHT = 25` and `AXIS_LABEL_DEFAULT_HEIGHT =
+// 20` -- i.e. `TICK_BAND_BASE_PX`/`AXIS_TITLE_BAND_PX` below are not an approximation, they are
+// MUI's own constants, confirmed pixel-for-pixel. Making them explicit changes nothing about what
+// renders for that common case; `TICK_BAND_BASE_PX + AXIS_TITLE_BAND_PX` = 45 is also exactly the
+// pre-CHART-12 `MUI_LABELLED_X_AXIS_HEIGHT`, decomposed into the two bands Rule 2 requires instead
+// of one opaque "labelled axis height" figure.
+const TICK_BAND_BASE_PX = 25;
+const AXIS_TITLE_BAND_PX = MUI_LABELLED_X_AXIS_HEIGHT - TICK_BAND_BASE_PX;
+// One row of legend chips + gap -- MUI does not reserve this space itself (confirmed: nothing in
+// this package's pre-CHART-12 margin/axis math ever accounted for the legend), so a visible
+// legend growing the SVG uncounted was the sixth defect this WO's Rule 2 also closes.
+const LEGEND_BAND_PX = 32;
+
+// UCM-CHART-12 `xLabels: "auto"`: with no real container-width measurement available before
+// render (the presets stay responsive -- MUI measures actual width via ResizeObserver, which this
+// pure function cannot see), "auto" is a documented HEURISTIC, not a true fit computation: rotate
+// once there are enough categories AND the longest one is long enough that a horizontal row would
+// plausibly collide. The mandatory browser-level check (WO Part C) is what actually verifies fit
+// against real rendered geometry; this only picks a reasonable default ahead of that.
+const AUTO_ROTATE_TICK_COUNT = 6;
+const AUTO_ROTATE_LABEL_CHARS = 4;
+
+function xAxisTickContentText(axis) {
+  const data = axis?.data;
+  if (!Array.isArray(data)) return null; // no data array -- can't tell (e.g. a numeric scale); assume content
+  return longestFormattedTick(data, axis.valueFormatter);
+}
+
+// The Access-scatter case (WO Part A): an axis whose tick labels are all blank/absent must
+// collapse its reserved band to zero, not keep the package's floor. `null` (no data array at
+// all -- a linear numeric axis, whose ticks come from the scale, not a caller-supplied list)
+// is treated as "assume content", since there is nothing here to measure as empty.
+function xAxisHasVisibleTicks(axis) {
+  const text = xAxisTickContentText(axis);
+  return text === null || text.length > 0;
 }
 
 /**
- * CHART-8: dev-only warning when a caller passes both `minHeight` and `height` and they disagree
- * -- the incoherent pair this WO closes. Not a throw: a shared package throwing on a prop
- * combination in production would break a consumer's page over a layout nit. Silent on the
- * equal-value majority and on the legitimate `minHeight` + `aspect` (no `height`) combination.
- *
- * CHART-9: `heightWins` distinguishes the two shapes this fires from. The four chart presets
- * (default, `heightWins: true`) DO apply `resolveChartHeight`'s `height` to their box, so the
- * original "height wins" wording is accurate there. `ChartFrame` (`heightWins: false`) never
- * applies `height` to its box at all -- `minHeight` always keeps reserving the floor -- so it gets
- * its own accurate wording instead of reusing the presets' story.
+ * UCM-CHART-12: decides the x-axis tick band's height and rotation angle. Replaces CHART-10/11's
+ * `spaceForRotatedTicks`/`rotatedTickMetrics` -- same measured-text-width mechanism
+ * (`measureTickTextWidthPx`, with `estimateTextWidthPx` as the no-DOM fallback and
+ * `measureTextWidth` as the test injection point), but now driven by `xLabels`
+ * ("auto"|"horizontal"|"angled") instead of a caller-supplied `tickLabelStyle.angle`, and
+ * returning 0 outright when the axis has no visible tick content (Rule 2).
  */
-export function warnOnHeightMismatch(componentName, { minHeight, height }, { heightWins = true } = {}) {
-  if (process.env.NODE_ENV === 'production') return;
-  if (minHeight == null || height == null || minHeight === height) return;
-  const resolution = heightWins
-    ? 'they disagree, so height wins and the wrapper no longer reserves the extra space below the '
-      + 'chart. Pass only height, or drop minHeight if it should just track height.'
-    : 'they disagree; height is ignored here and minHeight keeps sizing the wrapper as a floor. '
-      + 'Pass only minHeight, or drop height if it was meant to size the whole card.';
-  // eslint-disable-next-line no-console
-  console.warn(
-    `[ui-core-micha] <${componentName}> received both minHeight={${minHeight}} and height={${height}}; `
-    + resolution,
+function resolveXAxisGeometry(axis, xLabelsMode, defaultLineHeight, measureTextWidth, fallbackTickFontSize) {
+  if (!xAxisHasVisibleTicks(axis)) return { tickBand: 0, angle: 0 };
+
+  const fontSize = cssLengthToPixels(axis?.tickLabelStyle?.fontSize) || cssLengthToPixels(fallbackTickFontSize);
+  const longestLabel = xAxisTickContentText(axis) || '';
+  const dataCount = Array.isArray(axis?.data) ? axis.data.length : 0;
+
+  let angle = 0;
+  if (xLabelsMode === 'angled') {
+    angle = Number(axis?.tickLabelStyle?.angle) || -45;
+  } else if (xLabelsMode === 'auto') {
+    const needsRotation = dataCount > AUTO_ROTATE_TICK_COUNT && longestLabel.length > AUTO_ROTATE_LABEL_CHARS;
+    angle = needsRotation ? -45 : 0;
+  } // "horizontal" always stays at angle 0
+
+  if (angle === 0) return { tickBand: TICK_BAND_BASE_PX, angle: 0 };
+  // Rotation is a visual instruction independent of whether a font size is knowable here -- an
+  // "angled" axis still rotates even when `fontSize` can't be resolved (no theme fallback given),
+  // it just can't project a tighter band than the floor without one.
+  if (fontSize === 0) return { tickBand: TICK_BAND_BASE_PX, angle };
+
+  const lineHeight = Number(axis?.tickLabelStyle?.lineHeight) || defaultLineHeight;
+  const measure = measureTextWidth || measureTickTextWidthPx;
+  const measuredWidth = measure(longestLabel, fontSize);
+  const textWidth = Math.max(
+    fontSize,
+    Number.isFinite(measuredWidth) && measuredWidth > 0
+      ? measuredWidth
+      : estimateTextWidthPx(longestLabel, fontSize),
+  );
+  const radians = (angle * Math.PI) / 180;
+  const projectedHeight = Math.abs(Math.cos(radians)) * fontSize * lineHeight
+    + Math.abs(Math.sin(radians)) * textWidth;
+  const tickBand = Math.max(TICK_BAND_BASE_PX, Math.ceil(projectedHeight) + ROTATED_TICK_CLEARANCE_PX);
+  return { tickBand, angle };
+}
+
+function resolveChartHeightPx(size, height, spacing) {
+  if (height != null) return height;
+  const units = CHART_SIZE_SPACING_UNITS[size];
+  if (units == null) {
+    throw new Error(
+      `[ui-core-micha] Unknown chart size="${size}". Use "compact" | "standard" | "tall", `
+      + 'or pass height (in px) for the documented escape.',
+    );
+  }
+  // MUI's `theme.spacing(n)` returns a CSS length STRING ("240px"), not a number -- the chart
+  // height feeds straight into MUI X-Charts' own numeric `height` prop, so it must be unwrapped
+  // back to a px number via the same `cssLengthToPixels` the rest of this file already uses.
+  return typeof spacing === 'function' ? cssLengthToPixels(spacing(units)) : units * 8;
+}
+
+/**
+ * UCM-CHART-12: the one function that owns a chart's geometry (Rule 1-3), replacing
+ * `resolveChartHeight` + `spaceForRotatedTicks` + `warnOnHeightMismatch`. Returns the COMPLETE
+ * geometry a preset needs -- wrapper `sx`, chart height, margins, and both resolved axis arrays --
+ * plus the named `bands` the composition invariant is asserted against:
+ *
+ *   chartHeight === bands.plotHeight + bands.xAxisBand + bands.xTitleBand + bands.legendBand
+ *   containerWidth === bands.yAxisBand + bands.plotWidth + bands.rightPad   (when `containerWidth` is given)
+ *
+ * `plotHeight`/`plotWidth` are the RESIDUAL of `chartHeight`/`containerWidth` minus the OTHER
+ * fields this function itself returns (`margin.top/bottom`, `xAxis[0].height`, `yAxisBand`) --
+ * by construction, summing them back up can never fail to balance, so that arithmetic identity
+ * ALONE proves nothing about a `UCM-CHART-10`-shaped bug (a term double-counted between
+ * `xAxis.height` and `margin.bottom`). What actually catches that class of bug is asserting each
+ * individual band lands in exactly one place downstream, independently of the others:
+ * `xAxis[0].height === xAxisBand + xTitleBand` (nothing else may also carry the tick/title
+ * allowance) and `margin.top + margin.bottom - PACKAGE_DEFAULT_MARGIN.top -
+ * PACKAGE_DEFAULT_MARGIN.bottom === legendBand` (the ONLY thing margin grows for, over its own
+ * package baseline, is the legend). The test suite asserts both forms side by side.
+ *
+ * `plotHeight` deliberately does NOT subtract the base `PACKAGE_DEFAULT_MARGIN` breathing room --
+ * that margin is intentional spacing around the plot (THEME-11), not one of the three itemized
+ * "furniture" bands (tick/title/legend) this WO exists to zero out, so it is treated as part of
+ * "the rest of the chart", the same as `plotHeight` itself.
+ *
+ * `containerWidth` is optional and only meaningful for tests / the browser-level check -- the
+ * presets themselves stay responsive (no explicit width) and never pass it.
+ */
+export function resolveChartLayout({
+  size = 'standard',
+  height,
+  xAxis,
+  yAxis,
+  series = [],
+  xLabels = 'auto',
+  hideLegend = false,
+  legendPosition = DEFAULT_LEGEND_POSITION,
+  tickFontSize,
+  spacing,
+  defaultLineHeight = 1,
+  measureTextWidth,
+  containerWidth,
+} = {}) {
+  const chartHeight = resolveChartHeightPx(size, height, spacing);
+
+  const xAxisList = xAxis?.length ? xAxis : [{}];
+  const primaryXAxis = xAxisList[0];
+  const { tickBand: xAxisBand, angle } = resolveXAxisGeometry(
+    primaryXAxis, xLabels, defaultLineHeight, measureTextWidth, tickFontSize,
+  );
+  const xTitleBand = primaryXAxis?.label ? AXIS_TITLE_BAND_PX : 0;
+
+  // A `vertical: 'middle'` legend renders on the SIDE (consuming width, not height) -- reviewer
+  // finding: only branching on 'top' vs. not-'top' always reserved the legend band vertically,
+  // over-reserving height and under-reserving width for a side-placed legend. This WO's width
+  // invariant does not itemize a legend-width band, so a side legend simply gets none of the
+  // height reservation here rather than a wrong one -- consistent with the WO's own text ("0 when
+  // legend is off or horizontal").
+  const legendVertical = legendPosition?.vertical ?? DEFAULT_LEGEND_POSITION.vertical;
+  const legendIsSidePlaced = legendVertical === 'middle';
+  const legendHeightBand = hideLegend || legendIsSidePlaced ? 0 : LEGEND_BAND_PX;
+  const legendOnTop = legendHeightBand > 0 && legendVertical === 'top';
+
+  const sizedYAxis = sizeYAxisForContent(yAxis?.length ? yAxis : [{}], series, tickFontSize);
+  const yAxisBand = sizedYAxis[0]?.width ?? 0;
+  const rightPad = PACKAGE_DEFAULT_MARGIN.right;
+
+  const resolvedXAxis = xAxisList.map((axisEntry, index) => {
+    if (index !== 0 || axisEntry.height != null) return axisEntry;
+    // `xLabels` is the SOLE source of truth for rotation (Rule 3) -- `angle` is always written
+    // explicitly here, even when 0, rather than only overriding a truthy value. Leaving a stale
+    // caller-supplied `tickLabelStyle.angle` in place when `xLabels` resolved to no rotation would
+    // let MUI still render a rotated label whose band this resolver reserved as if it were flat --
+    // exactly the space/render mismatch this WO exists to close, just inverted (under-reservation
+    // instead of CHART-10's over-reservation).
+    const { angle: _callerAngle, ...restTickLabelStyle } = axisEntry.tickLabelStyle || {};
+    return {
+      ...axisEntry,
+      height: xAxisBand + xTitleBand,
+      tickLabelStyle: { ...restTickLabelStyle, angle },
+    };
+  });
+
+  const margin = {
+    top: PACKAGE_DEFAULT_MARGIN.top + (legendOnTop ? legendHeightBand : 0),
+    bottom: PACKAGE_DEFAULT_MARGIN.bottom + (legendOnTop ? 0 : legendHeightBand),
+    left: PACKAGE_DEFAULT_MARGIN.left,
+    right: rightPad,
+  };
+
+  // `plotHeight`/`plotWidth`: the residual of `chartHeight`/`containerWidth` minus the three named
+  // furniture bands (see this function's own docblock for why this alone does not prove the
+  // absence of a double-counted term, and what does).
+  const plotHeight = chartHeight - xAxisBand - xTitleBand - legendHeightBand;
+  const plotWidth = containerWidth != null ? containerWidth - yAxisBand - rightPad : undefined;
+
+  return {
+    chartHeight,
+    sx: { width: '100%', height: chartHeight },
+    margin,
+    xAxis: resolvedXAxis,
+    yAxis: sizedYAxis,
+    bands: {
+      plotHeight,
+      xAxisBand,
+      xTitleBand,
+      legendBand: legendHeightBand,
+      yAxisBand,
+      rightPad,
+      ...(containerWidth != null ? { plotWidth, containerWidth } : {}),
+    },
+  };
+}
+
+/**
+ * UCM-CHART-12 Rule 1/3: `minHeight`, `aspect`, and `margin` are gone from the four chart presets
+ * -- the model owns sizing and spacing completely. Passing one is a dev-mode error naming its
+ * replacement (never a silent ignore, so the 38 existing call sites this breaks get a clear
+ * migration path instead of a layout that quietly stops matching what the prop says) -- gated on
+ * `NODE_ENV !== 'production'` like the deleted `warnOnHeightMismatch` was, so a shared package
+ * cannot crash a consumer's production page over a layout prop; loud in dev, inert in prod.
+ */
+export function assertRemovedChartProp(componentName, propName, value, replacement) {
+  if (value === undefined || process.env.NODE_ENV === 'production') return;
+  throw new Error(
+    `[ui-core-micha] <${componentName}> no longer accepts "${propName}" (removed in UCM-CHART-12, `
+    + `v3.0.0 -- see docs/CHART-LAYOUT.md). ${replacement}`,
   );
 }
 

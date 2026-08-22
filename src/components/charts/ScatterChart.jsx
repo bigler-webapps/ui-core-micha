@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo } from 'react';
+import React, { useMemo } from 'react';
 import { Box } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import { useTranslation } from 'react-i18next';
@@ -7,10 +7,9 @@ import { useXScale, useYScale } from '@mui/x-charts/hooks';
 import { useNeutralChartPalette } from './palette';
 import {
   DEFAULT_LEGEND_POSITION,
+  assertRemovedChartProp,
   defaultNumericTickFormatter,
-  resolveChartHeight,
-  sizeYAxisForContent,
-  warnOnHeightMismatch,
+  resolveChartLayout,
   withAxisDefaults,
   withChartSlotDefaults,
   withGridDefaults,
@@ -153,10 +152,9 @@ export function ScatterReferenceLine({
  * Reference geometry (a computed curve, a straight line, either with an optional label) is
  * composed as `children` using `ScatterReferenceCurve`/`ScatterReferenceLine` above.
  *
- * `minHeight` (CHART-8): a floor under an `aspect`-derived responsive height when `aspect` is
- * set and `height` is not; otherwise (no `height`, no `aspect`) it sizes the chart itself. Once
- * `height` is set, `height` sizes the chart and the wrapper never reserves more than that, even
- * if `minHeight` is also passed and larger.
+ * `size` (UCM-CHART-12): `"compact" | "standard" | "tall"`, resolved through the theme's
+ * spacing scale by `resolveChartLayout`. `height` (px) is the documented escape for a justified
+ * special case -- prefer `size`. `minHeight`/`aspect`/`margin` are gone (see docs/CHART-LAYOUT.md).
  *
  * Tested magnitude: a few hundred marks (hram's largest cloud is ~300 points). Not verified,
  * and not implied to hold, at thousands+.
@@ -177,13 +175,15 @@ export function ScatterChart({
   xAxis,
   yAxis,
   palette,
-  minHeight,
+  size = 'standard',
   height,
+  minHeight,
   aspect,
+  margin,
+  xLabels = 'auto',
   grid,
   hideLegend = series.length <= 1,
   legendPosition = DEFAULT_LEGEND_POSITION,
-  margin,
   sizeAccessor,
   getPointStyle,
   markerSize = DEFAULT_MARKER_RADIUS,
@@ -195,8 +195,9 @@ export function ScatterChart({
   const { i18n } = useTranslation();
   const neutralPalette = useNeutralChartPalette();
 
-  useEffect(() => warnOnHeightMismatch('ScatterChart', { minHeight, height }), [minHeight, height]);
-  const { wrapperMinHeight, chartHeight } = resolveChartHeight({ minHeight, height, aspect });
+  assertRemovedChartProp('ScatterChart', 'minHeight', minHeight, 'Use size="compact" | "standard" | "tall", or height for the documented escape.');
+  assertRemovedChartProp('ScatterChart', 'aspect', aspect, 'Removed with no replacement -- pick a size token; the chart no longer tracks width.');
+  assertRemovedChartProp('ScatterChart', 'margin', margin, 'Removed -- the layout model owns margins completely.');
 
   const labelledXAxis = withAxisDefaults(
     xAxis,
@@ -210,22 +211,29 @@ export function ScatterChart({
     { scaleType: 'linear', valueFormatter: defaultNumericTickFormatter(i18n.language) },
     theme.typography.caption.fontSize,
   );
-  // Only the Y axis is width-sized (sizeYAxisForContent reserves horizontal space for a
-  // vertical axis's ticks+label) -- a scatter's numeric X axis needs no analogous treatment
-  // beyond what MUI already sizes for a horizontal tick row.
-  //
-  // sizeYAxisForContent's series-data fallback (used when the caller sets no axis min/max)
-  // expects `series[i].data` to be a plain array of numbers -- true for BarChart/LineChart, but
-  // a scatter's data is `{x,y,z,id}` points, so `typeof value === 'number'` never matched and
-  // the fallback silently found zero candidates (reviewer finding, live-caught: it "looked fine"
-  // only because the untested case happened to fall back to MUI's flat default at a magnitude
-  // that didn't visibly overlap). Adapt AT THIS CALL SITE, not inside the shared helper --
-  // BarChart/LineChart's own contract must not change for this.
+  // `resolveChartLayout`'s own y-axis sizing (via `sizeYAxisForContent`) expects `series[i].data`
+  // to be a plain array of numbers -- true for BarChart/LineChart, but a scatter's data is
+  // `{x,y,z,id}` points. Adapt AT THIS CALL SITE, not inside the shared resolver -- BarChart/
+  // LineChart's own contract must not change for this (reviewer finding, live-caught under
+  // THEME-10: the untested case silently found zero candidates and fell back to MUI's flat
+  // default at a magnitude that didn't visibly overlap).
   const yValueSeries = useMemo(
     () => series.map((item) => ({ ...item, data: (item.data || []).map((point) => point?.y) })),
     [series],
   );
-  const sizedYAxis = sizeYAxisForContent(labelledYAxis, yValueSeries, theme.typography.caption.fontSize);
+  const layout = resolveChartLayout({
+    size,
+    height,
+    xAxis: labelledXAxis,
+    yAxis: labelledYAxis,
+    series: yValueSeries,
+    xLabels,
+    hideLegend,
+    legendPosition,
+    tickFontSize: theme.typography.caption.fontSize,
+    spacing: theme.spacing,
+    defaultLineHeight: theme.typography.caption.lineHeight,
+  });
 
   const isNeutral = series.length <= 1 && !series[0]?.color;
   const resolvedPalette = palette || (isNeutral ? [neutralPalette.neutral] : neutralPalette.categorical);
@@ -268,17 +276,17 @@ export function ScatterChart({
   );
 
   return (
-    <Box data-testid="scatter-chart-container" sx={{ width: '100%', minHeight: wrapperMinHeight, aspectRatio: aspect }}>
+    <Box data-testid="scatter-chart-container" sx={layout.sx}>
       <MuiScatterChart
         {...chartProps}
-        height={chartHeight}
+        height={layout.chartHeight}
         series={orderedSeries.map((item) => ({ markerSize, ...item }))}
-        xAxis={labelledXAxis}
-        yAxis={sizedYAxis}
+        xAxis={layout.xAxis}
+        yAxis={layout.yAxis}
         colors={resolvedPalette}
         grid={withGridDefaults(grid)}
         hideLegend={hideLegend}
-        margin={margin}
+        margin={layout.margin}
         slots={{ marker: markerSlot }}
         slotProps={withChartSlotDefaults(slotProps, legendPosition)}
       >
