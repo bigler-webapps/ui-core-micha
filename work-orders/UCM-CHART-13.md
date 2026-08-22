@@ -1,43 +1,63 @@
-# UCM-CHART-13 — `ChartFrame` accepts three sizing props and applies one. Remove the other two.
+# UCM-CHART-13 — A card has no size of its own. Remove `height` and `aspect` from `ChartFrame`.
 
 - **Repo:** `ui-core-micha`, branch `main`
-- **Tier:** 3 — shared-core API removal. **Zero measured consumer impact** (see below), so a minor:
-  `3.1.0`.
+- **Tier:** 3 — shared-core API removal, **four measured consumer call sites** (see below). Breaking:
+  `4.0.0`, sequenced with `FM-CHART-1`.
 - **Status:** planned
 - **Workstream:** `CHART-*`
 - **Files:** `src/components/charts/ChartFrame.jsx` and its tests.
 
-> **Why — measured 2026-08-22 against 3.0.1, prompted by the operator asking why the frame keeps all
-> three props.**
+> **Why. Twice reversed — the reasoning below is what settled it, not the earlier prop-inventory.**
 >
-> | prop | destructured | **applied to the box** | consumers passing it |
-> |---|---|---|---|
-> | `minHeight` | `:56` | **yes**, `:138` | several |
-> | `height` | `:57` | **no** — only feeds a dev warning | **0** |
-> | `aspect` | `:58` | **no — nowhere at all** | **0** |
+> Draft 1 said remove `height` **and** `aspect`, on the grounds that both were dead code. That
+> premise was wrong: `aspect` **is** applied — `ChartFrame.jsx:136-139` sets
+> `sx={{ width: '100%', minHeight, aspectRatio: aspect, ... }}`.
 >
-> `aspect` is destructured and then never read again: there is no `aspectRatio` in the applied `sx`.
-> `height` exists solely to feed `warnOnChartFrameHeightMismatch`. A grep across all five consuming
-> apps (`hram`, `fitness-monitor`, `cockpit`, `jg-ferien`, `spesix`) finds **no `<ChartFrame>` passing
-> either one**.
+> Draft 2 therefore kept `aspect`. **That was the worse error**, and the operator caught it: it
+> reintroduces through the card exactly what `UCM-CHART-12` removed from the chart.
 >
-> **The justification that was offered for keeping them does not hold.** `docs/CHART-LAYOUT.md` says
-> the frame's trio "was never in scope here (UCM-CHART-9)" — but that is a statement about
-> `UCM-CHART-12`'s *boundary*, not a finding that the props are correct. Reading a scope note as a
-> design endorsement is the same error this whole series is made of: **a reservation kept because it
-> exists rather than because something needs it.**
-
----
+> **The structural argument, which neither earlier draft made.** After the migration a consumer
+> looks like this:
+>
+> ```jsx
+> <ChartFrame minHeight={320} aspect="960 / 380">   // height derived from WIDTH
+>   <LineChart size="tall" />                        // height from a TOKEN
+> </ChartFrame>
+> ```
+>
+> **Two independent size sources for nested boxes that have to agree.** Before the migration they
+> were coherent — same ratio on both. Afterwards the frame tracks width and the chart tracks a token,
+> and they coincide only by accident. Whichever way they diverge is a defect this series already has
+> a name for: the frame taller than its content is dead space, the frame shorter is the
+> `UCM-CHART-9` overflow.
+>
+> **A card must have no size of its own.** Its height is its content's height, with `minHeight` as a
+> floor so an empty or loading state does not collapse. That is what `UCM-CHART-9` established — it
+> found the defect at a fixed `height`; `aspect` is the same defect derived from width instead of
+> stated directly.
+>
+> | prop | applied today | verdict |
+> |---|---|---|
+> | `minHeight` | yes (`:138`) | **stays** — the floor, and the only legitimate one |
+> | `aspect` | yes (`:139`) | **goes** — a second size source on a box that must follow its content |
+> | `height` | no — only feeds a warning | **goes** — accepted and silently ignored |
+>
+> **This one has consumer impact**, unlike draft 2's claim: four `ChartFrame`s pass `aspect` —
+> `fitness-monitor/BodyHistoryPage.jsx:328, :449` and `EnvironmentPage.jsx:250, :284`. They are
+> migrated by `FM-CHART-1`, not here.
 
 ## Part A — Envelope (authoritative WHAT/WHY)
 
 ### Goal
 
-`ChartFrame` accepts exactly the sizing prop it applies: `minHeight`, the card floor. Nothing else.
+`ChartFrame` has no size source of its own. Its height is its content's height, floored by
+`minHeight`. `aspect` and `height` are gone.
 
 ### Definition of Done
 
-- [ ] **`aspect` removed** from `ChartFrame`'s signature. It is applied nowhere and passed by nobody.
+- [ ] **`aspect` removed** from the signature and from the applied `sx` (`:139`). A card that sizes
+      itself from its width can be shorter than its content (the `UCM-CHART-9` overflow) or taller
+      (dead space); both are defects this series already has names for.
 - [ ] **`height` removed** from `ChartFrame`'s signature, and `warnOnChartFrameHeightMismatch` deleted
       with it — the warning exists only to explain a prop that should not be accepted in the first
       place. **A prop that is accepted and silently ignored is worse than one that errors**: it lets a
@@ -47,32 +67,39 @@
       state would otherwise collapse, and `UCM-CHART-9` established the floor as correct. Do not
       touch its behaviour.
 - [ ] **Passing `height` or `aspect` to `ChartFrame` is a dev-mode error naming what to do instead**
-      — `minHeight` for a floor, or `size` on the chart inside the frame if the caller meant the
+      — `minHeight` for a floor, or `size` on the chart *inside* the frame if the caller meant the
       chart's height. Consistent with how `UCM-CHART-12` treats the presets' removed props.
-- [ ] **`docs/CHART-LAYOUT.md`'s "What stays unchanged" entry is corrected.** It currently lists the
-      frame's `minHeight`/`height`/`aspect` as retained. Only `minHeight` is; the sentence as written
-      is what made a later reader defend all three.
+- [ ] **`docs/CHART-LAYOUT.md`'s "What stays unchanged" entry is made precise.** It lists the frame's
+      `minHeight`/`height`/`aspect` as retained without saying which are applied. Replace it: the frame
+      keeps **`minHeight` only**, as a floor; it has no size source of its own, and a chart's height
+      comes from its `size` token.
 
 ### Non-goals
 
 - Do not change `minHeight`'s semantics, and do not give `ChartFrame` a `size` token. The frame is
   not a chart (`UCM-CHART-9`); its height follows its content with a floor, and that is correct.
 - Do not touch the four presets. `UCM-CHART-12` settled them.
-- No consumer migration: nothing to migrate, measured.
+- No consumer migration here. The four `ChartFrame`s passing `aspect` are fitness-monitor's, and
+  `FM-CHART-1` removes them — **sequence this after `FM-CHART-1`, or land both together**, or those
+  four cards hit the new error.
 
 ### Risks
 
-- **Low, and the measurement is the reason.** Both props are unapplied and unpassed. The only way
-  this breaks a consumer is if one passes `height`/`aspect` to a `ChartFrame` in code not caught by
-  the grep — re-run it across the five apps at implementation time rather than trusting this note.
-- A minor version removing props is technically breaking for anyone outside the five known
-  consumers. There are none, but state the removal in the release notes rather than burying it.
+- **`height` is free — no consumer passes it and it does nothing.** `aspect` is not: four cards
+  depend on it and lose their shape when it goes. That is intended (their height becomes their
+  content's), but it is a **visible change in fitness-monitor**, so `FM-CHART-1`'s rendered two-width
+  check is what confirms it, not this WO's unit tests.
+- **Re-run the consumer scan by reading the call sites, not by grepping.** Both earlier drafts of this
+  WO were wrong about `aspect` — once from a grep that matched nothing, once from a `head`-truncated
+  grep that cut off the line where it is applied. Open the files.
 
 ### Tests to WRITE — narrow
 
 - `ChartFrame` with `minHeight`: floor applied, `UCM-CHART-9`'s existing assertions unchanged.
-- `ChartFrame` given `height` or `aspect`: dev-mode error naming the replacement, and **nothing is
-  applied to the box** — the assertion that the props are gone rather than merely undocumented.
+- `ChartFrame` given `height` or `aspect`: dev-mode error naming the replacement, and **no
+  `aspectRatio` or `height` on the box**.
+- **A `ChartFrame` whose content is taller than `minHeight` grows to fit** — `UCM-CHART-9`'s
+  regression test, unchanged, and now the only thing that decides the card's height.
 - The `UCM-CHART-9` regression test (content taller than the floor grows the box) stays green,
   unchanged.
 
