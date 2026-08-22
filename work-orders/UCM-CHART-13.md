@@ -71,7 +71,8 @@
 - Do not change `minHeight`'s semantics, and do not give `ChartFrame` a `size` token. The frame is
   not a chart (`UCM-CHART-9`); its height follows its content with a floor, and that is correct.
 - Do not touch the four presets. `UCM-CHART-12` settled them.
-- No consumer migration: nothing to migrate, measured.
+- No consumer migration for `height` (nobody passes it). The four call sites passing `aspect`
+  are untouched and must stay that way.
 
 ### Risks
 
@@ -84,8 +85,10 @@
 ### Tests to WRITE — narrow
 
 - `ChartFrame` with `minHeight`: floor applied, `UCM-CHART-9`'s existing assertions unchanged.
-- `ChartFrame` given `height` or `aspect`: dev-mode error naming the replacement, and **nothing is
-  applied to the box** — the assertion that the props are gone rather than merely undocumented.
+- `ChartFrame` given `height`: dev-mode error naming the replacement, and nothing applied.
+- **`ChartFrame` given `aspect`: `aspectRatio` IS applied, and no error fires.** This is the
+  regression test for this WO's own corrected draft — it must fail if someone later removes `aspect`
+  along with `height`.
 - The `UCM-CHART-9` regression test (content taller than the floor grows the box) stays green,
   unchanged.
 
