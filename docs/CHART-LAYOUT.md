@@ -25,11 +25,20 @@ chartHeight === plotHeight + xAxisBand + xTitleBand + legendBand
 - `xTitleBand` — the axis title. Zero unless the x-axis carries a `label`.
 - `legendBand` — one row for the legend. Zero when `hideLegend` is set.
 - `plotHeight` is the residual: `chartHeight` minus the three bands above.
+- The y-axis band collapses to zero the same way the x-axis one does: candidates existed (the
+  axis has real `min`/`max` or plotted data) but a caller `valueFormatter` blanks every formatted
+  tick, and there is no axis title either — the axis has nothing to show, so it reserves nothing.
+  Distinct from "nothing to measure at all" (no `min`/`max`/data), where MUI's own default applies
+  untouched.
 
-Width follows the same shape (`yAxisBand + plotWidth + rightPad`), but the presets stay
-responsive — they never fix a pixel width — so `plotWidth`/`containerWidth` are only meaningful
-when a caller explicitly supplies `containerWidth` (tests, or the browser-level check); the
-presets themselves never pass it.
+Width follows the same shape (`yAxisBand + plotWidth + secondaryYAxisBand + rightPad`), but the
+presets stay responsive — they never fix a pixel width — so `plotWidth`/`containerWidth` are only
+meaningful when a caller explicitly supplies `containerWidth` (tests, or the browser-level check);
+the presets themselves never pass it. A **secondary (right-positioned) y-axis** — `TimeSeriesChart`'s
+`axis: 'secondary'` feature, or any preset given a two-entry `yAxis` array with one `position:
+'right'` — reserves its own width on the right, added to `margin.right` alongside the fixed
+breathing-room pad; an axis with no explicit `position` defaults to the left, matching MUI's own
+default-assignment rule.
 
 ## Removed props, and their replacement
 
@@ -90,11 +99,13 @@ on the wrapper), only the height stops tracking width.
 
 `"auto"` (the default) is a **heuristic**, not a true fit computation — the presets stay
 responsive, so the resolver has no real container width to measure against before render. It
-rotates when there are more than 6 categories *and* the longest formatted label is longer than 4
-characters; otherwise it stays horizontal. `"horizontal"` always stays flat; `"angled"` always
-rotates (at the caller's own `tickLabelStyle.angle`, or -45° if unset). Verify a specific chart's
-real rendered fit with the browser-level check described below — a unit test cannot see real
-container width or real font metrics either.
+rotates when there are more than 6 categories *and* the longest label's real MEASURED width
+(same DOM measurement the rotated-band projection itself uses — a real browser measurement when
+available, a per-glyph estimate otherwise) exceeds 50px; otherwise it stays horizontal.
+`"horizontal"` always stays flat; `"angled"` always rotates (at the caller's own
+`tickLabelStyle.angle`, or -45° if unset). "Measured labels" (Rule 3) is therefore real — what
+remains unmeasured is "available width", since no container width exists before render. Verify a
+specific chart's real rendered fit with the browser-level check described below.
 
 ## `margin` — no replacement
 

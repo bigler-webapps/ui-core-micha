@@ -20,8 +20,10 @@ import {
   assertRemovedChartProp,
   defaultNumericTickFormatter,
   resolveChartLayout,
+  resolveLegendPosition,
   sizeYAxisForContent,
   withAxisDefaults,
+  withChartSlotDefaults,
 } from '../src/components/charts/chartDefaults';
 import { createAppTheme } from '../src/theme/createAppTheme';
 
@@ -442,6 +444,102 @@ describe('resolveChartLayout composition invariant (UCM-CHART-12)', () => {
     expect(bands.yAxisBand + bands.plotWidth + bands.rightPad).toBe(600);
     expect(bands.yAxisBand).toBeGreaterThan(0);
   });
+
+  // Codex second-pass review finding: a dual-axis chart (TimeSeriesChart's axis: 'secondary'
+  // feature) has a SECOND y-axis on the right, which the resolver previously ignored entirely --
+  // `sizedYAxis[0]` was the only width ever accounted for. The width invariant must include it.
+  it('accounts for a secondary (right-positioned) y-axis in both margin.right and the width invariant', () => {
+    const single = resolveChartLayout({
+      xAxis: [{ scaleType: 'band', data: ['Jan', 'Feb'] }],
+      yAxis: [{ scaleType: 'linear', id: 'primary', min: 0, max: 100 }],
+      tickFontSize: 12,
+      spacing: theme.spacing,
+      containerWidth: 600,
+    });
+    const dual = resolveChartLayout({
+      xAxis: [{ scaleType: 'band', data: ['Jan', 'Feb'] }],
+      yAxis: [
+        { scaleType: 'linear', id: 'primary', position: 'left', min: 0, max: 100 },
+        { scaleType: 'linear', id: 'secondary', position: 'right', min: 0, max: 500000 },
+      ],
+      tickFontSize: 12,
+      spacing: theme.spacing,
+      containerWidth: 600,
+    });
+
+    expect(dual.bands.secondaryYAxisBand).toBeGreaterThan(0);
+    // The wider secondary axis (500000 vs 100) must reserve MORE than the primary alone.
+    expect(dual.margin.right).toBeGreaterThan(single.margin.right);
+    expect(dual.margin.right).toBe(PACKAGE_DEFAULT_MARGIN.right + dual.bands.secondaryYAxisBand);
+    // Width invariant, now with the secondary band as a fourth term.
+    expect(dual.bands.yAxisBand + dual.bands.plotWidth + dual.bands.secondaryYAxisBand + dual.bands.rightPad)
+      .toBe(600);
+  });
+
+  it('an unmarked (no explicit position) second y-axis defaults to the LEFT, matching MUI, and reserves no secondary band', () => {
+    const layout = resolveChartLayout({
+      xAxis: [{ scaleType: 'band', data: ['Jan'] }],
+      yAxis: [
+        { scaleType: 'linear', id: 'a', min: 0, max: 1 },
+        { scaleType: 'linear', id: 'b', min: 0, max: 1 },
+      ],
+      tickFontSize: 12,
+      spacing: theme.spacing,
+    });
+    expect(layout.bands.secondaryYAxisBand).toBe(0);
+  });
+
+  // Codex second-pass review finding: a caller-supplied `valueFormatter` that blanks every tick
+  // must collapse the y-axis band to zero too (Rule 2's general principle), not just the x-axis
+  // case the WO's Definition of Done names explicitly.
+  it('collapses the y-axis band to zero when every tick formats to a blank string', () => {
+    const layout = resolveChartLayout({
+      xAxis: [{ scaleType: 'band', data: ['Jan'] }],
+      yAxis: [{ scaleType: 'linear', min: 0, max: 1, valueFormatter: () => '' }],
+      tickFontSize: 12,
+      spacing: theme.spacing,
+    });
+    expect(layout.bands.yAxisBand).toBe(0);
+    expect(layout.yAxis[0].width).toBe(0);
+  });
+
+  // Codex second-pass review finding: `slotProps.legend.position` can override `legendPosition` at
+  // render time (`withChartSlotDefaults`) -- the resolver must reserve space for wherever the
+  // legend ACTUALLY renders, not just what `legendPosition` alone says.
+  it('reserves space for the slotProps.legend.position override, not just legendPosition', () => {
+    const layout = resolveChartLayout({
+      xAxis: [{ scaleType: 'band', data: ['Jan'] }],
+      yAxis: [{ scaleType: 'linear' }],
+      legendPosition: { vertical: 'bottom' },
+      slotProps: { legend: { position: { vertical: 'top' } } },
+      spacing: theme.spacing,
+    });
+    expect(layout.margin.top).toBeGreaterThan(PACKAGE_DEFAULT_MARGIN.top);
+    expect(layout.margin.bottom).toBe(PACKAGE_DEFAULT_MARGIN.bottom);
+  });
+
+  it('resolveLegendPosition matches withChartSlotDefaults\' own merge precedence exactly', () => {
+    const legendPosition = { vertical: 'bottom', horizontal: 'start' };
+    const slotProps = { legend: { position: { horizontal: 'end' } } };
+    const resolved = resolveLegendPosition(legendPosition, slotProps);
+    const fromSlotDefaults = withChartSlotDefaults(slotProps, legendPosition).legend.position;
+    expect(resolved).toEqual(fromSlotDefaults);
+    expect(resolved).toEqual({ vertical: 'bottom', horizontal: 'end' });
+  });
+
+  // Codex second-pass review finding: a caller-set `xAxis[0].height` bypasses the model's SIZE,
+  // but rotation must still be governed entirely by `xLabels` -- a stale caller-set angle must not
+  // survive under a mode that says "no rotation".
+  it('still governs rotation via xLabels even when the caller sets an explicit axis height', () => {
+    const layout = resolveChartLayout({
+      xAxis: [{ scaleType: 'band', data: ['Jan'], height: 60, tickLabelStyle: { angle: -60 } }],
+      yAxis: [{ scaleType: 'linear' }],
+      xLabels: 'horizontal',
+      spacing: theme.spacing,
+    });
+    expect(layout.xAxis[0].height).toBe(60); // the caller's own height escape still wins
+    expect(layout.xAxis[0].tickLabelStyle.angle).toBeFalsy(); // but the stale rotation does not survive
+  });
 });
 
 describe('resolveChartLayout size tokens and height escape (UCM-CHART-12)', () => {
@@ -491,12 +589,17 @@ describe('resolveChartLayout xLabels rotation (UCM-CHART-12)', () => {
     expect(layout.xAxis[0].tickLabelStyle.angle).toBe(-45);
   });
 
-  it('"auto" stays horizontal for a few short labels, rotates for many long ones', () => {
+  it('"auto" stays horizontal for a few short labels, rotates for many long ones (measured width, not char count)', () => {
+    // codex second-pass review finding: "auto" must decide from the label's MEASURED width, not a
+    // raw character count -- these inject a deterministic measurer instead of relying on the
+    // per-glyph estimate, and a `tickFontSize` fallback so the resolver can actually measure.
     const few = resolveChartLayout({
       xAxis: [{ scaleType: 'band', data: ['Jan', 'Feb', 'Mar'] }],
       yAxis: [{ scaleType: 'linear' }],
       xLabels: 'auto',
+      tickFontSize: 12,
       spacing: theme.spacing,
+      measureTextWidth: () => 20, // narrow -- well under the rotation threshold
     });
     expect(few.xAxis[0].tickLabelStyle?.angle).toBeFalsy();
 
@@ -504,9 +607,35 @@ describe('resolveChartLayout xLabels rotation (UCM-CHART-12)', () => {
       xAxis: [{ scaleType: 'band', data: Array.from({ length: 12 }, (_, i) => `Ward name ${i}`) }],
       yAxis: [{ scaleType: 'linear' }],
       xLabels: 'auto',
+      tickFontSize: 12,
       spacing: theme.spacing,
+      measureTextWidth: () => 90, // wide -- over the rotation threshold
     });
     expect(many.xAxis[0].tickLabelStyle.angle).toBe(-45);
+  });
+
+  it('"auto" does not rotate a few WIDE labels -- tick count and measured width must both cross the threshold', () => {
+    const layout = resolveChartLayout({
+      xAxis: [{ scaleType: 'band', data: ['A very wide single label'] }],
+      yAxis: [{ scaleType: 'linear' }],
+      xLabels: 'auto',
+      tickFontSize: 12,
+      spacing: theme.spacing,
+      measureTextWidth: () => 200, // wide, but only one category
+    });
+    expect(layout.xAxis[0].tickLabelStyle?.angle).toBeFalsy();
+  });
+
+  it('"auto" does not rotate many labels that are individually narrow', () => {
+    const layout = resolveChartLayout({
+      xAxis: [{ scaleType: 'band', data: Array.from({ length: 12 }, (_, i) => `${i}`) }],
+      yAxis: [{ scaleType: 'linear' }],
+      xLabels: 'auto',
+      tickFontSize: 12,
+      spacing: theme.spacing,
+      measureTextWidth: () => 8, // many categories, but each label is tiny
+    });
+    expect(layout.xAxis[0].tickLabelStyle?.angle).toBeFalsy();
   });
 
   it('drives the rotated tick band from a measured width, not a flat constant', () => {
@@ -653,6 +782,24 @@ describe('sizeYAxisForContent (THEME-9)', () => {
       [{ scaleType: 'linear', min: 0, max: 1, width: 42 }], [], '12px',
     );
     expect(axis.width).toBe(42);
+  });
+
+  // UCM-CHART-12 Rule 2 (codex second-pass review finding): candidates existed (min/max set), but
+  // a caller `valueFormatter` reduced every tick to a blank string -- distinct from "nothing to
+  // measure at all" (the untouched/undefined case below), this must collapse to a real 0, not the
+  // font-size floor a blank string previously still received.
+  it('collapses to width 0 when every formatted tick is blank and there is no axis title', () => {
+    const [axis] = sizeYAxisForContent(
+      [{ scaleType: 'linear', min: 0, max: 1, valueFormatter: () => '' }], [], '12px',
+    );
+    expect(axis.width).toBe(0);
+  });
+
+  it('still reserves width for the axis TITLE when ticks are blank but a label is set', () => {
+    const [axis] = sizeYAxisForContent(
+      [{ scaleType: 'linear', min: 0, max: 1, valueFormatter: () => '', label: 'Coverage' }], [], '12px',
+    );
+    expect(axis.width).toBeGreaterThan(0);
   });
 
   it('leaves a categorical (band/point) axis alone -- its ticks are names, not numbers', () => {

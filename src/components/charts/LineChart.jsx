@@ -99,6 +99,7 @@ export function LineChart({
     xLabels,
     hideLegend,
     legendPosition,
+    slotProps,
     tickFontSize: theme.typography.caption.fontSize,
     spacing: theme.spacing,
     defaultLineHeight: theme.typography.caption.lineHeight,

@@ -247,7 +247,15 @@ export function sizeYAxisForContent(yAxis, series, tickFontSize) {
     if (candidates.length === 0) return axis;
 
     const longestTick = longestFormattedTick(candidates, axis.valueFormatter);
-    const tickTextWidth = Math.max(
+    // UCM-CHART-12 Rule 2 (codex second-pass review finding): candidates existed, but a caller
+    // `valueFormatter` reduced every one of them to a blank string -- this is the y-axis analogue
+    // of `xAxisHasVisibleTicks`'s Access-scatter case, and must collapse the same way. Distinct
+    // from `candidates.length === 0` above (nothing to measure at all, MUI's own default applies,
+    // untouched): here there WAS content, it just renders as nothing. With no axis title either,
+    // the axis has genuinely nothing to show, so the whole band collapses to 0 -- not merely the
+    // text-width term floored, matching the x-axis band's own all-or-nothing zero.
+    if (longestTick.length === 0 && !axis.label) return { ...axis, width: 0 };
+    const tickTextWidth = longestTick.length === 0 ? 0 : Math.max(
       tickFontSizePx,
       longestTick.length * tickFontSizePx * AVERAGE_GLYPH_WIDTH_EM,
     );
@@ -316,11 +324,16 @@ const LEGEND_BAND_PX = 32;
 // UCM-CHART-12 `xLabels: "auto"`: with no real container-width measurement available before
 // render (the presets stay responsive -- MUI measures actual width via ResizeObserver, which this
 // pure function cannot see), "auto" is a documented HEURISTIC, not a true fit computation: rotate
-// once there are enough categories AND the longest one is long enough that a horizontal row would
-// plausibly collide. The mandatory browser-level check (WO Part C) is what actually verifies fit
-// against real rendered geometry; this only picks a reasonable default ahead of that.
+// once there are enough categories AND the longest one, MEASURED (same mechanism as the rotated
+// projection below -- real DOM measurement when available, the per-glyph estimate otherwise), is
+// wide enough that a horizontal row would plausibly collide. Codex second-pass review finding:
+// the first cut of this heuristic used a raw character-count threshold instead of the measured
+// width this function already has available -- replaced, since "decide from the measured labels"
+// (Rule 3) is achievable even without a real container width to compare against. The count
+// threshold stays as the OTHER half of the heuristic: a handful of wide labels can still fit
+// spread across a wide chart, so width alone should not trigger rotation either.
 const AUTO_ROTATE_TICK_COUNT = 6;
-const AUTO_ROTATE_LABEL_CHARS = 4;
+const AUTO_ROTATE_LABEL_WIDTH_PX = 50;
 
 function xAxisTickContentText(axis) {
   const data = axis?.data;
@@ -351,12 +364,23 @@ function resolveXAxisGeometry(axis, xLabelsMode, defaultLineHeight, measureTextW
   const fontSize = cssLengthToPixels(axis?.tickLabelStyle?.fontSize) || cssLengthToPixels(fallbackTickFontSize);
   const longestLabel = xAxisTickContentText(axis) || '';
   const dataCount = Array.isArray(axis?.data) ? axis.data.length : 0;
+  const measure = measureTextWidth || measureTickTextWidthPx;
+
+  // Measured once, up front -- both "auto"'s rotation DECISION and the rotated-band PROJECTION
+  // below need the label's real width, and must agree on what "real" means (same measurement,
+  // same estimate fallback) or the two could disagree about the same label.
+  const labelWidthPx = fontSize > 0
+    ? Math.max(fontSize, (() => {
+      const measured = measure(longestLabel, fontSize);
+      return Number.isFinite(measured) && measured > 0 ? measured : estimateTextWidthPx(longestLabel, fontSize);
+    })())
+    : 0;
 
   let angle = 0;
   if (xLabelsMode === 'angled') {
     angle = Number(axis?.tickLabelStyle?.angle) || -45;
   } else if (xLabelsMode === 'auto') {
-    const needsRotation = dataCount > AUTO_ROTATE_TICK_COUNT && longestLabel.length > AUTO_ROTATE_LABEL_CHARS;
+    const needsRotation = dataCount > AUTO_ROTATE_TICK_COUNT && labelWidthPx > AUTO_ROTATE_LABEL_WIDTH_PX;
     angle = needsRotation ? -45 : 0;
   } // "horizontal" always stays at angle 0
 
@@ -367,14 +391,7 @@ function resolveXAxisGeometry(axis, xLabelsMode, defaultLineHeight, measureTextW
   if (fontSize === 0) return { tickBand: TICK_BAND_BASE_PX, angle };
 
   const lineHeight = Number(axis?.tickLabelStyle?.lineHeight) || defaultLineHeight;
-  const measure = measureTextWidth || measureTickTextWidthPx;
-  const measuredWidth = measure(longestLabel, fontSize);
-  const textWidth = Math.max(
-    fontSize,
-    Number.isFinite(measuredWidth) && measuredWidth > 0
-      ? measuredWidth
-      : estimateTextWidthPx(longestLabel, fontSize),
-  );
+  const textWidth = labelWidthPx;
   const radians = (angle * Math.PI) / 180;
   const projectedHeight = Math.abs(Math.cos(radians)) * fontSize * lineHeight
     + Math.abs(Math.sin(radians)) * textWidth;
@@ -434,6 +451,7 @@ export function resolveChartLayout({
   xLabels = 'auto',
   hideLegend = false,
   legendPosition = DEFAULT_LEGEND_POSITION,
+  slotProps,
   tickFontSize,
   spacing,
   defaultLineHeight = 1,
@@ -449,33 +467,50 @@ export function resolveChartLayout({
   );
   const xTitleBand = primaryXAxis?.label ? AXIS_TITLE_BAND_PX : 0;
 
+  // Codex second-pass review finding: a caller-set `slotProps.legend.position` overrides
+  // `legendPosition` at RENDER time (`withChartSlotDefaults`) but was invisible here, so the
+  // margin/height this function reserved could disagree with where the legend actually rendered.
+  // `resolveLegendPosition` is the one merge both call sites now share.
+  const effectiveLegendPosition = resolveLegendPosition(legendPosition, slotProps);
+
   // A `vertical: 'middle'` legend renders on the SIDE (consuming width, not height) -- reviewer
   // finding: only branching on 'top' vs. not-'top' always reserved the legend band vertically,
   // over-reserving height and under-reserving width for a side-placed legend. This WO's width
   // invariant does not itemize a legend-width band, so a side legend simply gets none of the
   // height reservation here rather than a wrong one -- consistent with the WO's own text ("0 when
   // legend is off or horizontal").
-  const legendVertical = legendPosition?.vertical ?? DEFAULT_LEGEND_POSITION.vertical;
+  const legendVertical = effectiveLegendPosition.vertical;
   const legendIsSidePlaced = legendVertical === 'middle';
   const legendHeightBand = hideLegend || legendIsSidePlaced ? 0 : LEGEND_BAND_PX;
   const legendOnTop = legendHeightBand > 0 && legendVertical === 'top';
 
   const sizedYAxis = sizeYAxisForContent(yAxis?.length ? yAxis : [{}], series, tickFontSize);
-  const yAxisBand = sizedYAxis[0]?.width ?? 0;
+  // Codex second-pass review finding: a dual-axis chart (TimeSeriesChart's `axis: 'secondary'`
+  // feature, CHART-5) has a SECOND y-axis on the right, consuming its own width -- the resolver
+  // only ever accounted for `sizedYAxis[0]`. `position` defaults to `'left'` for an unmarked axis
+  // (matching MUI's own default-assignment rule, same as `sizeYAxisForContent`'s own series-match
+  // logic above), so only an explicit `'right'` counts as the secondary axis.
+  const primaryYAxis = sizedYAxis.find((axisEntry) => axisEntry.position !== 'right') ?? sizedYAxis[0];
+  const secondaryYAxisEntry = sizedYAxis.find((axisEntry) => axisEntry.position === 'right');
+  const yAxisBand = primaryYAxis?.width ?? 0;
+  const secondaryYAxisBand = secondaryYAxisEntry?.width ?? 0;
   const rightPad = PACKAGE_DEFAULT_MARGIN.right;
 
   const resolvedXAxis = xAxisList.map((axisEntry, index) => {
-    if (index !== 0 || axisEntry.height != null) return axisEntry;
+    if (index !== 0) return axisEntry;
     // `xLabels` is the SOLE source of truth for rotation (Rule 3) -- `angle` is always written
-    // explicitly here, even when 0, rather than only overriding a truthy value. Leaving a stale
-    // caller-supplied `tickLabelStyle.angle` in place when `xLabels` resolved to no rotation would
-    // let MUI still render a rotated label whose band this resolver reserved as if it were flat --
-    // exactly the space/render mismatch this WO exists to close, just inverted (under-reservation
-    // instead of CHART-10's over-reservation).
+    // explicitly here, even when 0, rather than only overriding a truthy value, and regardless of
+    // whether the caller also set an explicit `height` (own `height` bypasses the model's SIZE,
+    // never its ROTATION -- codex second-pass review finding: the two were previously coupled,
+    // so a caller-set `height` could silently keep a stale rotated `tickLabelStyle.angle` even
+    // under `xLabels="horizontal"`). Leaving a stale caller-supplied angle in place when `xLabels`
+    // resolved to no rotation would let MUI still render a rotated label whose band this resolver
+    // reserved as if it were flat -- exactly the space/render mismatch this WO exists to close,
+    // just inverted (under-reservation instead of CHART-10's over-reservation).
     const { angle: _callerAngle, ...restTickLabelStyle } = axisEntry.tickLabelStyle || {};
     return {
       ...axisEntry,
-      height: xAxisBand + xTitleBand,
+      height: axisEntry.height ?? (xAxisBand + xTitleBand),
       tickLabelStyle: { ...restTickLabelStyle, angle },
     };
   });
@@ -484,14 +519,16 @@ export function resolveChartLayout({
     top: PACKAGE_DEFAULT_MARGIN.top + (legendOnTop ? legendHeightBand : 0),
     bottom: PACKAGE_DEFAULT_MARGIN.bottom + (legendOnTop ? 0 : legendHeightBand),
     left: PACKAGE_DEFAULT_MARGIN.left,
-    right: rightPad,
+    right: rightPad + secondaryYAxisBand,
   };
 
   // `plotHeight`/`plotWidth`: the residual of `chartHeight`/`containerWidth` minus the three named
   // furniture bands (see this function's own docblock for why this alone does not prove the
   // absence of a double-counted term, and what does).
   const plotHeight = chartHeight - xAxisBand - xTitleBand - legendHeightBand;
-  const plotWidth = containerWidth != null ? containerWidth - yAxisBand - rightPad : undefined;
+  const plotWidth = containerWidth != null
+    ? containerWidth - yAxisBand - secondaryYAxisBand - rightPad
+    : undefined;
 
   return {
     chartHeight,
@@ -502,6 +539,7 @@ export function resolveChartLayout({
     bands: {
       plotHeight,
       xAxisBand,
+      secondaryYAxisBand,
       xTitleBand,
       legendBand: legendHeightBand,
       yAxisBand,
@@ -527,12 +565,26 @@ export function assertRemovedChartProp(componentName, propName, value, replaceme
   );
 }
 
-export function withChartSlotDefaults(slotProps, legendPosition) {
-  const position = {
+/**
+ * UCM-CHART-12 (codex second-pass review finding): the single source of truth for where the
+ * legend actually renders -- `legendPosition` merged with a `slotProps.legend.position` override,
+ * same precedence `withChartSlotDefaults` already applied. Before this fix, `resolveChartLayout`
+ * only ever looked at `legendPosition` when deciding how much space to reserve and on which side,
+ * while `withChartSlotDefaults` (below) separately let `slotProps.legend.position` win at RENDER
+ * time -- a caller passing both could get a legend rendered top/side while the resolver had
+ * reserved space for bottom (or none), the exact reserved-vs-rendered mismatch this WO exists to
+ * close. Both call sites now merge through this one function.
+ */
+export function resolveLegendPosition(legendPosition, slotProps) {
+  return {
     ...DEFAULT_LEGEND_POSITION,
     ...legendPosition,
     ...slotProps?.legend?.position,
   };
+}
+
+export function withChartSlotDefaults(slotProps, legendPosition) {
+  const position = resolveLegendPosition(legendPosition, slotProps);
   return {
     ...slotProps,
     tooltip: {
