@@ -1,8 +1,8 @@
 # UCM-CHART-13 — A card has no size of its own. Remove `height` and `aspect` from `ChartFrame`.
 
 - **Repo:** `ui-core-micha`, branch `main`
-- **Tier:** 3 — shared-core API removal. **Zero measured consumer impact** (see below), so a minor:
-  `3.1.0`.
+- **Tier:** 3 — shared-core API removal, **four measured consumer call sites** (see below). Breaking:
+  `4.0.0`, sequenced with `FM-CHART-1`.
 - **Status:** planned
 - **Workstream:** `CHART-*`
 - **Files:** `src/components/charts/ChartFrame.jsx` and its tests.
@@ -70,8 +70,9 @@
       — `minHeight` for a floor, or `size` on the chart *inside* the frame if the caller meant the
       chart's height. Consistent with how `UCM-CHART-12` treats the presets' removed props.
 - [ ] **`docs/CHART-LAYOUT.md`'s "What stays unchanged" entry is made precise.** It lists the frame's
-      `minHeight`/`height`/`aspect` as retained without saying which are applied. State it per prop:
-      `minHeight` and `aspect` are applied and stay; `height` was accepted and ignored, and is gone.
+      `minHeight`/`height`/`aspect` as retained without saying which are applied. Replace it: the frame
+      keeps **`minHeight` only**, as a floor; it has no size source of its own, and a chart's height
+      comes from its `size` token.
 
 ### Non-goals
 
@@ -84,11 +85,13 @@
 
 ### Risks
 
-- **Low for `height`, which no consumer passes and which does nothing.** But **re-run the consumer
-  scan by reading the call sites, not by grepping** — this WO's first draft was wrong precisely
-  because a grep pattern silently matched nothing and that was read as evidence of absence.
-- A minor version removing props is technically breaking for anyone outside the five known
-  consumers. There are none, but state the removal in the release notes rather than burying it.
+- **`height` is free — no consumer passes it and it does nothing.** `aspect` is not: four cards
+  depend on it and lose their shape when it goes. That is intended (their height becomes their
+  content's), but it is a **visible change in fitness-monitor**, so `FM-CHART-1`'s rendered two-width
+  check is what confirms it, not this WO's unit tests.
+- **Re-run the consumer scan by reading the call sites, not by grepping.** Both earlier drafts of this
+  WO were wrong about `aspect` — once from a grep that matched nothing, once from a `head`-truncated
+  grep that cut off the line where it is applied. Open the files.
 
 ### Tests to WRITE — narrow
 
