@@ -24,14 +24,20 @@ export const CHART_FRAME_ALERT_SX = { mt: 2 };
  *
  * UCM-CHART-13: `height` and `aspect` are GONE. `height` was destructured and only ever fed a
  * dev-mode mismatch warning, never applied to the box -- genuinely dead. `aspect` is a DIFFERENT
- * case (codex review finding, corrected from this WO's own Envelope, which claimed it too was
- * applied nowhere): it WAS wired to `aspectRatio` on the box at 3.0.1, and worked. It is removed
- * anyway, because no consumer across the five apps passes it (measured against 3.0.1) and
- * `ChartFrame` accepting a sizing prop it is the only one of the four+frame components to apply is
- * exactly the kind of inconsistency this WO exists to close -- a working-but-unused prop is still
- * unused surface, just not dead code the way `height` was. Passing either now throws in dev via the
- * same `assertRemovedChartProp` the four chart presets use (`UCM-CHART-12`), naming `minHeight` (a
- * card floor) or the chart's own `size` prop as the replacement.
+ * case: it WAS wired to `aspectRatio` on the box at 3.0.1, and worked.
+ *
+ * UCM-CHART-14 CORRECTION -- left legible on purpose, not deleted: `UCM-CHART-13` shipped claiming
+ * "no consumer across the five apps passes [aspect] (measured against 3.0.1)". **That measurement
+ * was false.** A parser-based census (`scripts/chart-api-census.mjs`, ground truth over grep) found
+ * FOUR live call sites in fitness-monitor (`BodyHistoryPage.jsx:295,444`, `EnvironmentPage.jsx:245,279`)
+ * that a `head`-truncated grep had silently missed -- the sixth wrong consumer count in this series
+ * (see `UCM-CHART-14`'s own WO for the other five). The REMOVAL itself still stands (`aspect` stays
+ * gone, the operator confirmed this is not being reopened) -- only the record of who it affected was
+ * wrong, and is corrected here rather than quietly rewritten. Those four sites are `FM-CHART-1`'s
+ * scope, not this file's. Passing either prop now throws in dev via the same `assertRemovedChartProp`
+ * the four chart presets use (`UCM-CHART-12`), naming `minHeight` (a card floor) or the chart's own
+ * `size` prop as the replacement -- `aspect`'s own message states plainly that it WAS applied and
+ * this is a real behaviour change (`UCM-CHART-14`, F2: the message previously said the opposite).
  */
 export function ChartFrame({
   title,
@@ -76,8 +82,11 @@ export function ChartFrame({
   );
   assertRemovedChartProp(
     'ChartFrame', 'aspect', legacyProps.aspect,
-    'Removed -- it was never applied to the frame. Use size on the chart inside the frame if you meant the chart\'s own aspect.',
-    'UCM-CHART-13, v3.1.0',
+    'It WAS applied here (aspectRatio on the card box, through 3.0.1) -- this is a real behaviour '
+    + 'change, not a no-op removal. The card\'s height now follows its content, with minHeight as '
+    + 'the floor. If you wanted the chart itself taller or shorter, set size on the chart inside '
+    + 'the frame.',
+    'UCM-CHART-14, v3.1.1',
   );
 
   const runExport = async (type) => {

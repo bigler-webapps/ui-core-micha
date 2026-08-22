@@ -251,20 +251,43 @@ describe('ChartFrame', () => {
     });
   });
 
-  // UCM-CHART-13: `height`/`aspect` were destructured but never applied to the box -- measured
-  // against 3.0.1, no consumer passed either. Both are now gone; passing one throws in dev, naming
-  // the replacement, the same as the four chart presets' removed props (`UCM-CHART-12`).
-  describe('removed height/aspect props throw in dev, naming their replacement (UCM-CHART-13)', () => {
+  // UCM-CHART-13: `height` was destructured but never applied to the box -- genuinely dead, no
+  // consumer lost anything when it went. `aspect` is DIFFERENT: it WAS applied (`aspectRatio` on
+  // the box, through 3.0.1). UCM-CHART-13 shipped claiming no consumer passed it either -- that was
+  // false (a head-truncated grep missed four live call sites in fitness-monitor); UCM-CHART-14
+  // corrects the record and rewrites `aspect`'s own error message, which previously said "never
+  // applied" -- the opposite of what happened, and actively misleading for the four callers who
+  // will actually see it. Both props are gone; passing either throws in dev, naming the real
+  // replacement, the same mechanism the four chart presets use (`UCM-CHART-12`).
+  describe('removed height/aspect props throw in dev, naming their replacement (UCM-CHART-13/14)', () => {
     it('throws when a caller still passes height, naming minHeight AND size as the replacement', () => {
       expect(() => renderFrame({ height: 380 })).toThrow(/ChartFrame.*height.*minHeight.*size/s);
     });
 
-    it('throws when a caller still passes aspect, naming size as the replacement', () => {
-      expect(() => renderFrame({ aspect: 1.8 })).toThrow(/ChartFrame.*aspect.*size/s);
+    it('throws when a caller still passes aspect, naming size as the replacement -- WITHOUT claiming it was never applied', () => {
+      const message = (() => {
+        try { renderFrame({ aspect: 1.8 }); } catch (err) { return err.message; }
+        throw new Error('expected renderFrame to throw');
+      })();
+      expect(message).toMatch(/ChartFrame.*aspect.*size/s);
+      // ui_reviewer finding: the prior version of this test only checked /size/, which a message
+      // naming JUST size (and dropping minHeight) would still pass -- the card's own floor is
+      // still minHeight, so the message must say so too, not only point at the chart's `size`.
+      expect(message).toMatch(/minHeight/);
+      // UCM-CHART-14 F2: the message must not repeat the false "never applied" claim that shipped
+      // in UCM-CHART-13 -- aspect DID apply aspectRatio to the box, and removing it is a real,
+      // visible change for the four callers who will hit this. A test only matching /size/ would
+      // pass on either wording, which is exactly how the false message shipped unnoticed.
+      expect(message).not.toMatch(/never applied/i);
+      expect(message).toMatch(/was applied/i);
     });
 
-    it('attributes the removal to UCM-CHART-13/v3.1.0, not the presets\' own UCM-CHART-12 message', () => {
+    it('attributes the height removal to UCM-CHART-13/v3.1.0 (unchanged -- height\'s message was already true)', () => {
       expect(() => renderFrame({ height: 380 })).toThrow(/UCM-CHART-13.*v3\.1\.0/);
+    });
+
+    it('attributes the aspect removal to UCM-CHART-14/v3.1.1 (the corrected message, not the original false one)', () => {
+      expect(() => renderFrame({ aspect: 1.8 })).toThrow(/UCM-CHART-14.*v3\.1\.1/);
     });
 
     it('does not throw when only minHeight is passed', () => {

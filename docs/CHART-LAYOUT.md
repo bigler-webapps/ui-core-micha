@@ -129,9 +129,15 @@ the right amount.
   footnotes, export links), not a single chart's size (`UCM-CHART-9` established this distinction).
   `height` and `aspect` are **not** part of this — `UCM-CHART-13` removed them, but for different
   reasons: `height` was destructured and only ever fed a dev-mode warning, never applied — genuinely
-  dead. `aspect` was applied (`aspectRatio` on the box, at 3.0.1) and worked; it is gone because no
-  consumer across the five apps passed it (measured against 3.0.1), not because it did nothing.
-  Passing either now throws in dev, same as the four presets' removed props.
+  dead. `aspect` was applied (`aspectRatio` on the box, through 3.0.1) and worked.
+  **Correction (`UCM-CHART-14`, left legible rather than silently rewritten):** `UCM-CHART-13`
+  originally claimed here that no consumer passed `aspect`. That measurement was false — a
+  parser-based census (`scripts/chart-api-census.mjs`) found **four live call sites in
+  fitness-monitor** (`BodyHistoryPage.jsx` ×2, `EnvironmentPage.jsx` ×2) a `head`-truncated grep had
+  missed. The removal itself still stands; only the affected-consumer count was wrong. Those four
+  sites are `FM-CHART-1`'s scope. Passing either prop now throws in dev, naming the real replacement
+  — `aspect`'s message states plainly that it WAS applied and this is a real, visible behaviour
+  change for whoever still passes it, not a no-op cleanup.
 - Palettes, series colours, tooltips, legend content, interaction.
 - `sizeYAxisForContent` (y-axis width from tick content) — reused unchanged inside the resolver.
 
