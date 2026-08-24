@@ -130,11 +130,23 @@ Grep for the literal `"tall"` before declaring this done; the list above is what
 
 ## Part B — Implementation map
 
-> **PLACEHOLDER — to be filled by the Orchestrator on `git pull`.** Context package
-> (`chartDefaults.js:294-300` and `:402-415`, every enumeration site with `path:line`, the existing
-> chart-layout tests, `docs/CHART-LAYOUT.md`), target working directory, progress contract,
-> execution directive with self-address guard, mini-handover.
-> **The Codex preamble block belongs in this file before dispatch.**
+`.claude/models.local.json` has no local override, so the default applies: `implementation.runtime`
+is `claude`/`sonnet` — the Orchestrator implemented directly, no Codex dispatch, no preamble/progress
+contract needed.
+
+Context package used:
+
+- `src/components/charts/chartDefaults.js:294-300` (the pin comment + `CHART_SIZE_SPACING_UNITS`)
+  and `:402-419` (`resolveChartHeightPx`, its error message, and the `theme.spacing` unwrap comment).
+- Enumeration sites confirmed by grep for the literal `"tall"` (matched the WO's own 2026-08-24
+  list exactly, nothing extra found): `LineChart.jsx:44,72`, `BarChart.jsx:27,54`,
+  `ScatterChart.jsx:155,198`, `docs/CHART-LAYOUT.md:66,73-75`.
+- Existing hardcoded-value tests located via grep for `240|320|400` across `tests/*.test.{js,jsx}`:
+  `chartDefaults.test.js:119,562,576`, `BarChart.test.jsx:36,83-85`, `LineChart.test.jsx:51-53`,
+  `ScatterChart.test.jsx:242-244`. Distinguished from unrelated same-valued `minHeight`/`ChartFrame`
+  test fixtures (`chartDefaults.test.js:291,298,308,315,318`, `ChartFrame.test.jsx:294,311`,
+  `chart-api-census.test.js:196`), which were left untouched — they assert an arbitrary prop value,
+  not a size-token pixel height.
 
 ---
 

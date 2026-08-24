@@ -31,10 +31,10 @@ describe('BarChart preset', () => {
       legend: { position: { vertical: 'bottom', horizontal: 'start' } },
     });
     expect(props.hideLegend).toBe(true);
-    // UCM-CHART-12: size defaults to "standard" (320px, the historical default) -- the wrapper
-    // always carries an explicit height now, width stays responsive.
-    expect(props.height).toBe(320);
-    expect(window.getComputedStyle(screen.getByTestId('bar-chart-container')).height).toBe('320px');
+    // UCM-CHART-12/UCM-CHART-15: size defaults to "standard" (400px) -- the wrapper always
+    // carries an explicit height now, width stays responsive.
+    expect(props.height).toBe(400);
+    expect(window.getComputedStyle(screen.getByTestId('bar-chart-container')).height).toBe('400px');
   });
 
   it.each([
@@ -78,11 +78,13 @@ describe('BarChart preset', () => {
   // UCM-CHART-12: `size`/`height` resolution, wired through the actual component. Replaces the
   // deleted `minHeight`/`aspect` CHART-8 trio -- see the removed-prop assertions below for the
   // migration side of this.
-  describe('size/height resolution (UCM-CHART-12)', () => {
+  describe('size/height resolution (UCM-CHART-12, UCM-CHART-15)', () => {
     it.each([
-      ['compact', 240],
-      ['standard', 320],
-      ['tall', 400],
+      ['compact', 320],
+      ['standard', 400],
+      ['tall', 480],
+      ['extra_tall', 560],
+      ['super_tall', 640],
     ])('resolves size="%s" to %ipx, on both the chart height and the wrapper', (size, px) => {
       renderChart({ series: [{ data: [1] }], size });
       expect(chartSpy.mock.calls.at(-1)[0].height).toBe(px);

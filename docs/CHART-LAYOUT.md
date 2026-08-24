@@ -70,14 +70,19 @@ Tokens resolve through the theme's spacing scale (`theme.spacing`, MUI's 8px uni
 
 | Token | Spacing units | Height |
 |---|---|---|
-| `compact` | 30 | 240px |
-| `standard` | 40 | 320px |
-| `tall` | 50 | 400px |
+| `compact` | 40 | 320px |
+| `standard` | 50 | 400px |
+| `tall` | 60 | 480px |
+| `extra_tall` | 70 | 560px |
+| `super_tall` | 80 | 640px |
 
-`standard` is pinned to the exact number every current consumer already renders at today
-(`TimeSeriesChart`'s old `CHART_HEIGHT = 320`) — this migration does not silently redraw an
-existing default-sized chart. `height` (a raw px number) survives as a **documented escape** for a
-justified special case; prefer `size`.
+**UCM-CHART-15** shifted the whole scale up one step and added `extra_tall`/`super_tall` above the
+old ceiling — `tall` (400px) had been the largest token, and hram had already needed the `height`
+px escape to get past it. `standard`'s old pin to 320px (`TimeSeriesChart`'s historical
+`CHART_HEIGHT`) was a migration guardrail for CHART-12, not a design verdict; that migration is
+long complete, so the scale is now a chosen set of five values rather than one inherited number.
+`height` (a raw px number) survives as a **documented escape** for a justified special case; prefer
+`size`.
 
 **Four call sites lose responsive height with `aspect` gone**: `hram/AccessGapScatterPanel.jsx`
 and three in `fitness-monitor/BodyHistoryPage.jsx` (its `960/380` ratios were a design decision,

@@ -2,6 +2,35 @@
 
 Only notable, user-facing changes. Not every version — see `WORK_ORDERS.md` for the full history.
 
+## 3.2.0 — UCM-CHART-15
+
+**Breaking visual change: every existing chart using a `size` token — including the default
+`standard` size — becomes 80px taller; `standard` is now 400px.** The chart `size` scale shifts
+up one step and gains two new steps above the old ceiling:
+
+| token | before | after |
+|---|---|---|
+| `compact` | 240px | **320px** |
+| `standard` | 320px | **400px** |
+| `tall` | 400px | **480px** |
+| `extra_tall` | — | **560px** (new) |
+| `super_tall` | — | **640px** (new) |
+
+This redraws every chart already using a `size` token, in every consumer on `ui-core-micha` `3.x`.
+The 10-unit step is unchanged; every value stays a clean multiple of the theme's 8px spacing unit.
+
+**Why:** `tall` was the tallest token available, and hram had already needed the documented
+`height` px escape to get past it — a scale that forces its own escape ends too early.
+`standard`'s old 320px value was a migration guardrail from `UCM-CHART-12` (pinned to the
+pre-existing deployed default so that migration did not itself redraw anything), not a design
+verdict on its own merits; the operator judged the whole scale too cramped on its own merits and
+chose to correct it now, before the fourteen remaining apps still on `2.x` migrate onto it.
+
+**This is a breaking change shipped as a minor**, by explicit operator decision (`2026-08-24`),
+against the Expertenchat's recommendation of a major. No consuming app is on `3.x` except hram, so
+the practical blast radius is one application; hram's own adoption and visual verification is a
+separate, deliberate work order (`HRAM-CHT-5`), not automatic from this release.
+
 ## 3.1.2 — UCM-CHART-14 follow-up
 
 **The census script shipped in `3.1.1` worked; its test suite never ran.** `scripts/chart-api-census.mjs`

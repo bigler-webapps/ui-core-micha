@@ -115,8 +115,8 @@ describe('chart chrome defaults', () => {
     expect(timeSeriesProps.grid).toEqual({ horizontal: true });
     expect(timeSeriesProps.skipAnimation).toBe(true);
     // UCM-CHART-12: TimeSeriesChart's inner BarChart now takes size="standard" instead of a
-    // fixed height prop -- the resolved height must still land on the historical 320px default.
-    expect(timeSeriesProps.height).toBe(320);
+    // fixed height prop. UCM-CHART-15 shifted "standard" from 320px to 400px.
+    expect(timeSeriesProps.height).toBe(400);
   });
 
   it('keeps caller tick font, grid, showMark, and legendPosition values instead of the defaults', () => {
@@ -551,15 +551,22 @@ describe('resolveChartLayout composition invariant (UCM-CHART-12)', () => {
   });
 });
 
-describe('resolveChartLayout size tokens and height escape (UCM-CHART-12)', () => {
+describe('resolveChartLayout size tokens and height escape (UCM-CHART-12, UCM-CHART-15)', () => {
   it.each(Object.entries(CHART_SIZE_SPACING_UNITS))('resolves size="%s" through the theme spacing scale', (size, units) => {
     const layout = resolveChartLayout({ size, spacing: theme.spacing });
     expect(layout.chartHeight).toBe(units * 8);
   });
 
-  it('pins "standard" to the historical 320px default', () => {
-    const layout = resolveChartLayout({ size: 'standard', spacing: theme.spacing });
-    expect(layout.chartHeight).toBe(320);
+  // UCM-CHART-15: hardcoded independently of CHART_SIZE_SPACING_UNITS -- the test above computes
+  // its expectation from the same source under test and would pass unchanged against either the
+  // old or the new scale. This one is written to fail against the pre-CHART-15 values (240/320/400).
+  it('resolves the five size tokens to their documented pixel heights', () => {
+    const px = Object.fromEntries(['compact', 'standard', 'tall', 'extra_tall', 'super_tall'].map(
+      (size) => [size, resolveChartLayout({ size, spacing: theme.spacing }).chartHeight],
+    ));
+    expect(px).toEqual({
+      compact: 320, standard: 400, tall: 480, extra_tall: 560, super_tall: 640,
+    });
   });
 
   it('lets height override the size token entirely', () => {
@@ -567,13 +574,23 @@ describe('resolveChartLayout size tokens and height escape (UCM-CHART-12)', () =
     expect(layout.chartHeight).toBe(111);
   });
 
-  it('throws on an unknown size token', () => {
+  // UCM-CHART-15: the height escape still wins for a token added in this WO, not only a
+  // pre-existing one.
+  it('lets height override a token that has no call site yet', () => {
+    const layout = resolveChartLayout({ size: 'super_tall', height: 111, spacing: theme.spacing });
+    expect(layout.chartHeight).toBe(111);
+  });
+
+  it('throws on an unknown size token, naming all five valid tokens', () => {
     expect(() => resolveChartLayout({ size: 'huge', spacing: theme.spacing })).toThrow(/Unknown chart size/);
+    expect(() => resolveChartLayout({ size: 'huge', spacing: theme.spacing })).toThrow(
+      /"compact" \| "standard" \| "tall" \| "extra_tall" \| "super_tall"/,
+    );
   });
 
   it('falls back to a numeric 8px unit when no spacing function is given', () => {
     const layout = resolveChartLayout({ size: 'standard' });
-    expect(layout.chartHeight).toBe(320);
+    expect(layout.chartHeight).toBe(400);
   });
 });
 

@@ -41,9 +41,10 @@ function FilledMarkElement({ color, style, ...props }) {
  * (`withAxisDefaults` only ever falls back onto an axis without its own
  * `label`).
  *
- * `size` (UCM-CHART-12): `"compact" | "standard" | "tall"`, resolved through the theme's
- * spacing scale by `resolveChartLayout`. `height` (px) is the documented escape for a justified
- * special case -- prefer `size`. `minHeight`/`aspect`/`margin` are gone (see docs/CHART-LAYOUT.md).
+ * `size` (UCM-CHART-12, UCM-CHART-15): `"compact" | "standard" | "tall" | "extra_tall" |
+ * "super_tall"`, resolved through the theme's spacing scale by `resolveChartLayout`. `height`
+ * (px) is the documented escape for a justified special case -- prefer `size`.
+ * `minHeight`/`aspect`/`margin` are gone (see docs/CHART-LAYOUT.md).
  */
 export function LineChart({
   series = [],
@@ -69,7 +70,7 @@ export function LineChart({
   const { i18n } = useTranslation();
   const neutralPalette = useNeutralChartPalette();
 
-  assertRemovedChartProp('LineChart', 'minHeight', minHeight, 'Use size="compact" | "standard" | "tall", or height for the documented escape.');
+  assertRemovedChartProp('LineChart', 'minHeight', minHeight, 'Use size="compact" | "standard" | "tall" | "extra_tall" | "super_tall", or height for the documented escape.');
   assertRemovedChartProp('LineChart', 'aspect', aspect, 'Removed with no replacement -- pick a size token; the chart no longer tracks width.');
   assertRemovedChartProp('LineChart', 'margin', margin, 'Removed -- the layout model owns margins completely.');
 

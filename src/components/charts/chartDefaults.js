@@ -291,13 +291,18 @@ export function defaultNumericTickFormatter(locale) {
     : new Intl.NumberFormat(locale).format(value));
 }
 
-// UCM-CHART-12: named size tokens, resolved through the theme's 8px spacing unit
-// (`src/theme/tokens.js`'s `spacing: 8`). `standard` is pinned to the pre-existing deployed
-// default (`TimeSeriesChart`'s old `CHART_HEIGHT = 320`) so this migration does not also
-// silently redraw every already-shipped default-sized chart; `compact`/`tall` are proportional.
-// Documented plainly in `docs/CHART-LAYOUT.md` -- these are visible product decisions, not
-// internal plumbing.
-export const CHART_SIZE_SPACING_UNITS = { compact: 30, standard: 40, tall: 50 };
+// UCM-CHART-15: named size tokens, resolved through the theme's 8px spacing unit
+// (`src/theme/tokens.js`'s `spacing: 8`). Through UCM-CHART-12/14, `standard` stayed pinned to
+// the pre-existing deployed default (`TimeSeriesChart`'s old `CHART_HEIGHT = 320`) so that
+// migration did not also silently redraw every already-shipped default-sized chart -- that pin
+// was a migration guardrail, not a design verdict. The migration it protected is complete, and
+// the operator judged the whole scale too cramped (`tall` had already forced hram to use the
+// `height` px escape to get past the old ceiling), so this WO shifts every token up one step and
+// adds two steps above the old `tall`, chosen rather than inherited. Documented plainly in
+// `docs/CHART-LAYOUT.md` -- these are visible product decisions, not internal plumbing.
+export const CHART_SIZE_SPACING_UNITS = {
+  compact: 40, standard: 50, tall: 60, extra_tall: 70, super_tall: 80,
+};
 
 // UCM-CHART-12 Rule 2: every band is its own measured content, or zero -- no band is ever a
 // constant taken on faith. These two ARE constants, but only for the "content is present" case;
@@ -404,11 +409,11 @@ function resolveChartHeightPx(size, height, spacing) {
   const units = CHART_SIZE_SPACING_UNITS[size];
   if (units == null) {
     throw new Error(
-      `[ui-core-micha] Unknown chart size="${size}". Use "compact" | "standard" | "tall", `
-      + 'or pass height (in px) for the documented escape.',
+      `[ui-core-micha] Unknown chart size="${size}". Use "compact" | "standard" | "tall" | `
+      + '"extra_tall" | "super_tall", or pass height (in px) for the documented escape.',
     );
   }
-  // MUI's `theme.spacing(n)` returns a CSS length STRING ("240px"), not a number -- the chart
+  // MUI's `theme.spacing(n)` returns a CSS length STRING ("320px"), not a number -- the chart
   // height feeds straight into MUI X-Charts' own numeric `height` prop, so it must be unwrapped
   // back to a px number via the same `cssLengthToPixels` the rest of this file already uses.
   return typeof spacing === 'function' ? cssLengthToPixels(spacing(units)) : units * 8;

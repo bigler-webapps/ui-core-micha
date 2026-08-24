@@ -36,7 +36,7 @@ describe('LineChart preset', () => {
 
   // UCM-CHART-12: `size`/`height` resolution, wired through the actual component. Replaces the
   // deleted `minHeight`/`aspect` CHART-8 trio.
-  describe('size/height resolution (UCM-CHART-12)', () => {
+  describe('size/height resolution (UCM-CHART-12, UCM-CHART-15)', () => {
     function renderLine(props) {
       return render(
         <ThemeProvider theme={createTheme()}>
@@ -48,9 +48,11 @@ describe('LineChart preset', () => {
     afterEach(cleanup);
 
     it.each([
-      ['compact', 240],
-      ['standard', 320],
-      ['tall', 400],
+      ['compact', 320],
+      ['standard', 400],
+      ['tall', 480],
+      ['extra_tall', 560],
+      ['super_tall', 640],
     ])('resolves size="%s" to %ipx, on both the chart height and the wrapper', (size, px) => {
       renderLine({ size });
       expect(chartSpy.mock.calls.at(-1)[0].height).toBe(px);

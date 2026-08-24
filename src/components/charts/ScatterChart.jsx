@@ -152,9 +152,10 @@ export function ScatterReferenceLine({
  * Reference geometry (a computed curve, a straight line, either with an optional label) is
  * composed as `children` using `ScatterReferenceCurve`/`ScatterReferenceLine` above.
  *
- * `size` (UCM-CHART-12): `"compact" | "standard" | "tall"`, resolved through the theme's
- * spacing scale by `resolveChartLayout`. `height` (px) is the documented escape for a justified
- * special case -- prefer `size`. `minHeight`/`aspect`/`margin` are gone (see docs/CHART-LAYOUT.md).
+ * `size` (UCM-CHART-12, UCM-CHART-15): `"compact" | "standard" | "tall" | "extra_tall" |
+ * "super_tall"`, resolved through the theme's spacing scale by `resolveChartLayout`. `height`
+ * (px) is the documented escape for a justified special case -- prefer `size`.
+ * `minHeight`/`aspect`/`margin` are gone (see docs/CHART-LAYOUT.md).
  *
  * Tested magnitude: a few hundred marks (hram's largest cloud is ~300 points). Not verified,
  * and not implied to hold, at thousands+.
@@ -195,7 +196,7 @@ export function ScatterChart({
   const { i18n } = useTranslation();
   const neutralPalette = useNeutralChartPalette();
 
-  assertRemovedChartProp('ScatterChart', 'minHeight', minHeight, 'Use size="compact" | "standard" | "tall", or height for the documented escape.');
+  assertRemovedChartProp('ScatterChart', 'minHeight', minHeight, 'Use size="compact" | "standard" | "tall" | "extra_tall" | "super_tall", or height for the documented escape.');
   assertRemovedChartProp('ScatterChart', 'aspect', aspect, 'Removed with no replacement -- pick a size token; the chart no longer tracks width.');
   assertRemovedChartProp('ScatterChart', 'margin', margin, 'Removed -- the layout model owns margins completely.');
 
