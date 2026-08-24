@@ -1,4 +1,12 @@
-#!/usr/bin/env node
+// NO SHEBANG. Run this with an explicit interpreter: `node scripts/chart-api-census.mjs
+// <workspace-root>`, which is how it is documented and how it is run.
+//
+// A `#!` line here is invisible to direct execution -- Node strips it -- but breaks anything
+// that loads this file through an ESM graph rather than running it: Vite's module runner
+// (hence vitest) rejects `#` as an illegal token, and other bundlers/parsers may too.
+// UCM-CHART-14 shipped with one. The script kept working and its output stayed correct, so
+// nothing user-facing complained; what broke was its own test suite, silently reduced to
+// 0 collected tests (`SyntaxError: Invalid or unexpected token`). Do not re-add it.
 // UCM-CHART-14: a parser, not a grep. This is the whole point of this file -- five wrong consumer
 // counts in this series (see work-orders/UCM-CHART-14.md) all came from a grep pattern that could
 // not see JSX structure: a prop several lines below the component name, an arrow function's `=>`
