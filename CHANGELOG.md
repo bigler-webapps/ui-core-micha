@@ -2,6 +2,25 @@
 
 Only notable, user-facing changes. Not every version — see `WORK_ORDERS.md` for the full history.
 
+## 3.3.1 — UCM-CHART-18
+
+**Exported PNGs no longer contain interactive controls — buttons, drill-down links, and the like
+are gone from the image, while an interactive chart legend (MUI's own, e.g. a
+`toggleVisibilityOnClick` legend) keeps every pixel of its swatch and label — only its
+clickability is dropped, which a static image never had anyway. A rotated element (e.g. a legend
+swatch drawn as a diamond) now exports rotated instead of square.** Since `3.3.0` the PNG export
+rasterises `ChartFrame`'s whole `chartRef` box, which wraps a panel's `children` — any button or
+link a panel renders alongside its chart (an info affordance, a "view details" link) was
+rasterised straight into every exported image. Fixed generically here rather than by moving each
+panel's controls elsewhere: an exported image should show what the chart *communicates*, not what
+can be *clicked*, and that is a property of the element kind, not of any one panel's layout
+choices. `transform` was also missing from the properties this package inlines onto an export, so
+a CSS-rotated element silently lost its rotation; both exports (SVG and PNG) now carry it.
+
+This is a patch, not a minor: it repairs behaviour `3.3.0` itself introduced (interactive controls
+were never meant to appear in an export) rather than changing what a correctly-shaped export
+contains.
+
 ## 3.3.0 — UCM-CHART-17
 
 **The PNG export now includes the legend, size key, and footnotes — the SVG export still doesn't,

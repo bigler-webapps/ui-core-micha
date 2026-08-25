@@ -29,10 +29,19 @@ const XHTML_NS = 'http://www.w3.org/1999/xhtml';
 // defaults (tick fonts and sizes, axis/grid colours, text fill). Deliberately curated, not a full
 // `getComputedStyle` dump: every extra property is bytes in a file a human may open in Illustrator
 // or Inkscape.
+// UCM-CHART-18: `transform`/`transform-origin` added -- a rotated element (e.g. a legend swatch
+// rotated into a diamond) previously exported unrotated, since nothing wrote the resolved CSS
+// transform onto the clone. `getComputedStyle` returns the FINAL, resolved matrix -- already
+// incorporating an SVG element's own `transform` PRESENTATION ATTRIBUTE, which `cloneNode` also
+// keeps -- and an inline `style` declaration always wins over a presentation attribute (SVG2:
+// presentation attributes carry the lowest possible specificity), so writing the computed value
+// inline overrides rather than composes with it. Verified live against a rotated legend swatch and
+// against `xLabels="angled"` tick labels: neither double-rotates or double-displaces.
 const CHART_STYLE_PROPERTIES = [
   'font-family', 'font-size', 'font-weight', 'font-style', 'line-height', 'letter-spacing',
   'fill', 'stroke', 'stroke-width', 'stroke-dasharray', 'stroke-linecap', 'stroke-linejoin',
   'opacity', 'fill-opacity', 'stroke-opacity', 'text-anchor', 'dominant-baseline', 'color',
+  'transform', 'transform-origin',
 ];
 
 // Box layout/appearance for the HTML legend and size key a panel renders beside the chart --
@@ -60,6 +69,42 @@ function findChartSvg(chartContainer) {
   const svg = chartContainer?.querySelector('svg.MuiChartsSurface-root') || chartContainer?.querySelector('svg');
   if (!svg) throw new Error('Chart container does not contain an SVG element.');
   return svg;
+}
+
+// UCM-CHART-18: an exported image shows what the chart COMMUNICATES, not what can be clicked --
+// a panel's own controls (an info `IconButton`, a drill-down `Button`, ...) live in `children`
+// alongside the chart (`ChartFrame`'s `chartRef` wraps `children` only, not `toolbar`/`controls`/
+// `meta`), so the whole-container PNG picked them up once it started rasterising `chartRef` in
+// full (`UCM-CHART-17`). `[role="button"]` catches MUI's own non-native button-like elements (e.g.
+// an `IconButton` can render as a `<span>`/`<div>` with that role) that a tag-name selector alone
+// would miss; `a[href]`/`[role="link"]` (reviewer finding) cover a drill-down built as a link
+// rather than a `<button>`.
+const INTERACTIVE_CONTROL_SELECTOR = 'button, input, select, textarea, [role="button"], a[href], [role="link"]';
+
+// ui_reviewer + reviewer finding, independently: MUI's OWN chart legend can be interactive
+// (`onItemClick`/`toggleVisibilityOnClick`) and, when it is, X-Charts renders each legend item as
+// `<button role="button" class="...MuiChartsLegend-series...">`, WRAPPING the series swatch and
+// label -- that markup IS the legend's explanatory content, not chrome, and the WO's own risk
+// section says exactly this: "if it vanishes, that is a finding that changes the approach, not a
+// detail to paper over." A blanket `.remove()` would delete the swatch+label along with the click
+// handler. Unwrapped instead: replace the interactive element with a plain, non-interactive one
+// carrying the SAME class/style/children, so the legend keeps every pixel of content while losing
+// only its clickability (irrelevant anyway -- a rasterised PNG has no click handlers regardless).
+const MUI_INTERACTIVE_LEGEND_ITEM_SELECTOR = '.MuiChartsLegend-series';
+
+function stripInteractiveControls(clone) {
+  clone.querySelectorAll(INTERACTIVE_CONTROL_SELECTOR).forEach((node) => {
+    if (node.matches(MUI_INTERACTIVE_LEGEND_ITEM_SELECTOR)) {
+      const unwrapped = document.createElement('span');
+      unwrapped.className = node.className;
+      const style = node.getAttribute('style');
+      if (style) unwrapped.setAttribute('style', style);
+      while (node.firstChild) unwrapped.appendChild(node.firstChild);
+      node.replaceWith(unwrapped);
+      return;
+    }
+    node.remove();
+  });
 }
 
 // Walks `sourceRoot` and `cloneRoot` in lockstep (both traversed in the same, deterministic
@@ -125,6 +170,14 @@ function containerSvgBlob(chartContainer) {
 
   const clone = chartContainer.cloneNode(true);
   inlineComputedStyles(chartContainer, clone, [...CHART_STYLE_PROPERTIES, ...CONTAINER_LAYOUT_STYLE_PROPERTIES]);
+  // UCM-CHART-18 scope item 2, deliberately AFTER inlineComputedStyles, never before:
+  // inlineComputedStyles walks `chartContainer` and `clone` IN LOCKSTEP BY INDEX
+  // (`sourceNodes[i]` <-> `cloneNodes[i]`, both from `querySelectorAll('*')`). Removing nodes from
+  // the clone first would shift every subsequent index out of alignment with the still-intact
+  // source tree, so elements downstream of the first removal would silently receive a DIFFERENT
+  // element's computed style -- wrong, but not obviously wrong, since the result still looks like a
+  // styled export.
+  stripInteractiveControls(clone);
   clone.setAttribute('xmlns', XHTML_NS);
 
   const svg = document.createElementNS(SVG_NS, 'svg');

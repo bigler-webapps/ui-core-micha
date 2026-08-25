@@ -102,11 +102,67 @@ survives; `transform` appears in the inlined declarations.
 
 ## Part B — Implementation map
 
-> **PLACEHOLDER — to be filled by the Orchestrator on `git pull`.** Context package:
-> `exportChart.js:32-52` (both property lists), `:70-82` (`inlineComputedStyles` and its index
-> pairing), `:120-142` (`containerSvgBlob`), and the dev harness `UCM-CHART-17` used for live
-> verification.
-> **The Codex preamble block belongs in this file before dispatch.**
+`.claude/models.local.json` has no local override, so the default applies: `implementation.runtime`
+is `claude`/`sonnet` — the Orchestrator implemented directly, no Codex dispatch.
+
+Implemented exactly per scope: `transform`/`transform-origin` added to `CHART_STYLE_PROPERTIES`
+(shared by both export paths); a new `INTERACTIVE_CONTROL_SELECTOR`
+(`button, input, select, textarea, [role="button"]`) and `stripInteractiveControls` helper, called
+in `containerSvgBlob` strictly **after** `inlineComputedStyles` (the lockstep-index trap named in
+the WO) — verified by temporarily reverting the ordering-safe call and confirming the new tests
+fail, then restoring.
+
+**Verification (real Chrome, via the dev harness's module graph — no probe entry committed to
+`dev/entries.jsx`, all four cases rendered via direct script injection into detached containers):**
+
+1. Control in `children` (an `IconButton` beside a `<span>` caveat note, mirroring
+   `StructuralReachabilityPanel`'s footer affordance): captured the PNG path's actual intermediate
+   SVG (intercepting `Image.src`) and confirmed no `<button` tag and no button text present, while
+   the sibling text and the chart itself both survive.
+2. MUI's own legend (two-series `BarChart`, no `hideLegend`): confirmed live that MUI's legend
+   renders as `<ul>/<li>/<div>/<span>` (no `button`/`role="button"` in it), then confirmed both
+   series labels ("Opened", "Resolved") and the `MuiChartsLegend-root` class survive the export
+   fully intact.
+3. Rotated element: a 24x24px swatch with `transform: rotate(45deg)`, exported to PNG and
+   pixel-sampled on a real `<canvas>` — the swatch's own bounding-box corner reads back as
+   background white, its centre as the swatch's own red, i.e. a genuine diamond (clipped corners),
+   not an unrotated square.
+4. `xLabels="angled"` (7 long category labels): the exported tick `<text>` carries BOTH its
+   original `transform="rotate(-45, 30, 9)"` XML presentation attribute (kept by `cloneNode`) AND
+   the newly-inlined `style="transform: matrix(0.707107, -0.707107, 0.707107, 0.707107, ...)"`.
+   The matrix values are exactly `cos(-45°)=0.707107, sin(-45°)=-0.707107` — a SINGLE 45° rotation,
+   not a doubled/composed one (which would show different values, e.g. matching -90°) — confirming
+   the inline `style` declaration wins over the presentation attribute (SVG2: presentation
+   attributes carry the lowest specificity) rather than composing with it. Tick text still renders
+   non-blank.
+
+Context package used: `exportChart.js` in full (short, already read start to finish),
+`ChartFrame.jsx:137-151` (`chartRef` — re-confirmed it wraps `children` only).
+
+**Post-review correction, both reviewers converging independently on the same gap the WO's own
+risk section named:** the initial `stripInteractiveControls` removed EVERY matched element
+outright, including MUI's own chart legend when it is interactive
+(`onItemClick`/`toggleVisibilityOnClick`) — X-Charts renders each legend item as
+`<button role="button" class="...MuiChartsLegend-series...">` wrapping the series swatch and
+label, so a blanket removal deleted the legend's content along with its click handler. This is
+EXACTLY the WO's own risk section, made concrete: "if it vanishes, that is a finding that changes
+the approach, not a detail to paper over." Fixed by UNWRAPPING `MuiChartsLegend-series` matches
+(replace with a plain `<span>` carrying the same class/style/children) instead of removing them —
+content survives, only the (irrelevant, in a static image) clickability is dropped. Re-verified
+live against a REAL interactive legend (`slotProps={{ legend: { toggleVisibilityOnClick: true } }}`,
+confirmed the live legend items render as actual `<BUTTON>` tags): the export contains zero
+`<button` tags, but `MuiChartsLegend-series` and both series labels survive intact. `INTERACTIVE_
+CONTROL_SELECTOR` also broadened to `a[href]`/`[role="link"]` (reviewer finding — a drill-down
+built as a link, not only a `<Button>`, is equally out of place in an export).
+
+Also fixed a genuine test-coverage gap the reviewer found: the original ordering test's `<button>`
+was the LAST descendant in its fixture, so a "strip before inline" regression would not have shifted
+any node the test actually asserted on — content-presence checks can't observe a style
+misattribution at all, only a missing/wrong STYLE VALUE can. Rewrote it with a distinctively-styled
+sibling AFTER the button (stylesheet-driven colour, not an inline style `cloneNode` would copy
+regardless) and confirmed, by temporarily reverting the call order, that the new assertion actually
+fails when the order is wrong (the button's own style — `border-style: none`, `text-align: center`
+— leaks onto the trailing sibling).
 
 ---
 
