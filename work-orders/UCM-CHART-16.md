@@ -38,6 +38,27 @@ will have to rediscover both the cause and the number. And the package is violat
 rule: `chartDefaults.js` says *"Rule 1: nothing outside the resolver does chart arithmetic"* — a
 caller hand-computing an axis height is exactly that, now in two places.
 
+### A third occurrence — and it proves scope item 2
+
+Reported by the operator on 2026-08-25, hram's `AccessibilityPanel` in its
+`Urban/Peri-urban/Rural × Division` mode: five band categories, five rendered bar groups, **no tick
+labels at all**. Same signature — positioned ticks, blank text.
+
+This one is different in a way that matters. That chart has **no `xAxisLabel`**
+(`AccessibilityPanel.jsx:164-178`), so the axis title is *not* competing for the band. What it does
+have is `tickLabelStyle: { fontSize: 13 }` — one pixel above the 12 px the base band was sized
+against.
+
+**So the trigger is not "a title takes the room". It is that the band is a near-miss at all**, and
+anything that consumes a little more — a title, a slightly larger font, presumably a taller line
+height — pushes it over. A fixed `height: 56` patched into a third consumer would work at 13 px and
+fail at 14. That is precisely why scope item 2 requires the resolver to **derive** the requirement
+from the tick font size it already knows, rather than adopting the constant two consumers measured
+empirically at 12 px.
+
+(Signature-matched, not yet instrumented — confirm the mechanism on this third case as part of the
+work, since it is the one that distinguishes a derived fix from a bigger constant.)
+
 ### Scope
 
 1. **Fix the reservation in the resolver.** The band must leave MUI's fit check room for one full
