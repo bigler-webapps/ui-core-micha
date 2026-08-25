@@ -2,6 +2,24 @@
 
 Only notable, user-facing changes. Not every version — see `WORK_ORDERS.md` for the full history.
 
+## 3.2.1 — UCM-CHART-16
+
+**A horizontal-axis chart with a title, or a large-enough tick font, could render every tick
+label blank.** The x-axis tick band reserved a flat, font-size-independent floor; MUI's own
+internal fit check (`shortenLabels`, against `tickLabelsMaxHeight`) blanks every tick label the
+moment the real rendered text is even slightly taller than that floor leaves room for once MUI's
+own tick/gap overhead — and, when a title shares the same band, its own gap too — is subtracted.
+Correctly positioned tick marks with zero visible label text is the exact, easy-to-misread
+signature; two hram consumers had independently patched around it with the same empirically
+measured `height: 56` before this was traced to its shared-core cause.
+
+The band is now derived from the actual tick font size (and whether an axis title shares it)
+instead of the flat floor, matching MUI's real fit check rather than only its generic default.
+Patch, not minor: this repairs existing behaviour — the SAME size tokens render at the SAME
+heights (`UCM-CHART-15` is untouched) — the only change is the flat tick band growing by a few
+pixels on charts that were previously either mis-sized or silently blanking their labels. The
+rotated-tick path (`xLabels: "angled"`) is unaffected.
+
 ## 3.2.0 — UCM-CHART-15
 
 **Breaking visual change: every existing chart using a `size` token — including the default

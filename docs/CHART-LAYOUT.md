@@ -15,13 +15,15 @@ chartHeight === plotHeight + xAxisBand + xTitleBand + legendBand
 ```
 
 - `xAxisBand` — the tick row. Zero when the axis has no visible tick content (an empty `data`
-  array, or every formatted tick is a blank string). Non-zero otherwise: a flat baseline for
-  horizontal labels, or a measured/estimated projection for rotated ones (same measurement
-  mechanism as before — a real DOM measurement when available, a per-glyph estimate otherwise).
-  The flat baseline (25px) and the title addition (20px) are MUI X-Charts' own
-  `DEFAULT_AXIS_SIZE_HEIGHT`/`AXIS_LABEL_DEFAULT_HEIGHT` constants, not a re-estimate — the plain
-  unrotated/untitled case renders pixel-identical to before this WO, even though the resolver now
-  sets `axis.height` explicitly where MUI used to fill it in implicitly.
+  array, or every formatted tick is a blank string). Non-zero otherwise: for horizontal labels, a
+  floor of 25px (MUI X-Charts' own `DEFAULT_AXIS_SIZE_HEIGHT`) scaled up from the actual tick font
+  size once it needs more room than that floor leaves MUI's own internal fit check — a flat floor
+  alone was a near-miss with essentially no margin at any font size above whatever MUI itself
+  implicitly assumed (`UCM-CHART-16`); or a measured/estimated projection for rotated ones (same
+  measurement mechanism as before — a real DOM measurement when available, a per-glyph estimate
+  otherwise). The title addition (20px, `AXIS_LABEL_DEFAULT_HEIGHT`) grows by a further few pixels
+  when an axis title shares the tick row's band, matching the extra gap MUI itself reserves
+  between the two.
 - `xTitleBand` — the axis title. Zero unless the x-axis carries a `label`.
 - `legendBand` — one row for the legend. Zero when `hideLegend` is set.
 - `plotHeight` is the residual: `chartHeight` minus the three bands above.

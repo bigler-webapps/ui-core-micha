@@ -153,6 +153,29 @@ export const PACKAGE_DEFAULT_MARGIN = {
 // as clipped even when nothing is actually cut off).
 const ROTATED_TICK_CLEARANCE_PX = 8;
 
+// UCM-CHART-16: the FLAT (angle 0) tick band used to be the unconditional TICK_BAND_BASE_PX
+// regardless of the actual tick font size -- fine for MUI's own generic default, but MUI's
+// internal fit check (`shortenLabels`, against `tickLabelsMaxHeight`) blanks EVERY tick label the
+// moment the real rendered text is even slightly taller than what that flat floor leaves room
+// for once MUI's own tick/gap overhead (and, when an axis title shares the band, its own gap) is
+// subtracted. `TICK_BAND_BASE_PX` alone was a near-miss with essentially no margin at any font
+// size above whatever MUI itself implicitly assumed -- two hram consumers independently patched
+// around it with the same empirically-measured `height: 56`, and a third, titleless case broke at
+// a tick font just 1px above the untitled default.
+//
+// These three constants are DERIVED, not guessed: binary-searched against the real, unmocked
+// `BarChart` rendered in this repo's own dev harness (`dev/entries.jsx`'s `chart-probe` entry,
+// Chrome, this package's own DM Sans default -- the taller of the two fonts checked; MUI's Roboto
+// fallback needs visibly less and was never the trigger) at tick font sizes 11-18px, with and
+// without an axis title:
+//   required flat tickBand   ~= ceil(fontSize * TICK_TEXT_HEIGHT_FACTOR) + TICK_BAND_MUI_OVERHEAD_PX
+//   required tickBand+title  ~= that, plus TICK_BAND_TITLE_EXTRA_PX, plus AXIS_TITLE_BAND_PX
+// matched every measured threshold exactly or over by at most 1px, never under, across ten
+// font-size/title combinations -- see UCM-CHART-16's work order for the full measurement table.
+const TICK_TEXT_HEIGHT_FACTOR = 1.3;
+const TICK_BAND_MUI_OVERHEAD_PX = 9;
+const TICK_BAND_TITLE_EXTRA_PX = 2;
+
 // THEME-9: MUI X-Charts' own default y-axis width is a flat 45px (ticks) +
 // 20px (label, if present) = 65px regardless of what the ticks actually say
 // -- confirmed against @mui/x-charts' own DEFAULT_AXIS_SIZE_WIDTH /
@@ -389,7 +412,18 @@ function resolveXAxisGeometry(axis, xLabelsMode, defaultLineHeight, measureTextW
     angle = needsRotation ? -45 : 0;
   } // "horizontal" always stays at angle 0
 
-  if (angle === 0) return { tickBand: TICK_BAND_BASE_PX, angle: 0 };
+  if (angle === 0) {
+    // UCM-CHART-16: derive the flat band from the actual tick font size instead of the
+    // unconditional floor -- `axis?.label` is the SAME signal `resolveChartLayout` uses to decide
+    // whether an axis title also shares this band (`xTitleBand`), so a titled axis reserves the
+    // extra room its own gap costs, precisely where the near-miss was.
+    const hasTitle = Boolean(axis?.label);
+    const flatTickBand = fontSize > 0
+      ? Math.ceil(fontSize * TICK_TEXT_HEIGHT_FACTOR) + TICK_BAND_MUI_OVERHEAD_PX
+        + (hasTitle ? TICK_BAND_TITLE_EXTRA_PX : 0)
+      : TICK_BAND_BASE_PX;
+    return { tickBand: Math.max(TICK_BAND_BASE_PX, flatTickBand), angle: 0 };
+  }
   // Rotation is a visual instruction independent of whether a font size is knowable here -- an
   // "angled" axis still rotates even when `fontSize` can't be resolved (no theme fallback given),
   // it just can't project a tighter band than the floor without one.

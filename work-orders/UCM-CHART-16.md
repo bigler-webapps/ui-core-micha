@@ -103,12 +103,38 @@ work, since it is the one that distinguishes a derived fix from a bigger constan
 
 ## Part B — Implementation map
 
-> **PLACEHOLDER — to be filled by the Orchestrator on `git pull`.** Context package
-> (`chartDefaults.js` `resolveXAxisGeometry` / `TICK_BAND_BASE_PX` / `AXIS_TITLE_BAND_PX` with
-> `path:line`, MUI's `shortenLabels`/`tickLabelsMaxHeight` as read-only context, the two hram
-> workarounds as the empirical reference), target working directory, progress contract, execution
-> directive with self-address guard, mini-handover.
-> **The Codex preamble block belongs in this file before dispatch.**
+`.claude/models.local.json` has no local override, so the default applies: `implementation.runtime`
+is `claude`/`sonnet` — the Orchestrator implemented directly, no Codex dispatch.
+
+**The defect could not be diagnosed from source reading alone** (see Risk section: "a mocked
+prop-assertion test cannot catch this"). MUI's internal fit check (`shortenLabels`, weighed
+against `tickLabelsMaxHeight`, in `node_modules/@mui/x-charts/ChartsXAxis/ChartsSingleXAxisTicks.mjs`
+and `shortenLabels.mjs`) depends on `getBBox`, which jsdom does not implement — so the mechanism
+was confirmed and the fix calibrated against a REAL browser render, not derived from reading MUI's
+source alone:
+
+- `dev/entries.jsx`'s dev harness (`vite`, real Chrome via the internal preview browser) was used
+  to dynamically render the actual, unmocked `BarChart` with a titled horizontal axis under this
+  package's own `createAppTheme`/DM Sans default. Confirmed the defect reproduces exactly as
+  described (blank tick labels, correctly positioned) and does NOT reproduce under MUI's default
+  Roboto stack (real glyph metrics run ~1.3-1.36× fontSize for DM Sans vs ~1.06-1.17× for Roboto —
+  explains why the defect is font-dependent and was missed until a consumer used a taller font).
+- Binary-searched the real, minimal `xAxis[].height` needed to stop blanking, at tick font sizes
+  11-18px, with and without a title (ten measured thresholds total). The result matched
+  `ceil(fontSize * 1.3) + 9` (no title) / `+ 11` (with title, i.e. the same plus 2px) almost
+  exactly — over by at most 1px, never under, across all ten points. `9` corresponds to MUI's own
+  `tickSize`(6, default) + `TICK_LABEL_GAP`(3) internal overhead
+  (`ChartsXAxis/utilities.mjs`/`ChartsSingleXAxisTicks.mjs`); the extra `+2` when a title is
+  present was constant across every font size tested, independent of font.
+- The fix (`resolveXAxisGeometry`'s `angle === 0` branch, `chartDefaults.js`) was re-verified
+  against the SAME real-browser harness after implementing, confirming both reproduced scenarios
+  (title + default font; no title + `tickLabelStyle.fontSize: 13`, the `AccessibilityPanel`
+  signature) now render correctly with no explicit `height` override needed.
+
+Context package: `chartDefaults.js:322-341` (`TICK_BAND_BASE_PX`/`AXIS_TITLE_BAND_PX`/new
+constants), `:366-430ish` (`resolveXAxisGeometry`, the `angle === 0` early-return that was the
+defect site), `:450-475` (`resolveChartLayout`'s `xAxisBand`/`xTitleBand` composition, unchanged).
+Non-goal boundary respected: the `angle !== 0` (rotated) branch below the fixed code is untouched.
 
 ---
 

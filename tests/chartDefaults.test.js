@@ -594,6 +594,46 @@ describe('resolveChartLayout size tokens and height escape (UCM-CHART-12, UCM-CH
   });
 });
 
+describe('resolveChartLayout flat x-axis tick band leaves MUI room to render (UCM-CHART-16)', () => {
+  // Third occurrence (WO Part A): no title, just a tick font 1px above the untitled default --
+  // already enough to blank every label under the pre-fix, unconditional TICK_BAND_BASE_PX=25.
+  // 26 is not invented: binary-searched against the real, unmocked `BarChart` rendered in this
+  // repo's own dev harness (Chrome, this package's own DM Sans default) -- 25 still blanked every
+  // tick, 26 was the smallest axis height that didn't. A test computing its own expectation from
+  // `CHART_TICK_TEXT_HEIGHT_FACTOR`-style constants would pass whatever those constants say,
+  // proving nothing; this number came from outside the code under test.
+  it('reserves enough room for a tick font one pixel above the untitled default (measured threshold: 26px)', () => {
+    const layout = resolveChartLayout({
+      xAxis: [{
+        scaleType: 'band',
+        data: ['Urban', 'Peri-urban', 'Rural', 'Access', 'Village'],
+        tickLabelStyle: { fontSize: 13 },
+      }],
+      yAxis: [{ scaleType: 'linear' }],
+      xLabels: 'horizontal',
+      spacing: theme.spacing,
+    });
+    expect(layout.xAxis[0].height).toBeGreaterThanOrEqual(26);
+  });
+
+  // Rule 2 (WO non-goal guardrail): an axis without a title still reserves only the tick band --
+  // this WO's extra title-driven margin must not leak in when there is no title to share it with.
+  // Reviewer finding: asserting `xTitleBand === 0` alone passes whether or not the +2px title
+  // margin leaked into `xAxisBand` instead -- the band/height values themselves have to be
+  // checked against the same tick font's no-title formula (`ceil(fontSize * 1.3) + 9`).
+  it('does not add the title margin when the axis has no label', () => {
+    const layout = resolveChartLayout({
+      xAxis: [{ scaleType: 'band', data: ['A', 'B'], tickLabelStyle: { fontSize: 13 } }],
+      yAxis: [{ scaleType: 'linear' }],
+      xLabels: 'horizontal',
+      spacing: theme.spacing,
+    });
+    expect(layout.bands.xTitleBand).toBe(0);
+    expect(layout.bands.xAxisBand).toBe(26);
+    expect(layout.xAxis[0].height).toBe(26);
+  });
+});
+
 describe('resolveChartLayout xLabels rotation (UCM-CHART-12)', () => {
   it('"horizontal" never rotates, regardless of tick count or label length', () => {
     const layout = resolveChartLayout({
