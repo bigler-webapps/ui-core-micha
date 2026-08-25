@@ -6,6 +6,7 @@ import {
   CircularProgress,
   Paper,
   Stack,
+  Tooltip,
   Typography,
 } from '@mui/material';
 import { useTranslation } from 'react-i18next';
@@ -107,6 +108,32 @@ export function ChartFrame({
     }
   };
 
+  // UCM-CHART-17: SVG and PNG now produce genuinely different content (chart-only vector vs. the
+  // whole card as shown, legend included) -- the label alone no longer says so, so both buttons
+  // carry a tooltip stating the difference plainly, per the Envelope's own requirement.
+  const exportButtons = (
+    <>
+      {options.svg !== false && (
+        // `describeChild`: the tooltip DESCRIBES the button, it must not REPLACE its accessible
+        // name -- MUI's default (`aria-label` = title) would silently rename "Export SVG" to
+        // whatever the tooltip says, breaking both the button's own identity and every existing
+        // `getByRole('button', { name: 'Export SVG' })` query.
+        <Tooltip title={t('ChartFrame.EXPORT_SVG_TOOLTIP')} describeChild>
+          <Button size="small" onClick={() => runExport('svg')}>
+            {t('ChartFrame.EXPORT_SVG_LABEL')}
+          </Button>
+        </Tooltip>
+      )}
+      {options.png !== false && (
+        <Tooltip title={t('ChartFrame.EXPORT_PNG_TOOLTIP')} describeChild>
+          <Button size="small" onClick={() => runExport('png')}>
+            {t('ChartFrame.EXPORT_PNG_LABEL')}
+          </Button>
+        </Tooltip>
+      )}
+    </>
+  );
+
   let content = children;
   if (loading) {
     content = <CircularProgress aria-label={t('ChartFrame.LOADING')} />;
@@ -173,31 +200,13 @@ export function ChartFrame({
           <Typography variant="caption" color="text.secondary">{meta}</Typography>
           {exportsEnabled && (
             <Stack direction="row" spacing={1} justifyContent="flex-end">
-              {options.svg !== false && (
-                <Button size="small" onClick={() => runExport('svg')}>
-                  {t('ChartFrame.EXPORT_SVG_LABEL')}
-                </Button>
-              )}
-              {options.png !== false && (
-                <Button size="small" onClick={() => runExport('png')}>
-                  {t('ChartFrame.EXPORT_PNG_LABEL')}
-                </Button>
-              )}
+              {exportButtons}
             </Stack>
           )}
         </Box>
       ) : exportsEnabled && (
         <Stack direction="row" spacing={1} justifyContent="flex-end" sx={{ mt: 2 }}>
-          {options.svg !== false && (
-            <Button size="small" onClick={() => runExport('svg')}>
-              {t('ChartFrame.EXPORT_SVG_LABEL')}
-            </Button>
-          )}
-          {options.png !== false && (
-            <Button size="small" onClick={() => runExport('png')}>
-              {t('ChartFrame.EXPORT_PNG_LABEL')}
-            </Button>
-          )}
+          {exportButtons}
         </Stack>
       )}
     </Paper>

@@ -22,7 +22,9 @@ const resources = {
       'ChartFrame.EMPTY_DEFAULT': 'No data available.',
       'ChartFrame.ERROR_DEFAULT': 'The chart could not be loaded.',
       'ChartFrame.EXPORT_SVG_LABEL': 'Export SVG',
+      'ChartFrame.EXPORT_SVG_TOOLTIP': 'Scalable vector image of the chart alone, without the legend.',
       'ChartFrame.EXPORT_PNG_LABEL': 'Export PNG',
+      'ChartFrame.EXPORT_PNG_TOOLTIP': 'Image of the whole card area as shown, including the legend, size key, and footnotes.',
       'ChartFrame.EXPORT_ERROR': 'The chart could not be exported.',
     },
   },
@@ -32,7 +34,9 @@ const resources = {
       'ChartFrame.EMPTY_DEFAULT': 'Aucune donnée disponible.',
       'ChartFrame.ERROR_DEFAULT': 'Impossible de charger le graphique.',
       'ChartFrame.EXPORT_SVG_LABEL': 'Exporter en SVG',
+      'ChartFrame.EXPORT_SVG_TOOLTIP': 'Image vectorielle du graphique seul, sans la légende.',
       'ChartFrame.EXPORT_PNG_LABEL': 'Exporter en PNG',
+      'ChartFrame.EXPORT_PNG_TOOLTIP': 'Image de toute la zone de la carte, telle qu’affichée, légende, clé de taille et notes de bas de page comprises.',
       'ChartFrame.EXPORT_ERROR': 'Impossible d’exporter le graphique.',
     },
   },
@@ -160,6 +164,17 @@ describe('ChartFrame', () => {
       '#fff',
     );
     await vi.waitFor(() => expect(onExportPng).toHaveBeenCalledOnce());
+  });
+
+  // UCM-CHART-17: the two formats now genuinely differ (chart-only vector vs. the whole card as
+  // shown) -- each button must say so, without silently renaming itself in the process (MUI
+  // Tooltip's default `aria-label` behaviour would do exactly that; `describeChild` avoids it).
+  it('describes what each export format contains without replacing the button\'s own accessible name', () => {
+    renderFrame({ exportOptions: true });
+    const svgButton = screen.getByRole('button', { name: 'Export SVG' });
+    const pngButton = screen.getByRole('button', { name: 'Export PNG' });
+    expect(svgButton.getAttribute('title')).toBe('Scalable vector image of the chart alone, without the legend.');
+    expect(pngButton.getAttribute('title')).toBe('Image of the whole card area as shown, including the legend, size key, and footnotes.');
   });
 
   it('keeps the controls row rendered in the loading, error and empty states', () => {

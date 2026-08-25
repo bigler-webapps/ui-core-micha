@@ -2,6 +2,31 @@
 
 Only notable, user-facing changes. Not every version — see `WORK_ORDERS.md` for the full history.
 
+## 3.3.0 — UCM-CHART-17
+
+**The PNG export now includes the legend, size key, and footnotes — the SVG export still doesn't,
+deliberately.** Both exports used to clone-and-serialise the same raw `<svg>`: no theme styles
+carried over (a standalone viewer applied bare SVG defaults, the "graphically massively different"
+symptom reported), and only the chart itself was captured — a panel's hand-built HTML legend and
+its size-key SVG (rendered as siblings of the chart since `HRAM-RES-39`/`HRAM-VIS-2`) were silently
+dropped from every export.
+
+The two formats now keep two different, explicit promises instead of one broken shared one:
+
+- **Export SVG** — the chart's own vector surface, with computed styles (font, colour, stroke)
+  inlined so it renders correctly standalone. Chart only, no legend — that's what a portable,
+  editable vector file is for.
+- **Export PNG** — the whole card as shown: chart, legend, size key, footnotes. Rasterises the
+  actual container instead of the chart's SVG alone.
+
+Both buttons now carry a tooltip stating the difference, since the label alone no longer says so.
+
+No new dependency: both paths route through the platform's own SVG → `Image` → `<canvas>`
+pipeline. The PNG path specifically loads its intermediate SVG via a `data:` URI rather than a
+`blob:` URL — an `<svg>` containing a `<foreignObject>` (needed to rasterise arbitrary HTML)
+taints the canvas unconditionally in Chrome when loaded via `blob:`, confirmed live; a `data:` URI
+does not.
+
 ## 3.2.1 — UCM-CHART-16
 
 **A horizontal-axis chart with a title, or a large-enough tick font, could render every tick

@@ -23,11 +23,28 @@ export const chartsTranslations = {
     en: 'Export SVG',
     sw: 'Hamisha SVG',
   },
+  // UCM-CHART-17: the two formats now genuinely differ (SVG = chart only, vector; PNG = the whole
+  // panel as shown, legend included) -- the label alone no longer says so, the tooltip does.
+  'ChartFrame.EXPORT_SVG_TOOLTIP': {
+    de: 'Skalierbare Vektorgrafik des Diagramms allein, ohne Legende.',
+    fr: 'Image vectorielle du graphique seul, sans la légende.',
+    en: 'Scalable vector image of the chart alone, without the legend.',
+    sw: 'Picha ya vekta inayoweza kubadilishwa ukubwa ya chati pekee, bila maelezo.',
+  },
   'ChartFrame.EXPORT_PNG_LABEL': {
     de: 'PNG exportieren',
     fr: 'Exporter en PNG',
     en: 'Export PNG',
     sw: 'Hamisha PNG',
+  },
+  // ui_reviewer finding: the original wording named the legend but not the size key/footnotes
+  // the PNG also carries -- named explicitly now, matching the Envelope's own Goal wording
+  // ("legend, size key and footnotes").
+  'ChartFrame.EXPORT_PNG_TOOLTIP': {
+    de: 'Bild des ganzen Kartenbereichs, wie angezeigt, inklusive Legende, Grössenschlüssel und Fussnoten.',
+    fr: 'Image de toute la zone de la carte, telle qu’affichée, légende, clé de taille et notes de bas de page comprises.',
+    en: 'Image of the whole card area as shown, including the legend, size key, and footnotes.',
+    sw: 'Picha ya eneo lote la kadi kama linavyoonyeshwa, ikijumuisha maelezo, kifunguo cha ukubwa, na maelezo ya chini.',
   },
   'ChartFrame.EXPORT_ERROR': {
     de: 'Das Diagramm konnte nicht exportiert werden.',

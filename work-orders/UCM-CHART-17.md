@@ -114,10 +114,47 @@ one SVG.
 
 ## Part B — Implementation map
 
-> **PLACEHOLDER — to be filled by the Orchestrator on `git pull`.** Context package:
-> `exportChart.js` in full (it is short), `ChartFrame.jsx:71-98` and `:138`, `chartsTranslations.ts`,
-> and hram's `AccessGapScatterPanel` as the shape that exercises both paths.
-> **The Codex preamble block belongs in this file before dispatch.**
+`.claude/models.local.json` has no local override, so the default applies: `implementation.runtime`
+is `claude`/`sonnet` — the Orchestrator implemented directly, no Codex dispatch.
+
+**Dependency decision (risk section, and Part C's approval gate):** no library added. Checked
+first, per the WO's own instruction, and it held up: the platform's own `<foreignObject>` → `Image`
+→ `<canvas>` pipeline works for arbitrary DOM rasterisation with no dependency at all. The one
+obstacle — **confirmed live, not assumed** — is that Chrome taints the canvas on `toBlob`
+unconditionally the moment the source SVG contains a `<foreignObject>` with HTML content, even with
+zero external references (a minimal repro: a `<foreignObject>` holding one `<div>` with inline
+`color: red` styling and no images/fonts/external refs still throws `SecurityError: Tainted
+canvases may not be exported` when the SVG is loaded via `URL.createObjectURL`). The SAME SVG loaded
+via a `data:` URI instead does **not** taint the canvas — confirmed with an identical minimal repro,
+then re-confirmed end-to-end against the real `exportChartPng`/`ChartFrame` (real Chrome, via the
+dev harness). This is why the approval gate never triggered: the platform-only approach IS viable,
+it just needed the `blob:` → `data:` URI swap in `rasterize` (`exportChart.js`), documented inline
+there.
+
+**Canvas tainting on the PRE-FIX path:** checked per the risk section's own instruction ("may
+already be failing on it"). It was not — a plain SVG-only blob (no `foreignObject`) loaded via
+`URL.createObjectURL` does **not** taint the canvas; the exposure is specific to the `foreignObject`
+this WO's PNG path adds, not a pre-existing defect.
+
+**Verification (both real-browser, via the dev harness's module graph — `dev/entries.jsx` never
+committed a probe entry, all verification was done by dynamically rendering `ChartFrame` into a
+detached container and calling the real `exportChartSvg`/`exportChartPng`):**
+
+- Panel shape WITH a hand-built legend + size key (mirroring `AccessGapScatterPanel`: MUI's own
+  legend hidden, a `<div>` HTML legend with a coloured swatch, a second `<svg>` "size key" beside
+  the chart): PNG rasterised at 2x scale, no taint, and pixel-sampling the produced PNG at the
+  swatch's and size-key's known screen coordinates read back their EXACT source colours
+  (`rgb(25,118,210)` / `#1976d2` and `rgb(156,39,176)` / `#9c27b0`) — the legend and size key are
+  genuinely present in the raster, not just "no error thrown". SVG export of the same panel:
+  contains `MuiChartsSurface-root` (the chart), does NOT contain the legend's own text/markup —
+  chart-only as designed.
+- Panel shape WITHOUT a hand-built legend (plain `BarChart` inside `ChartFrame`): both exports
+  resolve cleanly, no regression for the common case.
+
+Context package used: `exportChart.js` (rewritten in full, was short), `ChartFrame.jsx:42-108`
+(the `runExport`/`exportOptions` wiring) and `:137-151` (`chartRef`, the export root — confirmed
+correct: it wraps `content` only, excluding the meta/export-button footer), `chartsTranslations.ts`
+(new `EXPORT_SVG_TOOLTIP`/`EXPORT_PNG_TOOLTIP` keys, all four locales).
 
 ---
 
