@@ -2,6 +2,15 @@
 
 Only notable, user-facing changes. Not every version — see `WORK_ORDERS.md` for the full history.
 
+## 3.4.0 — AUTH-6
+
+`QrSignupManager` gains two optional props, both backward-compatible (existing callers keep
+today's behaviour unchanged): `registrationContext` (merged into the generated QR's
+`registration_context`, letting a consumer scope the signup to e.g. a specific department) and
+`defaultMaxRedemptions` (overrides the component's own low default, for a poster-scale code meant
+to be scanned by many people). Fixed in the same change: a context change combined with a
+previously-customized redemption count could fire a redundant `createSignupQr` call.
+
 ## 3.3.1 — UCM-CHART-18
 
 **Exported PNGs no longer contain interactive controls — buttons, drill-down links, and the like

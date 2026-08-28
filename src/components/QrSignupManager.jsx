@@ -44,6 +44,8 @@ function escapeHtml(value) {
 export function QrSignupManager({
   enabled = false,
   expiryDays = DEFAULT_EXPIRY_DAYS,
+  registrationContext = null,
+  defaultMaxRedemptions = DEFAULT_MAX_REDEMPTIONS,
 }) {
   const { t } = useTranslation();
   const qrWrapperRef = useRef(null);
@@ -52,8 +54,27 @@ export function QrSignupManager({
   const [success, setSuccess] = useState('');
   const [result, setResult] = useState(null);
   const [copyState, setCopyState] = useState('idle');
-  const [maxRedemptions, setMaxRedemptions] = useState(DEFAULT_MAX_REDEMPTIONS);
+  const [maxRedemptions, setMaxRedemptions] = useState(() => (
+    clampMaxRedemptions(defaultMaxRedemptions)
+  ));
+  // Read via ref inside the auto-generate effect below, not as a reactive dependency --
+  // that effect itself calls setMaxRedemptions (on context change / disable), and depending
+  // on the state it just set re-triggers the effect a second time before the first fetch
+  // settles, firing a redundant createSignupQr call (and burning an extra token/redemption).
+  const maxRedemptionsRef = useRef(maxRedemptions);
+  maxRedemptionsRef.current = maxRedemptions;
   const hasGeneratedRef = useRef(false);
+  const registrationContextKey = useMemo(
+    () => JSON.stringify(registrationContext || null),
+    [registrationContext],
+  );
+  const previousRegistrationContextKey = useRef(registrationContextKey);
+
+  const createPayload = (expiresMinutes, redemptions) => ({
+    expires_minutes: expiresMinutes,
+    max_redemptions: redemptions,
+    ...(registrationContext ? { registration_context: registrationContext } : {}),
+  });
 
   const formattedExpiry = useMemo(() => {
     if (!result?.expires_at) {
@@ -85,8 +106,7 @@ export function QrSignupManager({
     setCopyState('idle');
     try {
       const data = await createSignupQr({
-        expires_minutes: nextDays * 24 * 60,
-        max_redemptions: nextRedemptions,
+        ...createPayload(nextDays * 24 * 60, nextRedemptions),
       });
       setResult(data);
       hasGeneratedRef.current = true;
@@ -99,12 +119,19 @@ export function QrSignupManager({
   };
 
   useEffect(() => {
+    const contextChanged = previousRegistrationContextKey.current !== registrationContextKey;
+    if (contextChanged) {
+      previousRegistrationContextKey.current = registrationContextKey;
+      hasGeneratedRef.current = false;
+      setResult(null);
+      setMaxRedemptions(clampMaxRedemptions(defaultMaxRedemptions));
+    }
     if (!enabled) {
       setResult(null);
       setError('');
       setSuccess('');
       setCopyState('idle');
-      setMaxRedemptions(DEFAULT_MAX_REDEMPTIONS);
+      setMaxRedemptions(clampMaxRedemptions(defaultMaxRedemptions));
       hasGeneratedRef.current = false;
       return;
     }
@@ -120,8 +147,10 @@ export function QrSignupManager({
       try {
         const days = clampExpiryDays(expiryDays);
         const data = await createSignupQr({
-          expires_minutes: days * 24 * 60,
-          max_redemptions: clampMaxRedemptions(maxRedemptions),
+          ...createPayload(
+            days * 24 * 60,
+            clampMaxRedemptions(contextChanged ? defaultMaxRedemptions : maxRedemptionsRef.current),
+          ),
         });
         if (!active) return;
         setResult(data);
@@ -140,7 +169,13 @@ export function QrSignupManager({
     return () => {
       active = false;
     };
-  }, [enabled, expiryDays, t]);
+  }, [
+    defaultMaxRedemptions,
+    enabled,
+    expiryDays,
+    registrationContextKey,
+    t,
+  ]);
 
   const handleCopyLink = async () => {
     const signupUrl = result?.signup_url;
