@@ -2,6 +2,24 @@
 
 Only notable, user-facing changes. Not every version — see `WORK_ORDERS.md` for the full history.
 
+## 3.6.0 — AUTH-8
+
+**Behavior change, not purely additive — re-check error displays after adopting this version.**
+`extractErrorInfo` (`src/utils/auth-errors.js`) previously returned the hardcoded, untranslated
+literal `'GENERIC'` as the `.code` for ANY backend error shaped `{"detail": "..."}` — Django's
+generic error format, produced by DRF's `Throttled`/`Http404`/`PermissionDenied` and any unhandled
+`APIException`. This unconditionally overrode every caller's own, properly translated
+`defaultCode` (all 39 call sites in this repo already pass one). Fixed: the `{detail}` fallback now
+returns `code: null`, so `normaliseApiError`'s existing `info.code || defaultCode` correctly falls
+back to the caller's default instead. `.message` still carries the raw `detail` text unchanged.
+
+Also closes 7 translation gaps found while auditing every `defaultCode` in use (`Auth.RECOVERY_LOGIN_FAILED`,
+`Auth.USER_LIST_FAILED`, `Auth.USER_DELETE_FAILED`, `Auth.USER_ROLE_UPDATE_FAILED`,
+`Auth.USER_SUPPORT_UPDATE_FAILED`, `Auth.PASSKEY_CANCELLED`, `Auth.MFA_CHALLENGE_FAILED`) — these
+existed as fallback codes in the source but had no translation entry in any of the 4 shipped
+locales, so they would have rendered as a raw, untranslated key even with the code-precedence fix
+above. All 39 in-use `defaultCode` values are now confirmed translated in `de`/`en`/`fr`/`sw`.
+
 ## 3.5.1 — AUTH-7
 
 `loginWithPassword`'s "already authenticated" (409) retry — the re-fetch of the current user when

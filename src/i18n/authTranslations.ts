@@ -231,6 +231,13 @@ export const authTranslations = {
     "sw": "Uthibitishaji wa Passkey umeghairiwa."
   },
 
+  "Auth.PASSKEY_CANCELLED": {
+    "de": "Der Passkey-Vorgang wurde abgebrochen.",
+    "fr": "L'opération avec le passkey a été annulée.",
+    "en": "The passkey operation was cancelled.",
+    "sw": "Operesheni ya Passkey imeghairiwa."
+  },
+
   "Auth.PASSKEY_LIST_FAILED": {
     "de": "Die gespeicherten Passkeys konnten nicht geladen werden.",
     "fr": "Les passkeys enregistrés n'ont pas pu être chargés.",
@@ -257,6 +264,13 @@ export const authTranslations = {
     "fr": "L'authentification à deux facteurs a échoué.",
     "en": "Two-factor authentication failed.",
     "sw": "Uthibitishaji wa hatua mbili umeshindwa."
+  },
+
+  "Auth.MFA_CHALLENGE_FAILED": {
+    "de": "Die Zwei-Faktor-Challenge konnte nicht angefordert werden.",
+    "fr": "Le défi d'authentification à deux facteurs n'a pas pu être demandé.",
+    "en": "The two-factor challenge could not be requested.",
+    "sw": "Changamoto ya uthibitishaji wa hatua mbili haikuweza kuombwa."
   },
 
   "Auth.TOTP_REQUEST_FAILED": {
@@ -292,6 +306,13 @@ export const authTranslations = {
     "fr": "Les codes de récupération n'ont pas pu être regénérés.",
     "en": "Recovery codes could not be regenerated.",
     "sw": "Misimbo ya urejesho haikuweza kuundwa upya."
+  },
+
+  "Auth.RECOVERY_LOGIN_FAILED": {
+    "de": "Die Anmeldung über den Wiederherstellungslink ist fehlgeschlagen.",
+    "fr": "La connexion via le lien de récupération a échoué.",
+    "en": "Recovery login failed.",
+    "sw": "Kuingia kwa njia ya urejeshaji kumeshindwa."
   },
   "Auth.PAGE_CHANGE_PASSWORD_SUBTITLE": {
     "de": "Geben Sie Ihr aktuelles und ein neues Passwort ein.",
@@ -1841,6 +1862,31 @@ export const authTranslations = {
     "fr": "Un compte existe déjà pour cette adresse e-mail. Veuillez vous connecter.",
     "en": "An account already exists for this email address. Please log in.",
     "sw": "Akaunti tayari ipo kwa anwani hii ya barua pepe. Tafadhali ingia."
+  },
+
+  "Auth.USER_LIST_FAILED": {
+    "de": "Die Benutzerliste konnte nicht geladen werden.",
+    "fr": "La liste des utilisateurs n'a pas pu être chargée.",
+    "en": "The user list could not be loaded.",
+    "sw": "Orodha ya watumiaji haikuweza kupakiwa."
+  },
+  "Auth.USER_DELETE_FAILED": {
+    "de": "Der Benutzer konnte nicht gelöscht werden.",
+    "fr": "L'utilisateur n'a pas pu être supprimé.",
+    "en": "The user could not be deleted.",
+    "sw": "Mtumiaji hakuweza kufutwa."
+  },
+  "Auth.USER_ROLE_UPDATE_FAILED": {
+    "de": "Die Rolle des Benutzers konnte nicht aktualisiert werden.",
+    "fr": "Le rôle de l'utilisateur n'a pas pu être mis à jour.",
+    "en": "The user's role could not be updated.",
+    "sw": "Jukumu la mtumiaji halikuweza kusasishwa."
+  },
+  "Auth.USER_SUPPORT_UPDATE_FAILED": {
+    "de": "Der Support-Status des Benutzers konnte nicht aktualisiert werden.",
+    "fr": "Le statut de support de l'utilisateur n'a pas pu être mis à jour.",
+    "en": "The user's support status could not be updated.",
+    "sw": "Hali ya usaidizi ya mtumiaji haikuweza kusasishwa."
   },
   "Auth.SIGNUP_QR_MAX_REDEMPTIONS_LABEL": {
     "de": "Max. Verwendungen",

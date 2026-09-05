@@ -20,7 +20,7 @@ export function extractErrorInfo(error) {
   
   // Fallback for generic Django errors
   if (typeof data.detail === 'string') {
-    return { status, code: 'GENERIC', message: data.detail, raw: data };
+    return { status, code: null, message: data.detail, raw: data };
   }
 
   return { status, code: null, message: null, raw: data };
