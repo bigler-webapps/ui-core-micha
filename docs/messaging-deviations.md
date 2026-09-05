@@ -43,7 +43,7 @@ now fails the build if a `BLOCKED` line omits one.
 ## Direct conversations
 
 17. **OK** — `DirectMessageLauncher` starts a direct conversation.
-18. **OK** — The launcher displays the host-supplied candidate list and selection state.
+18. **OK** — The launcher displays the host-supplied candidate list (searchable via an Autocomplete since MSG-19) and selection state.
 19. **OK** — It has distinct empty and in-flight creation states; candidate discovery remains host-owned because dcm has no directory endpoint.
 20. **OK** — Start is disabled until a candidate is selected and during creation.
 21. **OK** — Policy rejections render an API-derived readable error in the dialog.

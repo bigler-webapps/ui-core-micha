@@ -2,6 +2,17 @@
 
 Only notable, user-facing changes. Not every version — see `WORK_ORDERS.md` for the full history.
 
+## 3.5.0 — MSG-19
+
+`DirectMessageLauncher`'s recipient picker is now a searchable MUI `Autocomplete` instead of a
+flat, unfiltered list — the same "a picker without search stops working long before the list feels
+long" pattern already established elsewhere in this fleet. The public prop contract (`candidates`,
+`scope`, `onOpen`) and the selection/scope-resolution logic are unchanged; only the picker's own
+rendering changed. One new i18n key, `MessagingDirect.NO_MATCHES` (shown when a typed query
+matches nothing), plus a reworded `MessagingDirect.CANDIDATES` (now an instruction-style field
+label, "Select recipient", rather than the old `<List aria-label>` text) — both in all four
+languages this repo ships (de/en/fr/sw).
+
 ## 3.4.0 — AUTH-6
 
 `QrSignupManager` gains two optional props, both backward-compatible (existing callers keep

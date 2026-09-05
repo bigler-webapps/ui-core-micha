@@ -1,15 +1,14 @@
 import { useId, useMemo, useState } from 'react';
 import {
   Alert,
+  Autocomplete,
   Button,
   CircularProgress,
   Dialog,
   DialogActions,
   DialogContent,
   DialogTitle,
-  List,
-  ListItemButton,
-  ListItemText,
+  TextField,
   Typography,
   useMediaQuery,
 } from '@mui/material';
@@ -19,6 +18,11 @@ import { useTranslation } from 'react-i18next';
 import { extractApiErrorMessage, useMessaging } from './MessagingProvider';
 
 export const DIRECT_MESSAGE_LAUNCHER_ALERT_SX = { mb: 1 };
+
+function candidateLabel(candidate) {
+  if (!candidate) return '';
+  return candidate.display_name || candidate.name || candidate.label || String(candidate.id);
+}
 
 /**
  * Starts direct conversations from host-provided people. Candidate discovery is
@@ -77,18 +81,23 @@ export function DirectMessageLauncher({ candidates = [], scope, onOpen }) {
           {candidates.length === 0 ? (
             <Typography>{t('MessagingDirect.EMPTY')}</Typography>
           ) : (
-            <List aria-label={t('MessagingDirect.CANDIDATES')}>
-              {candidates.map((candidate) => (
-                <ListItemButton
-                  key={candidate.id}
-                  selected={candidate.id === selectedId}
-                  disabled={starting}
-                  onClick={() => setSelectedId(candidate.id)}
-                >
-                  <ListItemText primary={candidate.display_name || candidate.name || candidate.label || candidate.id} />
-                </ListItemButton>
-              ))}
-            </List>
+            <Autocomplete
+              fullWidth
+              options={candidates}
+              value={selectedCandidate}
+              onChange={(_event, nextValue) => setSelectedId(nextValue?.id ?? null)}
+              getOptionLabel={candidateLabel}
+              isOptionEqualToValue={(option, value) => option.id === value.id}
+              disabled={starting}
+              noOptionsText={t('MessagingDirect.NO_MATCHES')}
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  label={t('MessagingDirect.CANDIDATES')}
+                  placeholder={t('MessagingDirect.SEARCH_PLACEHOLDER')}
+                />
+              )}
+            />
           )}
         </DialogContent>
         <DialogActions>
