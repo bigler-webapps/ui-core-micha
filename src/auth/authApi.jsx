@@ -114,8 +114,12 @@ export async function loginWithPassword(email, password) {
     
     // 409 = Already logged in
     if (status === 409) {
-        const user = await fetchCurrentUser();
-        return { user, needsMfa: false };
+        try {
+          const user = await fetchCurrentUser();
+          return { user, needsMfa: false };
+        } catch (retryError) {
+          throw normaliseApiError(retryError, 'Auth.LOGIN_FAILED');
+        }
     }
 
     throw normaliseApiError(error, 'Auth.LOGIN_FAILED');

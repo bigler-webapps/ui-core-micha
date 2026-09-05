@@ -2,6 +2,15 @@
 
 Only notable, user-facing changes. Not every version — see `WORK_ORDERS.md` for the full history.
 
+## 3.5.1 — AUTH-7
+
+`loginWithPassword`'s "already authenticated" (409) retry — the re-fetch of the current user when
+allauth reports a still-valid session — no longer lets a second failure (e.g. the account's own
+request quota being exhausted elsewhere) escape as a raw, unnormalised error. It now goes through
+the same `normaliseApiError` path every other login failure already uses, so the caller (any app's
+`LoginPage`) gets a `.code` it can translate instead of a bare exception. The success path (409 +
+successful retry) is byte-identical; no prop/behavior contract changed for any existing caller.
+
 ## 3.5.0 — MSG-19
 
 `DirectMessageLauncher`'s recipient picker is now a searchable MUI `Autocomplete` instead of a
