@@ -14,7 +14,7 @@ These principles are the spec a **prototype** encodes and the implementation mat
 
 4. **Scan and operate, not read.** Summary before detail; state encoded in form (chips, knee-markers); interactive things look interactive.
 5. **The user's language, not the system's.** Humanize labels (`incidence_scale` → "Incidence scale"); keep the raw name reachable on hover for the technicians — readability without losing traceability. Words are design material.
-6. **Reduce help, don't remove it.** Explanation lives in on-demand affordances (ⓘ-popover, provisional-chip), not permanent banners — less noise, same information.
+6. **Reduce help to the minimum, don't remove it.** Explanation lives in on-demand affordances (ⓘ-popover, provisional-chip), never in permanent banners or helper sentences — in doubt a chip, not a sentence; less noise, same information.
 7. **Design the edge-states, not just the happy path.** An empty / "no frontier" state gets a real design (statement + CTA), never a bare alert.
 
 ## Charts (read by humans, executed by code)
