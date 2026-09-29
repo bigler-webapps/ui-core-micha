@@ -8,7 +8,7 @@ import { darken, lighten } from '@mui/material/styles';
 // though `text`/`fill`/`bg` are set correctly, so every status channel MUI
 // recognises (success/warning/error/info) must carry its own explicit
 // main/light/dark/contrastText, computed the same way augmentColor would.
-const withMainShades = (main, contrastText) => ({
+export const withMainShades = (main, contrastText) => ({
   main,
   light: lighten(main, 0.2),
   dark: darken(main, 0.3),

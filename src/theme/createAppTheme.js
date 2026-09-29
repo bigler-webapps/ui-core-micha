@@ -7,7 +7,9 @@ import {
   BASELINE_PALETTE,
   BASELINE_STATIC,
   MOTION,
+  withMainShades,
 } from './tokens';
+import { calculateContrastRatio } from './themeCompleteness';
 
 function findFunction(value, path) {
   if (typeof value === 'function') return path;
@@ -51,6 +53,43 @@ function deriveFocusColour(primary, surfaces) {
     if (coefficient >= 0.9) break;
   }
   return focus;
+}
+
+function clearsPageContrast(colour, surfaces, threshold) {
+  return surfaces.every((surface) => {
+    const ratio = calculateContrastRatio(colour, surface);
+    return Number.isFinite(ratio) && ratio >= threshold;
+  });
+}
+
+function deriveDarkenedPageColour(original, surfaces, threshold) {
+  if (clearsPageContrast(original, surfaces, threshold)) return original;
+
+  let colour = original;
+  for (let coefficient = 0.05; !clearsPageContrast(colour, surfaces, threshold); coefficient += 0.05) {
+    colour = darken(original, Math.min(coefficient, 0.9));
+    if (coefficient >= 0.9) break;
+  }
+  return colour;
+}
+
+const RGBA_PATTERN = /^rgba\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d*\.?\d+)\s*\)$/;
+
+function deriveAlphaPageColour(original, surfaces, threshold) {
+  if (clearsPageContrast(original, surfaces, threshold)) return original;
+
+  const match = original.match(RGBA_PATTERN);
+  if (!match) return original;
+
+  const [, red, green, blue, alphaText] = match;
+  let alpha = Number(alphaText);
+  let colour = original;
+  while (alpha < 1) {
+    alpha = Math.min(1, Number((alpha + 0.05).toFixed(2)));
+    colour = `rgba(${red}, ${green}, ${blue}, ${alpha})`;
+    if (clearsPageContrast(colour, surfaces, threshold)) return colour;
+  }
+  return colour;
 }
 
 function createPaletteAwareComponents(palette) {
@@ -179,13 +218,38 @@ export function createAppTheme(appConfig = {}) {
     { palette: appConfig.palette },
   );
   const finalPalette = paletteTheme.palette;
+  const contrastSurfaces = ['#FFFFFF', finalPalette.background.default];
+  const derivedStatusEntries = {};
+  for (const status of ['success', 'warning', 'error', 'info']) {
+    if (appConfig.palette?.[status]?.main !== undefined) continue;
+
+    const current = finalPalette[status];
+    const main = deriveDarkenedPageColour(current.main, contrastSurfaces, 4.5);
+    if (main !== current.main) {
+      derivedStatusEntries[status] = {
+        ...current,
+        ...withMainShades(main, current.contrastText),
+      };
+    }
+  }
+
+  const derivedControlBorderEntries = {};
+  for (const state of ['main', 'hover', 'error']) {
+    if (appConfig.palette?.controlBorder?.[state] !== undefined) continue;
+
+    const current = finalPalette.controlBorder[state];
+    const derived = state === 'error'
+      ? deriveDarkenedPageColour(current, contrastSurfaces, 3)
+      : deriveAlphaPageColour(current, contrastSurfaces, 3);
+    if (derived !== current) derivedControlBorderEntries[state] = derived;
+  }
+
   const computedPalette = {
+    ...derivedStatusEntries,
     controlBorder: {
       ...finalPalette.controlBorder,
-      focus: deriveFocusColour(finalPalette.primary.main, [
-        '#FFFFFF',
-        finalPalette.background.default,
-      ]),
+      ...derivedControlBorderEntries,
+      focus: deriveFocusColour(finalPalette.primary.main, contrastSurfaces),
     },
   };
   const resolvedPalette = { ...finalPalette, ...computedPalette };

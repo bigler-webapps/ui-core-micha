@@ -1,5 +1,12 @@
 # Changelog
 
+## 3.8.0 — UCM-THEME-15
+
+`createAppTheme` can now derive baseline status `main` colours and control-border colours against the theme's own
+page background when their WCAG contrast would otherwise fail. Values that already pass remain byte-identical, and
+app-supplied values are unchanged. When a status `main` is derived, its `light` and `dark` shades move with it too,
+so components using `error.dark` for hover may change on tinted pages.
+
 Only notable, user-facing changes. Not every version — see `WORK_ORDERS.md` for the full history.
 
 ## 3.6.0 — AUTH-8

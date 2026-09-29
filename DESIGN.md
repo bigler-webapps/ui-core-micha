@@ -6,6 +6,14 @@ These principles are the spec a **prototype** encodes and the implementation mat
 
 ## Identity
 
+The baseline's page-derived colours are `success.main`, `warning.main`, `error.main`, `info.main`,
+`controlBorder.main`, `controlBorder.hover`, and `controlBorder.error`, alongside the existing
+`controlBorder.focus`: a fixed colour cannot promise WCAG contrast on every page background. The baseline therefore
+tries for a passing colour rather than a fixed hex that must appear unchanged on every site — derivation is capped
+(the same bounded darken/alpha steps `controlBorder.focus` already used) and can still leave a contrast finding on a
+page extreme enough that no derived shade clears the threshold; values that already pass remain byte-identical,
+while baseline values that fail are derived against the theme's own page.
+
 1. **Honor the shared baseline and the app's identity; don't invent a parallel system.** `ui-core-micha`'s `createAppTheme` deliberately owns the complete visual baseline. Each app supplies its identity through `palette.primary` and `fontFamily`, plus reviewed overrides where its real design requires them (hram: primary blue `#468AB2`). **Match first, then elevate.** Never invent a parallel language — a made-up teal / pills / breadcrumb vocabulary was the v1 mistake.
 2. **One accent, deliberately placed.** Interactive = the app's one accent colour. **Data colours are a separate layer with a shared default that apps may override.** Status (green / amber / red) is semantic and is NEVER repurposed as a series colour. Restraint over decoration.
 3. **Commit to the app's theme reality — with intent.** If the app is single-theme (hram is light-only), commit to that deliberately rather than bolting on dark mode as an afterthought — a decision, not an omission. The estate does NOT mandate light-only; it is per-app — but whichever it is, it is on purpose.

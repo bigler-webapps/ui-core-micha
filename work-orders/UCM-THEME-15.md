@@ -128,9 +128,193 @@ No change for any theme that passes today. No API change, no new option.
 
 # B. Implementation map, filled by the Orchestrator and ADDRESSED TO THE IMPLEMENTER
 
-*Placeholder. The Orchestrator fills the context package, the absolute working directory, the
-progress contract and the preamble block on `git pull`, per `AGENTS.md` -> "Work Order". Do not
-dispatch while this placeholder stands.*
+## Context package
+
+### Current shape (`src/theme/createAppTheme.js`, read in full before editing)
+
+- `clearsContrast(colour, surfaces)` (line ~39): `surfaces.every((s) => getContrastRatio(colour, s) >= 3)`
+  — hardcoded to 3:1 and to MUI's own `getContrastRatio`. Used ONLY by `deriveFocusColour`.
+- `deriveFocusColour(primary, surfaces)` (line ~47): darkens in `0.05` steps (MUI `darken`), capped at
+  coefficient `0.9`, stops and returns the last value if unreached (never throws).
+- `createAppTheme(appConfig)` (line ~170): throws if `!appConfig?.palette?.primary`. Builds
+  `paletteTheme = createTheme({palette: appConfig.palette}, {palette: BASELINE_PALETTE}, {palette:
+  appConfig.palette})` (app layered, then baseline, then app again — this is why an app-set value
+  always wins in `finalPalette`, and why a value present in `BASELINE_PALETTE` but absent from
+  `appConfig.palette` is a baseline value). `finalPalette = paletteTheme.palette`. Then:
+  ```js
+  const computedPalette = {
+    controlBorder: {
+      ...finalPalette.controlBorder,
+      focus: deriveFocusColour(finalPalette.primary.main, ['#FFFFFF', finalPalette.background.default]),
+    },
+  };
+  const resolvedPalette = { ...finalPalette, ...computedPalette };
+  ```
+  This is the exact seam this WO extends — do not restructure the surrounding merge order,
+  `validateStyleOverrides`, or the final `createTheme(...)` call's argument layering.
+
+### Do NOT touch `clearsContrast`/`deriveFocusColour` — add parallel, separate logic instead
+
+- The byte-identical-on-baseline-page requirement (test #2) and "no change to anything not
+  described here" mean the existing focus derivation must keep behaving exactly as it does today.
+  Do not generalise `clearsContrast` into a shared threshold-aware helper by EDITING it in place —
+  add new, separate functions for this WO's derivations. (You may factor out a shared shape later if
+  you can prove byte-for-byte equivalence, but the safe, required path is: leave the existing two
+  functions untouched, add new ones alongside.)
+- **Use `calculateContrastRatio` from `./themeCompleteness`** (already exported, already used by
+  `contrastFindings` — the same function the check itself uses) for every NEW contrast test in this
+  WO, not MUI's `getContrastRatio`. This matters concretely for `controlBorder.main`/`.hover`: their
+  baseline values are translucent (`rgba(33,37,41,.50)`), and `calculateContrastRatio` alpha-composites
+  over the background before computing luminance (see its own docstring) — `getContrastRatio` is not
+  documented to do this. Using the wrong function here would silently pick the wrong alpha.
+
+### The two derivation shapes (rule 4)
+
+1. **Darken-based** (status `main` for success/warning/error/info; `controlBorder.error`): same
+   step/cap shape as `deriveFocusColour` (start `coefficient = 0.05`, `darken(original, min(coefficient,
+   0.9))`, step `+0.05`, stop and return the last value if `coefficient >= 0.9` without clearing) but
+   parameterised by threshold (`4.5` for status `main`, `3` for `controlBorder.error`) and using
+   `calculateContrastRatio`.
+2. **Alpha-raising** (`controlBorder.main`, `.hover`): the baseline values are the fixed shape
+   `rgba(33, 37, 41, <alpha>)` (`.50` and `.65`). Parse `r`,`g`,`b`,`a` (a small regex is enough — this
+   path is NEVER invoked on an app-supplied value, see rule 3 below, so it never needs to handle an
+   arbitrary CSS colour format). Step `alpha` up by `0.05`, capped at `1`, producing
+   `rgba(${r}, ${g}, ${b}, ${alpha})` each step, stopping when `calculateContrastRatio` clears `3`
+   against both surfaces or `alpha` reaches `1` (never throws; if unreached at `alpha = 1`, return that
+   last candidate and the finding remains — same "give up, stay visible" contract as the darken path).
+
+### Rule 3 — baseline vs app-supplied, decided from `appConfig.palette`, not the resolved theme
+
+Before deriving anything, for each of the 6 targets check the RAW input, not `finalPalette`:
+- Status keys: `appConfig.palette?.[statusKey]?.main !== undefined` → app-supplied, skip entirely
+  (leave `finalPalette[statusKey]` exactly as merged, findings stay if any).
+- `controlBorder.main`/`.hover`/`.error`: `appConfig.palette?.controlBorder?.[state] !== undefined` →
+  app-supplied, skip.
+- Only when NOT app-supplied: read the value off `finalPalette` (the merged/baseline value), check it
+  against `['#FFFFFF', finalPalette.background.default]` at the relevant threshold, and derive only if
+  it fails. **A value that already clears both thresholds is returned unchanged, byte for byte** — do
+  not run it through `darken`/alpha-step at all if it already passes (this is what keeps the baseline
+  page byte-identical: on `#FAFAFA`, everything already clears, so nothing here ever fires).
+
+### Re-deriving a status entry consistently (rule 1)
+
+When a status `main` is derived, rebuild that status's `main`/`light`/`dark`/`contrastText` via the
+existing `withMainShades` (`src/theme/tokens.js`, already exported — import it, or re-derive the same
+shades inline using `lighten`/`darken` exactly as `withMainShades` does; prefer importing the real
+function over duplicating its formula) called as `withMainShades(derivedMain, existingContrastText)`
+— `existingContrastText` is `finalPalette[statusKey].contrastText`, unchanged (every baseline status
+already carries `'#FFFFFF'`; do not hardcode `'#FFFFFF'` here, read it off the entry so an
+app-overridden `contrastText` on an otherwise-baseline `main` is respected). `text`/`fill`/`fillText`/
+`bg` on that same status object are spread through unchanged — merge shape:
+`{ ...finalPalette[statusKey], ...withMainShades(derivedMain, finalPalette[statusKey].contrastText) }`.
+
+### Wiring it into `createAppTheme`
+
+Extend the existing `computedPalette` object (do not add a second, separate merge step) so
+`resolvedPalette` picks up both the existing `controlBorder.focus` line and the new derivations, e.g.
+(shape, not literal code to paste — adapt to how you factor the helper functions):
+```js
+const computedPalette = {
+  ...derivedStatusEntries,           // { success?, warning?, error?, info? } — only keys that were derived
+  controlBorder: {
+    ...finalPalette.controlBorder,
+    ...derivedControlBorderEntries,  // { main?, hover?, error? } — only keys that were derived
+    focus: deriveFocusColour(finalPalette.primary.main, ['#FFFFFF', finalPalette.background.default]),
+  },
+};
+```
+`stale` has no `main` (`tokens.js`) — `contrastFindings` already skips it via `if (!main) continue;`;
+do not add derivation logic for `stale`.
+
+### Test file
+
+New file next to the existing theme tests (`tests/createAppTheme.test.js` already exists — read it
+first; extend it if its structure fits, or add `tests/createAppThemePageContrast.test.js`).
+Use the six real background values from the Envelope's table directly (already verified against
+`survey_app/frontend/src/sites/*/theme.js` — `hafen` `#D8E4E1`, `jg-fegbern` `#eceae2`, `routing`
+`#E8EAF6`, `uph` `#E6EAF0`, `ygbs` `#E398C7`, plus the baseline `#FAFAFA`). Any valid `primary.main`
+works for these (the check is independent of primary) — reuse the kit's own test convention, e.g.
+`'#0F62FE'` (see `tests/StatTile.test.jsx`).
+
+1. For each of the 6 pages: `createAppTheme({ palette: { primary: { main: '#0F62FE' }, background: {
+   default: <page hex> } } })`, then `assertThemeComplete(theme).findings` has no entry whose
+   `surface` starts with `contrast.` for any status `main-on-*` or any `contrast.controlBorder.*`
+   (other, unrelated findings — e.g. undeclared surfaces this WO doesn't touch — are not this test's
+   concern; assert on the specific surface-name prefixes, not on the whole array being empty, unless
+   this repo's fixture already guarantees a clean baseline call is fully empty — check
+   `tests/createAppTheme.test.js`/`tests/themeCompleteness.test.js` for the existing convention here).
+2. On the baseline page (`background.default` left at its `BASELINE_STATIC`/`BASELINE_PALETTE`
+   default, i.e. no override given), `theme.palette.success.main` (and `.light`/`.dark`/
+   `.contrastText`), `.warning.main`, `.error.main`, `.info.main`, `.controlBorder.main`, `.hover`,
+   `.error` all equal today's exact `BASELINE_PALETTE`/derived values (read them from `tokens.js`,
+   do not hand-copy hexes into the test — import `BASELINE_PALETTE` and compare against it directly
+   so the test can't drift from the source of truth). Then, per the Envelope's own instruction, show
+   this test actually pins something: temporarily hand-edit one baseline hex in a throwaway local copy
+   (or otherwise demonstrate) that the assertion fails if the value moved — narrate how you did this
+   in your `PROGRESS` line rather than leaving a permanently-broken toggle in the committed test.
+3. A config that sets e.g. `palette.success.main` to a colour that fails on a tinted page (construct
+   one deliberately, e.g. a light green on `ygbs`'s pink) keeps EXACTLY that colour after
+   `createAppTheme` (`theme.palette.success.main === appConfig.palette.success.main`), and
+   `assertThemeComplete` still reports that specific `contrast.success.main-on-*` finding (proving
+   rule 3's app-supplied values are never touched AND their findings are never silently hidden).
+4. `createAppTheme({ palette: { primary: { main: '#0F62FE' }, background: { default: '#767676' } } })`
+   does not throw, returns a defined `theme.palette.success.main` (etc.), and
+   `assertThemeComplete(theme).findings` still contains the relevant `contrast.*` entries (mid-grey
+   `#767676` is deliberately unreachable within the darken cap — confirm this numerically before
+   relying on it: `calculateContrastRatio('#FFFFFF', '#767676')` and the darkened-`main` variants
+   should stay below `4.5` even at the `0.9` darken cap; if your arithmetic says otherwise, pick
+   another representative unreachable grey and say which and why in `PROGRESS`).
+
+Run, do not write: `tests/createAppTheme.test.js` (existing) and `tests/themeCompleteness.test.js`
+(existing) as the directly-dependent regression set — your own focused run only, the Orchestrator
+re-runs both as the gate.
+
+### `DESIGN.md` and `CHANGELOG.md`
+
+- `DESIGN.md`: one paragraph — which baseline colours are page-derived (`success`/`warning`/`error`/
+  `info.main`, `controlBorder.main`/`.hover`/`.error`, alongside the existing `controlBorder.focus`)
+  and why (a fixed hex cannot promise WCAG on every page background; the baseline promises a passing
+  colour, not a fixed one — state this explicitly so a future reader doesn't expect the `tokens.js`
+  hex to appear unmodified on every site). If `DESIGN.md` does not exist at the repo root, check for
+  an equivalent doc (grep for "baseline" or "token" in root `*.md` files) before creating a new one.
+- `CHANGELOG.md`: entry naming the changed default (derived colours are possible now, "byte identical
+  when passing today"), and explicitly naming that `light`/`dark` shades move WITH a derived `main`
+  (Risk note: a component styled with `error.dark` for hover moves too).
+
+## Do-not-touch / invariants
+
+- No change to any literal in `BASELINE_PALETTE`/`BASELINE_STATIC` (`tokens.js`).
+- No exemption path added anywhere in `themeCompleteness.js`.
+- `text`/`fill`/`fillText`/`bg` on every status object, `dataSeries`, and anything the app sets itself
+  (beyond the 6 targets named here) are untouched.
+- No dark-mode handling (`UCM-THEME-14`'s subject).
+- Do not touch `survey_app`/`survey_contact_app` — this WO is entirely inside `ui-core-micha`.
+
+## Target repo working directory (absolute)
+
+`C:\Users\biglmi\Documents\webapps\ui-core-micha` (branch `main`)
+
+## Preamble — a REQUIRED block IN this file, not something appended at invocation
+
+> The text above is the COMPLETE spec — the committed WO file's content, not a plan to refine; there
+> is no separate plan file. Read the nearest `AGENTS.md`, the relevant `.codex/skills/<role>/SKILL.md`, and the
+> app `MEMORY.md` ONLY for conventions. Stay in scope; do not touch auth/permissions/deps/schema/CI
+> unless the spec says so; do not update `MEMORY.md`. **Do NOT edit `WORK_ORDERS.md` — the register
+> row and the review verdicts are the orchestrator's alone.** **Your tools are for editing source
+> and test files (and `DESIGN.md`/`CHANGELOG.md` as named above) and for running the tests you wrote
+> — nothing else.** Do NOT install dependencies, touch a lockfile, run a package manager, or tidy up
+> stray files; if something in the repo state blocks you, stop and report it as
+> `RESULT: BLOCKED <reason>` instead of fixing it. Do NOT `git add`/`commit`/`push` — leave every
+> change uncommitted in the working tree for the orchestrator's independent review. WRITE the tests
+> the `Required tests` section calls for AND **RUN the tests you just wrote** to confirm they execute
+> and pass — that is the ONLY test run you do (NOT the app's affected/full suite, NOT any review).
+> The orchestrator re-runs the authoritative set + does the independent review after you finish —
+> those are the gate; your own run does not count as the gate.
+>
+> Narrate continuously: a `PLAN: <step1> | <step2> | …` line up front, then a single-line
+> `PROGRESS: [<n>/<total>] <present-tense action>` before every relevant action (and `… done` on
+> completion), spaced so no gap exceeds ~2 min, stdout unbuffered, plus exactly one final
+> `RESULT: DONE|BLOCKED <reason>`.
 
 ---
 
