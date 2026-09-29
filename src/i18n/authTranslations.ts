@@ -59,6 +59,7 @@ export const authTranslations = {
 
   "Auth.INVITE_PERMISSION_DENIED": {
     "de": "Sie haben keine Berechtigung, Einladungen zu versenden.",
+    "de_informal": "Du hast keine Berechtigung, Einladungen zu versenden.",
     "fr": "Vous n'avez pas l'autorisation d'envoyer des invitations.",
     "en": "You do not have permission to send invitations.",
     "sw": "Huna ruhusa ya kutuma mialiko."
@@ -115,6 +116,7 @@ export const authTranslations = {
 
   "Auth.RESET_LINK_VALID": {
     "de": "Der Link ist gültig. Sie können ein neues Passwort setzen.",
+    "de_informal": "Der Link ist gültig. Du kannst ein neues Passwort setzen.",
     "fr": "Le lien est valide. Vous pouvez définir un nouveau mot de passe.",
     "en": "The link is valid. You can set a new password.",
     "sw": "Viungo ni sahihi. Unaweza kuweka nenosiri jipya."
@@ -129,6 +131,7 @@ export const authTranslations = {
 
   "Auth.RESET_PASSWORD_REQUIRED": {
     "de": "Bitte geben Sie ein neues Passwort ein.",
+    "de_informal": "Bitte gib ein neues Passwort ein.",
     "fr": "Veuillez saisir un nouveau mot de passe.",
     "en": "Please enter a new password.",
     "sw": "Tafadhali ingiza nenosiri jipya."
@@ -149,6 +152,7 @@ export const authTranslations = {
   },
   "Auth.GENERIC_ERROR": {
     "de": "Es ist ein Fehler aufgetreten. Bitte versuchen Sie es erneut.",
+    "de_informal": "Es ist ein Fehler aufgetreten. Bitte versuche es erneut.",
     "fr": "Une erreur s'est produite. Veuillez réessayer.",
     "en": "An error occurred. Please try again.",
     "sw": "Hitilafu imetokea. Tafadhali jaribu tena."
@@ -316,6 +320,7 @@ export const authTranslations = {
   },
   "Auth.PAGE_CHANGE_PASSWORD_SUBTITLE": {
     "de": "Geben Sie Ihr aktuelles und ein neues Passwort ein.",
+    "de_informal": "Gib dein aktuelles und ein neues Passwort ein.",
     "fr": "Saisissez votre mot de passe actuel et un nouveau mot de passe.",
     "en": "Enter your current password and a new password.",
     "sw": "Ingiza nenosiri lako la sasa na nenosiri jipya."
@@ -328,6 +333,7 @@ export const authTranslations = {
   },
   "Auth.PAGE_CHECKING_LINK_TEXT": {
     "de": "Wir prüfen gerade die Gültigkeit Ihres Links.",
+    "de_informal": "Wir prüfen gerade die Gültigkeit deines Links.",
     "fr": "Nous vérifions la validité de votre lien.",
     "en": "We are validating your link.",
     "sw": "Tunathibitisha uhalali wa kiungo chako."
@@ -341,6 +347,7 @@ export const authTranslations = {
   },
   "Auth.PAGE_INVITE_SUBTITLE": {
     "de": "Bitte wählen Sie ein Passwort, um auf Ihr Konto zuzugreifen.",
+    "de_informal": "Bitte wähle ein Passwort, um auf dein Konto zuzugreifen.",
     "fr": "Veuillez choisir un mot de passe pour accéder à votre compte.",
     "en": "Please choose a password to access your account.",
     "sw": "Tafadhali chagua nenosiri ili kufikia akaunti yako."
@@ -354,6 +361,7 @@ export const authTranslations = {
   },
   "Auth.PAGE_RESET_PASSWORD_SUBTITLE": {
     "de": "Bitte wählen Sie ein neues Passwort.",
+    "de_informal": "Bitte wähle ein neues Passwort.",
     "fr": "Veuillez choisir un nouveau mot de passe.",
     "en": "Please choose a new password.",
     "sw": "Tafadhali chagua nenosiri jipya."
@@ -361,60 +369,70 @@ export const authTranslations = {
 
   "Auth.RESET_PASSWORD_SUCCESS_INVITE": {
     "de": "Das Passwort wurde gesetzt. Sie können sich nun anmelden.",
+    "de_informal": "Das Passwort wurde gesetzt. Du kannst dich nun anmelden.",
     "fr": "Le mot de passe a été défini. Vous pouvez maintenant vous connecter.",
     "en": "Password set successfully. You can now log in.",
     "sw": "Nenosiri limewekwa. Sasa unaweza kuingia."
   },
   "Auth.RESET_PASSWORD_SUCCESS_RESET": {
     "de": "Das Passwort wurde geändert. Sie können sich nun anmelden.",
+    "de_informal": "Das Passwort wurde geändert. Du kannst dich nun anmelden.",
     "fr": "Le mot de passe a été modifié. Vous pouvez maintenant vous connecter.",
     "en": "Password changed successfully. You can now log in.",
     "sw": "Nenosiri limebadilishwa. Sasa unaweza kuingia."
   },
   "Auth.PAGE_RESET_REQUEST_SUBTITLE": {
     "de": "Geben Sie Ihre E-Mail-Adresse ein, um den Link zum Zurücksetzen zu erhalten.",
+    "de_informal": "Gib deine E-Mail-Adresse ein, um den Link zum Zurücksetzen zu erhalten.",
     "fr": "Saisissez votre adresse e-mail pour recevoir le lien de réinitialisation.",
     "en": "Enter your email address to receive the reset link.",
     "sw": "Ingiza anwani yako ya barua pepe ili kupokea kiungo cha kuweka upya."
   },
   "Auth.EMAIL_REQUIRED": {
     "de": "Bitte geben Sie eine E-Mail-Adresse ein.",
+    "de_informal": "Bitte gib eine E-Mail-Adresse ein.",
     "fr": "Veuillez saisir une adresse e-mail.",
     "en": "Please enter an email address.",
     "sw": "Tafadhali ingiza anwani ya barua pepe."
   },
   "Auth.PAGE_SIGNUP_SUBTITLE": {
     "de": "Wählen Sie eine Registrierungsart und geben Sie die benötigten Angaben ein.",
+    "de_informal": "Wähle eine Registrierungsart und gib die benötigten Angaben ein.",
     "fr": "Choisissez une méthode d'inscription et saisissez les informations requises.",
     "en": "Choose a sign-up method and enter the required details.",
     "sw": "Chagua njia ya kujisajili na uingize taarifa zinazohitajika."
   },
   "Auth.PAGE_SIGNUP_SUBTITLE_ACCESS_CODE": {
     "de": "Geben Sie Ihre E-Mail-Adresse und den erhaltenen Zugangscode ein.",
+    "de_informal": "Gib deine E-Mail-Adresse und den erhaltenen Zugangscode ein.",
     "fr": "Saisissez votre adresse e-mail et le code d'accès reçu.",
     "en": "Enter your email address and the access code you received.",
     "sw": "Ingiza anwani yako ya barua pepe na msimbo wa ufikiaji uliopokea."
   },
   "Auth.PAGE_SIGNUP_SUBTITLE_OPEN": {
     "de": "Geben Sie Ihre E-Mail-Adresse ein, um sich direkt zu registrieren.",
+    "de_informal": "Gib deine E-Mail-Adresse ein, um dich direkt zu registrieren.",
     "fr": "Saisissez votre adresse e-mail pour vous inscrire directement.",
     "en": "Enter your email address to sign up directly.",
     "sw": "Ingiza anwani yako ya barua pepe ili kujisajili moja kwa moja."
   },
   "Auth.PAGE_SIGNUP_SUBTITLE_EMAIL_DOMAIN": {
     "de": "Verwenden Sie eine E-Mail-Adresse aus einer freigegebenen Domain.",
+    "de_informal": "Verwende eine E-Mail-Adresse aus einer freigegebenen Domain.",
     "fr": "Utilisez une adresse e-mail provenant d'un domaine autorisé.",
     "en": "Use an email address from an approved domain.",
     "sw": "Tumia anwani ya barua pepe kutoka kwenye domeni iliyoidhinishwa."
   },
   "Auth.PAGE_SIGNUP_SUBTITLE_QR": {
     "de": "Öffnen Sie diese Seite über einen gültigen QR-Link und geben Sie dann Ihre E-Mail-Adresse ein.",
+    "de_informal": "Öffne diese Seite über einen gültigen QR-Link und gib dann deine E-Mail-Adresse ein.",
     "fr": "Ouvrez cette page via un lien QR valide, puis saisissez votre adresse e-mail.",
     "en": "Open this page from a valid QR link, then enter your email address.",
     "sw": "Fungua ukurasa huu kupitia kiungo halali cha QR, kisha ingiza anwani yako ya barua pepe."
   },
   "Auth.PAGE_SIGNUP_SUBTITLE_QR_READY": {
     "de": "Geben Sie Ihre E-Mail-Adresse ein, um die Registrierung mit diesem QR-Link abzuschließen.",
+    "de_informal": "Gib deine E-Mail-Adresse ein, um die Registrierung mit diesem QR-Link abzuschließen.",
     "fr": "Saisissez votre adresse e-mail pour terminer l'inscription avec ce lien QR.",
     "en": "Enter your email address to complete sign-up with this QR link.",
     "sw": "Ingiza anwani yako ya barua pepe ili kukamilisha kujisajili kwa kutumia kiungo hiki cha QR."
@@ -477,6 +495,7 @@ export const authTranslations = {
 
   "Auth.SIGNUP_ALREADY_HAVE_ACCOUNT": {
     "de": "Sie haben bereits ein Konto?",
+    "de_informal": "Du hast bereits ein Konto?",
     "fr": "Vous avez déjà un compte ?",
     "en": "Already have an account?",
     "sw": "Je, tayari una akaunti?"
@@ -489,6 +508,7 @@ export const authTranslations = {
   },
   "Auth.SIGNUP_ACCESS_CODE_REQUIRED": {
     "de": "Bitte geben Sie einen Zugangscode ein.",
+    "de_informal": "Bitte gib einen Zugangscode ein.",
     "fr": "Veuillez saisir un code d'accès.",
     "en": "Please enter an access code.",
     "sw": "Tafadhali ingiza msimbo wa ufikiaji."
@@ -508,6 +528,7 @@ export const authTranslations = {
   },
   "Auth.PAGE_LOGIN_SUBTITLE": {
     "de": "Melden Sie sich mit Ihrem Konto an.",
+    "de_informal": "Melde dich mit deinem Konto an.",
     "fr": "Connectez-vous avec votre compte.",
     "en": "Sign in with your account.",
     "sw": "Ingia na akaunti yako."
@@ -1160,6 +1181,7 @@ export const authTranslations = {
   },
   "Support.RECOVERY_APPROVE_CONFIRM_QUESTION": {
     "de": "Sind Sie sicher, dass Sie diese Wiederherstellungsanfrage bewilligen möchten?",
+    "de_informal": "Bist du sicher, dass du diese Wiederherstellungsanfrage bewilligen möchtest?",
     "fr": "Êtes-vous sûr de vouloir approuver cette demande de récupération ?",
     "en": "Are you sure you want to approve this recovery request?",
     "sw": "Una uhakika unataka kuidhinisha ombi hili la urejesho?"
@@ -1172,6 +1194,7 @@ export const authTranslations = {
   },
   "Support.RECOVERY_APPROVE_NOTE_HELP": {
     "de": "Beschreiben Sie kurz, warum Sie diese Anfrage bewilligen.",
+    "de_informal": "Beschreibe kurz, warum du diese Anfrage bewilligst.",
     "fr": "Décrivez brièvement pourquoi vous approuvez cette demande.",
     "en": "Briefly describe why you are approving this request.",
     "sw": "Eleza kwa ufupi kwa nini unaidhinisha ombi hili."
@@ -1184,12 +1207,14 @@ export const authTranslations = {
   },
   "Auth.MFA_HELP_DIALOG_DESCRIPTION": {
     "de": "Beschreiben Sie kurz, warum Sie keine der verfügbaren Methoden verwenden können. Eine Supportperson wird Ihre Anfrage prüfen.",
+    "de_informal": "Beschreibe kurz, warum du keine der verfügbaren Methoden verwenden kannst. Eine Supportperson wird deine Anfrage prüfen.",
     "fr": "Décrivez brièvement pourquoi vous ne pouvez utiliser aucune des méthodes disponibles. Un membre du support examinera votre demande.",
     "en": "Briefly describe why you cannot use any of the available methods. A support person will review your request.",
     "sw": "Eleza kwa ufupi kwa nini huwezi kutumia yoyote ya mbinu zinazopatikana. Mtu wa usaidizi atakagua ombi lako."
   },
   "Auth.MFA_HELP_MESSAGE_LABEL": {
     "de": "Ihre Nachricht an den Support",
+    "de_informal": "Deine Nachricht an den Support",
     "fr": "Votre message au support",
     "en": "Your message to support",
     "sw": "Ujumbe wako kwa usaidizi"
@@ -1209,6 +1234,7 @@ export const authTranslations = {
   },
   "Support.RECOVERY_NOTE_HELP": {
     "de": "Beschreiben Sie kurz, warum Sie diese Anfrage genehmigen oder ablehnen.",
+    "de_informal": "Beschreibe kurz, warum du diese Anfrage genehmigst oder ablehnst.",
     "fr": "Décrivez brièvement pourquoi vous approuvez ou rejetez cette demande.",
     "en": "Briefly describe why you are approving or rejecting this request.",
     "sw": "Eleza kwa ufupi kwa nini unaidhinisha au kukataa ombi hili."
@@ -1239,6 +1265,7 @@ export const authTranslations = {
   },
   "Support.RECOVERY_REQUESTS_DESCRIPTION": {
     "de": "Benutzer, die die MFA nicht abschliessen können, können hier eine Anfrage stellen. Sie können die Anfrage prüfen und anschliessend akzeptieren oder ablehnen.",
+    "de_informal": "Benutzer, die die MFA nicht abschliessen können, können hier eine Anfrage stellen. Du kannst die Anfrage prüfen und anschliessend akzeptieren oder ablehnen.",
     "fr": "Les utilisateurs qui ne peuvent pas terminer la MFA peuvent envoyer ici une demande. Vous pouvez examiner la demande puis l’accepter ou la refuser.",
     "en": "Users who cannot complete MFA can submit a request here. You can review the request and then approve or reject it.",
     "sw": "Watumiaji ambao hawawezi kukamilisha MFA wanaweza kutuma ombi hapa. Unaweza kukagua ombi na kisha kulikubali au kulikataa."
@@ -1348,12 +1375,14 @@ export const authTranslations = {
   },
   "Auth.MFA_IDENTIFIER_REQUIRED": {
     "de": "Bitte geben Sie eine E-Mail-Adresse an.",
+    "de_informal": "Bitte gib eine E-Mail-Adresse an.",
     "fr": "Veuillez indiquer une adresse e-mail.",
     "en": "Please provide an email address.",
     "sw": "Tafadhali toa anwani ya barua pepe."
   },
   "Auth.MFA_HELP_REQUESTED": {
     "de": "Falls ein Konto mit dieser E-Mail existiert, wurde Ihre Anfrage an den Support weitergeleitet.",
+    "de_informal": "Falls ein Konto mit dieser E-Mail existiert, wurde deine Anfrage an den Support weitergeleitet.",
     "fr": "Si un compte existe avec cette adresse e-mail, votre demande a été transmise au support.",
     "en": "If an account with this email exists, your request has been forwarded to support.",
     "sw": "Ikiwa akaunti iliyo na barua pepe hii ipo, ombi lako limetumwa kwa usaidizi."
@@ -1414,6 +1443,7 @@ export const authTranslations = {
   },
   "Auth.AUTH_FACTOR_HINT": {
     "de": "Legen Sie fest, wie viele Authentifizierungsfaktoren mindestens für die Anmeldung erforderlich sind.",
+    "de_informal": "Lege fest, wie viele Authentifizierungsfaktoren mindestens für die Anmeldung erforderlich sind.",
     "fr": "Définissez le nombre minimal de facteurs d'authentification requis pour la connexion.",
     "en": "Define the minimum number of authentication factors required for sign-in.",
     "sw": "Weka idadi ya chini ya vipengele vya uthibitishaji vinavyohitajika ili kuingia."
@@ -1444,6 +1474,7 @@ export const authTranslations = {
   },
   "Auth.REGISTRATION_METHODS_HINT": {
     "de": "Wählen Sie aus, welche Registrierungs- und Einladungswege für diese App aktiv sind.",
+    "de_informal": "Wähle aus, welche Registrierungs- und Einladungswege für diese App aktiv sind.",
     "fr": "Choisissez quels flux d'inscription et d'invitation sont actifs pour cette application.",
     "en": "Choose which signup and invite flows are active for this app.",
     "sw": "Chagua njia zipi za kujisajili na za mwaliko zimewashwa kwa programu hii."
@@ -1504,6 +1535,7 @@ export const authTranslations = {
   },
   "Auth.ALLOWED_EMAIL_DOMAINS_HINT": {
     "de": "Eine Domain pro Zeile, z. B. example.org. Sie können das Feld vorübergehend leer lassen.",
+    "de_informal": "Eine Domain pro Zeile, z. B. example.org. Du kannst das Feld vorübergehend leer lassen.",
     "fr": "Un domaine par ligne, p. ex. example.org. Vous pouvez laisser ce champ vide temporairement.",
     "en": "One domain per line, e.g. example.org. You can leave this empty temporarily.",
     "sw": "Domeni moja kwa kila mstari, kwa mfano example.org. Unaweza kuiacha tupu kwa muda."
@@ -1516,6 +1548,7 @@ export const authTranslations = {
   },
   "Auth.SIGNUP_QR_MANAGER_HINT": {
     "de": "Erzeugen und teilen Sie hier QR-Registrierungslinks.",
+    "de_informal": "Erzeuge und teile hier QR-Registrierungslinks.",
     "fr": "Générez et partagez ici des liens d'inscription QR.",
     "en": "Generate and share QR signup links below.",
     "sw": "Tengeneza na ushiriki viungo vya usajili wa QR hapa chini."
@@ -1528,6 +1561,7 @@ export const authTranslations = {
   },
   "Auth.SIGNUP_QR_VALIDITY_HINT": {
     "de": "Legen Sie die Standard-Gültigkeit für neu erzeugte QR-Registrierungslinks fest.",
+    "de_informal": "Lege die Standard-Gültigkeit für neu erzeugte QR-Registrierungslinks fest.",
     "fr": "Définissez la validité par défaut des nouveaux liens d'inscription QR générés.",
     "en": "Set the default validity for newly generated QR signup links.",
     "sw": "Weka muda wa kawaida wa uhalali wa viungo vipya vya usajili wa QR."
@@ -1606,12 +1640,14 @@ export const authTranslations = {
   },
   "Auth.SIGNUP_QR_PDF_NOT_READY": {
     "de": "Das QR-Bild ist noch nicht bereit. Bitte versuchen Sie es erneut.",
+    "de_informal": "Das QR-Bild ist noch nicht bereit. Bitte versuche es erneut.",
     "fr": "L'image QR n'est pas encore prête. Veuillez réessayer.",
     "en": "The QR image is not ready yet. Please try again.",
     "sw": "Picha ya QR bado haijawa tayari. Tafadhali jaribu tena."
   },
   "Auth.SIGNUP_QR_PDF_BLOCKED": {
     "de": "Popup blockiert. Bitte erlauben Sie Popups, um die QR-Karte als PDF zu speichern.",
+    "de_informal": "Popup blockiert. Bitte erlaube Popups, um die QR-Karte als PDF zu speichern.",
     "fr": "Fenêtre contextuelle bloquée. Veuillez autoriser les popups pour enregistrer la carte QR en PDF.",
     "en": "Popup blocked. Please allow popups to save the QR card as PDF.",
     "sw": "Dirisha ibukizi limezuiwa. Tafadhali ruhusu madirisha ibukizi ili kuhifadhi kadi ya QR kama PDF."
@@ -1714,6 +1750,7 @@ export const authTranslations = {
   },
   "Account.ACCESS_CODES_HINT": {
     "de": "Verwalten Sie Zugangscodes für die Selbstregistrierung.",
+    "de_informal": "Verwalte Zugangscodes für die Selbstregistrierung.",
     "fr": "Gérer les codes d'accès pour l'auto-inscription.",
     "en": "Manage access codes for self-registration.",
     "sw": "Dhibiti misimbo ya ufikiaji kwa kujisajili mwenyewe."
@@ -1949,6 +1986,158 @@ export const authTranslations = {
     "sw": "Nenosiri si sahihi."
   },
 
+  "UserList.DELETE_CONFIRM": {
+    "de": "Möchten Sie diesen Benutzer wirklich löschen?",
+    "de_informal": "Möchtest du diesen Benutzer wirklich löschen?",
+    "fr": "Voulez-vous vraiment supprimer cet utilisateur ?",
+    "en": "Are you sure you want to delete this user?",
+    "sw": "Je, una uhakika unataka kumfuta mtumiaji huyu?"
+  },
+  "Common.OPERATION_FAILED": {
+    "de": "Vorgang fehlgeschlagen.",
+    "fr": "L’opération a échoué.",
+    "en": "Operation failed.",
+    "sw": "Uendeshaji umeshindwa."
+  },
+  "UserList.NEW": {
+    "de": "Neu",
+    "fr": "Nouveau",
+    "en": "New",
+    "sw": "Mpya"
+  },
+  "UserList.SUCCESSFUL_LOGIN": {
+    "de": "Erfolgreiche Anmeldung",
+    "fr": "Connexion réussie",
+    "en": "Successful Login",
+    "sw": "Kuingia kwa mafanikio"
+  },
+  "UserList.ROLE": {
+    "de": "Rolle",
+    "fr": "Rôle",
+    "en": "Role",
+    "sw": "Jukumu"
+  },
+  "Common.ACTIONS": {
+    "de": "Aktionen",
+    "fr": "Actions",
+    "en": "Actions",
+    "sw": "Vitendo"
+  },
+  "UserList.TITLE": {
+    "de": "Alle Benutzer",
+    "fr": "Tous les utilisateurs",
+    "en": "All Users",
+    "sw": "Watumiaji wote"
+  },
+  "Common.SEARCH": {
+    "de": "Suche",
+    "fr": "Rechercher",
+    "en": "Search",
+    "sw": "Tafuta"
+  },
+  "UserList.SEARCH_PLACEHOLDER": {
+    "de": "Benutzer suchen...",
+    "fr": "Rechercher des utilisateurs...",
+    "en": "Search users...",
+    "sw": "Tafuta watumiaji..."
+  },
+  "UserList.NO_USERS": {
+    "de": "Keine Benutzer gefunden.",
+    "fr": "Aucun utilisateur trouvé.",
+    "en": "No users found.",
+    "sw": "Hakuna watumiaji waliopatikana."
+  },
+  "UserList.ROWS_PER_PAGE": {
+    "de": "Zeilen pro Seite:",
+    "fr": "Lignes par page :",
+    "en": "Rows per page:",
+    "sw": "Safu kwa ukurasa:"
+  },
+  "Auth.INVITE_SENT_SUCCESS": {
+    "de": "Einladung gesendet.",
+    "fr": "Invitation envoyée.",
+    "en": "Invitation sent.",
+    "sw": "Mwaliko umetumwa."
+  },
+  "Auth.INVITE_TITLE": {
+    "de": "Neuen Benutzer einladen",
+    "fr": "Inviter un nouvel utilisateur",
+    "en": "Invite a new user",
+    "sw": "Mwalike mtumiaji mpya"
+  },
+  "Account.BULK_INVITE_NO_EMAILS": {
+    "de": "Keine gültigen E-Mail-Adressen in der CSV-Datei gefunden.",
+    "fr": "Aucune adresse e-mail valide trouvée dans le fichier CSV.",
+    "en": "No valid email addresses found in CSV.",
+    "sw": "Hakuna anwani halali za barua pepe zilizopatikana kwenye CSV."
+  },
+  "Account.BULK_INVITE_PARSE_FAILED": {
+    "de": "CSV-Datei konnte nicht gelesen werden.",
+    "fr": "Impossible de lire le fichier CSV.",
+    "en": "Could not read CSV file.",
+    "sw": "Imeshindikana kusoma faili ya CSV."
+  },
+  "Account.BULK_INVITE_DONE": {
+    "de": "{{ok}} / {{total}} Einladungen gesendet.",
+    "fr": "{{ok}} / {{total}} invitations envoyées.",
+    "en": "{{ok}} / {{total}} invites sent.",
+    "sw": "Mialiko {{ok}} / {{total}} imetumwa."
+  },
+  "Account.BULK_INVITE_TITLE": {
+    "de": "Masseneinladung per CSV",
+    "fr": "Invitations groupées par CSV",
+    "en": "Bulk Invite via CSV",
+    "sw": "Mialiko ya wingi kupitia CSV"
+  },
+  "Account.BULK_INVITE_HINT": {
+    "de": "CSV-Datei mit E-Mail-Adressen hochladen. Header \"email\" wird unterstützt.",
+    "fr": "Téléversez un fichier CSV contenant des adresses e-mail. L’en-tête \"email\" est pris en charge.",
+    "en": "Upload a CSV file containing email addresses. Header \"email\" is supported.",
+    "sw": "Pakia faili ya CSV yenye anwani za barua pepe. Kichwa \"email\" kinatumika."
+  },
+  "Account.BULK_INVITE_UPLOAD": {
+    "de": "CSV hochladen",
+    "fr": "Téléverser un CSV",
+    "en": "Upload CSV",
+    "sw": "Pakia CSV"
+  },
+  "Account.BULK_INVITE_SEND": {
+    "de": "Einladungen senden",
+    "fr": "Envoyer les invitations",
+    "en": "Send Invites",
+    "sw": "Tuma mialiko"
+  },
+  "Account.BULK_INVITE_COUNT": {
+    "de": "{{count}} E-Mail-Adressen geladen",
+    "fr": "{{count}} adresses e-mail chargées",
+    "en": "{{count}} emails loaded",
+    "sw": "Anwani {{count}} za barua pepe zimepakiwa"
+  },
+  "Common.STATUS": {
+    "de": "Status",
+    "fr": "Statut",
+    "en": "Status",
+    "sw": "Hali"
+  },
+  "Common.DETAILS": {
+    "de": "Details",
+    "fr": "Détails",
+    "en": "Details",
+    "sw": "Maelezo"
+  },
+  "Account.BULK_INVITE_PROGRESS": {
+    "de": "{{done}} / {{total}} verarbeitet",
+    "fr": "{{done}} / {{total}} traitées",
+    "en": "{{done}} / {{total}} processed",
+    "sw": "{{done}} / {{total}} zimechakatwa"
+  },
+  "Account.BULK_INVITE_SUCCESS_COUNT": {
+    "de": "{{count}} erfolgreich",
+    "fr": "{{count}} réussies",
+    "en": "{{count}} successful",
+    "sw": "{{count}} zimefaulu"
+  },
+
   // Raw backend auth error codes (allauth-headless + Django password validators).
   // Keyed by the exact code string so the existing `t(err.code)` call sites resolve
   // as a drop-in, without any component change. See AUTH-2.
@@ -1972,6 +2161,7 @@ export const authTranslations = {
   },
   "too_many_login_attempts": {
     "de": "Zu viele fehlgeschlagene Anmeldeversuche. Bitte versuchen Sie es später erneut.",
+    "de_informal": "Zu viele fehlgeschlagene Anmeldeversuche. Bitte versuche es später erneut.",
     "fr": "Trop de tentatives de connexion échouées. Veuillez réessayer plus tard.",
     "en": "Too many failed login attempts. Please try again later.",
     "sw": "Majaribio mengi ya kuingia yameshindwa. Tafadhali jaribu tena baadaye."
@@ -2014,6 +2204,7 @@ export const authTranslations = {
   },
   "password_too_similar": {
     "de": "Das Passwort ist Ihren persönlichen Daten zu ähnlich.",
+    "de_informal": "Das Passwort ist deinen persönlichen Daten zu ähnlich.",
     "fr": "Le mot de passe est trop similaire à vos informations personnelles.",
     "en": "The password is too similar to your personal information.",
     "sw": "Nenosiri linafanana sana na taarifa zako binafsi."

@@ -15,3 +15,13 @@ export const uiCoreTranslations = {
   ...sectionNavTranslations,
   ...userMenuTranslations,
 };
+
+export function createUiCoreTranslations({ germanVariant = 'formal' } = {}) {
+  return Object.fromEntries(
+    Object.entries(uiCoreTranslations).map(([key, value]) => {
+      const { de_informal, ...rest } = value;
+      if (germanVariant === 'informal' && de_informal) return [key, { ...rest, de: de_informal }];
+      return [key, rest];
+    }),
+  );
+}

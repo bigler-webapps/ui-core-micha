@@ -141,4 +141,4 @@ export { notificationsTranslations } from './i18n/notificationsTranslations';
 export { onboardingTranslations } from './i18n/onboardingTranslations';
 export { chartsTranslations } from './i18n/chartsTranslations';
 export { messagingTranslations } from './i18n/messagingTranslations';
-export { uiCoreTranslations } from './i18n/uiCoreTranslations';
+export { createUiCoreTranslations, uiCoreTranslations } from './i18n/uiCoreTranslations';

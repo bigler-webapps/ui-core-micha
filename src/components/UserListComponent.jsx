@@ -589,6 +589,7 @@ export function UserListComponent({
               setPageSize(Number(event.target.value));
               setPage(0);
             }}
+            labelRowsPerPage={t('UserList.ROWS_PER_PAGE', 'Rows per page:')}
             rowsPerPageOptions={[10, 25, 50, 100]}
           />
         </Box>
