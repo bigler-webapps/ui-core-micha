@@ -1882,6 +1882,12 @@ export const authTranslations = {
     "en": "The user's role could not be updated.",
     "sw": "Jukumu la mtumiaji halikuweza kusasishwa."
   },
+  "UserList.ROLE_UPDATE_SUCCESS": {
+    "de": "Die Rolle wurde aktualisiert.",
+    "fr": "Le rôle a été mis à jour.",
+    "en": "Role updated.",
+    "sw": "Jukumu limesasishwa."
+  },
   "Auth.USER_SUPPORT_UPDATE_FAILED": {
     "de": "Der Support-Status des Benutzers konnte nicht aktualisiert werden.",
     "fr": "Le statut de support de l'utilisateur n'a pas pu être mis à jour.",

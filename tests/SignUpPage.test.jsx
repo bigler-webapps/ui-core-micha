@@ -20,10 +20,10 @@ vi.mock('react-i18next', () => ({
 import { AuthContext } from '../src/auth/AuthContext';
 import { SignUpPage } from '../src/pages/SignUpPage';
 
-function renderSignUp({ signupModes, siteKey }) {
+function renderSignUp({ signup = true, signupModes, siteKey }) {
   return render(
     <AuthContext.Provider value={{ authMethods: {
-      signup: true,
+      signup,
       signup_modes: signupModes,
       turnstile_site_key: siteKey,
     } }}>
@@ -60,6 +60,19 @@ describe('SignUpPage Turnstile integration', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'self_signup_email_domain' }));
     await waitFor(() => expect(screen.getByTestId('turnstile-widget')).toBeTruthy());
+  });
+
+  it('explains that signup is closed and omits the form when no signup modes are available', () => {
+    renderSignUp({ signup: false, signupModes: [] });
+
+    expect(screen.getByText('Self sign-up is currently disabled.')).toBeTruthy();
+    expect(screen.queryByRole('textbox', { name: /Auth\.EMAIL_LABEL/ })).toBeNull();
+    expect(screen.queryByRole('textbox', { name: /Auth\.ACCESS_CODE_LABEL/ })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Auth.SIGNUP_SUBMIT' })).toBeNull();
+    // A closed page must still leave a way forward, not just say why the
+    // form is missing (caught by review: the first implementation hid this
+    // too).
+    expect(screen.getByRole('button', { name: 'Auth.SIGNUP_GO_TO_LOGIN' })).toBeTruthy();
   });
 
   it('gates submission until verified and passes the Turnstile token to the registration API', async () => {

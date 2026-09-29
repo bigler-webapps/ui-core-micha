@@ -163,82 +163,93 @@ export function SignUpPage() {
         </title>
       </Helmet>
 
-      {successKey && (
-        <Alert severity="success" sx={SIGN_UP_PAGE_ALERT_SX}>
-          {t(successKey, { email })}
+      {signupModes.length === 0 ? (
+        <Alert severity="info" sx={SIGN_UP_PAGE_ALERT_SX}>
+          {t('Auth.SELF_SIGNUP_DISABLED', 'Self sign-up is currently disabled.')}
         </Alert>
-      )}
+      ) : (
+        <>
+          {successKey && (
+            <Alert severity="success" sx={SIGN_UP_PAGE_ALERT_SX}>
+              {t(successKey, { email })}
+            </Alert>
+          )}
 
-      {errorKey && (
-        <Alert severity="error" sx={SIGN_UP_PAGE_ALERT_SX}>
-          {t(errorKey, t('Auth.INVITE_FAILED', 'Could not complete signup.'))}
-        </Alert>
-      )}
+          {errorKey && (
+            <Alert severity="error" sx={SIGN_UP_PAGE_ALERT_SX}>
+              {t(errorKey, t('Auth.INVITE_FAILED', 'Could not complete signup.'))}
+            </Alert>
+          )}
 
-      {signupModes.length > 1 && (
-        <Stack spacing={1} sx={{ mb: 2 }}>
-          <Stack spacing={1}>
-            {signupModes.map((entry) => (
-              <Button
-                key={entry}
-                variant={mode === entry ? 'contained' : 'outlined'}
-                onClick={() => setMode(entry)}
-                disabled={submitting}
+          {signupModes.length > 1 && (
+            <Stack spacing={1} sx={{ mb: 2 }}>
+              <Stack spacing={1}>
+                {signupModes.map((entry) => (
+                  <Button
+                    key={entry}
+                    variant={mode === entry ? 'contained' : 'outlined'}
+                    onClick={() => setMode(entry)}
+                    disabled={submitting}
+                    fullWidth
+                  >
+                    {t(MODE_LABELS[entry] || entry, entry)}
+                  </Button>
+                ))}
+              </Stack>
+            </Stack>
+          )}
+
+          <Box
+            component="form"
+            onSubmit={handleSubmit}
+            sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}
+          >
+            <TextField
+              label={t('Auth.EMAIL_LABEL')}
+              type="email"
+              required
+              fullWidth
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              disabled={submitting}
+            />
+
+            {mode === 'self_signup_access_code' && (
+              <TextField
+                label={t('Auth.ACCESS_CODE_LABEL')}
+                type="text"
+                required
                 fullWidth
-              >
-                {t(MODE_LABELS[entry] || entry, entry)}
-              </Button>
-            ))}
-          </Stack>
-        </Stack>
+                value={accessCode}
+                onChange={(e) => setAccessCode(e.target.value)}
+                disabled={submitting}
+              />
+            )}
+
+            {turnstileRequired && (
+              <TurnstileWidget
+                ref={turnstileWidgetRef}
+                siteKey={authMethods.turnstile_site_key}
+                onToken={setTurnstileToken}
+              />
+            )}
+
+            <Button
+              type="submit"
+              variant="contained"
+              disabled={submitting || (turnstileRequired && !turnstileToken)}
+            >
+              {submitting
+                ? t('Auth.SIGNUP_SUBMITTING')
+                : t('Auth.SIGNUP_SUBMIT')}
+            </Button>
+          </Box>
+        </>
       )}
 
-      <Box
-        component="form"
-        onSubmit={handleSubmit}
-        sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}
-      >
-        <TextField
-          label={t('Auth.EMAIL_LABEL')}
-          type="email"
-          required
-          fullWidth
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          disabled={submitting}
-        />
-
-        {mode === 'self_signup_access_code' && (
-          <TextField
-            label={t('Auth.ACCESS_CODE_LABEL')}
-            type="text"
-            required
-            fullWidth
-            value={accessCode}
-            onChange={(e) => setAccessCode(e.target.value)}
-            disabled={submitting}
-          />
-        )}
-
-        {turnstileRequired && (
-          <TurnstileWidget
-            ref={turnstileWidgetRef}
-            siteKey={authMethods.turnstile_site_key}
-            onToken={setTurnstileToken}
-          />
-        )}
-
-        <Button
-          type="submit"
-          variant="contained"
-          disabled={submitting || signupModes.length === 0 || (turnstileRequired && !turnstileToken)}
-        >
-          {submitting
-            ? t('Auth.SIGNUP_SUBMITTING')
-            : t('Auth.SIGNUP_SUBMIT')}
-        </Button>
-      </Box>
-
+      {/* Always rendered, closed or open — a closed signup page must still
+          leave the person a way forward (the Envelope's own Goal), not just
+          say why the form is missing. */}
       <Box sx={{ mt: 3 }}>
         <Typography variant="body2">
           {t('Auth.SIGNUP_ALREADY_HAVE_ACCOUNT')}{' '}

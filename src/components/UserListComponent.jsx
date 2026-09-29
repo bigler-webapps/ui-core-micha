@@ -118,6 +118,7 @@ export function UserListComponent({
         await updateUserRole(userId, newRole);
       }
       await loadUsers();
+      alert(t('UserList.ROLE_UPDATE_SUCCESS', 'Role updated.'));
     } catch (err) {
       alert(t(err.code || 'Auth.USER_ROLE_UPDATE_FAILED'));
     }

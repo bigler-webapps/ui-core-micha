@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { Helmet } from 'react-helmet';
-import { Typography } from '@mui/material';
+import { Button, Typography } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import { NarrowPage } from '../layout/PageLayout';
 import { PasswordSetForm } from '../components/PasswordSetForm';
@@ -18,7 +18,9 @@ export function PasswordInvitePage() {
 
   const [submitting, setSubmitting] = useState(false);
   const [errorKey, setErrorKey] = useState(null);
+  const [submitErrorKey, setSubmitErrorKey] = useState(null);
   const [successKey, setSuccessKey] = useState(null);
+  const [continueTarget, setContinueTarget] = useState(null);
   const [checked, setChecked] = useState(false);
 
   // Unterscheidung Invite-Link vs klassischer Reset
@@ -55,12 +57,11 @@ export function PasswordInvitePage() {
 
   const handleSubmit = async (newPassword) => {
     if (!uid || !token) {
-      setErrorKey('Auth.RESET_LINK_INVALID');
       return;
     }
 
     setSubmitting(true);
-    setErrorKey(null);
+    setSubmitErrorKey(null);
     setSuccessKey(null);
 
     try {
@@ -99,9 +100,23 @@ export function PasswordInvitePage() {
       const target = safeNextPath
         ? `/login?next=${encodeURIComponent(safeNextPath)}`
         : '/login';
-      navigate(target);
+      setContinueTarget(target);
     } catch (err) {
-      setErrorKey(err.code || 'Auth.RESET_PASSWORD_FAILED');
+      // Told apart by CODE, not by the presence of `messages` (a submission
+      // can fail with a link problem too, e.g. the token expires in the gap
+      // between the page's initial verifyResetToken check and this submit) —
+      // only a password rejection keeps the form; a link problem must still
+      // end in the same invalid-link state the initial check produces.
+      if (err.code === 'Auth.RESET_LINK_INVALID') {
+        setErrorKey(err.code);
+      } else {
+        const responseMessages = err.raw?.messages || err.response?.data?.messages;
+        setSubmitErrorKey(
+          Array.isArray(responseMessages) && responseMessages.length > 0
+            ? responseMessages.join(' ')
+            : t(err.code || 'Auth.RESET_PASSWORD_FAILED'),
+        );
+      }
     } finally {
       setSubmitting(false);
     }
@@ -134,8 +149,22 @@ export function PasswordInvitePage() {
       )}
 
       {successKey && (
-        <Typography color="primary" gutterBottom>
-          {t(successKey)}
+        <>
+          <Typography color="primary" gutterBottom>
+            {t(successKey)}
+          </Typography>
+          <Button
+            variant="contained"
+            onClick={() => navigate(continueTarget)}
+          >
+            {t('Auth.SIGNUP_GO_TO_LOGIN')}
+          </Button>
+        </>
+      )}
+
+      {submitErrorKey && !successKey && (
+        <Typography color="error" gutterBottom>
+          {submitErrorKey}
         </Typography>
       )}
 
