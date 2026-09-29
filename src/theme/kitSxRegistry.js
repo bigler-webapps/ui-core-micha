@@ -69,7 +69,11 @@ import {
   ATTACHMENT_LIST_ALERT_SX,
   ATTACHMENT_LIST_LIGHTBOX_ACTION_SX,
 } from '../messaging/AttachmentList';
-import { COMPOSER_EMOJI_BUTTON_SX } from '../messaging/Composer';
+import {
+  COMPOSER_EMOJI_BUTTON_SX,
+  COMPOSER_MESSAGE_FIELD_SX,
+  COMPOSER_SEND_BUTTON_SX,
+} from '../messaging/Composer';
 import { DIRECT_MESSAGE_LAUNCHER_ALERT_SX } from '../messaging/DirectMessageLauncher';
 import { MESSAGE_BUBBLE_ACTION_SX, MESSAGE_BUBBLE_ROOT_SX } from '../messaging/MessageBubble';
 import {
@@ -112,6 +116,8 @@ const SX_EXPORTS = {
   CHART_FRAME_ALERT_SX,
   CHART_FRAME_ROOT_SX,
   COMPOSER_EMOJI_BUTTON_SX,
+  COMPOSER_MESSAGE_FIELD_SX,
+  COMPOSER_SEND_BUTTON_SX,
   DIRECT_MESSAGE_LAUNCHER_ALERT_SX,
   LOGIN_FORM_DIVIDER_SX,
   LOGIN_PAGE_ALERT_SX,
@@ -243,6 +249,8 @@ export const KIT_COMPONENT_SX_REGISTRY = [
   entry('AttachmentList.lightboxAction', 'MuiIconButton', ATTACHMENT_LIST_LIGHTBOX_ACTION_SX),
   entry('AttachmentList.alert', 'MuiAlert', ATTACHMENT_LIST_ALERT_SX),
   entry('Composer.emojiAction', 'MuiIconButton', COMPOSER_EMOJI_BUTTON_SX),
+  entry('Composer.messageField', 'MuiTextField', COMPOSER_MESSAGE_FIELD_SX),
+  entry('Composer.sendAction', 'MuiButton', COMPOSER_SEND_BUTTON_SX),
   entry('DirectMessageLauncher.alert', 'MuiAlert', DIRECT_MESSAGE_LAUNCHER_ALERT_SX),
   entry('MessageBubble.root', 'MuiPaper', MESSAGE_BUBBLE_ROOT_SX),
   entry('MessageBubble.action', 'MuiIconButton', MESSAGE_BUBBLE_ACTION_SX),

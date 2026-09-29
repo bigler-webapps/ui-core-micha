@@ -1,6 +1,6 @@
 import DoneAllOutlinedIcon from '@mui/icons-material/DoneAllOutlined';
 import DoneOutlinedIcon from '@mui/icons-material/DoneOutlined';
-import { ButtonBase, List, ListItem, Popover, Typography } from '@mui/material';
+import { ButtonBase, List, ListItem, Popover, Tooltip, Typography } from '@mui/material';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -48,6 +48,7 @@ export function ReadTicks({ messageId, conversation }) {
   const hasCounts = typeof status.read_count === 'number' && typeof status.recipient_count === 'number';
 
   if (!hasCounts && conversation?.kind !== 'direct') return null;
+  if (hasCounts && status.recipient_count === 0) return null;
 
   // The server never returns DM detail; enforce the same carve-out defensively.
   const detail = conversation?.kind === 'direct' ? null : recipientDetail;
@@ -71,8 +72,8 @@ export function ReadTicks({ messageId, conversation }) {
     // next read-status fetch, not live from a read_state frame.
     const label = t('MessagingReadTicks.READ_RATIO', { read: status.read_count, total: status.recipient_count });
     const ratio = <Typography component="span" variant="caption" color="inherit">{status.read_count}/{status.recipient_count}</Typography>;
-    if (!recipients.length) return <span role="img" aria-label={label}>{ratio}</span>;
-    return <><ButtonBase aria-label={label} aria-haspopup="dialog" aria-expanded={Boolean(anchorEl)} onClick={(event) => setAnchorEl(event.currentTarget)} sx={{ display: 'inline-flex' }}>{ratio}</ButtonBase><Popover open={Boolean(anchorEl)} anchorEl={anchorEl} onClose={() => setAnchorEl(null)}><List aria-label={t('MessagingReadTicks.RECIPIENTS')}>{recipients.map((recipient) => <ListItem key={recipient}>{recipient}</ListItem>)}</List></Popover></>;
+    if (!recipients.length) return <Tooltip title={label} describeChild><span role="img" aria-label={label}>{ratio}</span></Tooltip>;
+    return <><Tooltip title={label} describeChild><ButtonBase aria-label={label} aria-haspopup="dialog" aria-expanded={Boolean(anchorEl)} onClick={(event) => setAnchorEl(event.currentTarget)} sx={{ display: 'inline-flex' }}>{ratio}</ButtonBase></Tooltip><Popover open={Boolean(anchorEl)} anchorEl={anchorEl} onClose={() => setAnchorEl(null)}><List aria-label={t('MessagingReadTicks.RECIPIENTS')}>{recipients.map((recipient) => <ListItem key={recipient}>{recipient}</ListItem>)}</List></Popover></>;
   }
 
   const label = allRead ? t('MessagingReadTicks.ALL_READ') : t('MessagingReadTicks.SENT');

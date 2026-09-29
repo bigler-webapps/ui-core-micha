@@ -11,6 +11,8 @@ import { compressImageForUpload } from './composerImageCompression';
 import { extractApiErrorMessage, useMessaging } from './MessagingProvider';
 
 export const COMPOSER_EMOJI_BUTTON_SX = { fontSize: '1.15rem' };
+export const COMPOSER_MESSAGE_FIELD_SX = { flex: 1, minWidth: 120 };
+export const COMPOSER_SEND_BUTTON_SX = { flexShrink: 0 };
 
 // A wider, Composer-only set (MSG-6i) -- deliberately separate from
 // ReactionBar's own QUICK_EMOJIS (5, curated for fast reactions). Mobile
@@ -136,14 +138,16 @@ export function Composer({ conversationId, conversation, replyTarget = null, onR
       </Stack>)}
     </Stack>}
     {files.length > 0 && <Typography variant="caption">{t('MessagingComposer.FILES_SELECTED', { count: files.length })}</Typography>}
-    <Stack direction="row" spacing={1} alignItems="flex-end">
+    <Stack direction="row" spacing={1}>
       <input ref={inputRef} hidden type="file" multiple onChange={(event) => setFiles(Array.from(event.target.files || []))} />
       <IconButton type="button" aria-label={t('MessagingComposer.ADD_ATTACHMENT')} onClick={() => inputRef.current?.click()}><AttachFileIcon /></IconButton>
       <IconButton type="button" aria-label={t('MessagingComposer.ADD_EMOJI')} onClick={(event) => setEmojiAnchor(event.currentTarget)}><EmojiEmotionsOutlinedIcon /></IconButton>
       <IconButton type="button" aria-label={t('MessagingPoll.CREATE')} disabled={pollOpen || files.some(isImage)} onClick={() => setPollOpen(true)}><PollOutlinedIcon /></IconButton>
       {canAnnounce && <IconButton type="button" aria-label={t('MessagingAnnouncement.CREATE')} onClick={() => setAnnouncementOpen(true)}><CampaignOutlinedIcon /></IconButton>}
-      <TextField inputRef={messageInputRef} fullWidth multiline minRows={2} value={body} onChange={(event) => setBody(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing) { event.preventDefault(); submit(); } }} label={t('MessagingComposer.MESSAGE')} disabled={sending} />
-      <Button type="submit" variant="contained" disabled={sending || (!body.trim() && !files.length)}>{t('MessagingComposer.SEND')}</Button>
+    </Stack>
+    <Stack direction="row" spacing={1} alignItems="flex-end">
+      <TextField inputRef={messageInputRef} fullWidth multiline minRows={2} value={body} onChange={(event) => setBody(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing) { event.preventDefault(); submit(); } }} label={t('MessagingComposer.MESSAGE')} disabled={sending} sx={COMPOSER_MESSAGE_FIELD_SX} />
+      <Button type="submit" variant="contained" disabled={sending || (!body.trim() && !files.length)} sx={COMPOSER_SEND_BUTTON_SX}>{t('MessagingComposer.SEND')}</Button>
     </Stack>
     {sending && files.length > 0 && <Stack spacing={0.5} role="status">
       <Stack direction="row" spacing={1} alignItems="center">

@@ -108,4 +108,29 @@ describe('Composer optimistic send and attachments', () => {
     render(<MessagingProvider api={api} active={false}><AttachmentList attachments={[{ id: 1, filename: 'note.pdf', content_type: 'application/pdf' }]} /></MessagingProvider>);
     expect(screen.getByLabelText('MessagingAttachments.LABEL')).toBeTruthy();
   });
+
+  it('keeps the message field and send button usable beside all enabled actions', () => {
+    render(<MessagingProvider api={makeApi()} active={false}><Composer conversationId={7} conversation={{ kind: 'group' }} allowAnnouncement /></MessagingProvider>);
+    const messageField = screen.getByLabelText('MessagingComposer.MESSAGE');
+    const messageFieldRoot = messageField.closest('.MuiFormControl-root');
+    expect(messageFieldRoot).toBeTruthy();
+    expect(window.getComputedStyle(messageFieldRoot).minWidth).toBe('120px');
+    const sendButton = screen.getByRole('button', { name: 'MessagingComposer.SEND' });
+    expect(window.getComputedStyle(sendButton).flexShrink).toBe('0');
+    expect(screen.getByRole('button', { name: 'MessagingComposer.ADD_ATTACHMENT' }).disabled).toBe(false);
+    expect(screen.getByRole('button', { name: 'MessagingComposer.ADD_EMOJI' }).disabled).toBe(false);
+    expect(screen.getByRole('button', { name: 'MessagingPoll.CREATE' }).disabled).toBe(false);
+    expect(screen.getByRole('button', { name: 'MessagingAnnouncement.CREATE' }).disabled).toBe(false);
+
+    // Structural proof, not just a CSS-value check: the action icons and the
+    // message field/send button must sit in DIFFERENT Stack rows, not merely
+    // carry different sx values while still being flex siblings in one row
+    // (a same-row layout with only the sx tweaks would still pass every
+    // assertion above without actually fixing the 375px overflow).
+    const attachButton = screen.getByRole('button', { name: 'MessagingComposer.ADD_ATTACHMENT' });
+    const actionsRow = attachButton.closest('.MuiStack-root');
+    expect(actionsRow).toBeTruthy();
+    expect(actionsRow.contains(messageField)).toBe(false);
+    expect(actionsRow.contains(sendButton)).toBe(false);
+  });
 });

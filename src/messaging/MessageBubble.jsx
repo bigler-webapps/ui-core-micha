@@ -7,6 +7,7 @@ import { AttachmentList } from './AttachmentList';
 import { extractApiErrorMessage, useOptionalMessaging } from './MessagingProvider';
 import { ReactionBar } from './ReactionBar';
 import { PollCard } from './PollCard';
+import { linkifyText } from './linkifyText';
 
 export const MESSAGE_BUBBLE_ROOT_SX = {
   position: 'relative',
@@ -146,7 +147,7 @@ export function MessageBubble({ message, replyTo, conversation, onReply, onJumpT
           {!deleted && message.kind === 'announcement' && message.title && <Typography variant="subtitle1" fontWeight={700}>{message.title}</Typography>}
           {!deleted && message.kind === 'announcement' && message.link_target && onAnnouncementLink && <Button type="button" size="small" onClick={() => onAnnouncementLink(message.link_target)}>{t('MessagingAnnouncement.OPEN_LINK')}</Button>}
           {error && <Alert severity="error" role="alert">{error}</Alert>}
-          {editing ? <Stack spacing={0.75}><TextField label={t('MessagingActions.EDIT')} value={draft} onChange={(event) => setDraft(event.target.value)} multiline minRows={2} autoFocus disabled={saving} /><Stack direction="row" spacing={1}><Button type="button" onClick={saveEdit} disabled={saving}>{t('MessagingActions.SAVE')}</Button><Button type="button" onClick={() => setEditing(false)} disabled={saving}>{t('MessagingActions.CANCEL')}</Button></Stack></Stack> : <Typography sx={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>{deleted ? t('MessagingThread.DELETED') : (message.kind === 'announcement' ? message.body : (message.body || message.title)) || ''}</Typography>}
+          {editing ? <Stack spacing={0.75}><TextField label={t('MessagingActions.EDIT')} value={draft} onChange={(event) => setDraft(event.target.value)} multiline minRows={2} autoFocus disabled={saving} /><Stack direction="row" spacing={1}><Button type="button" onClick={saveEdit} disabled={saving}>{t('MessagingActions.SAVE')}</Button><Button type="button" onClick={() => setEditing(false)} disabled={saving}>{t('MessagingActions.CANCEL')}</Button></Stack></Stack> : <Typography sx={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>{deleted ? t('MessagingThread.DELETED') : linkifyText((message.kind === 'announcement' ? message.body : (message.body || message.title)) || '')}</Typography>}
           {!deleted && <Stack spacing={0.75}>
             {attachments.length > 0 && <AttachmentList attachments={attachments} />}
             {message.poll && <PollCard message={message} />}
