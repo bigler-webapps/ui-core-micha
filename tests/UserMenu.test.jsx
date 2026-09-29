@@ -2,6 +2,7 @@
 import React from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { createTheme, ThemeProvider } from '@mui/material/styles';
 
 const translation = vi.hoisted(() => ({
   t: vi.fn((key) => `translated:${key}`),
@@ -11,13 +12,24 @@ vi.mock('react-i18next', () => ({ useTranslation: () => translation }));
 
 import { AuthContext } from '../src/auth/AuthContext';
 import { UserMenu } from '../src/auth/UserMenu';
+import { calculateContrastRatio, createAppTheme } from '../src/theme';
 
-function renderUserMenu({ user, logout = vi.fn(), ...props } = {}) {
+const defaultTheme = createAppTheme({ palette: { primary: { main: createTheme().palette.primary.main } } });
+
+function renderUserMenu({ user, logout = vi.fn(), theme = defaultTheme, ...props } = {}) {
   return render(
-    <AuthContext.Provider value={{ user, logout }}>
-      <UserMenu {...props} />
-    </AuthContext.Provider>,
+    <ThemeProvider theme={theme}>
+      <AuthContext.Provider value={{ user, logout }}>
+        <UserMenu {...props} />
+      </AuthContext.Provider>
+    </ThemeProvider>,
   );
+}
+
+function getAvatarContrast() {
+  const avatar = screen.getByText(/^[A-Z]+$/).closest('.MuiAvatar-root');
+  const styles = window.getComputedStyle(avatar);
+  return calculateContrastRatio(styles.color, styles.backgroundColor);
 }
 
 describe('UserMenu', () => {
@@ -131,5 +143,29 @@ describe('UserMenu', () => {
 
     renderUserMenu({ user: { username: 'grace' } });
     expect(screen.getByText('G')).toBeTruthy();
+  });
+
+  it("uses a contrasting avatar pair with jg-ferien's primary colour", () => {
+    const theme = createAppTheme({ palette: { primary: { main: '#367964' } } });
+    renderUserMenu({ theme, user: { username: 'ab' } });
+
+    expect(getAvatarContrast()).toBeGreaterThanOrEqual(4.5);
+  });
+
+  it('uses a contrasting avatar pair with the library baseline primary colour', () => {
+    renderUserMenu({ user: { username: 'ab' } });
+
+    expect(getAvatarContrast()).toBeGreaterThanOrEqual(4.5);
+  });
+
+  it('falls back to the dark text pair for a medium-luminance primary colour', () => {
+    // A synthetic mid-grey (luminance ~0.216, no real brand meaning) picked to
+    // fail white-on-background at 4.5:1 (~3.95:1) so this test actually
+    // exercises the black-fallback branch, not just the white branch every
+    // other test here happens to land on.
+    const theme = createAppTheme({ palette: { primary: { main: '#808080' } } });
+    renderUserMenu({ theme, user: { username: 'ab' } });
+
+    expect(getAvatarContrast()).toBeGreaterThanOrEqual(4.5);
   });
 });

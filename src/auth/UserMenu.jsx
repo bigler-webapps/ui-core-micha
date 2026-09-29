@@ -9,9 +9,11 @@ import {
   MenuItem,
   Typography,
 } from '@mui/material';
+import { useTheme } from '@mui/material/styles';
 import { useTranslation } from 'react-i18next';
 
 import { AuthContext } from './AuthContext';
+import { calculateContrastRatio } from '../theme';
 
 function getInitials(user) {
   if (!user) return '';
@@ -30,8 +32,22 @@ function getDisplayName(user) {
 export function UserMenu({ resolveLink, items = [], profileLink = '/account', avatarSrc }) {
   const { t } = useTranslation();
   const { user, logout } = useContext(AuthContext);
+  const theme = useTheme();
   const [anchorEl, setAnchorEl] = useState(null);
   const open = Boolean(anchorEl);
+  const avatarBackground = theme.palette.primary.main;
+  // True white/black (theme.palette.common.*, always present on any MUI theme,
+  // never a source-level literal), not background.paper/ink.primary: contrast
+  // against true white and true black multiplies to a constant 21 regardless
+  // of the background's luminance, so max(contrastWhite, contrastBlack) is
+  // mathematically guaranteed to be >= sqrt(21) =~ 4.58 for ANY primary.main a
+  // consumer sets -- a near-black token like ink.primary (#212529, luminance
+  // ~0.018, not 0) does not carry that guarantee and left a real gap for a
+  // medium-luminance primary (caught by ui_reviewer, neither required test
+  // exercised the fallback branch that gap lived in).
+  const avatarText = calculateContrastRatio(theme.palette.common.white, avatarBackground) >= 4.5
+    ? theme.palette.common.white
+    : theme.palette.common.black;
 
   const handleClose = () => setAnchorEl(null);
 
@@ -57,7 +73,16 @@ export function UserMenu({ resolveLink, items = [], profileLink = '/account', av
         color="inherit"
         onClick={(event) => setAnchorEl(event.currentTarget)}
       >
-        <Avatar src={avatarSrc} sx={{ width: 32, height: 32, fontSize: '0.8rem' }}>
+        <Avatar
+          src={avatarSrc}
+          sx={{
+            width: 32,
+            height: 32,
+            fontSize: '0.8rem',
+            bgcolor: avatarBackground,
+            color: avatarText,
+          }}
+        >
           {avatarSrc ? null : getInitials(user)}
         </Avatar>
       </IconButton>
