@@ -39,9 +39,63 @@
 
 # B. Implementation map — filled by the Orchestrator — ADDRESSED TO THE IMPLEMENTER
 
-*(placeholder — no context package yet, no progress contract yet; the Orchestrator fills this
-part on `git pull` and appends the preamble below to the invocation. Do not dispatch on this
-placeholder.)*
+## Context package
+
+- File: `src/auth/UserMenu.jsx`. The avatar is rendered at line 60:
+  `<Avatar src={avatarSrc} sx={{ width: 32, height: 32, fontSize: '0.8rem' }}>` — no `bgcolor`/`color`
+  is set today, so it falls through to MUI's default grey Avatar styling (1.83:1, the measured
+  defect). Only this one JSX element changes; nothing else in the file.
+- **Pitfall — do not just reach for `theme.palette.primary.contrastText`.** MUI's own
+  `createTheme`/`augmentColor` computes `contrastText` with `contrastThreshold: 3` (tuned for large
+  text/graphics, AA), not the 4.5:1 this WO requires for normal-size initials text. A consumer's
+  `primary.main` that legitimately passes MUI's own 3:1 threshold can still fail 4.5:1, and nothing
+  here re-validates it — so `contrastText` alone is not a fallback that "passes when a consumer
+  defines nothing", it is a fallback that USUALLY passes.
+- **Design to implement instead** (uses the kit's own exported contrast helper, satisfies both
+  required tests meaningfully since both actually depend on the consumer's `primary.main`):
+  1. Import `{ calculateContrastRatio }` from `'../theme'` (already exported from
+     `src/theme/index.js` → re-exported at `src/index.js`) and `useTheme` from
+     `'@mui/material/styles'`.
+  2. Inside `UserMenu`, read `const theme = useTheme();`.
+  3. Background: `theme.palette.primary.main` (the "primary surface" the Envelope names).
+  4. Text colour: compute
+     `calculateContrastRatio(theme.palette.background.paper, theme.palette.primary.main) >= 4.5
+        ? theme.palette.background.paper : theme.palette.ink.primary`.
+     This is not an arbitrary heuristic: for any background colour, the higher of
+     (contrast against white) and (contrast against near-black) is mathematically always ≥ √21 ≈
+     4.58 — i.e. picking whichever of the kit's own light (`background.paper`, white) or dark
+     (`ink.primary`, near-black) ink token has the higher measured contrast against
+     `primary.main` is GUARANTEED to clear 4.5:1 for every possible `primary.main`, including one
+     a consumer hasn't customised at all (the untouched baseline `primary.main` MUI ships). That is
+     what makes this "a fallback that passes when a consumer defines nothing" instead of "usually
+     passes".
+  5. Apply as `sx={{ ..., bgcolor: theme.palette.primary.main, color: <computed> }}` on the same
+     `Avatar` element — keep the existing `width`/`height`/`fontSize` untouched.
+  6. Do NOT introduce a new literal hex/rgb anywhere — `theme.palette.background.paper` and
+     `theme.palette.ink.primary` are both resolved theme values, and referencing them via
+     `theme.palette.<path>` (not writing their hex value as a string literal) keeps
+     `reportOffPaletteColours` clean, same as every other component in the kit.
+- Test file: new `tests/UserMenu.test.jsx` (none exists yet — check with `Glob` before assuming;
+  if a `UserMenu` test already exists under a different name, extend it instead of creating a
+  duplicate). Pattern after `tests/StatTile.test.jsx`: `@vitest-environment jsdom`,
+  `createAppTheme(...)`, wrap `UserMenu` in the theme provider AND `AuthContext.Provider` (it reads
+  `user`/`logout` via `useContext(AuthContext)` at line 32 — a minimal `{ user: { username: 'ab' },
+  logout: () => {} }` value is enough to render the avatar).
+  1. With a theme built from jg-ferien's actual `primary.main` — `#367964` (measured directly from
+     `jg-ferien/frontend/src/theme.js:25`, a mid-brightness teal-green), assert
+     `calculateContrastRatio(<resolved avatar text colour>, <resolved avatar bg colour>) >= 4.5`
+     by reading the rendered `Avatar`'s computed `backgroundColor`/`color` via
+     `window.getComputedStyle` (see `tests/StatTile.test.jsx`'s `accent` border test for the
+     `getComputedStyle` pattern) and feeding both into `calculateContrastRatio` directly — do not
+     hardcode an expected hex, assert the ratio.
+  2. With `createAppTheme({})` (no consumer overrides — MUI's own baseline `primary.main`), assert
+     the same ≥4.5 computed-style contrast check.
+
+## Do-not-touch / invariants
+
+- No layout change to the user menu (Envelope non-goal) — only the two `sx` colour values change.
+- Do not touch `assertThemeComplete`/`THEME_COMPLETENESS_SURFACES` — this fix reads existing
+  required surfaces (`primary.main`, `background.paper`, `ink.primary`), it does not need a new one.
 
 ## Target repo working directory (absolute)
 
