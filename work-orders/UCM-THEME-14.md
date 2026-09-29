@@ -60,7 +60,9 @@ Non-goals:
 
 - **Tier 3 · tests: light-output regression guard, dark completeness, focus contrast in both modes,
   and the kit's existing theme tests.** A change inside shared-core (`AGENTS.md` -> Tiering).
-- Precondition: **`UCM-THEME-13` frozen.**
+- Precondition: **`UCM-THEME-13` frozen**, and **`UCM-THEME-15` landed**. 15 generalises the focus
+  derivation into page-derived status and border colours on the same surface pair; build the dark
+  branch on top of it, not beside it.
 - Downstream: `webshop-guenter`/`WSG-THEME-1` waits for this release and for its own pin bump.
 
 ## Risks
