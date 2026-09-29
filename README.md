@@ -13,3 +13,5 @@ Spread `uiCoreTranslations` into the default i18n namespace as the supported agg
 ## Dashboard primitives
 
 `StatTile` (a bordered KPI tile) and `SoftChip` (a soft tinted annotation/status chip, tones derived from `theme.palette[tone]`) live under `src/components/` and are exported from the package root.
+
+`EmptyState` (an icon/title/description/action empty-section placeholder, built from theme tokens) lives under `src/components/` and is exported from the package root.

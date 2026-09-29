@@ -63,6 +63,7 @@ export { QrSignupManager } from './components/QrSignupManager';
 export { MobileBottomNav } from './components/MobileBottomNav';
 export { default as StatTile } from './components/StatTile';
 export { default as SoftChip } from './components/SoftChip';
+export { default as EmptyState } from './components/EmptyState';
 
 // --- 6. Charts ---
 export { ChartFrame } from './components/charts/ChartFrame';

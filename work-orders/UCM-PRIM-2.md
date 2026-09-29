@@ -41,9 +41,41 @@
 
 # B. Implementation map — filled by the Orchestrator — ADDRESSED TO THE IMPLEMENTER
 
-*(placeholder — no context package yet, no progress contract yet; the Orchestrator fills this
-part on `git pull` and appends the preamble below to the invocation. Do not dispatch on this
-placeholder.)*
+## Context package
+
+- New file `src/components/EmptyState.jsx`. Model it on the existing primitives
+  `src/components/StatTile.jsx` and `src/components/SoftChip.jsx` — a small functional component,
+  default export, built from `Box`/`Typography`/`Button` (MUI), theme tokens only (no literal
+  colours — `reportOffPaletteColours` in `src/theme/themeCompleteness.js` scans every source file
+  for off-palette hex/rgb/named colours and is part of the kit's literal guard the Required Tests
+  reference).
+- Props (keep minimal per the Risk note — do not over-generalise):
+  `icon` (optional, a rendered MUI icon element, e.g. `<InboxOutlinedIcon />`), `title` (string,
+  required — the one line of text), `description` (optional secondary line), `action` (optional
+  `{ label, onClick }` — rendered as a real `<Button variant="outlined">`, not a link, so it is
+  reachable and operable like `StatTile`'s children slot), `sx` (optional passthrough, MUI
+  convention used throughout the kit, e.g. `Composer.jsx`'s `COMPOSER_EMOJI_BUTTON_SX` pattern).
+- Export it from `src/index.js` next to the other components section (`--- 5. Components ---`,
+  after `SoftChip` at line 65): `export { default as EmptyState } from './components/EmptyState';`.
+- Accessibility: `title` must be real text content (not just an `aria-label`), so a screen reader
+  reads it as part of document flow; if `icon` is passed, it must not need its own label (decorative
+  — rely on the adjacent text, matching how `StatTile` treats its icon-less design).
+- Test file: `tests/EmptyState.test.jsx`, following `tests/StatTile.test.jsx`'s pattern exactly —
+  `@vitest-environment jsdom`, wrap in `<ThemeProvider theme={createAppTheme(...)}>`, `cleanup()`
+  in `afterEach`.
+  - Render text-only, with `description`, with `action` (assert the button has an accessible name
+    matching the label and that clicking it calls the passed `onClick`).
+  - The "theme tokens only" requirement: either call `reportOffPaletteColours([{ path: 'src/components/EmptyState.jsx', source: fs.readFileSync(...) }])` (see how `themeCompleteness.js` self-tests, or grep existing callers of `reportOffPaletteColours` in `tests/` for the established pattern) and assert `findings` is empty, or (simpler, sufficient) just don't use any hex/rgb/named-colour literal in the component at all and note in a comment that the guard is structural, not a runtime assertion in this test. Prefer calling `reportOffPaletteColours` directly if an existing test already does — grep `tests/*.test.*` for `reportOffPaletteColours` to find the precedent and match its call shape exactly.
+
+## Do-not-touch / invariants
+
+- Do not add `EmptyState` to `kitSxRegistry.js` unless you export a top-level `sx` object constant
+  from the component (only needed if the root element gets kit-owned baked-in styling beyond plain
+  `sx` passthrough — for this minimal component you likely don't need one; only add a registry entry
+  if you do add such a constant).
+- No adoption anywhere in this repo's own consumers (`AccountPage`, etc.) — out of scope per the
+  Envelope's non-goals.
+- Do not touch `Alert` styling anywhere.
 
 ## Target repo working directory (absolute)
 
