@@ -24,6 +24,7 @@ import CancelIcon from '@mui/icons-material/Cancel';
 import DeleteIcon from '@mui/icons-material/Delete';
 import { useTranslation } from 'react-i18next';
 import { fetchUsersList, deleteUser, updateUserRole } from '../auth/authApi';
+import { resolveErrorText } from '../utils/resolveErrorText';
 
 const DEFAULT_ROLES = ['none', 'student', 'teacher', 'admin'];
 
@@ -49,7 +50,7 @@ export function UserListComponent({
     canDeleteUser = null,
     onDeleteUser = null,
 }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -75,7 +76,7 @@ export function UserListComponent({
       });
       setUsers(list);
     } catch (err) {
-      setError(err.code || 'Auth.USER_LIST_FAILED');
+      setError(resolveErrorText(i18n, err, 'Auth.USER_LIST_FAILED'));
     } finally {
       setLoading(false);
     }
@@ -99,7 +100,7 @@ export function UserListComponent({
       }
       setUsers(prev => prev.filter(u => u.id !== userId));
     } catch (err) {
-      alert(t(err.code || 'Auth.USER_DELETE_FAILED'));
+      alert(resolveErrorText(i18n, err, 'Auth.USER_DELETE_FAILED'));
     }
   };
 
@@ -120,7 +121,7 @@ export function UserListComponent({
       await loadUsers();
       alert(t('UserList.ROLE_UPDATE_SUCCESS', 'Role updated.'));
     } catch (err) {
-      alert(t(err.code || 'Auth.USER_ROLE_UPDATE_FAILED'));
+      alert(resolveErrorText(i18n, err, 'Auth.USER_ROLE_UPDATE_FAILED'));
     }
   };
 
@@ -276,7 +277,7 @@ export function UserListComponent({
       });
     } catch (err) {
       // eslint-disable-next-line no-alert
-      alert(err?.message || t('Common.OPERATION_FAILED', 'Operation failed.'));
+      alert(resolveErrorText(i18n, err, 'Common.OPERATION_FAILED'));
     } finally {
       setRowActionLoading((prev) => ({ ...prev, [actionId]: false }));
     }
@@ -514,7 +515,7 @@ export function UserListComponent({
         />
       </Box>
 
-      {error && <Alert severity="error" sx={USER_LIST_ALERT_SX}>{t(error)}</Alert>}
+      {error && <Alert severity="error" sx={USER_LIST_ALERT_SX}>{error}</Alert>}
 
       {loading && (
         <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>

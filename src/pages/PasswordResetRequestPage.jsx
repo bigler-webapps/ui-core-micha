@@ -6,9 +6,10 @@ import { useTranslation } from 'react-i18next';
 import { NarrowPage } from '../layout/PageLayout';
 import { requestPasswordReset } from '../auth/authApi';
 import {PasswordResetRequestForm } from '../components/PasswordResetRequestForm';
+import { resolveErrorText } from '../utils/resolveErrorText';
 
 export function PasswordResetRequestPage() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
 
   const [submitting, setSubmitting] = useState(false);
   const [successKey, setSuccessKey] = useState(null);
@@ -19,7 +20,7 @@ export function PasswordResetRequestPage() {
     setErrorKey(null);
 
     if (!email) {
-      setErrorKey('Auth.EMAIL_REQUIRED');
+      setErrorKey(t('Auth.EMAIL_REQUIRED'));
       return;
     }
 
@@ -29,7 +30,7 @@ export function PasswordResetRequestPage() {
       // Kein User-Leak, immer gleiche Success-Meldung
       setSuccessKey('Auth.RESET_REQUEST_ACCEPTED');
     } catch (err) {
-      setErrorKey(err.code || 'Auth.RESET_REQUEST_FAILED');
+      setErrorKey(resolveErrorText(i18n, err, 'Auth.RESET_REQUEST_FAILED'));
     } finally {
       setSubmitting(false);
     }
@@ -54,7 +55,7 @@ export function PasswordResetRequestPage() {
 
       {errorKey && (
         <Typography color="error" gutterBottom>
-          {t(errorKey)}
+          {errorKey}
         </Typography>
       )}
 

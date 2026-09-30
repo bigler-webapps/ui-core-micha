@@ -19,6 +19,7 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import { useTranslation } from 'react-i18next';
 import { fetchAuthenticators, requestTotpKey, activateTotp, deactivateTotp, fetchRecoveryCodes, generateRecoveryCodes  } from '../auth/authApi';
+import { resolveErrorText } from '../utils/resolveErrorText';
 
 export const MFA_ALERT_SX = { mb: 2 };
 export const MFA_CARD_SX = { mb: 3 };
@@ -28,7 +29,7 @@ export const MFA_DIVIDER_SX = { my: 3 };
 export const MFA_RECOVERY_BUTTON_SX = { mt: 2 };
 
 export function MFAComponent() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
 
   const [authenticators, setAuthenticators] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -75,7 +76,7 @@ export function MFAComponent() {
 
       if (result.exists) {
         setIsSettingUp(false);
-        setErrorKey('Auth.MFA_TOTP_ALREADY_ACTIVE');
+        setErrorKey(t('Auth.MFA_TOTP_ALREADY_ACTIVE'));
         return;
       }
 
@@ -86,7 +87,7 @@ export function MFAComponent() {
     } catch (err) {
       // eslint-disable-next-line no-console
       console.error(err);
-      setErrorKey(err.code || 'Auth.TOTP_REQUEST_FAILED');
+      setErrorKey(resolveErrorText(i18n, err, 'Auth.TOTP_REQUEST_FAILED'));
       setIsSettingUp(false);
     }
   };
@@ -104,7 +105,7 @@ export function MFAComponent() {
       await loadData();
       await handleShowRecoveryCodes();
     } catch (err) {
-      setErrorKey(err.code || 'Auth.MFA_AUTHENTICATE_FAILED');
+      setErrorKey(resolveErrorText(i18n, err, 'Auth.MFA_AUTHENTICATE_FAILED'));
     } finally {
       setSubmitting(false);
     }
@@ -124,7 +125,7 @@ export function MFAComponent() {
     } catch (err) {
       // eslint-disable-next-line no-console
       console.error(err);
-      setErrorKey(err.code || 'Auth.TOTP_DEACTIVATE_FAILED');
+      setErrorKey(resolveErrorText(i18n, err, 'Auth.TOTP_DEACTIVATE_FAILED'));
     }
   };
 
@@ -139,7 +140,7 @@ export function MFAComponent() {
     } catch (err) {
       // eslint-disable-next-line no-console
       console.error(err);
-      setErrorKey(err.code || 'Auth.RECOVERY_CODES_FETCH_FAILED');
+      setErrorKey(resolveErrorText(i18n, err, 'Auth.RECOVERY_CODES_FETCH_FAILED'));
     }
   };
 
@@ -152,7 +153,7 @@ export function MFAComponent() {
     } catch (err) {
       // eslint-disable-next-line no-console
       console.error(err);
-      setErrorKey(err.code || 'Auth.RECOVERY_CODES_GENERATE_FAILED');
+      setErrorKey(resolveErrorText(i18n, err, 'Auth.RECOVERY_CODES_GENERATE_FAILED'));
     }
   };
 
@@ -173,7 +174,7 @@ export function MFAComponent() {
 
       {errorKey && (
         <Alert severity="error" sx={MFA_ALERT_SX}>
-          {t(errorKey)}
+          {errorKey}
         </Alert>
       )}
 

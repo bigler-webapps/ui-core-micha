@@ -6,9 +6,10 @@ import { useTranslation } from 'react-i18next';
 import { NarrowPage } from '../layout/PageLayout';
 import { PasswordChangeForm } from '../components/PasswordChangeForm';
 import { changePassword } from '../auth/authApi';
+import { resolveErrorText } from '../utils/resolveErrorText';
 
 export function PasswordChangePage() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
 
   const [submitting, setSubmitting] = useState(false);
   const [successKey, setSuccessKey] = useState(null);
@@ -23,7 +24,7 @@ export function PasswordChangePage() {
       await changePassword(oldPassword, newPassword);
       setSuccessKey('Auth.RESET_PASSWORD_SUCCESS');
     } catch (err) {
-      setErrorKey(err.code || 'Auth.PASSWORD_CHANGE_FAILED');
+      setErrorKey(resolveErrorText(i18n, err, 'Auth.PASSWORD_CHANGE_FAILED'));
     } finally {
       setSubmitting(false);
     }
@@ -48,7 +49,7 @@ export function PasswordChangePage() {
 
       {errorKey && (
         <Typography color="error" gutterBottom>
-          {t(errorKey)}
+          {errorKey}
         </Typography>
       )}
 

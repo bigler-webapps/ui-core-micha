@@ -10,6 +10,7 @@ import {
 } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import { updateAuthPolicy } from '../auth/authApi';
+import { resolveErrorText } from '../utils/resolveErrorText';
 
 export const REGISTRATION_METHODS_ALERT_SX = { mb: 2 };
 export const REGISTRATION_METHODS_INFO_SX = { mt: 2 };
@@ -31,7 +32,7 @@ export function RegistrationMethodsManager({
   onPolicyChange,
   canEdit = true,
 }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [policyState, setPolicyState] = useState(EMPTY_POLICY);
   const [busyField, setBusyField] = useState('');
   const [saveError, setSaveError] = useState('');
@@ -57,7 +58,7 @@ export function RegistrationMethodsManager({
       if (onPolicyChange) onPolicyChange(next);
     } catch (err) {
       setPolicyState((prev) => ({ ...prev, [field]: previous }));
-      setSaveError(t(err?.code || 'Auth.AUTH_POLICY_UPDATE_FAILED', 'Could not save authentication settings.'));
+      setSaveError(resolveErrorText(i18n, err, 'Auth.AUTH_POLICY_UPDATE_FAILED'));
     } finally {
       setBusyField('');
     }

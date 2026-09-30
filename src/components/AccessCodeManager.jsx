@@ -13,6 +13,7 @@ import {
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import DeleteIcon from '@mui/icons-material/Delete';
 import { useTranslation } from 'react-i18next';
+import { resolveErrorText } from '../utils/resolveErrorText';
 
 // Pfad ggf. anpassen je nach Struktur: von src/auth/components zu src/auth/authApi
 import {
@@ -36,7 +37,7 @@ export const ACCESS_CODE_VALUE_FIELD_SX = {
 };
 
 export function AccessCodeManager() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [codes, setCodes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -50,8 +51,7 @@ export function AccessCodeManager() {
 
   // Helper that prefers backend error code if available
   const setErrorFromErrorObject = (err, fallbackCode) => {
-    const backendCode = err?.code;
-    setErrorKey(backendCode || fallbackCode);
+    setErrorKey(resolveErrorText(i18n, err, fallbackCode));
   };
 
   // Load all access codes from backend
@@ -104,7 +104,7 @@ export function AccessCodeManager() {
 
   const handleAddManual = async () => {
     if (!manualCode.trim()) {
-      setErrorKey('Auth.SIGNUP_ACCESS_CODE_REQUIRED');
+      setErrorKey(t('Auth.SIGNUP_ACCESS_CODE_REQUIRED'));
       return;
     }
     await handleCreateCode(manualCode.trim());
@@ -150,7 +150,7 @@ export function AccessCodeManager() {
     <Box>
       {errorKey && (
         <Alert severity="error" sx={ACCESS_CODE_ALERT_SX}>
-          {t(errorKey)}
+          {errorKey}
         </Alert>
       )}
       {successKey && (

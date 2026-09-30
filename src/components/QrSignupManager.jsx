@@ -10,6 +10,7 @@ import {
 import { useTranslation } from 'react-i18next';
 import { QRCodeSVG } from 'qrcode.react';
 import { createSignupQr } from '../auth/authApi';
+import { resolveErrorText } from '../utils/resolveErrorText';
 
 export const QR_SIGNUP_MANAGER_ALERT_SX = { mb: 2 };
 
@@ -47,7 +48,7 @@ export function QrSignupManager({
   registrationContext = null,
   defaultMaxRedemptions = DEFAULT_MAX_REDEMPTIONS,
 }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const qrWrapperRef = useRef(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -112,7 +113,7 @@ export function QrSignupManager({
       hasGeneratedRef.current = true;
       setSuccess(t('Auth.SIGNUP_QR_CREATE_SUCCESS', 'New QR signup link created.'));
     } catch (err) {
-      setError(t(err?.code || 'Auth.SIGNUP_QR_CREATE_FAILED', 'Could not create signup QR.'));
+      setError(resolveErrorText(i18n, err, 'Auth.SIGNUP_QR_CREATE_FAILED'));
     } finally {
       setBusy(false);
     }
@@ -158,7 +159,7 @@ export function QrSignupManager({
         setSuccess(t('Auth.SIGNUP_QR_CREATE_SUCCESS', 'New QR signup link created.'));
       } catch (err) {
         if (!active) return;
-        setError(t(err?.code || 'Auth.SIGNUP_QR_CREATE_FAILED', 'Could not create signup QR.'));
+        setError(resolveErrorText(i18n, err, 'Auth.SIGNUP_QR_CREATE_FAILED'));
       } finally {
         if (active) {
           setBusy(false);

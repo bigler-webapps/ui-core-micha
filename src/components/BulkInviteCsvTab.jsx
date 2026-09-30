@@ -15,6 +15,7 @@ import {
 } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import { sendAdminInvite } from '../auth/authApi';
+import { resolveErrorText } from '../utils/resolveErrorText';
 
 export const BULK_INVITE_ACTION_SX = {
   minWidth: 120,
@@ -51,7 +52,7 @@ export function BulkInviteCsvTab({
   inviteFn = (email) => sendAdminInvite(email),
   onCompleted,
 }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [emails, setEmails] = useState([]);
   const [results, setResults] = useState({});
   const [busy, setBusy] = useState(false);
@@ -106,7 +107,7 @@ export function BulkInviteCsvTab({
       } catch (err) {
         nextResults[email] = {
           ok: false,
-          message: t(err?.code || 'Auth.INVITE_FAILED'),
+          message: resolveErrorText(i18n, err, 'Auth.INVITE_FAILED'),
         };
       }
       setResults({ ...nextResults });

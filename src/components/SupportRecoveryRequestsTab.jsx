@@ -24,6 +24,7 @@ import {
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import { useTranslation } from 'react-i18next';
+import { resolveErrorText } from '../utils/resolveErrorText';
 import { AuthContext } from '../auth/AuthContext';
 import {
   approveRecoveryRequest,
@@ -63,7 +64,7 @@ export function SupportRecoveryRequestsTab() {
       const data = await fetchRecoveryRequests(statusFilter);
       setRequests(Array.isArray(data) ? data : []);
     } catch (err) {
-      setErrorKey(err.code || 'Support.RECOVERY_REQUESTS_LOAD_FAILED');
+      setErrorKey(resolveErrorText(i18n, err, 'Support.RECOVERY_REQUESTS_LOAD_FAILED'));
     } finally {
       setLoading(false);
     }
@@ -88,7 +89,7 @@ export function SupportRecoveryRequestsTab() {
       });
       setAllUsers(list);
     } catch (err) {
-      setAgentErrorKey(err.code || 'Auth.USER_LIST_FAILED');
+    setAgentErrorKey(resolveErrorText(i18n, err, 'Auth.USER_LIST_FAILED'));
     } finally {
       setAgentLoading(false);
     }
@@ -124,7 +125,7 @@ export function SupportRecoveryRequestsTab() {
       await loadRequests();
       closeDialog();
     } catch (err) {
-      setErrorKey(err.code || 'Support.RECOVERY_REQUEST_APPROVE_FAILED');
+      setErrorKey(resolveErrorText(i18n, err, 'Support.RECOVERY_REQUEST_APPROVE_FAILED'));
     }
   };
 
@@ -136,7 +137,7 @@ export function SupportRecoveryRequestsTab() {
       await loadRequests();
       closeDialog();
     } catch (err) {
-      setErrorKey(err.code || 'Support.RECOVERY_REQUEST_REJECT_FAILED');
+      setErrorKey(resolveErrorText(i18n, err, 'Support.RECOVERY_REQUEST_REJECT_FAILED'));
     }
   };
 
@@ -167,7 +168,7 @@ export function SupportRecoveryRequestsTab() {
       setSelectedAgentCandidate(null);
       await loadUsers();
     } catch (err) {
-      setAgentErrorKey(err.code || 'Auth.USER_SUPPORT_UPDATE_FAILED');
+      setAgentErrorKey(resolveErrorText(i18n, err, 'Auth.USER_SUPPORT_UPDATE_FAILED'));
     } finally {
       setAgentActionUserId(null);
     }
@@ -185,7 +186,7 @@ export function SupportRecoveryRequestsTab() {
       }
       await loadUsers();
     } catch (err) {
-      setAgentErrorKey(err.code || 'Auth.USER_SUPPORT_UPDATE_FAILED');
+      setAgentErrorKey(resolveErrorText(i18n, err, 'Auth.USER_SUPPORT_UPDATE_FAILED'));
     } finally {
       setAgentActionUserId(null);
     }
@@ -216,7 +217,7 @@ export function SupportRecoveryRequestsTab() {
 
           {agentErrorKey && (
             <Alert severity="error" sx={SUPPORT_RECOVERY_ALERT_SX}>
-              {t(agentErrorKey)}
+              {agentErrorKey}
             </Alert>
           )}
 
@@ -310,7 +311,7 @@ export function SupportRecoveryRequestsTab() {
 
       {errorKey && (
         <Alert severity="error" sx={SUPPORT_RECOVERY_ALERT_SX}>
-          {t(errorKey)}
+          {errorKey}
         </Alert>
       )}
 

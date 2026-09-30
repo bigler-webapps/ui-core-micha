@@ -20,6 +20,7 @@ import { NarrowPage } from '../layout/PageLayout';
 import { AuthContext } from '../auth/AuthContext';
 import { submitRegistrationRequest } from '../auth/authApi';
 import { TurnstileWidget } from '../components/TurnstileWidget';
+import { resolveErrorText } from '../utils/resolveErrorText';
 
 export const SIGN_UP_PAGE_ALERT_SX = { mb: 2 };
 
@@ -45,7 +46,7 @@ const MODE_SUBTITLES = {
 export function SignUpPage() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { authMethods } = useContext(AuthContext);
 
   const signupModes = useMemo(() => {
@@ -107,17 +108,17 @@ export function SignUpPage() {
     setErrorKey(null);
 
     if (!email) {
-      setErrorKey('Auth.EMAIL_REQUIRED');
+      setErrorKey(t('Auth.EMAIL_REQUIRED'));
       return;
     }
 
     if (mode === 'self_signup_access_code' && !accessCode) {
-      setErrorKey('Auth.SIGNUP_ACCESS_CODE_REQUIRED');
+      setErrorKey(t('Auth.SIGNUP_ACCESS_CODE_REQUIRED'));
       return;
     }
 
     if (mode === 'self_signup_qr' && !tokenFromUrl) {
-      setErrorKey('Auth.SIGNUP_QR_INVALID');
+      setErrorKey(t('Auth.SIGNUP_QR_INVALID'));
       return;
     }
 
@@ -138,7 +139,7 @@ export function SignUpPage() {
       // signup, which have no code whose validity needs hiding.
       setSuccessKey(res?.code || 'Auth.INVITE_SENT');
     } catch (err) {
-      setErrorKey(err.code || 'Auth.INVITE_FAILED');
+      setErrorKey(resolveErrorText(i18n, err, 'Auth.INVITE_FAILED'));
       if (turnstileRequired) {
         setTurnstileToken('');
         turnstileWidgetRef.current?.reset();
@@ -177,7 +178,7 @@ export function SignUpPage() {
 
           {errorKey && (
             <Alert severity="error" sx={SIGN_UP_PAGE_ALERT_SX}>
-              {t(errorKey, t('Auth.INVITE_FAILED', 'Could not complete signup.'))}
+              {errorKey}
             </Alert>
           )}
 

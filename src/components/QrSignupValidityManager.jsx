@@ -9,6 +9,7 @@ import {
 } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import { updateAuthPolicy } from '../auth/authApi';
+import { resolveErrorText } from '../utils/resolveErrorText';
 
 export const QR_SIGNUP_VALIDITY_ALERT_SX = { mb: 2 };
 export const QR_SIGNUP_VALIDITY_FIELD_SX = { flex: 1 };
@@ -30,7 +31,7 @@ export function QrSignupValidityManager({
   onPolicyChange,
   canEdit = true,
 }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [currentExpiryDays, setCurrentExpiryDays] = useState(String(expiryDays || DEFAULT_EXPIRY_DAYS));
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -53,7 +54,7 @@ export function QrSignupValidityManager({
       setSuccess(t('Auth.AUTH_POLICY_SAVE_SUCCESS', 'Authentication settings saved.'));
       if (onPolicyChange) onPolicyChange(next);
     } catch (err) {
-      setError(t(err?.code || 'Auth.AUTH_POLICY_UPDATE_FAILED', 'Could not save authentication settings.'));
+      setError(resolveErrorText(i18n, err, 'Auth.AUTH_POLICY_UPDATE_FAILED'));
     } finally {
       setBusy(false);
     }

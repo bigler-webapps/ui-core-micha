@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Box, TextField, Button, Typography, Alert, CircularProgress } from '@mui/material';
 import { sendAdminInvite } from '../auth/authApi';
 import { useTranslation } from 'react-i18next';
+import { resolveErrorText } from '../utils/resolveErrorText';
 
 export const USER_INVITE_ACTION_SX = {
   minWidth: 120,
@@ -11,7 +12,7 @@ export const USER_INVITE_ACTION_SX = {
 export const USER_INVITE_ALERT_SX = { mb: 2 };
 
 export function UserInviteComponent() { // FIX: Removed apiUrl prop
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [inviteEmail, setInviteEmail] = useState('');
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
@@ -31,7 +32,7 @@ export function UserInviteComponent() { // FIX: Removed apiUrl prop
       // err.message contains normalized text or code from authApi
       // eslint-disable-next-line no-console
       console.error('Error inviting user:', err);
-      setError(t(err.code) || err.message || t('Auth.INVITE_FAILED'));
+      setError(resolveErrorText(i18n, err, 'Auth.INVITE_FAILED'));
     } finally {
         setLoading(false);
     }

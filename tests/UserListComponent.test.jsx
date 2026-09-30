@@ -10,21 +10,28 @@ const authApi = vi.hoisted(() => ({
 }));
 
 vi.mock('../src/auth/authApi', () => authApi);
-vi.mock('react-i18next', () => ({
-  useTranslation: () => ({
-    t: (key, fallback) => ({
-      'UserList.TITLE': 'All Users',
-      'Common.SEARCH': 'Search',
-      'UserList.SEARCH_PLACEHOLDER': 'Search users...',
-      'Auth.EMAIL_LABEL': 'Email',
-      'Profile.NAME_LABEL': 'Name',
-      'UserList.ROLE': 'Role',
-      'UserList.ROLE_UPDATE_SUCCESS': 'Role updated.',
-      'Auth.USER_ROLE_UPDATE_FAILED': 'Role update failed.',
-      'UserList.NO_USERS': 'No users found.',
-    }[key] ?? (typeof fallback === 'string' ? fallback : key)),
-  }),
-}));
+vi.mock('react-i18next', () => {
+  const KEYS = {
+    'UserList.TITLE': 'All Users',
+    'Common.SEARCH': 'Search',
+    'UserList.SEARCH_PLACEHOLDER': 'Search users...',
+    'Auth.EMAIL_LABEL': 'Email',
+    'Profile.NAME_LABEL': 'Name',
+    'UserList.ROLE': 'Role',
+    'UserList.ROLE_UPDATE_SUCCESS': 'Role updated.',
+    'Auth.USER_ROLE_UPDATE_FAILED': 'Role update failed.',
+    'UserList.NO_USERS': 'No users found.',
+  };
+  const t = (key, fallback) => KEYS[key] ?? (typeof fallback === 'string' ? fallback : key);
+  return {
+    useTranslation: () => ({
+      t,
+      // resolveErrorText (AUTH-10) reads i18n.exists/i18n.t off the object
+      // useTranslation() returns — this mock must carry both, not just `t`.
+      i18n: { exists: (key) => Object.hasOwn(KEYS, key), t },
+    }),
+  };
+});
 
 import { UserListComponent } from '../src/components/UserListComponent';
 

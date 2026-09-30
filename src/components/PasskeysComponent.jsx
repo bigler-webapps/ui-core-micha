@@ -21,12 +21,13 @@ import { useTranslation } from 'react-i18next';
 import { fetchPasskeys, deletePasskey } from '../auth/authApi';
 import { registerPasskey } from '../utils/authService';
 import { FEATURES } from '../auth/authConfig';
+import { resolveErrorText } from '../utils/resolveErrorText';
 
 export const PASSKEYS_ALERT_SX = { mb: 2 };
 export const PASSKEYS_DIVIDER_SX = { mb: 2 };
 
 export function PasskeysComponent() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
 
   const [passkeys, setPasskeys] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -48,7 +49,7 @@ export function PasskeysComponent() {
       const data = await fetchPasskeys();
       setPasskeys(Array.isArray(data) ? data : []);
     } catch (err) {
-      setErrorKey(err.code || 'Auth.PASSKEY_LIST_FAILED');
+      setErrorKey(resolveErrorText(i18n, err, 'Auth.PASSKEY_LIST_FAILED'));
     } finally {
       setLoading(false);
       setReloading(false);
@@ -68,7 +69,7 @@ export function PasskeysComponent() {
     setErrorKey(null);
 
     if (!FEATURES.passkeysEnabled || !passkeysSupported) {
-      setErrorKey('Auth.PASSKEY_NOT_AVAILABLE_ENV');
+      setErrorKey(t('Auth.PASSKEY_NOT_AVAILABLE_ENV'));
       return;
     }
 
@@ -85,7 +86,7 @@ export function PasskeysComponent() {
       await loadPasskeys();
     } catch (err) {
       // registerPasskey wirft normalisierte Errors mit .code
-      setErrorKey(err.code || 'Auth.PASSKEY_CREATE_FAILED');
+      setErrorKey(resolveErrorText(i18n, err, 'Auth.PASSKEY_CREATE_FAILED'));
     } finally {
       setCreating(false);
     }
@@ -101,7 +102,7 @@ export function PasskeysComponent() {
       setPasskeys((prev) => prev.filter((pk) => pk.id !== id));
       setMessageKey('Auth.PASSKEY_DELETE_SUCCESS');
     } catch (err) {
-      setErrorKey(err.code || 'Auth.PASSKEY_DELETE_FAILED');
+      setErrorKey(resolveErrorText(i18n, err, 'Auth.PASSKEY_DELETE_FAILED'));
     } finally {
       setDeletingIds((prev) => {
         const next = new Set(prev);
@@ -146,7 +147,7 @@ export function PasskeysComponent() {
       )}
       {errorKey && (
         <Alert severity="error" sx={PASSKEYS_ALERT_SX}>
-          {t(errorKey)}
+          {errorKey}
         </Alert>
       )}
 

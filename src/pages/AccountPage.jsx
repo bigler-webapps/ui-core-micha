@@ -12,6 +12,7 @@ import {
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import { useTranslation } from 'react-i18next';
+import { resolveErrorText } from '../utils/resolveErrorText';
 
 // Internal context
 import { AuthContext } from '../auth/AuthContext';
@@ -53,7 +54,7 @@ export function AccountPage({
   bulkInviteCsvProps = {},
   extraTabs = [],
 }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { user, login, loading } = useContext(AuthContext);
   const [searchParams, setSearchParams] = useSearchParams();
   const [authPolicy, setAuthPolicy] = useState(null);
@@ -111,9 +112,7 @@ export function AccountPage({
       } catch (err) {
         if (!active) return;
         setAuthPolicy(null);
-        setAuthPolicyError(
-          t(err?.code || 'Auth.AUTH_POLICY_FETCH_FAILED', 'Could not load authentication policy.'),
-        );
+        setAuthPolicyError(resolveErrorText(i18n, err, 'Auth.AUTH_POLICY_FETCH_FAILED'));
       }
     };
 

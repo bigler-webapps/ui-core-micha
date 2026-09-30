@@ -13,9 +13,20 @@ vi.mock('react-router-dom', () => ({
   useLocation: () => ({ search: '' }),
 }));
 vi.mock('react-helmet', () => ({ Helmet: ({ children }) => <>{children}</> }));
-vi.mock('react-i18next', () => ({
-  useTranslation: () => ({ t: (key, fallback) => (typeof fallback === 'string' ? fallback : key) }),
-}));
+vi.mock('react-i18next', () => {
+  const t = (key, fallback) => (typeof fallback === 'string' ? fallback : key);
+  return {
+    useTranslation: () => ({
+      t,
+      // resolveErrorText (AUTH-10) reads i18n.exists/i18n.t off the object
+      // useTranslation() returns — this mock must carry both, not just `t`.
+      // No real catalogue here, so nothing "exists"; resolveErrorText falls
+      // through to the backend message or the caller's default key, exactly
+      // as it did before this mock had an i18n object at all.
+      i18n: { exists: () => false, t },
+    }),
+  };
+});
 
 import { AuthContext } from '../src/auth/AuthContext';
 import { SignUpPage } from '../src/pages/SignUpPage';

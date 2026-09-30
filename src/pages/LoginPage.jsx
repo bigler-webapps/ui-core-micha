@@ -19,6 +19,7 @@ import { loginWithPasskey, startSocialLogin } from '../utils/authService';
 // Components
 import { LoginForm } from '../components/LoginForm';
 import { MfaLoginComponent } from '../components/MfaLoginComponent';
+import { resolveErrorText } from '../utils/resolveErrorText';
 
 export const LOGIN_PAGE_ALERT_SX = { mb: 2 };
 
@@ -26,7 +27,7 @@ export function LoginPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, loading, login, authMethods } = useContext(AuthContext);
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
 
   // State
   const [step, setStep] = useState('credentials'); // 'credentials' | 'mfa'
@@ -96,7 +97,7 @@ export function LoginPage() {
   useEffect(() => {
     const socialError = params.get('error') || params.get('social');
     if (socialError) {
-      setErrorKey('Auth.SOCIAL_LOGIN_FAILED');
+      setErrorKey(t('Auth.SOCIAL_LOGIN_FAILED'));
     }
   }, [location.search]);
 
@@ -132,14 +133,14 @@ export function LoginPage() {
       window.history.replaceState(null, '', cleanUrl);
     }
     if (recoveryStatus === 'expired') {
-      setErrorKey('Auth.RECOVERY_TOKEN_EXPIRED');
+      setErrorKey(t('Auth.RECOVERY_TOKEN_EXPIRED'));
       setRecoveryToken(null);
       return;
     }
     if (recoveryStatus !== 'ok') {
       // Catches `invalid` and any unknown value (including legacy email
       // links that carried the plaintext token before S164).
-      setErrorKey('Auth.RECOVERY_TOKEN_INVALID');
+      setErrorKey(t('Auth.RECOVERY_TOKEN_INVALID'));
       setRecoveryToken(null);
       return;
     }
@@ -150,7 +151,7 @@ export function LoginPage() {
         if (cancelled) return;
         if (!token) {
           // Session entry missing or already consumed — treat as invalid.
-          setErrorKey('Auth.RECOVERY_TOKEN_INVALID');
+          setErrorKey(t('Auth.RECOVERY_TOKEN_INVALID'));
           setRecoveryToken(null);
           return;
         }
@@ -158,7 +159,7 @@ export function LoginPage() {
       })
       .catch((err) => {
         if (cancelled) return;
-        setErrorKey(err?.code || 'Auth.RECOVERY_TOKEN_INVALID');
+        setErrorKey(resolveErrorText(i18n, err, 'Auth.RECOVERY_TOKEN_INVALID'));
         setRecoveryToken(null);
       })
       .finally(() => {
@@ -217,7 +218,7 @@ export function LoginPage() {
         handleLoginSuccess(result.user);
       }
     } catch (err) {
-      setErrorKey(err.code || 'Auth.LOGIN_FAILED');
+      setErrorKey(resolveErrorText(i18n, err, 'Auth.LOGIN_FAILED'));
     } finally {
       setSubmitting(false);
     }
@@ -233,7 +234,7 @@ export function LoginPage() {
     } catch (err) {
       // 'Auth.PASSKEY_CANCELLED' is generic, maybe ignore visually or show specific hint
       if (err.code !== 'Auth.PASSKEY_CANCELLED') {
-         setErrorKey(err.code || 'Auth.PASSKEY_FAILED');
+         setErrorKey(resolveErrorText(i18n, err, 'Auth.PASSKEY_FAILED'));
       }
     } finally {
       setSubmitting(false);
@@ -287,7 +288,7 @@ export function LoginPage() {
 
       {errorKey && (
         <Alert severity="error" sx={LOGIN_PAGE_ALERT_SX}>
-          {t(errorKey)}
+          {errorKey}
         </Alert>
       )}
 

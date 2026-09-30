@@ -8,6 +8,7 @@ import {
 } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import { updateAuthPolicy } from '../auth/authApi';
+import { resolveErrorText } from '../utils/resolveErrorText';
 
 export const ALLOWED_EMAIL_DOMAINS_ALERT_SX = { mb: 2 };
 export const ALLOWED_EMAIL_DOMAINS_BUTTON_SX = { mt: 2 };
@@ -18,7 +19,7 @@ export function AllowedEmailDomainsManager({
   onPolicyChange,
   canEdit = true,
 }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [domainsText, setDomainsText] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -44,7 +45,7 @@ export function AllowedEmailDomainsManager({
       setSuccess(t('Auth.AUTH_POLICY_SAVE_SUCCESS', 'Authentication settings saved.'));
       if (onPolicyChange) onPolicyChange(next);
     } catch (err) {
-      setError(t(err?.code || 'Auth.AUTH_POLICY_UPDATE_FAILED', 'Could not save authentication settings.'));
+      setError(resolveErrorText(i18n, err, 'Auth.AUTH_POLICY_UPDATE_FAILED'));
     } finally {
       setBusy(false);
     }

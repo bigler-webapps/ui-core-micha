@@ -25,8 +25,12 @@ vi.mock('qrcode.react', () => ({
 // re-render (e.g. the setBusy(true) inside it), which is a mock artifact this test file must
 // not reintroduce given it asserts exact createSignupQr call counts.
 const stableT = (_key, fallback) => fallback;
+// resolveErrorText (AUTH-10) reads i18n.exists/i18n.t off the object
+// useTranslation() returns — kept module-scoped/stable for the same reason
+// `stableT` is, above.
+const stableI18n = { exists: () => false, t: stableT };
 vi.mock('react-i18next', () => ({
-  useTranslation: () => ({ t: stableT }),
+  useTranslation: () => ({ t: stableT, i18n: stableI18n }),
 }));
 
 import { QrSignupManager } from '../src/components/QrSignupManager';

@@ -10,11 +10,12 @@ import {
 } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import { fetchAuthPolicy, updateAuthPolicy } from '../auth/authApi';
+import { resolveErrorText } from '../utils/resolveErrorText';
 
 export const AUTH_FACTOR_REQUIREMENT_ALERT_SX = { mb: 2 };
 
 export function AuthFactorRequirementCard({ canEdit = true, policy = null }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [value, setValue] = useState('1');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -56,7 +57,7 @@ export function AuthFactorRequirementCard({ canEdit = true, policy = null }) {
       setSuccess(t('Auth.AUTH_FACTOR_SAVE_SUCCESS', 'Factor requirement saved.'));
     } catch (err) {
       setValue(previous);
-      setError(t(err?.code || 'Auth.AUTH_POLICY_UPDATE_FAILED', 'Could not save factor requirement.'));
+      setError(resolveErrorText(i18n, err, 'Auth.AUTH_POLICY_UPDATE_FAILED'));
     } finally {
       setBusy(false);
     }

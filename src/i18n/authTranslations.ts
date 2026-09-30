@@ -2138,6 +2138,427 @@ export const authTranslations = {
     "sw": "{{count}} zimefaulu"
   },
 
+  "Auth.field.email.invalid": {
+    "de": "Bitte geben Sie eine gültige E-Mail-Adresse ein.",
+    "de_informal": "Bitte gib eine gültige E-Mail-Adresse ein.",
+    "fr": "Saisissez une adresse e-mail valide.",
+    "en": "Enter a valid email address.",
+    "sw": "Weka anwani sahihi ya barua pepe."
+  },
+  "Auth.field.email.required": {
+    "de": "Bitte geben Sie eine E-Mail-Adresse ein.",
+    "de_informal": "Bitte gib eine E-Mail-Adresse ein.",
+    "fr": "Saisissez une adresse e-mail.",
+    "en": "Enter an email address.",
+    "sw": "Weka anwani ya barua pepe."
+  },
+  "Auth.field.password.invalid": {
+    "de": "Bitte geben Sie ein gültiges Passwort ein.",
+    "de_informal": "Bitte gib ein gültiges Passwort ein.",
+    "fr": "Saisissez un mot de passe valide.",
+    "en": "Enter a valid password.",
+    "sw": "Weka nenosiri sahihi."
+  },
+  "Auth.field.password.required": {
+    "de": "Bitte geben Sie ein Passwort ein.",
+    "de_informal": "Bitte gib ein Passwort ein.",
+    "fr": "Saisissez un mot de passe.",
+    "en": "Enter a password.",
+    "sw": "Weka nenosiri."
+  },
+  "Auth.field.new_password.invalid": {
+    "de": "Bitte geben Sie ein gültiges neues Passwort ein.",
+    "de_informal": "Bitte gib ein gültiges neues Passwort ein.",
+    "fr": "Saisissez un nouveau mot de passe valide.",
+    "en": "Enter a valid new password.",
+    "sw": "Weka nenosiri jipya sahihi."
+  },
+  "Auth.field.new_password.required": {
+    "de": "Bitte geben Sie ein neues Passwort ein.",
+    "de_informal": "Bitte gib ein neues Passwort ein.",
+    "fr": "Saisissez un nouveau mot de passe.",
+    "en": "Enter a new password.",
+    "sw": "Weka nenosiri jipya."
+  },
+  "Auth.field.current_password.invalid": {
+    "de": "Bitte geben Sie Ihr aktuelles Passwort korrekt ein.",
+    "de_informal": "Bitte gib dein aktuelles Passwort korrekt ein.",
+    "fr": "Saisissez correctement votre mot de passe actuel.",
+    "en": "Enter your current password correctly.",
+    "sw": "Weka nenosiri lako la sasa kwa usahihi."
+  },
+  "Auth.field.current_password.required": {
+    "de": "Bitte geben Sie Ihr aktuelles Passwort ein.",
+    "de_informal": "Bitte gib dein aktuelles Passwort ein.",
+    "fr": "Saisissez votre mot de passe actuel.",
+    "en": "Enter your current password.",
+    "sw": "Weka nenosiri lako la sasa."
+  },
+  "Auth.field.key.invalid": {
+    "de": "Bitte geben Sie einen gültigen Schlüssel ein.",
+    "de_informal": "Bitte gib einen gültigen Schlüssel ein.",
+    "fr": "Saisissez une clé valide.",
+    "en": "Enter a valid key.",
+    "sw": "Weka ufunguo sahihi."
+  },
+  "Auth.field.key.required": {
+    "de": "Bitte geben Sie einen Schlüssel ein.",
+    "de_informal": "Bitte gib einen Schlüssel ein.",
+    "fr": "Saisissez une clé.",
+    "en": "Enter a key.",
+    "sw": "Weka ufunguo."
+  },
+  "Auth.field.code.invalid": {
+    "de": "Bitte geben Sie einen gültigen Code ein.",
+    "de_informal": "Bitte gib einen gültigen Code ein.",
+    "fr": "Saisissez un code valide.",
+    "en": "Enter a valid code.",
+    "sw": "Weka msimbo sahihi."
+  },
+  "Auth.field.code.required": {
+    "de": "Bitte geben Sie einen Code ein.",
+    "de_informal": "Bitte gib einen Code ein.",
+    "fr": "Saisissez un code.",
+    "en": "Enter a code.",
+    "sw": "Weka msimbo."
+  },
+  "Auth.field.credential.invalid": {
+    "de": "Bitte verwenden Sie eine gültige Sicherheitsmethode.",
+    "de_informal": "Bitte verwende eine gültige Sicherheitsmethode.",
+    "fr": "Utilisez une méthode de sécurité valide.",
+    "en": "Use a valid security method.",
+    "sw": "Tumia njia sahihi ya usalama."
+  },
+  "Auth.field.credential.required": {
+    "de": "Bitte verwenden Sie eine Sicherheitsmethode.",
+    "de_informal": "Bitte verwende eine Sicherheitsmethode.",
+    "fr": "Utilisez une méthode de sécurité.",
+    "en": "Use a security method.",
+    "sw": "Tumia njia ya usalama."
+  },
+  "Auth.field.name.invalid": {
+    "de": "Bitte geben Sie einen gültigen Namen ein.",
+    "de_informal": "Bitte gib einen gültigen Namen ein.",
+    "fr": "Saisissez un nom valide.",
+    "en": "Enter a valid name.",
+    "sw": "Weka jina sahihi."
+  },
+  "Auth.field.name.required": {
+    "de": "Bitte geben Sie einen Namen ein.",
+    "de_informal": "Bitte gib einen Namen ein.",
+    "fr": "Saisissez un nom.",
+    "en": "Enter a name.",
+    "sw": "Weka jina."
+  },
+  "Auth.field.mode.invalid": {
+    "de": "Bitte wählen Sie eine gültige Anmeldemethode.",
+    "de_informal": "Bitte wähle eine gültige Anmeldemethode.",
+    "fr": "Sélectionnez un mode d'inscription valide.",
+    "en": "Choose a valid sign-up method.",
+    "sw": "Chagua njia sahihi ya kujisajili."
+  },
+  "Auth.field.mode.required": {
+    "de": "Bitte wählen Sie eine Anmeldemethode.",
+    "de_informal": "Bitte wähle eine Anmeldemethode.",
+    "fr": "Sélectionnez un mode d'inscription.",
+    "en": "Choose a sign-up method.",
+    "sw": "Chagua njia ya kujisajili."
+  },
+  "Auth.field.access_code.invalid": {
+    "de": "Bitte geben Sie einen gültigen Zugangscode ein.",
+    "de_informal": "Bitte gib einen gültigen Zugangscode ein.",
+    "fr": "Saisissez un code d'accès valide.",
+    "en": "Enter a valid access code.",
+    "sw": "Weka msimbo sahihi wa ufikiaji."
+  },
+  "Auth.field.access_code.required": {
+    "de": "Bitte geben Sie einen Zugangscode ein.",
+    "de_informal": "Bitte gib einen Zugangscode ein.",
+    "fr": "Saisissez un code d'accès.",
+    "en": "Enter an access code.",
+    "sw": "Weka msimbo wa ufikiaji."
+  },
+  "Auth.field.registration_context_token.invalid": {
+    "de": "Bitte verwenden Sie einen gültigen Registrierungslink.",
+    "de_informal": "Bitte verwende einen gültigen Registrierungslink.",
+    "fr": "Utilisez un lien d'inscription valide.",
+    "en": "Use a valid registration link.",
+    "sw": "Tumia kiungo sahihi cha usajili."
+  },
+  "Auth.field.registration_context_token.required": {
+    "de": "Bitte verwenden Sie einen Registrierungslink.",
+    "de_informal": "Bitte verwende einen Registrierungslink.",
+    "fr": "Utilisez un lien d'inscription.",
+    "en": "Use a registration link.",
+    "sw": "Tumia kiungo cha usajili."
+  },
+  "Auth.field.registration_context.invalid": {
+    "de": "Die Registrierungsdaten sind ungültig.",
+    "de_informal": "Die Registrierungsdaten sind ungültig.",
+    "fr": "Les données d'inscription sont invalides.",
+    "en": "The registration data is invalid.",
+    "sw": "Data ya usajili si sahihi."
+  },
+  "Auth.field.registration_context.required": {
+    "de": "Bitte geben Sie die Registrierungsdaten an.",
+    "de_informal": "Bitte gib die Registrierungsdaten an.",
+    "fr": "Indiquez les données d'inscription.",
+    "en": "Provide the registration data.",
+    "sw": "Weka data ya usajili."
+  },
+  "Auth.field.turnstile_token.invalid": {
+    "de": "Bitte bestätigen Sie die Sicherheitsprüfung erneut.",
+    "de_informal": "Bitte bestätige die Sicherheitsprüfung erneut.",
+    "fr": "Recommencez la vérification de sécurité.",
+    "en": "Complete the security check again.",
+    "sw": "Kamilisha ukaguzi wa usalama tena."
+  },
+  "Auth.field.turnstile_token.required": {
+    "de": "Bitte bestätigen Sie die Sicherheitsprüfung.",
+    "de_informal": "Bitte bestätige die Sicherheitsprüfung.",
+    "fr": "Confirmez la vérification de sécurité.",
+    "en": "Complete the security check.",
+    "sw": "Kamilisha ukaguzi wa usalama."
+  },
+  "Auth.field.token.invalid": {
+    "de": "Bitte verwenden Sie einen gültigen Bestätigungstoken.",
+    "de_informal": "Bitte verwende einen gültigen Bestätigungstoken.",
+    "fr": "Utilisez un jeton de confirmation valide.",
+    "en": "Use a valid confirmation token.",
+    "sw": "Tumia tokeni sahihi ya uthibitishaji."
+  },
+  "Auth.field.token.required": {
+    "de": "Bitte geben Sie den Bestätigungstoken an.",
+    "de_informal": "Bitte gib den Bestätigungstoken an.",
+    "fr": "Indiquez le jeton de confirmation.",
+    "en": "Provide the confirmation token.",
+    "sw": "Weka tokeni ya uthibitishaji."
+  },
+  "Auth.field.first_name.invalid": {
+    "de": "Bitte geben Sie einen gültigen Vornamen ein.",
+    "de_informal": "Bitte gib einen gültigen Vornamen ein.",
+    "fr": "Saisissez un prénom valide.",
+    "en": "Enter a valid first name.",
+    "sw": "Weka jina la kwanza sahihi."
+  },
+  "Auth.field.first_name.required": {
+    "de": "Bitte geben Sie Ihren Vornamen ein.",
+    "de_informal": "Bitte gib deinen Vornamen ein.",
+    "fr": "Saisissez votre prénom.",
+    "en": "Enter your first name.",
+    "sw": "Weka jina lako la kwanza."
+  },
+  "Auth.field.last_name.invalid": {
+    "de": "Bitte geben Sie einen gültigen Nachnamen ein.",
+    "de_informal": "Bitte gib einen gültigen Nachnamen ein.",
+    "fr": "Saisissez un nom de famille valide.",
+    "en": "Enter a valid last name.",
+    "sw": "Weka jina la mwisho sahihi."
+  },
+  "Auth.field.last_name.required": {
+    "de": "Bitte geben Sie Ihren Nachnamen ein.",
+    "de_informal": "Bitte gib deinen Nachnamen ein.",
+    "fr": "Saisissez votre nom de famille.",
+    "en": "Enter your last name.",
+    "sw": "Weka jina lako la mwisho."
+  },
+  "Auth.field.accepted_privacy_statement.invalid": {
+    "de": "Bitte bestätigen Sie die Datenschutzerklärung.",
+    "de_informal": "Bitte bestätige die Datenschutzerklärung.",
+    "fr": "Confirmez la déclaration de confidentialité.",
+    "en": "Confirm the privacy statement.",
+    "sw": "Thibitisha taarifa ya faragha."
+  },
+  "Auth.field.accepted_privacy_statement.required": {
+    "de": "Bitte bestätigen Sie die Datenschutzerklärung.",
+    "de_informal": "Bitte bestätige die Datenschutzerklärung.",
+    "fr": "Confirmez la déclaration de confidentialité.",
+    "en": "Confirm the privacy statement.",
+    "sw": "Thibitisha taarifa ya faragha."
+  },
+  "Auth.field.accepted_convenience_cookies.invalid": {
+    "de": "Die Cookie-Einstellung ist ungültig.",
+    "de_informal": "Die Cookie-Einstellung ist ungültig.",
+    "fr": "Le choix des cookies est invalide.",
+    "en": "The cookie preference is invalid.",
+    "sw": "Chaguo la vidakuzi si sahihi."
+  },
+  "Auth.field.accepted_convenience_cookies.required": {
+    "de": "Bitte geben Sie Ihre Cookie-Einstellung an.",
+    "de_informal": "Bitte gib deine Cookie-Einstellung an.",
+    "fr": "Indiquez votre choix de cookies.",
+    "en": "Provide your cookie preference.",
+    "sw": "Weka chaguo lako la vidakuzi."
+  },
+  "Auth.field.expires_minutes.invalid": {
+    "de": "Bitte geben Sie eine gültige Ablaufzeit ein.",
+    "de_informal": "Bitte gib eine gültige Ablaufzeit ein.",
+    "fr": "Saisissez une durée de validité valide.",
+    "en": "Enter a valid expiry period.",
+    "sw": "Weka muda sahihi wa kuisha."
+  },
+  "Auth.field.expires_minutes.required": {
+    "de": "Bitte geben Sie eine Ablaufzeit an.",
+    "de_informal": "Bitte gib eine Ablaufzeit an.",
+    "fr": "Indiquez une durée de validité.",
+    "en": "Provide an expiry period.",
+    "sw": "Weka muda wa kuisha."
+  },
+  "Auth.field.max_redemptions.invalid": {
+    "de": "Bitte geben Sie eine gültige Anzahl von Einlösungen ein.",
+    "de_informal": "Bitte gib eine gültige Anzahl von Einlösungen ein.",
+    "fr": "Saisissez un nombre de validations valide.",
+    "en": "Enter a valid redemption count.",
+    "sw": "Weka idadi sahihi ya matumizi."
+  },
+  "Auth.field.max_redemptions.required": {
+    "de": "Bitte geben Sie die maximale Anzahl von Einlösungen an.",
+    "de_informal": "Bitte gib die maximale Anzahl von Einlösungen an.",
+    "fr": "Indiquez le nombre maximal de validations.",
+    "en": "Provide the maximum redemption count.",
+    "sw": "Weka idadi ya juu ya matumizi."
+  },
+  "Auth.field.signup_qr_expiry_days.invalid": {
+    "de": "Bitte geben Sie eine gültige QR-Gültigkeitsdauer ein.",
+    "de_informal": "Bitte gib eine gültige QR-Gültigkeitsdauer ein.",
+    "fr": "Saisissez une durée de validité QR valide.",
+    "en": "Enter a valid QR validity period.",
+    "sw": "Weka muda sahihi wa QR."
+  },
+  "Auth.field.signup_qr_expiry_days.required": {
+    "de": "Bitte geben Sie die QR-Gültigkeitsdauer an.",
+    "de_informal": "Bitte gib die QR-Gültigkeitsdauer an.",
+    "fr": "Indiquez la durée de validité QR.",
+    "en": "Provide the QR validity period.",
+    "sw": "Weka muda wa QR."
+  },
+  "Auth.field.allowed_email_domains.invalid": {
+    "de": "Bitte geben Sie gültige E-Mail-Domains ein.",
+    "de_informal": "Bitte gib gültige E-Mail-Domains ein.",
+    "fr": "Saisissez des domaines e-mail valides.",
+    "en": "Enter valid email domains.",
+    "sw": "Weka vikoa sahihi vya barua pepe."
+  },
+  "Auth.field.allowed_email_domains.required": {
+    "de": "Bitte geben Sie die erlaubten E-Mail-Domains an.",
+    "de_informal": "Bitte gib die erlaubten E-Mail-Domains an.",
+    "fr": "Indiquez les domaines e-mail autorisés.",
+    "en": "Provide the allowed email domains.",
+    "sw": "Weka vikoa vinavyoruhusiwa vya barua pepe."
+  },
+  "Auth.field.required_auth_factor_count.invalid": {
+    "de": "Bitte wählen Sie eine gültige Anzahl von Sicherheitsfaktoren.",
+    "de_informal": "Bitte wähle eine gültige Anzahl von Sicherheitsfaktoren.",
+    "fr": "Sélectionnez un nombre de facteurs de sécurité valide.",
+    "en": "Choose a valid number of security factors.",
+    "sw": "Chagua idadi sahihi ya vipengele vya usalama."
+  },
+  "Auth.field.required_auth_factor_count.required": {
+    "de": "Bitte wählen Sie die Anzahl der Sicherheitsfaktoren.",
+    "de_informal": "Bitte wähle die Anzahl der Sicherheitsfaktoren.",
+    "fr": "Sélectionnez le nombre de facteurs de sécurité.",
+    "en": "Choose the number of security factors.",
+    "sw": "Chagua idadi ya vipengele vya usalama."
+  },
+  "Auth.field.allow_admin_invite.invalid": {
+    "de": "Diese Einstellung für Admin-Einladungen ist ungültig.",
+    "de_informal": "Diese Einstellung für Admin-Einladungen ist ungültig.",
+    "fr": "Ce paramètre d'invitation administrateur est invalide.",
+    "en": "This admin-invite setting is invalid.",
+    "sw": "Mpangilio huu wa mialiko ya msimamizi si sahihi."
+  },
+  "Auth.field.allow_admin_invite.required": {
+    "de": "Bitte geben Sie die Einstellung für Admin-Einladungen an.",
+    "de_informal": "Bitte gib die Einstellung für Admin-Einladungen an.",
+    "fr": "Indiquez le paramètre d'invitation administrateur.",
+    "en": "Provide the admin-invite setting.",
+    "sw": "Toa mpangilio wa mialiko ya msimamizi."
+  },
+  "Auth.field.allow_self_signup_access_code.invalid": {
+    "de": "Diese Einstellung für die Registrierung per Zugangscode ist ungültig.",
+    "de_informal": "Diese Einstellung für die Registrierung per Zugangscode ist ungültig.",
+    "fr": "Ce paramètre d'inscription par code d'accès est invalide.",
+    "en": "This access-code sign-up setting is invalid.",
+    "sw": "Mpangilio huu wa kujisajili kwa msimbo wa ufikiaji si sahihi."
+  },
+  "Auth.field.allow_self_signup_access_code.required": {
+    "de": "Bitte geben Sie die Einstellung für die Registrierung per Zugangscode an.",
+    "de_informal": "Bitte gib die Einstellung für die Registrierung per Zugangscode an.",
+    "fr": "Indiquez le paramètre d'inscription par code d'accès.",
+    "en": "Provide the access-code sign-up setting.",
+    "sw": "Toa mpangilio wa kujisajili kwa msimbo wa ufikiaji."
+  },
+  "Auth.field.allow_self_signup_open.invalid": {
+    "de": "Diese Einstellung für die offene Registrierung ist ungültig.",
+    "de_informal": "Diese Einstellung für die offene Registrierung ist ungültig.",
+    "fr": "Ce paramètre d'inscription ouverte est invalide.",
+    "en": "This open sign-up setting is invalid.",
+    "sw": "Mpangilio huu wa kujisajili wazi si sahihi."
+  },
+  "Auth.field.allow_self_signup_open.required": {
+    "de": "Bitte geben Sie die Einstellung für die offene Registrierung an.",
+    "de_informal": "Bitte gib die Einstellung für die offene Registrierung an.",
+    "fr": "Indiquez le paramètre d'inscription ouverte.",
+    "en": "Provide the open sign-up setting.",
+    "sw": "Toa mpangilio wa kujisajili wazi."
+  },
+  "Auth.field.allow_self_signup_email_domain.invalid": {
+    "de": "Diese Einstellung für die Registrierung per E-Mail-Domain ist ungültig.",
+    "de_informal": "Diese Einstellung für die Registrierung per E-Mail-Domain ist ungültig.",
+    "fr": "Ce paramètre d'inscription par domaine e-mail est invalide.",
+    "en": "This email-domain sign-up setting is invalid.",
+    "sw": "Mpangilio huu wa kujisajili kwa domeni ya barua pepe si sahihi."
+  },
+  "Auth.field.allow_self_signup_email_domain.required": {
+    "de": "Bitte geben Sie die Einstellung für die Registrierung per E-Mail-Domain an.",
+    "de_informal": "Bitte gib die Einstellung für die Registrierung per E-Mail-Domain an.",
+    "fr": "Indiquez le paramètre d'inscription par domaine e-mail.",
+    "en": "Provide the email-domain sign-up setting.",
+    "sw": "Toa mpangilio wa kujisajili kwa domeni ya barua pepe."
+  },
+  "Auth.field.allow_self_signup_qr.invalid": {
+    "de": "Diese Einstellung für die QR-Registrierung ist ungültig.",
+    "de_informal": "Diese Einstellung für die QR-Registrierung ist ungültig.",
+    "fr": "Ce paramètre d'inscription par QR est invalide.",
+    "en": "This QR sign-up setting is invalid.",
+    "sw": "Mpangilio huu wa kujisajili kwa QR si sahihi."
+  },
+  "Auth.field.allow_self_signup_qr.required": {
+    "de": "Bitte geben Sie die Einstellung für die QR-Registrierung an.",
+    "de_informal": "Bitte gib die Einstellung für die QR-Registrierung an.",
+    "fr": "Indiquez le paramètre d'inscription par QR.",
+    "en": "Provide the QR sign-up setting.",
+    "sw": "Toa mpangilio wa kujisajili kwa QR."
+  },
+  "Auth.field.message.invalid": {
+    "de": "Bitte geben Sie eine gültige Nachricht ein.",
+    "de_informal": "Bitte gib eine gültige Nachricht ein.",
+    "fr": "Saisissez un message valide.",
+    "en": "Enter a valid message.",
+    "sw": "Weka ujumbe sahihi."
+  },
+  "Auth.field.message.required": {
+    "de": "Bitte geben Sie eine Nachricht ein.",
+    "de_informal": "Bitte gib eine Nachricht ein.",
+    "fr": "Saisissez un message.",
+    "en": "Enter a message.",
+    "sw": "Weka ujumbe."
+  },
+  "Auth.field.support_note.invalid": {
+    "de": "Bitte geben Sie eine gültige Supportnotiz ein.",
+    "de_informal": "Bitte gib eine gültige Supportnotiz ein.",
+    "fr": "Saisissez une note de support valide.",
+    "en": "Enter a valid support note.",
+    "sw": "Weka dokezo sahihi la usaidizi."
+  },
+  "Auth.field.support_note.required": {
+    "de": "Bitte geben Sie eine Supportnotiz ein.",
+    "de_informal": "Bitte gib eine Supportnotiz ein.",
+    "fr": "Saisissez une note de support.",
+    "en": "Enter a support note.",
+    "sw": "Weka dokezo la usaidizi."
+  },
+
   // Raw backend auth error codes (allauth-headless + Django password validators).
   // Keyed by the exact code string so the existing `t(err.code)` call sites resolve
   // as a drop-in, without any component change. See AUTH-2.

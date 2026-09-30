@@ -1,4 +1,5 @@
 import axios from "axios";
+import i18next from "i18next";
 import { CSRF_URL } from "./authConfig";
 import { requestReauth } from "./reauth";
 
@@ -6,6 +7,14 @@ const apiClient = axios.create({
   withCredentials: true,
   xsrfCookieName: "csrftoken",
   xsrfHeaderName: "X-CSRFToken",
+});
+
+apiClient.interceptors.request.use((config) => {
+  const language = i18next?.isInitialized ? i18next.language : null;
+  if (language) {
+    config.headers = { ...config.headers, 'Accept-Language': language };
+  }
+  return config;
 });
 
 let redirectingToLogin = false;

@@ -14,6 +14,7 @@ import { MFAComponent } from './MFAComponent';
 import { changePassword } from '../auth/authApi';
 import { startSocialLogin } from '../utils/authService';
 import { AuthContext } from '../auth/AuthContext';
+import { resolveErrorText } from '../utils/resolveErrorText';
 
 export const SECURITY_ALERT_SX = { mb: 2 };
 export const SECURITY_DIVIDER_SX = { my: 3 };
@@ -22,7 +23,7 @@ export function SecurityComponent({
   fromRecovery = false,
   fromWeakLogin = false,
 }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { authMethods } = useContext(AuthContext);
 
   const [messageKey, setMessageKey] = useState(null);
@@ -60,7 +61,7 @@ export function SecurityComponent({
         callbackUrl: `${window.location.origin}/account?tab=security`,
       });
     } catch (err) {
-      setErrorKey(err.code || 'Auth.SOCIAL_LOGIN_FAILED');
+      setErrorKey(resolveErrorText(i18n, err, 'Auth.SOCIAL_LOGIN_FAILED'));
     }
   };
 
@@ -71,7 +72,7 @@ export function SecurityComponent({
       await changePassword(currentPassword, newPassword);
       setMessageKey('Auth.RESET_PASSWORD_SUCCESS');
     } catch (err) {
-      setErrorKey(err.code || 'Auth.PASSWORD_CHANGE_FAILED');
+      setErrorKey(resolveErrorText(i18n, err, 'Auth.PASSWORD_CHANGE_FAILED'));
     }
   };
 
@@ -96,7 +97,7 @@ export function SecurityComponent({
       )}
       {errorKey && (
         <Alert severity="error" sx={SECURITY_ALERT_SX}>
-          {t(errorKey)}
+          {errorKey}
         </Alert>
       )}
 

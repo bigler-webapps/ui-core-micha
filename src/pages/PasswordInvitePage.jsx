@@ -7,12 +7,13 @@ import { useTranslation } from 'react-i18next';
 import { NarrowPage } from '../layout/PageLayout';
 import { PasswordSetForm } from '../components/PasswordSetForm';
 import { verifyResetToken, setNewPassword } from '../auth/authApi';
+import { resolveErrorText } from '../utils/resolveErrorText';
 
 export function PasswordInvitePage() {
   const { uid, token } = useParams();
   const location = useLocation();
   const navigate = useNavigate();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const searchParams = new URLSearchParams(location.search);
   const nextPath = searchParams.get('next');
 
@@ -37,7 +38,7 @@ export function PasswordInvitePage() {
 
   useEffect(() => {
     if (!uid || !token) {
-      setErrorKey('Auth.RESET_LINK_INVALID');
+      setErrorKey(t('Auth.RESET_LINK_INVALID'));
       setChecked(true);
       return;
     }
@@ -47,7 +48,7 @@ export function PasswordInvitePage() {
         await verifyResetToken(uid, token);
         setChecked(true);
       } catch (err) {
-        setErrorKey(err.code || 'Auth.RESET_LINK_INVALID');
+        setErrorKey(resolveErrorText(i18n, err, 'Auth.RESET_LINK_INVALID'));
         setChecked(true);
       }
     };
@@ -108,13 +109,13 @@ export function PasswordInvitePage() {
       // only a password rejection keeps the form; a link problem must still
       // end in the same invalid-link state the initial check produces.
       if (err.code === 'Auth.RESET_LINK_INVALID') {
-        setErrorKey(err.code);
+        setErrorKey(resolveErrorText(i18n, err, 'Auth.RESET_LINK_INVALID'));
       } else {
         const responseMessages = err.raw?.messages || err.response?.data?.messages;
         setSubmitErrorKey(
           Array.isArray(responseMessages) && responseMessages.length > 0
             ? responseMessages.join(' ')
-            : t(err.code || 'Auth.RESET_PASSWORD_FAILED'),
+            : resolveErrorText(i18n, err, 'Auth.RESET_PASSWORD_FAILED'),
         );
       }
     } finally {
@@ -144,7 +145,7 @@ export function PasswordInvitePage() {
 
       {errorKey && (
         <Typography color="error" gutterBottom>
-          {t(errorKey)}
+          {errorKey}
         </Typography>
       )}
 

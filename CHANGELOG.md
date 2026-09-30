@@ -1,5 +1,12 @@
 # Changelog
 
+## 3.9.0 — UCM-AUTH-10
+
+Kit auth errors now resolve through explicit backend i18n keys, field-specific keys, code translations,
+backend messages, and caller defaults, so a raw backend code is never shown. The auth API client also sends
+the active UI language as `Accept-Language` on every request, and the auth catalog now includes field-specific
+`invalid` and `required` messages for kit-submitted fields in all four supported languages.
+
 ## 3.8.0 — UCM-THEME-15
 
 `createAppTheme` can now derive baseline status `main` colours and control-border colours against the theme's own
@@ -8,6 +15,17 @@ app-supplied values are unchanged. When a status `main` is derived, its `light` 
 so components using `error.dark` for hover may change on tinted pages.
 
 Only notable, user-facing changes. Not every version — see `WORK_ORDERS.md` for the full history.
+
+## 3.7.0
+
+- `UCM-PRIM-2`: Added the `EmptyState` primitive with icon, title, description, action, and theme tokens.
+- `UCM-SHELL-7`: Improved `UserMenu` avatar-initial contrast to at least 4.5:1 against `primary.main` on any theme.
+- `UCM-MSG-20`: Kept `Composer` usable at 375px, rendered only safe `http`/`https` message links, and added
+  read-ratio tooltip behavior that hides when there are no recipients.
+- `UCM-AUTH-9`: Kept the password-invite form visible after server-side password rejection, made success wait for
+  an explicit login action, explained disabled self-signup, and confirmed successful role changes.
+- `UCM-I18N-4`: Added the `createUiCoreTranslations({ germanVariant })` factory for informal German and translated
+  hard-coded user/admin messages across all four locales.
 
 ## 3.6.0 — AUTH-8
 

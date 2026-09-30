@@ -40,4 +40,35 @@ describe('auth error normalisation', () => {
 
     expect(error.code).toBe('invalid_credentials');
   });
+
+  it('keeps field, explicit i18n key, and backend message separate', () => {
+    const error = normaliseApiError({
+      response: {
+        status: 400,
+        data: {
+          errors: [{
+            code: 'invalid',
+            param: 'email',
+            i18nKey: 'Auth.EMAIL_INVALID',
+            message: 'Backend message',
+          }],
+        },
+      },
+    });
+
+    expect(error.code).toBe('invalid');
+    expect(error.field).toBe('email');
+    expect(error.i18nKey).toBe('Auth.EMAIL_INVALID');
+    expect(error.backendMessage).toBe('Backend message');
+    expect(error.message).toBe('Backend message');
+  });
+
+  it('does not turn a missing backend message into a code message', () => {
+    const error = normaliseApiError({
+      response: { data: { code: 'unknown_backend_code' } },
+    });
+
+    expect(error.backendMessage).toBeUndefined();
+    expect(error.message).toBe('unknown_backend_code');
+  });
 });

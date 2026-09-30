@@ -5,26 +5,33 @@ import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 
-vi.mock('react-i18next', () => ({
-  useTranslation: () => ({
-    t: (key, fallback) => ({
-      'Account.TITLE': 'Account & Administration',
-      'Account.PAGE_TITLE': 'Account',
-      'Account.TAB_PROFILE': 'Profile',
-      'Account.TAB_SECURITY': 'Security',
-      'Account.TAB_USERS': 'Users',
-      'Account.TAB_INVITE': 'Invite',
-      'Account.TAB_SUPPORT': 'Support',
-      'Account.GROUP_MY_ACCOUNT': 'My account',
-      'Account.GROUP_MANAGEMENT': 'Management',
-      'Account.GROUP_HELP': 'Help',
-      'Account.GROUP_MORE': 'More',
-      'SectionNav.TITLE': 'Switch section',
-      'SectionNav.TRIGGER_EYEBROW': 'Section',
-      'SectionNav.LAST_OPENED': 'Last opened',
-    }[key] ?? fallback ?? key),
-  }),
-}));
+vi.mock('react-i18next', () => {
+  const KEYS = {
+    'Account.TITLE': 'Account & Administration',
+    'Account.PAGE_TITLE': 'Account',
+    'Account.TAB_PROFILE': 'Profile',
+    'Account.TAB_SECURITY': 'Security',
+    'Account.TAB_USERS': 'Users',
+    'Account.TAB_INVITE': 'Invite',
+    'Account.TAB_SUPPORT': 'Support',
+    'Account.GROUP_MY_ACCOUNT': 'My account',
+    'Account.GROUP_MANAGEMENT': 'Management',
+    'Account.GROUP_HELP': 'Help',
+    'Account.GROUP_MORE': 'More',
+    'SectionNav.TITLE': 'Switch section',
+    'SectionNav.TRIGGER_EYEBROW': 'Section',
+    'SectionNav.LAST_OPENED': 'Last opened',
+  };
+  const t = (key, fallback) => KEYS[key] ?? fallback ?? key;
+  return {
+    useTranslation: () => ({
+      t,
+      // resolveErrorText (AUTH-10) reads i18n.exists/i18n.t off the object
+      // useTranslation() returns — this mock must carry both, not just `t`.
+      i18n: { exists: (key) => Object.hasOwn(KEYS, key), t },
+    }),
+  };
+});
 
 vi.mock('../src/auth/authApi', () => ({
   fetchAuthPolicy: vi.fn(() => new Promise(() => {})),

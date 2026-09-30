@@ -19,11 +19,12 @@ import { Helmet } from 'react-helmet';
 import { useTranslation } from 'react-i18next';
 import { NarrowPage } from '../layout/PageLayout';
 import { confirmRegistration } from '../auth/authApi';
+import { resolveErrorText } from '../utils/resolveErrorText';
 
 export const SIGNUP_CONFIRM_PAGE_ALERT_SX = { mb: 2 };
 
 export function SignupConfirmPage() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -42,15 +43,15 @@ export function SignupConfirmPage() {
     setErrorKey(null);
 
     if (!tokenFromUrl) {
-      setErrorKey('Auth.PENDING_TOKEN_INVALID');
+      setErrorKey(t('Auth.PENDING_TOKEN_INVALID'));
       return;
     }
     if (!password || password.length < 8) {
-      setErrorKey('Auth.PASSWORD_TOO_SHORT');
+      setErrorKey(t('Auth.PASSWORD_TOO_SHORT'));
       return;
     }
     if (password !== confirmPassword) {
-      setErrorKey('Auth.PASSWORD_MISMATCH');
+      setErrorKey(t('Auth.PASSWORD_MISMATCH'));
       return;
     }
 
@@ -63,7 +64,7 @@ export function SignupConfirmPage() {
       navigate('/login', { replace: true });
       return;
     } catch (err) {
-      setErrorKey(err?.code || 'Auth.PENDING_TOKEN_INVALID');
+      setErrorKey(resolveErrorText(i18n, err, 'Auth.PENDING_TOKEN_INVALID'));
     } finally {
       setSubmitting(false);
     }
@@ -103,7 +104,7 @@ export function SignupConfirmPage() {
         <>
           {errorKey && (
             <Alert severity="error" sx={SIGNUP_CONFIRM_PAGE_ALERT_SX}>
-              {t(errorKey, t('Auth.PENDING_TOKEN_INVALID', 'Could not confirm registration.'))}
+              {errorKey}
             </Alert>
           )}
 

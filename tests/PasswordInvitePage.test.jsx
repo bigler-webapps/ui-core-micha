@@ -11,27 +11,34 @@ const authApi = vi.hoisted(() => ({
 
 vi.mock('../src/auth/authApi', () => authApi);
 vi.mock('react-helmet', () => ({ Helmet: ({ children }) => <>{children}</> }));
-vi.mock('react-i18next', () => ({
-  useTranslation: () => ({
-    t: (key, fallback) => ({
-      'Auth.PAGE_INVITE_TITLE': 'Set password',
-      'Auth.PAGE_INVITE_SUBTITLE': 'Choose a password.',
-      'Auth.PAGE_RESET_PASSWORD_TITLE': 'Reset password',
-      'Auth.PAGE_RESET_PASSWORD_SUBTITLE': 'Choose a new password.',
-      'Auth.PAGE_CHECKING_LINK_TITLE': 'Checking link',
-      'Auth.PAGE_CHECKING_LINK_TEXT': 'Checking…',
-      'Auth.RESET_LINK_INVALID': 'The link is invalid or expired.',
-      'Auth.RESET_PASSWORD_SUCCESS_INVITE': 'Password set successfully.',
-      'Auth.RESET_PASSWORD_SUCCESS_RESET': 'Password changed successfully.',
-      'Auth.SIGNUP_GO_TO_LOGIN': 'Go to login',
-      'Auth.NEW_PASSWORD_LABEL': 'New password',
-      'Auth.PASSWORD_CONFIRM_LABEL': 'Confirm password',
-      'Auth.PASSWORD_RULES_HINT': 'Password rules',
-      'Auth.PASSWORD_SET_BUTTON': 'Set password',
-      'Auth.PASSWORD_SET_BUTTON_LOADING': 'Setting password…',
-    }[key] ?? (typeof fallback === 'string' ? fallback : key)),
-  }),
-}));
+vi.mock('react-i18next', () => {
+  const KEYS = {
+    'Auth.PAGE_INVITE_TITLE': 'Set password',
+    'Auth.PAGE_INVITE_SUBTITLE': 'Choose a password.',
+    'Auth.PAGE_RESET_PASSWORD_TITLE': 'Reset password',
+    'Auth.PAGE_RESET_PASSWORD_SUBTITLE': 'Choose a new password.',
+    'Auth.PAGE_CHECKING_LINK_TITLE': 'Checking link',
+    'Auth.PAGE_CHECKING_LINK_TEXT': 'Checking…',
+    'Auth.RESET_LINK_INVALID': 'The link is invalid or expired.',
+    'Auth.RESET_PASSWORD_SUCCESS_INVITE': 'Password set successfully.',
+    'Auth.RESET_PASSWORD_SUCCESS_RESET': 'Password changed successfully.',
+    'Auth.SIGNUP_GO_TO_LOGIN': 'Go to login',
+    'Auth.NEW_PASSWORD_LABEL': 'New password',
+    'Auth.PASSWORD_CONFIRM_LABEL': 'Confirm password',
+    'Auth.PASSWORD_RULES_HINT': 'Password rules',
+    'Auth.PASSWORD_SET_BUTTON': 'Set password',
+    'Auth.PASSWORD_SET_BUTTON_LOADING': 'Setting password…',
+  };
+  const t = (key, fallback) => KEYS[key] ?? (typeof fallback === 'string' ? fallback : key);
+  return {
+    useTranslation: () => ({
+      t,
+      // resolveErrorText (AUTH-10) reads i18n.exists/i18n.t off the object
+      // useTranslation() returns — this mock must carry both, not just `t`.
+      i18n: { exists: (key) => Object.hasOwn(KEYS, key), t },
+    }),
+  };
+});
 
 function LocationProbe() {
   const location = useLocation();

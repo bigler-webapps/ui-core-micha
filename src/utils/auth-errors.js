@@ -4,26 +4,60 @@ export function extractErrorInfo(error) {
   const data = error.response?.data ?? null;
 
   if (!data) {
-    return { status, code: null, message: error.message || null, raw: null };
+    return {
+      status,
+      code: null,
+      field: null,
+      i18nKey: null,
+      message: null,
+      raw: null,
+    };
   }
 
   // Allauth Headless structure often nests errors in "errors" array or "status" key
   if (Array.isArray(data.errors) && data.errors.length > 0) {
-      // Pick the first error code
-      const first = data.errors[0];
-      return { status, code: first.code, message: first.message, raw: data };
+      const first = data.errors[0] || {};
+      return {
+        status,
+        code: first.code ?? null,
+        field: first.field ?? first.param ?? null,
+        i18nKey: first.i18nKey ?? null,
+        message: first.message,
+        raw: data,
+      };
   }
 
   if (typeof data.code === 'string') {
-    return { status, code: data.code, message: null, raw: data };
+    return {
+      status,
+      code: data.code,
+      field: data.field ?? null,
+      i18nKey: data.i18nKey ?? null,
+      message: data.message ?? data.detail,
+      raw: data,
+    };
   }
   
   // Fallback for generic Django errors
   if (typeof data.detail === 'string') {
-    return { status, code: null, message: data.detail, raw: data };
+    return {
+      status,
+      code: null,
+      field: data.field ?? null,
+      i18nKey: data.i18nKey ?? null,
+      message: data.detail,
+      raw: data,
+    };
   }
 
-  return { status, code: null, message: null, raw: data };
+  return {
+    status,
+    code: null,
+    field: data.field ?? null,
+    i18nKey: data.i18nKey ?? null,
+    message: data.message,
+    raw: data,
+  };
 }
 
 export function normaliseApiError(error, defaultCode = 'Auth.GENERIC_ERROR') {
@@ -33,6 +67,9 @@ export function normaliseApiError(error, defaultCode = 'Auth.GENERIC_ERROR') {
 
   const err = new Error(message);
   err.code = code;
+  err.field = info.field;
+  err.i18nKey = info.i18nKey;
+  err.backendMessage = info.message;
   err.status = info.status;
   err.raw = info.raw;
   return err;

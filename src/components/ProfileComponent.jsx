@@ -18,6 +18,7 @@ import { useTranslation } from 'react-i18next';
 // WICHTIG: Importiere den Context, um die bereits geladenen Daten zu nutzen
 import { AuthContext } from '../auth/AuthContext'; 
 import { fetchCookieStatement, fetchPrivacyStatement } from '../auth/authApi';
+import { resolveErrorText } from '../utils/resolveErrorText';
 
 export function ProfileComponent({
   onSubmit,
@@ -29,7 +30,7 @@ export function ProfileComponent({
   privacyStatementText = null,
   cookieStatementText = null,
 }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   
   // WICHTIG: Wir holen den User direkt aus dem globalen State
   // Das verhindert den doppelten Request und den ReferenceError
@@ -140,7 +141,7 @@ export function ProfileComponent({
     } catch (err) {
       // eslint-disable-next-line no-console
       console.error("Profile update error:", err);
-      setErrorKey(err.code || 'Auth.PROFILE_UPDATE_FAILED');
+      setErrorKey(resolveErrorText(i18n, err, 'Auth.PROFILE_UPDATE_FAILED'));
     } finally {
       setSaving(false);
     }
@@ -175,7 +176,7 @@ export function ProfileComponent({
     >
       {errorKey && (
         <Alert severity="error">
-          {t(errorKey)}
+          {errorKey}
         </Alert>
       )}
       {successKey && (

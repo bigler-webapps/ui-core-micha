@@ -8,11 +8,12 @@ import {
 } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import { fetchAuthPolicy, updateAuthPolicy } from '../auth/authApi';
+import { resolveErrorText } from '../utils/resolveErrorText';
 
 export const ACCESS_CODE_SINGLE_USE_ALERT_SX = { mb: 2 };
 
 export function AccessCodeSingleUseToggle({ canEdit = true, policy = null, onPolicyChange = null }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [value, setValue] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -57,7 +58,7 @@ export function AccessCodeSingleUseToggle({ canEdit = true, policy = null, onPol
       setSuccess(t('Auth.ACCESS_CODE_SINGLE_USE_SAVE_SUCCESS', 'Access code policy saved.'));
     } catch (err) {
       setValue(previous);
-      setError(t(err?.code || 'Auth.AUTH_POLICY_UPDATE_FAILED', 'Could not save access code policy.'));
+      setError(resolveErrorText(i18n, err, 'Auth.AUTH_POLICY_UPDATE_FAILED'));
     } finally {
       setBusy(false);
     }

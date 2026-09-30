@@ -15,13 +15,14 @@ import {
 import { useTranslation } from 'react-i18next';
 import { authenticateWithMFA, fetchCurrentUser, requestMfaSupportHelp } from '../auth/authApi';
 import { loginWithPasskey } from '../utils/authService';
+import { resolveErrorText } from '../utils/resolveErrorText';
 
 export const MFA_LOGIN_ALERT_SX = { mb: 2 };
 export const MFA_LOGIN_DIVIDER_SX = { my: 2 };
 export const MFA_LOGIN_TEXT_FIELD_SX = { mb: 2 };
 
 export function MfaLoginComponent({ availableTypes, identifier, onSuccess, onCancel }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [code, setCode] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [errorKey, setErrorKey] = useState(null);
@@ -54,7 +55,7 @@ export function MfaLoginComponent({ availableTypes, identifier, onSuccess, onCan
         method: isRecovery ? 'recovery_code' : 'totp',
       });
     } catch (err) {
-      setErrorKey(err.code || 'Auth.MFA_AUTHENTICATE_FAILED');
+      setErrorKey(resolveErrorText(i18n, err, 'Auth.MFA_AUTHENTICATE_FAILED'));
     } finally {
       setSubmitting(false);
     }
@@ -73,11 +74,11 @@ export function MfaLoginComponent({ availableTypes, identifier, onSuccess, onCan
       // Detailed error handling
       if (err.code === 'Auth.PASSKEY_CANCELLED') {
           // User cancelled - show specific key or just ignore
-          setErrorKey('Auth.PASSKEY_CANCELLED');
+          setErrorKey(t('Auth.PASSKEY_CANCELLED'));
       } else {
           // eslint-disable-next-line no-console
           console.error(err);
-          setErrorKey('Auth.PASSKEY_FAILED');
+          setErrorKey(t('Auth.PASSKEY_FAILED'));
       }
     } finally {
       setSubmitting(false);
@@ -101,7 +102,7 @@ export function MfaLoginComponent({ availableTypes, identifier, onSuccess, onCan
       setHelpDialogOpen(false);
       setHelpMessage('');
     } catch (err) {
-      setErrorKey(err.code || 'Auth.MFA_HELP_REQUEST_FAILED');
+      setErrorKey(resolveErrorText(i18n, err, 'Auth.MFA_HELP_REQUEST_FAILED'));
     } finally {
       setSubmitting(false);
     }
@@ -118,7 +119,7 @@ export function MfaLoginComponent({ availableTypes, identifier, onSuccess, onCan
 
       {errorKey && (
         <Alert severity="error" sx={MFA_LOGIN_ALERT_SX}>
-          {t(errorKey)}
+          {errorKey}
         </Alert>
       )}
 
