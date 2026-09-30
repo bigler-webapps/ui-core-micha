@@ -72,9 +72,81 @@ In `tests/UserListComponent.test.jsx`:
 
 # B. Implementation map — filled by the Orchestrator — ADDRESSED TO THE IMPLEMENTER
 
-*(placeholder — no context package yet, no progress contract yet; the Orchestrator fills this
-part on `git pull` and appends the preamble below to the invocation. Do not dispatch on this
-placeholder.)*
+## Context package
+
+- File: `src/components/UserListComponent.jsx` (current state, verified against `main` at `3.9.0`
+  post-`UCM-AUTH-10`, line numbers below are exact).
+- **The fix must gate RENDERING, not just the disabled state.** `canDelete(row)` (line 151-156)
+  already decides enabled-vs-disabled; the delete `Button` (line 441-453) already renders
+  `disabled={!canDelete(row)}`. If the own-row rule were added INSIDE `canDelete`, the button would
+  still render, just permanently disabled — that is explicitly NOT what the Envelope asks for ("no
+  delete button — not a disabled one, none at all"). The rule must wrap the render, so a consumer's
+  `canDeleteUser` returning `true` for the own row cannot bring the button back (Required Test #3).
+- Add a small helper next to `canDelete` (around line 156):
+  ```js
+  const isOwnRow = (targetUser) => {
+    if (currentUser?.id == null || targetUser?.id == null) return false;
+    return String(targetUser.id) === String(currentUser.id);
+  };
+  ```
+  - `currentUser?.id == null` (loose check, catches both `undefined` and `null`) covers the "current
+    user not yet loaded" risk: when there is no current user at all, every row's `isOwnRow` is
+    `false`, so nothing is hidden and nothing throws (Required Test #4) — this function must NOT be
+    the place that decides "hide everything while loading"; it only ever answers "is THIS row me",
+    and answers `false` when that question is unanswerable.
+  - `String(...) === String(...)` is the fix for the Risk note's `id` type mismatch (`3` vs `"3"`).
+- Wire it into the existing render condition at line 438 — change
+  `{showDeleteAction && (` to `{showDeleteAction && !isOwnRow(row) && (` (the `Tooltip`/`Button`
+  JSX inside is otherwise byte-identical — do not touch its internals, only the gating condition
+  that decides whether that whole block renders at all).
+- Do not touch `canDelete`/`canEdit`/`defaultCanEdit` (line 128-156) — the non-goal is explicit that
+  every OTHER row's enabled-vs-disabled behaviour stays exactly as today; this fix only removes the
+  own row's button, it does not change what `canDelete` returns for anyone (a consumer's
+  `canDeleteUser({ targetUser, currentUser, extraContext })` for the own row may still return
+  `true` internally — that return value is simply never consulted for the own row anymore, because
+  the render is gated before `canDelete(row)` is ever reached for that row's button).
+
+## Test file — `tests/UserListComponent.test.jsx` (existing — read it first for the render harness,
+## the `react-i18next`/`i18n` mock shape `UCM-AUTH-10` already fixed there, and `authApi` mocking
+## convention already established; extend it, do not replace its structure)
+
+Five cases, matching the Required Tests 1-5 exactly:
+1. `currentUser = { id: 99, is_superuser: true, ... }`, `fetchUsersList` resolves a list including a
+   row with `id: 99` (the signed-in user) and at least one other row (e.g. `id: 1`); no
+   `canDeleteUser` prop passed. Assert: querying delete buttons by accessible name/role yields exactly
+   one (for the OTHER row), and it is not disabled; no delete button exists for the row whose `id`
+   is `99` (e.g. scope the query to that row's `TableRow` — check how existing tests in this file
+   locate a specific row, or use `within(row)` from `@testing-library/react` if not already
+   imported).
+2. Same shape, `currentUser.role = 'admin'` instead of `is_superuser` — same assertions.
+3. Pass `canDeleteUser={() => true}` (unconditionally true for every row, including the own one) —
+   assert the own row STILL has no delete button, while the other row's is enabled (proves the
+   render-level gate wins over a consumer prop, not just over the default `canEdit`-based logic).
+4. Render with `currentUser = null` (or omit the prop) while `fetchUsersList` resolves a list
+   including a row that happens to share no id with anyone — assert the component does not throw
+   (no unhandled rejection/render error) and renders without crashing; per the Envelope's own
+   framing, unauthenticated/loading state does not by itself grant any row a delete button (this
+   test is about NOT crashing and NOT hiding unrelated rows, not about granting new permissions —
+   keep whatever the existing default-canEdit-based enabled/disabled state would be for other rows
+   in this configuration, do not assert a specific enabled/disabled state you have not verified from
+   `defaultCanEdit`'s own logic for a null `currentUser`, which already returns `false` unconditionally
+   at line 129 — so with the default `canDeleteUser`, every row is disabled-but-present in this
+   configuration; assert exactly that: buttons present and disabled, none of them thrown away).
+5. **Mutation proof required by the Envelope itself:** after writing tests 1 and 3, temporarily
+   comment out or revert the `!isOwnRow(row)` addition in your own working copy, re-run tests 1 and
+   3 ONLY, confirm both fail, then restore the fix and confirm the full focused file is green again.
+   Narrate this in `PROGRESS` (which two tests failed, then the restore) rather than leaving a
+   permanently-broken toggle in the committed test file — same pattern already used successfully in
+   this repo's own `UCM-THEME-15`/`UCM-PRIM-2` work orders for an identical "prove it would fail"
+   requirement.
+
+## Do-not-touch / invariants
+
+- No backend change (dcm is a separate repo, untouched, and out of scope regardless).
+- No change to `defaultCanEdit`/`canEdit`/`canDelete`'s return values for any OTHER row.
+- No change to any other action on the own row (role select, extra row actions) — only the delete
+  button's presence.
+- No consumer (`AccountPage`, etc.) touched — this fix is entirely inside `UserListComponent.jsx`.
 
 ## Target repo working directory (absolute)
 

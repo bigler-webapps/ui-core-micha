@@ -1,5 +1,9 @@
 # Changelog
 
+## 3.9.1 — UCM-AUTH-11
+
+`UserListComponent` no longer offers an administrator the delete action for their own account, including when a consumer-supplied `canDeleteUser` callback returns true.
+
 ## 3.9.0 — UCM-AUTH-10
 
 Kit auth errors now resolve through explicit backend i18n keys, field-specific keys, code translations,

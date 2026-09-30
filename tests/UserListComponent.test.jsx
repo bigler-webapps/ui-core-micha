@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import React from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 
 const authApi = vi.hoisted(() => ({
   fetchUsersList: vi.fn(),
@@ -37,6 +37,22 @@ import { UserListComponent } from '../src/components/UserListComponent';
 
 const currentUser = { id: 99, is_superuser: true, role: 'admin' };
 const user = { id: 1, email: 'person@example.com', role: 'student' };
+const ownUser = { id: 99, email: 'admin@example.com', role: 'admin' };
+
+function renderDeleteList(props = {}) {
+  return render(
+    <UserListComponent
+      currentUser={currentUser}
+      showNewColumn={false}
+      showSuccessfulLoginColumn={false}
+      {...props}
+    />,
+  );
+}
+
+function getRowByEmail(email) {
+  return screen.getByRole('cell', { name: email }).closest('tr');
+}
 
 function renderUserList() {
   return render(
@@ -88,5 +104,66 @@ describe('UserListComponent role updates', () => {
 
     await waitFor(() => expect(alert).toHaveBeenCalledWith('Role update failed.'));
     expect(authApi.fetchUsersList).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('UserListComponent delete actions', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    authApi.fetchUsersList.mockResolvedValue([ownUser, user]);
+  });
+
+  afterEach(() => {
+    cleanup();
+    vi.restoreAllMocks();
+  });
+
+  it('does not offer a superuser deletion of their own row', async () => {
+    renderDeleteList();
+
+    await waitFor(() => expect(screen.getAllByRole('button', { name: 'Delete' })).toHaveLength(1));
+
+    expect(within(getRowByEmail(ownUser.email)).queryByRole('button', { name: 'Delete' })).toBeNull();
+    expect(within(getRowByEmail(user.email)).getByRole('button', { name: 'Delete' }).disabled).toBe(false);
+  });
+
+  it('does not offer an admin deletion of their own row', async () => {
+    renderDeleteList({ currentUser: { id: 99, role: 'admin' } });
+
+    await waitFor(() => expect(screen.getAllByRole('button', { name: 'Delete' })).toHaveLength(1));
+
+    expect(within(getRowByEmail(ownUser.email)).queryByRole('button', { name: 'Delete' })).toBeNull();
+    expect(within(getRowByEmail(user.email)).getByRole('button', { name: 'Delete' }).disabled).toBe(false);
+  });
+
+  it('does not restore the own-row delete action when canDeleteUser returns true', async () => {
+    renderDeleteList({ canDeleteUser: () => true });
+
+    await waitFor(() => expect(screen.getAllByRole('button', { name: 'Delete' })).toHaveLength(1));
+
+    expect(within(getRowByEmail(ownUser.email)).queryByRole('button', { name: 'Delete' })).toBeNull();
+    expect(within(getRowByEmail(user.email)).getByRole('button', { name: 'Delete' }).disabled).toBe(false);
+  });
+
+  it('keeps unrelated rows and disabled delete actions when currentUser is not loaded', async () => {
+    authApi.fetchUsersList.mockResolvedValue([user]);
+    renderDeleteList({ currentUser: null });
+
+    await waitFor(() => expect(screen.getAllByRole('button', { name: 'Delete' })).toHaveLength(1));
+
+    expect(screen.getByRole('button', { name: 'Delete' }).disabled).toBe(true);
+  });
+
+  it('matches the own row even when the row id and current-user id have different types', async () => {
+    // The backend row's id can come back as a string while currentUser.id is a
+    // number (or vice versa) -- isOwnRow must compare by value, not by strict
+    // type, or this exact mismatch would silently show the button again.
+    authApi.fetchUsersList.mockResolvedValue([{ ...ownUser, id: String(ownUser.id) }, user]);
+    renderDeleteList();
+
+    await waitFor(() => expect(screen.getAllByRole('button', { name: 'Delete' })).toHaveLength(1));
+
+    expect(within(getRowByEmail(ownUser.email)).queryByRole('button', { name: 'Delete' })).toBeNull();
+    expect(within(getRowByEmail(user.email)).getByRole('button', { name: 'Delete' }).disabled).toBe(false);
   });
 });

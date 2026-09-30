@@ -155,6 +155,11 @@ export function UserListComponent({
     return canEdit(targetUser);
   };
 
+  const isOwnRow = (targetUser) => {
+    if (currentUser?.id == null || targetUser?.id == null) return false;
+    return String(targetUser.id) === String(currentUser.id);
+  };
+
   const listContext = useMemo(() => ({
     currentUser,
     extraContext,
@@ -435,7 +440,7 @@ export function UserListComponent({
             );
           })}
 
-          {showDeleteAction && (
+          {showDeleteAction && !isOwnRow(row) && (
             <Tooltip title={t('Common.DELETE', 'Delete')}>
               <span>
                 <Button
@@ -473,6 +478,7 @@ export function UserListComponent({
     loadUsers,
     canEdit,
     canDelete,
+    isOwnRow,
   ]);
 
   const sortedUsers = useMemo(() => {
