@@ -1,5 +1,9 @@
 # Changelog
 
+## 3.10.0 — UCM-TEST-1
+
+Added the exported `checkKitIntegration` consumer check for app i18n, providers, kit page rendering, and auth error translation wiring.
+
 ## 3.9.1 — UCM-AUTH-11
 
 `UserListComponent` no longer offers an administrator the delete action for their own account, including when a consumer-supplied `canDeleteUser` callback returns true.

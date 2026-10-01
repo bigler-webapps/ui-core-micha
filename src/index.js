@@ -20,6 +20,9 @@ export {
   THEME_COMPLETENESS_SURFACES,
 } from './theme';
 
+// --- 0.1 Consumer integration ---
+export { checkKitIntegration } from './testing/checkKitIntegration';
+
 // --- 1. Auth Context (Essentiell für den Wrapper) ---
 export { AuthContext, AuthProvider } from './auth/AuthContext';
 export { UserMenu } from './auth/UserMenu';
