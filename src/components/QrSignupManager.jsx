@@ -373,7 +373,7 @@ export function QrSignupManager({
               mt: 2,
               borderRadius: 3,
               p: 2,
-              bgcolor: 'grey.50',
+              bgcolor: 'background.subtle',
               border: '1px solid',
               borderColor: 'divider',
             }}

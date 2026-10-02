@@ -1,5 +1,11 @@
 # Changelog
 
+## 3.11.2 — UCM-THEME-16
+
+The "Signup Access / valid until" box in `QrSignupManager` now takes `background.subtle` instead of the fixed light `grey.50`,
+so its text stays readable in dark mode (2.00:1 before). In light the ground moves from `#FAFAFA` to `#F4F5F6` (1.05:1 step).
+The white ground behind the QR code itself is unchanged on purpose.
+
 ## 3.11.1 — UCM-I18N-5
 
 `UserListComponent`'s pagination range text ("1–4 of 4") now goes through `labelDisplayedRows`,
