@@ -47,7 +47,7 @@ stated rule from a decided value) or **invented** (no precedent anywhere; labell
 
 | Token | Light (today) | Dark | Origin |
 |---|---|---|---|
-| `controlBorder.main` | `rgba(33,37,41,.50)` | `rgba(230,235,239,.38)` | derived: `ink.primary` at the smallest alpha that clears 3:1 on page and paper |
+| `controlBorder.main` | `rgba(33,37,41,.50)` | `rgba(230,235,239,.38)` | derived: `ink.primary` at the smallest alpha **in 0.02 steps from 0.30** that clears 3:1 on page and paper (wording made precise 2026-10-02; a finer step would give 0.37, the frozen value is 0.38) |
 | `controlBorder.hover` | `rgba(33,37,41,.65)` | `rgba(230,235,239,.53)` | derived: the light step (+0.15) carried over |
 | `controlBorder.error` | `#BF3227` | `#E58B80` | = `error.main` (dark) |
 | `controlBorder.focus` | derived from primary | derived from primary | rule: lighten the primary until it clears 3:1 on page and paper |
