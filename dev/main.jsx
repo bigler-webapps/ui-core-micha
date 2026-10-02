@@ -38,10 +38,10 @@ function Harness() {
   const entry = entries.find((item) => item.id === entryId) || entries[0];
   const usesBaselineTheme = ['theme-baseline', 'mobile-bottom-nav'].includes(entry.id);
   const usesBrowserViewport = entry.id === 'mobile-bottom-nav';
-  const effectiveMode = usesBaselineTheme ? 'light' : mode;
+  const effectiveMode = mode;
   const theme = useMemo(
     () => usesBaselineTheme
-      ? createAppTheme({ palette: { primary: { main: '#3D5A99' } } })
+      ? createAppTheme({ palette: { mode, primary: { main: '#3D5A99' } } })
       : createTheme({ palette: { mode } }),
     [mode, usesBaselineTheme],
   );
@@ -55,7 +55,7 @@ function Harness() {
         <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} sx={{ mb: 3 }} alignItems={{ md: 'center' }}>
           <Typography variant="h5" sx={{ mr: 'auto' }}>ui-core-micha harness</Typography>
           <FormControl size="small" sx={{ minWidth: 220 }}><InputLabel id="entry-label">Entry</InputLabel><Select labelId="entry-label" label="Entry" value={entryId} onChange={(event) => setEntryId(event.target.value)}>{entries.map((item) => <MenuItem key={item.id} value={item.id}>{item.label}</MenuItem>)}</Select></FormControl>
-          <ButtonGroup size="small"><Button variant={effectiveMode === 'light' ? 'contained' : 'outlined'} onClick={() => setMode('light')}>Light</Button><Button disabled={usesBaselineTheme} variant={effectiveMode === 'dark' ? 'contained' : 'outlined'} onClick={() => setMode('dark')}>Dark</Button></ButtonGroup>
+          <ButtonGroup size="small"><Button variant={effectiveMode === 'light' ? 'contained' : 'outlined'} onClick={() => setMode('light')}>Light</Button><Button variant={effectiveMode === 'dark' ? 'contained' : 'outlined'} onClick={() => setMode('dark')}>Dark</Button></ButtonGroup>
           {usesBrowserViewport ? (
             <Typography variant="caption" color="text.secondary">Use the browser viewport for this specimen</Typography>
           ) : (

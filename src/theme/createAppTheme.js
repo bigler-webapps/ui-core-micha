@@ -1,11 +1,16 @@
 import './fonts';
 
-import { createTheme, darken, getContrastRatio } from '@mui/material/styles';
+import { createTheme, darken, decomposeColor, getContrastRatio, lighten } from '@mui/material/styles';
 
 import {
   BASELINE_INTENTIONAL_DEFAULT_EXEMPTIONS,
+  BASELINE_INTENTIONAL_DEFAULT_EXEMPTIONS_DARK,
   BASELINE_PALETTE,
+  BASELINE_PALETTE_DARK,
   BASELINE_STATIC,
+  DARK_OVERLAY_SHADOW,
+  DARK_OVERLAY_SURFACE,
+  DARK_SCRIM,
   MOTION,
   withMainShades,
 } from './tokens';
@@ -42,6 +47,21 @@ function clearsContrast(colour, surfaces) {
   return surfaces.every((surface) => getContrastRatio(colour, surface) >= 3);
 }
 
+function normalizeColour(colour) {
+  const match = colour.match(/^rgb\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*\)$/);
+  if (!match) return colour;
+  return `#${match.slice(1).map((channel) => Number(channel).toString(16).padStart(2, '0')).join('').toUpperCase()}`;
+}
+
+function lightenColour(colour, coefficient) {
+  const normalized = normalizeColour(colour);
+  const match = normalized.match(/^#([\da-f]{6})$/i);
+  if (!match) return normalizeColour(lighten(colour, coefficient));
+  const channels = [0, 2, 4].map((offset) => parseInt(match[1].slice(offset, offset + 2), 16));
+  return `#${channels.map((channel) => Math.round(channel + (255 - channel) * coefficient)
+    .toString(16).padStart(2, '0')).join('').toUpperCase()}`;
+}
+
 // Darkened until it clears 3:1 against BOTH '#FFFFFF' and background.default
 // -- the exact two surfaces assertThemeComplete's contrastFindings checks --
 // so deriving against background.paper alone (which need not be white for an
@@ -53,6 +73,16 @@ function deriveFocusColour(primary, surfaces) {
     if (coefficient >= 0.9) break;
   }
   return focus;
+}
+
+function deriveLightenedColour(original, surfaces) {
+  if (clearsContrast(original, surfaces)) return original;
+  let colour = original;
+  for (let coefficient = 0.05; !clearsContrast(colour, surfaces); coefficient += 0.05) {
+    colour = lightenColour(original, Math.min(coefficient, 0.9));
+    if (coefficient >= 0.9) break;
+  }
+  return colour;
 }
 
 function clearsPageContrast(colour, surfaces, threshold) {
@@ -71,6 +101,35 @@ function deriveDarkenedPageColour(original, surfaces, threshold) {
     if (coefficient >= 0.9) break;
   }
   return colour;
+}
+
+function deriveLightenedPageColour(original, surfaces, threshold) {
+  if (clearsPageContrast(original, surfaces, threshold)) return original;
+
+  let colour = original;
+  for (let coefficient = 0.05; !clearsPageContrast(colour, surfaces, threshold); coefficient += 0.05) {
+    colour = lightenColour(original, Math.min(coefficient, 0.9));
+    if (coefficient >= 0.9) break;
+  }
+  return colour;
+}
+
+// ink.primary may be supplied as hex or rgb(); decomposeColor normalises both.
+function inkChannels(ink) {
+  return decomposeColor(ink).values.slice(0, 3).map((value) => Math.round(value));
+}
+
+// 0.02 steps: the frozen sheet value (0.38) is the first even step that clears
+// 3:1; a 0.01 search would land on 0.37 and drift from the frozen baseline.
+function deriveDarkAlphaColour(ink, surfaces) {
+  const [red, green, blue] = inkChannels(ink);
+  let alpha = 0;
+  while (alpha <= 1) {
+    const colour = `rgba(${red},${green},${blue},${alpha.toFixed(2)})`;
+    if (clearsPageContrast(colour, surfaces, 3)) return colour;
+    alpha = Number((alpha + 0.02).toFixed(2));
+  }
+  return `rgba(${red},${green},${blue},1)`;
 }
 
 const RGBA_PATTERN = /^rgba\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d*\.?\d+)\s*\)$/;
@@ -92,7 +151,7 @@ function deriveAlphaPageColour(original, surfaces, threshold) {
   return colour;
 }
 
-function createPaletteAwareComponents(palette) {
+function createPaletteAwareComponents(palette, isDark) {
   const stateTransition = `border-color ${MOTION.duration.fast}ms ${MOTION.easing.state}, color ${MOTION.duration.fast}ms ${MOTION.easing.state}, background-color ${MOTION.duration.fast}ms ${MOTION.easing.state}`;
   const autofill = {
     '&:-webkit-autofill': {
@@ -117,7 +176,7 @@ function createPaletteAwareComponents(palette) {
     ]),
   );
 
-  return {
+  const components = {
     MuiButton: {
       styleOverrides: {
         root: { transition: stateTransition },
@@ -199,6 +258,22 @@ function createPaletteAwareComponents(palette) {
       styleOverrides: alertStyles,
     },
   };
+
+  if (isDark) {
+    for (const component of ['MuiDialog', 'MuiMenu', 'MuiPopover', 'MuiDrawer']) {
+      components[component] = {
+        styleOverrides: {
+          paper: {
+            backgroundColor: DARK_OVERLAY_SURFACE,
+            boxShadow: DARK_OVERLAY_SHADOW,
+          },
+        },
+      };
+    }
+    components.MuiBackdrop = { styleOverrides: { root: { backgroundColor: DARK_SCRIM } } };
+  }
+
+  return components;
 }
 
 /**
@@ -212,19 +287,29 @@ export function createAppTheme(appConfig = {}) {
   }
   validateStyleOverrides(appConfig.components);
 
+  const isDark = appConfig.palette.mode === 'dark';
+  const baselinePalette = isDark ? BASELINE_PALETTE_DARK : BASELINE_PALETTE;
+
   const paletteTheme = createTheme(
     { palette: appConfig.palette },
-    { palette: BASELINE_PALETTE },
+    { palette: baselinePalette },
     { palette: appConfig.palette },
   );
   const finalPalette = paletteTheme.palette;
-  const contrastSurfaces = ['#FFFFFF', finalPalette.background.default];
+  const contrastSurfaces = isDark
+    ? [finalPalette.background.default, finalPalette.background.paper]
+    : ['#FFFFFF', finalPalette.background.default];
   const derivedStatusEntries = {};
   for (const status of ['success', 'warning', 'error', 'info']) {
     if (appConfig.palette?.[status]?.main !== undefined) continue;
 
     const current = finalPalette[status];
-    const main = deriveDarkenedPageColour(current.main, contrastSurfaces, 4.5);
+    const statusSurfaces = isDark
+      ? [finalPalette.background.default, current.bg]
+      : contrastSurfaces;
+    const main = isDark
+      ? deriveLightenedPageColour(current.main, statusSurfaces, 4.5)
+      : deriveDarkenedPageColour(current.main, statusSurfaces, 4.5);
     if (main !== current.main) {
       derivedStatusEntries[status] = {
         ...current,
@@ -238,19 +323,57 @@ export function createAppTheme(appConfig = {}) {
     if (appConfig.palette?.controlBorder?.[state] !== undefined) continue;
 
     const current = finalPalette.controlBorder[state];
-    const derived = state === 'error'
-      ? deriveDarkenedPageColour(current, contrastSurfaces, 3)
-      : deriveAlphaPageColour(current, contrastSurfaces, 3);
+    const derived = isDark
+      ? state === 'error'
+        ? deriveLightenedPageColour(current, [finalPalette.background.default, finalPalette.error.bg], 3)
+        : deriveDarkAlphaColour(finalPalette.ink.primary, contrastSurfaces)
+      : state === 'error'
+        ? deriveDarkenedPageColour(current, contrastSurfaces, 3)
+        : deriveAlphaPageColour(current, contrastSurfaces, 3);
     if (derived !== current) derivedControlBorderEntries[state] = derived;
   }
+  if (isDark && appConfig.palette?.controlBorder?.hover === undefined) {
+    const main = derivedControlBorderEntries.main || finalPalette.controlBorder.main;
+    const alpha = Number(main.match(/,([\d.]+)\)$/)?.[1] || 0);
+    const hoverAlpha = Math.min(1, Number((alpha + 0.15).toFixed(2)));
+    const [red, green, blue] = inkChannels(finalPalette.ink.primary);
+    derivedControlBorderEntries.hover = `rgba(${red},${green},${blue},${hoverAlpha.toFixed(2)})`;
+  }
+
+  const primaryMain = isDark
+    ? deriveLightenedPageColour(finalPalette.primary.main, [finalPalette.background.default], 4.5)
+    : finalPalette.primary.main;
+  const primaryContrastText = isDark
+    ? (getContrastRatio('#FFFFFF', primaryMain) >= getContrastRatio(finalPalette.background.default, primaryMain)
+      ? '#FFFFFF'
+      : finalPalette.background.default)
+    : finalPalette.primary.contrastText;
+  const derivedSeries = isDark && appConfig.palette?.dataSeries?.categorical === undefined
+    ? finalPalette.dataSeries.categorical.map((colour) => (
+      deriveLightenedPageColour(colour, [finalPalette.background.paper], 3)
+    ))
+    : finalPalette.dataSeries.categorical;
 
   const computedPalette = {
     ...derivedStatusEntries,
     controlBorder: {
       ...finalPalette.controlBorder,
       ...derivedControlBorderEntries,
-      focus: deriveFocusColour(finalPalette.primary.main, contrastSurfaces),
+      focus: isDark
+        ? (appConfig.palette?.controlBorder?.focus
+          ?? deriveLightenedColour(primaryMain, contrastSurfaces))
+        : deriveFocusColour(finalPalette.primary.main, contrastSurfaces),
     },
+    primary: {
+      ...finalPalette.primary,
+      // A lightened main needs its own light/dark shades, or hover states keep
+      // the shades of the colour that was replaced.
+      ...(isDark && primaryMain !== finalPalette.primary.main
+        ? withMainShades(primaryMain, primaryContrastText)
+        : { main: primaryMain }),
+      contrastText: primaryContrastText,
+    },
+    dataSeries: { categorical: derivedSeries },
   };
   const resolvedPalette = { ...finalPalette, ...computedPalette };
   const fontFamily = appConfig.typography?.fontFamily || BASELINE_STATIC.typography.fontFamily;
@@ -266,20 +389,24 @@ export function createAppTheme(appConfig = {}) {
         ...BASELINE_STATIC.fontLoading,
         weights: [...BASELINE_STATIC.fontLoading.weights],
       },
+      shadow: isDark ? { ...BASELINE_STATIC.shadow, overlay: DARK_OVERLAY_SHADOW } : BASELINE_STATIC.shadow,
       palette: resolvedPalette,
       themeCompleteness: {
         baseline: true,
-        exemptions: BASELINE_INTENTIONAL_DEFAULT_EXEMPTIONS.map((exemption) => ({
+        exemptions: (isDark
+          ? BASELINE_INTENTIONAL_DEFAULT_EXEMPTIONS_DARK
+          : BASELINE_INTENTIONAL_DEFAULT_EXEMPTIONS).map((exemption) => ({
           ...exemption,
         })),
       },
     },
     {
-      components: createPaletteAwareComponents(resolvedPalette),
+      components: createPaletteAwareComponents(resolvedPalette, isDark),
     },
     appConfig,
     {
       palette: {
+        ...(isDark ? computedPalette : {}),
         dataSeries: {
           categorical: [...resolvedPalette.dataSeries.categorical],
         },

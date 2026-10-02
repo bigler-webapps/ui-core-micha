@@ -6,6 +6,17 @@ These principles are the spec a **prototype** encodes and the implementation mat
 
 ## Identity
 
+### Dark mode
+
+Opt in with `createAppTheme({ palette: { mode: 'dark', primary } })`. The factory keeps a primary that
+already clears 4.5:1 on the dark page and lightens one that does not; its button text is whichever of
+`#FFFFFF` and the page colour has the stronger contrast. Baseline status colours and control borders are
+lightened only when a baseline-owned value fails on an app's dark page; app-supplied values remain owned by
+the app. Dialogs, menus, popovers, and drawers use the dark overlay surface and shadow, while resting
+surfaces remain outlined and shadowless. Data-series colours are lightened until they clear 3:1 on the
+theme's own paper, so an app-owned dark paper adapts without changing its supplied series. Apps own their
+dark primary and may own reviewed dark surfaces and ink; the baseline owns the remaining dark tokens.
+
 The baseline's page-derived colours are `success.main`, `warning.main`, `error.main`, `info.main`,
 `controlBorder.main`, `controlBorder.hover`, and `controlBorder.error`, alongside the existing
 `controlBorder.focus`: a fixed colour cannot promise WCAG contrast on every page background. The baseline therefore

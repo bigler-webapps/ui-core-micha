@@ -294,10 +294,16 @@ function contrastFindings(theme) {
     }
   }
 
-  const backgrounds = {
-    white: '#FFFFFF',
-    page: theme.palette?.background?.default,
-  };
+  const dark = theme.palette?.mode === 'dark';
+  const backgrounds = dark
+    ? {
+      paper: theme.palette?.background?.paper,
+      page: theme.palette?.background?.default,
+    }
+    : {
+      white: '#FFFFFF',
+      page: theme.palette?.background?.default,
+    };
   for (const status of STATUS_KEYS) {
     const main = theme.palette?.[status]?.main;
     if (!main) continue;

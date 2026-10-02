@@ -1,5 +1,11 @@
 # Changelog
 
+## 3.11.0 — UCM-THEME-14
+
+Added dark-mode composition to `createAppTheme` from the central dark token baseline, including own-surface
+contrast derivation, safe primary/status colours, adaptive data series, dark overlays, scrim, and autofill.
+The light theme output remains unchanged.
+
 ## 3.10.0 — UCM-TEST-1
 
 Added the exported `checkKitIntegration` consumer check for app i18n, providers, kit page rendering, and auth error translation wiring.

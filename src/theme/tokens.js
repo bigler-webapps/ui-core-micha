@@ -113,6 +113,73 @@ export const BASELINE_PALETTE = {
   },
 };
 
+export const DARK_OVERLAY_SURFACE = '#232A31';
+export const DARK_OVERLAY_SHADOW = '0 8px 28px rgba(0,0,0,.45)';
+export const DARK_SCRIM = 'rgba(0,0,0,.55)';
+
+export const BASELINE_PALETTE_DARK = {
+  mode: 'dark',
+  ink: {
+    primary: '#E6EBEF',
+    secondary: '#AAB5BF',
+    muted: '#87919A',
+  },
+  text: {
+    primary: '#E6EBEF',
+    secondary: '#AAB5BF',
+    disabled: '#87919A',
+  },
+  background: {
+    default: '#14181B',
+    paper: '#1B2126',
+    subtle: '#20262C',
+  },
+  divider: '#2B333A',
+  controlBorder: {
+    // These are replaced by the dark alpha derivation in createAppTheme.
+    main: 'rgba(230,235,239,0)',
+    hover: 'rgba(230,235,239,0)',
+    error: '#E58B80',
+  },
+  success: {
+    ...withMainShades('#7BC496', '#14181B'),
+    text: '#7BC496',
+    fill: '#7BC496',
+    fillText: '#14181B',
+    bg: '#1C2A22',
+  },
+  warning: {
+    ...withMainShades('#D8BD7E', '#14181B'),
+    text: '#D8BD7E',
+    fill: '#D8BD7E',
+    fillText: '#14181B',
+    bg: '#2A2418',
+  },
+  error: {
+    ...withMainShades('#E58B80', '#14181B'),
+    text: '#E58B80',
+    fill: '#E58B80',
+    fillText: '#14181B',
+    bg: '#3A2320',
+  },
+  info: {
+    ...withMainShades('#8FB8E0', '#14181B'),
+    text: '#8FB8E0',
+    fill: '#8FB8E0',
+    fillText: '#14181B',
+    bg: '#1A2633',
+  },
+  stale: {
+    text: '#AAB5BF',
+    fill: '#AAB5BF',
+    fillText: '#14181B',
+    bg: '#20262C',
+  },
+  dataSeries: {
+    categorical: SERIES_COLOURS,
+  },
+};
+
 export const OVERLAY_SHADOW =
   '0 8px 24px rgba(20,26,31,.16), 0 2px 8px rgba(20,26,31,.08)';
 
@@ -399,3 +466,8 @@ export const BASELINE_INTENTIONAL_DEFAULT_EXEMPTIONS = [
     reason: `The canonical ${variant} weight deliberately equals MUI's numeric default.`,
   })),
 ];
+
+export const BASELINE_INTENTIONAL_DEFAULT_EXEMPTIONS_DARK =
+  BASELINE_INTENTIONAL_DEFAULT_EXEMPTIONS.filter(
+    ({ surface }) => surface !== 'palette.background.paper',
+  );
