@@ -14,9 +14,38 @@ both of its themes through the factory.
 
 ## Value source
 
-**`docs/DARK-TOKENS.md`, frozen by the operator in `UCM-THEME-13`.** Every dark value in code comes
-from that sheet. A value the implementation needs that the sheet does not carry is a stop-and-report.
-Do not improvise it.
+**`docs/DARK-TOKENS.md`, frozen by the operator in `UCM-THEME-13` (2026-10-02, `7330f91`).** Every dark
+value in code comes from that sheet. A value the implementation needs that the sheet does not carry is a
+stop-and-report. Do not improvise it.
+
+## Decided rules (operator, 2026-10-01 and 2026-10-02; amended into this order 2026-10-02)
+
+1. **Complete baseline.** Every mode-dependent token class has its dark value from the sheet, including
+   `ink.*`, `text.*`, `background.default/paper/subtle`, `divider`, `controlBorder.*`, all five status keys
+   (`main/light/dark/contrastText` via `withMainShades`, plus `text/fill/fillText/bg`), `dataSeries` and
+   `shadow.*`.
+2. **Outlined first, as in light.** Resting surfaces keep `shadow.rest: none`. **Overlays get their own,
+   lighter surface in dark**: the sheet's overlay surface (`#232A31`) is the paper of `MuiDialog`,
+   `MuiMenu`, `MuiPopover` and `MuiDrawer` in dark, with the sheet's overlay shadow; the modal backdrop
+   (`MuiBackdrop`) uses the sheet's scrim. Light has no such surface and does not change.
+3. **Primary in dark: derived only when it fails.** An app always passes `palette.primary` (the factory
+   requires it). In dark, that value is kept if it clears 4.5:1 on the dark page, and otherwise lightened in
+   0.05 steps until it does. Its `contrastText` is whichever of `#FFFFFF` and the dark page colour
+   contrasts more. This is how "derived unless the app sets its own" is expressed in an API where every
+   app sets one: an app that wants a particular dark primary passes one that already clears the floor
+   (webshop-guenter `#D49040`, 7.35:1, stays). Worked examples are in the sheet.
+4. **Status safety net, the dark counterpart of `UCM-THEME-15`.** On a dark page other than the baseline
+   page, a **baseline-supplied** status `main` (and `controlBorder.error`) that would fail against the page or
+   its own `bg` is lightened until it passes. App-supplied values are never altered (`UCM-THEME-15` rule 3,
+   read per key off `appConfig.palette`). Never throws; capped like the darkening.
+5. **Data series follow a rule, not only a list.** In dark, each light series colour is lightened until it
+   clears 3:1 on the theme's own `background.paper`. On the baseline paper that yields exactly the sheet's
+   list; on an app's own paper (webshop-guenter `#171209`) it adapts.
+6. **Contrast surfaces are the theme's own.** In dark, every derivation and `contrastFindings` judge against
+   the theme's page and paper, never a fixed `#FFFFFF`. Light keeps today's pair.
+7. **Autofill needs no new code path.** The palette-aware block (`src/theme/createAppTheme.js:97-108`)
+   already resolves from `background.paper` and `ink.primary` and wins over the static light block in
+   `tokens.js`. It is correct in dark once the dark palette is in place; confirm it in a test.
 
 ## Context the operator established
 
@@ -32,7 +61,10 @@ Do not improvise it.
 - `BASELINE_INTENTIONAL_DEFAULT_EXEMPTIONS` includes `palette.background.paper` with the reason "The
   canonical surface is deliberately MUI white". That reason is false for a dark theme.
 - The palette-aware slots use palette values (for example the autofill inset uses `background.paper`),
-  so they follow the resolved palette once it is right.
+  so they follow the resolved palette once it is right. `tokens.js` also carries a static light `autofill`
+  block (`#FFFFFF`, `#212529`); it is shadowed by the palette-aware one (measured 2026-10-02).
+- `UCM-THEME-15` (3.8.0) added `deriveDarkenedPageColour`/`deriveAlphaPageColour` next to
+  `deriveFocusColour`; the dark branch extends those, it does not add a parallel set.
 - The kit has components registered against the baseline (`src/theme/kitSxRegistry.js`, `THEME-4`/
   `THEME-5`). A kit component that hard-codes a light value would show that value only in dark mode.
 
@@ -42,7 +74,9 @@ In scope:
 1. `tokens.js`: a dark baseline palette with the sheet's values, and whatever exemption entries a
    dark theme needs, each with a true reason.
 2. `createAppTheme`: select the baseline palette by `palette.mode`. Make the focus derivation work in
-   both directions against the mode's surfaces.
+   both directions against the mode's surfaces. Rules 2 to 6 above: the overlay surface, scrim and overlay
+   shadow on the four overlay components in dark; the primary derivation; the status safety net; the
+   series rule.
 3. `themeCompleteness.js`: contrast checks against the theme's own surfaces, not a fixed white. Mode-
    specific exemptions.
 4. Kit components that resolve a hard-coded light value instead of a token: **list** every one.
@@ -76,6 +110,11 @@ Non-goals:
   derived by darkening, both fail on dark.
 - **The `background.paper` exemption reason is currently mode-blind.** Leaving it would record a false
   statement as the reason in every dark theme.
+- **Rule 3 cannot keep a dark primary that fails the floor.** An app that deliberately wants one gets it
+  lightened. That is intended (an accessibility floor), not a defect.
+- **Two sheet values sit close to their threshold** (`controlBorder.main` 3.14:1 on paper, series slot 1
+  3.07:1). Build them from the rules, not as literals, so a later paper change re-derives instead of
+  silently failing.
 
 ## Required tests to WRITE (you write them and run YOUR OWN new ones; the Orchestrator's run is the gate)
 
@@ -91,6 +130,18 @@ Kit test suite, narrow, next to the existing theme tests:
 3. **Focus contrast.** `controlBorder.focus` clears 3:1 against both page surfaces in each mode.
 4. **Status family on dark.** Each status key resolves `main/light/dark/contrastText` from the dark
    baseline, not MUI's defaults.
+5. **Primary in dark (rule 3).** On the baseline dark page: `#468AB2` stays, `#2F4F96` resolves to
+   `#6D84B6`, `#432CA1` to `#8576C2`, each with `#14181B` as `contrastText`; `#D49040` stays.
+6. **Status net (rule 4).** On webshop-guenter's page `#0E0B08` no baseline status colour moves; on a
+   page chosen so that one fails, that one is lightened and passes; an app-supplied status `main` that
+   fails stays exactly as supplied.
+7. **Overlay surface (rule 2).** In dark, the paper of `MuiDialog`, `MuiMenu`, `MuiPopover` and `MuiDrawer`
+   resolves to the sheet's overlay surface and `MuiBackdrop` to its scrim; the light theme's values for
+   the same slots are unchanged (covered by test 1).
+8. **Series rule (rule 5).** On the baseline paper the dark series equal the sheet's list; on
+   `#171209` every slot clears 3:1.
+9. **Autofill (rule 7).** In dark, the resolved autofill inset is the dark paper and the text is
+   `ink.primary`.
 
 Run, do not write: the kit's existing theme and `kitSxRegistry` tests.
 

@@ -51,7 +51,7 @@ stated rule from a decided value) or **invented** (no precedent anywhere; labell
 | `controlBorder.hover` | `rgba(33,37,41,.65)` | `rgba(230,235,239,.53)` | derived: the light step (+0.15) carried over |
 | `controlBorder.error` | `#BF3227` | `#E58B80` | = `error.main` (dark) |
 | `controlBorder.focus` | derived from primary | derived from primary | rule: lighten the primary until it clears 3:1 on page and paper |
-| autofill field | `#FFFFFF` inset, `#212529` text (fixed) | paper inset, `ink.primary` text and caret | derived: replaces the fixed light values in `tokens.js` `autofill` |
+| autofill field | paper inset, `ink.primary` text and caret | paper inset, `ink.primary` text and caret | derived: the palette-aware block in `createAppTheme.js:97-108` already resolves from the palette and wins over the static light block in `tokens.js`; dark follows once the dark palette is in place |
 
 ### Status
 
@@ -131,7 +131,9 @@ autofill in dark. `UCM-THEME-14`'s rendered check is where they are first seen.
 
 - `src/theme/createAppTheme.js:221` and `src/theme/themeCompleteness.js:298`: contrast surfaces include a
   fixed `#FFFFFF`; the derivations only darken.
-- `src/theme/tokens.js` `autofill`: fixed `#FFFFFF` inset and `#212529` text.
+- `src/theme/tokens.js` `autofill`: fixed `#FFFFFF` inset and `#212529` text. **Shadowed** by the
+  palette-aware block in `src/theme/createAppTheme.js:97-108` (corrected 2026-10-02: the first version of
+  this sheet listed it as live). Harmless in both modes, but a duplicate that can mislead.
 - `BASELINE_INTENTIONAL_DEFAULT_EXEMPTIONS`: the `background.paper` reason ("deliberately MUI white") is
   false in dark.
 - `src/components/QrSignupManager.jsx:361`: `#ffffff` behind a QR code. **Stays white on purpose**: a QR code
