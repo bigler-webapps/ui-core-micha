@@ -1,0 +1,390 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Dunkelmodus-Baseline</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Cormorant+Garamond:wght@400;500&family=Jost:wght@300;400;500&display=swap">
+<style>
+/* Layout: a control bar, then one 1280 px frame (scaled to fit) and three 375 px frames side by side,
+   then the contrast table. The page chrome follows the viewer theme; the specimen screens use only
+   their own computed tokens and never the chrome's. */
+:root {
+  --c-bg: #F3F4F5; --c-surface: #FFFFFF; --c-ink: #1E2226; --c-ink2: #5B6670; --c-line: #DADDE0;
+  --c-accent: #3D5A99; --c-ok: #1B8038; --c-bad: #BF3227;
+  --f-ui: 'DM Sans', -apple-system, 'Segoe UI', sans-serif;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --c-bg: #101214; --c-surface: #181B1F; --c-ink: #E6E9EC; --c-ink2: #A2ABB4; --c-line: #2C3238;
+  --c-accent: #8FA8D8; --c-ok: #7BC496; --c-bad: #E58B80; color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --c-bg: #101214; --c-surface: #181B1F; --c-ink: #E6E9EC; --c-ink2: #A2ABB4; --c-line: #2C3238;
+  --c-accent: #8FA8D8; --c-ok: #7BC496; --c-bad: #E58B80; color-scheme: dark; }
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: var(--c-bg); color: var(--c-ink); font: 14px/1.5 var(--f-ui); padding-inline: 16px; padding-block: 20px 48px; }
+.wrap { max-width: 1320px; margin-inline: auto; display: grid; gap: 22px; }
+h1 { font-size: 22px; font-weight: 600; margin: 0; text-wrap: balance; }
+h2 { font-size: 15px; font-weight: 600; margin: 0 0 8px; }
+p.lead { margin: 4px 0 0; color: var(--c-ink2); max-width: 70ch; }
+.bar { display: flex; flex-wrap: wrap; gap: 12px 24px; align-items: center; background: var(--c-surface); border: 1px solid var(--c-line); border-radius: 8px; padding: 12px 14px; }
+.group { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.group > span { font-size: 12px; color: var(--c-ink2); margin-right: 4px; }
+.seg { font: 500 13px var(--f-ui); color: var(--c-ink); background: transparent; border: 1px solid var(--c-line); border-radius: 3px; padding: 5px 10px; cursor: pointer; }
+.seg[aria-pressed="true"] { background: var(--c-accent); border-color: var(--c-accent); color: var(--c-surface); }
+.seg:focus-visible { outline: 2px solid var(--c-accent); outline-offset: 2px; }
+.frame-label { font-size: 12px; color: var(--c-ink2); margin: 0 0 6px; font-variant-numeric: tabular-nums; }
+.scaler { width: 100%; overflow: hidden; border: 1px solid var(--c-line); border-radius: 8px; }
+.scaler > .screen { width: 1280px; transform-origin: 0 0; }
+.row375 { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 375px)); gap: 18px; justify-content: start; }
+.f375 { width: 100%; max-width: 375px; border: 1px solid var(--c-line); border-radius: 8px; overflow: hidden; }
+.coverage { font-size: 12.5px; color: var(--c-ink2); max-width: 90ch; }
+.tablewrap { overflow-x: auto; background: var(--c-surface); border: 1px solid var(--c-line); border-radius: 8px; }
+table.ct { border-collapse: collapse; width: 100%; font-size: 13px; font-variant-numeric: tabular-nums; }
+table.ct th, table.ct td { text-align: left; padding: 7px 12px; border-bottom: 1px solid var(--c-line); white-space: nowrap; }
+table.ct th { font-weight: 600; font-size: 12px; color: var(--c-ink2); }
+.sw { display: inline-block; width: 12px; height: 12px; border-radius: 2px; vertical-align: -1px; margin-right: 6px; border: 1px solid rgba(127,127,127,.4); }
+.pass { color: var(--c-ok); font-weight: 600; } .fail { color: var(--c-bad); font-weight: 600; }
+
+/* ---- specimen screen: every colour comes from tokens set on the element by script ---- */
+.screen { background: var(--page); color: var(--ink1); font-family: var(--font); font-size: var(--fs-body); line-height: 1.55; position: relative; }
+.screen .appbar { display: flex; align-items: center; gap: 12px; padding: 0 20px; height: 56px; background: var(--paper); border-bottom: 1px solid var(--divider); }
+.screen .brand { font-family: var(--font-head); font-weight: 600; font-size: 17px; }
+.screen .nav { display: flex; gap: 4px; margin-left: 16px; }
+.screen .nav a { color: var(--ink2); text-decoration: none; padding: 6px 10px; border-radius: var(--r-control); font-weight: 500; font-size: 13.5px; }
+.screen .nav a.on { color: var(--primary); background: var(--primary-tint); }
+.screen .avatar { margin-left: auto; width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; background: var(--primary); color: var(--on-primary); font-weight: 600; font-size: 13px; }
+.screen main { padding: 24px; display: grid; gap: 20px; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); }
+.screen h3 { font-family: var(--font-head); font-size: var(--fs-h); font-weight: 600; margin: 0; line-height: 1.3; }
+.screen .sub { color: var(--ink2); font-size: 13px; margin: 2px 0 0; }
+.screen .card { background: var(--paper); border: 1px solid var(--divider); border-radius: var(--r-card); padding: 16px; display: grid; gap: 14px; align-content: start; }
+.screen .head { display: flex; align-items: flex-start; gap: 12px; flex-wrap: wrap; }
+.screen .head .actions { margin-left: auto; display: flex; gap: 8px; }
+.screen table.users { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+.screen table.users th { text-align: left; font-weight: 500; color: var(--ink2); font-size: 12.5px; padding: 8px 10px; border-bottom: 1px solid var(--divider); }
+.screen table.users td { padding: 10px; border-bottom: 1px solid var(--divider); }
+.screen table.users tr:last-child td { border-bottom: 0; }
+.screen td.mail { color: var(--ink2); }
+.screen .btn { font: 500 13.5px var(--font); border-radius: var(--r-control); padding: 7px 14px; min-height: 36px; cursor: pointer; border: 1px solid transparent; }
+.screen .btn.contained { background: var(--primary); color: var(--on-primary); }
+.screen .btn.outlined { background: transparent; color: var(--primary); border-color: var(--cb-main); }
+.screen .btn.text { background: transparent; color: var(--primary); padding-inline: 8px; }
+.screen .btn.danger { background: transparent; color: var(--st-error-text); border-color: var(--cb-main); }
+.screen .btn:focus-visible, .screen .field input:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.screen .chip { display: inline-block; font-size: 12px; font-weight: 500; padding: 2px 10px; border-radius: var(--r-chip); }
+.screen .chip.success { background: var(--st-success-bg); color: var(--st-success-text); }
+.screen .chip.warning { background: var(--st-warning-bg); color: var(--st-warning-text); }
+.screen .chip.error { background: var(--st-error-bg); color: var(--st-error-text); }
+.screen .chip.neutral { background: var(--subtle); color: var(--ink2); }
+.screen .alerts { display: grid; gap: 8px; }
+.screen .alert { display: flex; gap: 10px; align-items: center; padding: 10px 12px; border-radius: var(--r-card); font-size: 13.5px; }
+.screen .alert .dot { width: 8px; height: 8px; border-radius: 50%; flex: none; }
+.screen .alert.success { background: var(--st-success-bg); color: var(--st-success-text); } .screen .alert.success .dot { background: var(--st-success-main); }
+.screen .alert.warning { background: var(--st-warning-bg); color: var(--st-warning-text); } .screen .alert.warning .dot { background: var(--st-warning-main); }
+.screen .alert.error { background: var(--st-error-bg); color: var(--st-error-text); } .screen .alert.error .dot { background: var(--st-error-main); }
+.screen .alert.info { background: var(--st-info-bg); color: var(--st-info-text); } .screen .alert.info .dot { background: var(--st-info-main); }
+.screen .field { display: grid; gap: 4px; }
+.screen .field label { font-size: 12.5px; color: var(--ink2); font-weight: 500; }
+.screen .field input { font: 14px var(--font); color: var(--ink1); background: var(--paper); border: 1px solid var(--cb-main); border-radius: var(--r-control); padding: 9px 11px; min-height: 40px; width: 100%; }
+.screen .field.err input { border-color: var(--cb-error); }
+.screen .field.err small { color: var(--st-error-text); font-size: 12.5px; }
+.screen .field.autofill input { background: var(--autofill-bg); color: var(--autofill-ink); }
+.screen .chart { display: grid; gap: 6px; }
+.screen .bars { display: grid; gap: 7px; }
+.screen .barrow { display: grid; grid-template-columns: 96px 1fr 28px; gap: 8px; align-items: center; font-size: 12.5px; }
+.screen .barrow .lbl { color: var(--ink2); }
+.screen .barrow .track { height: 14px; background: var(--subtle); border-radius: 2px; overflow: hidden; }
+.screen .barrow .fill { height: 100%; }
+.screen .barrow .val { text-align: right; font-variant-numeric: tabular-nums; }
+.screen .axis { font-size: 11.5px; color: var(--ink3); }
+.screen .scrim { position: absolute; inset: 56px 0 0 0; background: var(--scrim); }
+.screen .dialog { position: absolute; right: 48px; top: 120px; width: 380px; background: var(--overlay); border: 1px solid var(--divider); border-radius: var(--r-card); box-shadow: var(--overlay-shadow); padding: 18px; display: grid; gap: 12px; }
+.screen .dialog p { margin: 0; color: var(--ink2); font-size: 13.5px; }
+.screen .dialog .actions { display: flex; gap: 8px; justify-content: flex-end; }
+.screen .muted { color: var(--ink3); font-size: 12.5px; }
+/* 375 px: one column, the dialog sits inline as the last block (no scrim) */
+.f375 .screen main { grid-template-columns: minmax(0, 1fr); padding: 16px; gap: 14px; }
+.f375 .screen .nav { display: none; }
+.f375 .screen .scrim { display: none; }
+.f375 .screen .dialog { position: static; width: auto; margin: 0 16px 16px; }
+.f375 .screen table.users td.mail, .f375 .screen table.users th.mail { display: none; }
+@media (prefers-reduced-motion: no-preference) { .seg { transition: background-color 120ms, color 120ms; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Dunkelmodus-Baseline</h1>
+    <p class="lead">Prototyp zu UCM-THEME-13, Runde 2. Neutrale Basis A ist entschieden (Seite #14181B). Offen ist der Helligkeitsabstand von Seite, Karte und Dialog, dazu die abgeleitete Primärfarbe und die festen Statusfarben. Kontraste werden im Browser berechnet.</p>
+  </header>
+
+  <div class="bar" role="toolbar" aria-label="Varianten">
+    <div class="group" id="g-variant"><span>Helligkeit</span>
+      <button class="seg" type="button" id="s-1" data-v="S1">Stufe 1 eng</button>
+      <button class="seg" type="button" id="s-2" data-v="S2">Stufe 2 mittel</button>
+      <button class="seg" type="button" id="s-3" data-v="S3">Stufe 3 deutlich</button>
+    </div>
+    <div class="group" id="g-app"><span>App</span>
+      <button class="seg" type="button" id="a-tpl" data-a="tpl">Template #468AB2</button>
+      <button class="seg" type="button" id="a-hram" data-a="hram">hram #2F4F96</button>
+      <button class="seg" type="button" id="a-sva" data-a="sva">survey_app #432CA1</button>
+      <button class="seg" type="button" id="a-wsg" data-a="wsg">webshop (Marke)</button>
+    </div>
+  </div>
+
+  <section>
+    <p class="frame-label" id="lbl-1280">1280 px</p>
+    <div class="scaler" id="scaler"></div>
+  </section>
+
+  <section>
+    <h2>Helligkeitsstufen nebeneinander</h2>
+    <div class="row375">
+      <div><p class="frame-label" id="lbl-s1">375 px · Stufe 1 eng</p><div class="f375" id="f-s1"></div></div>
+      <div><p class="frame-label" id="lbl-s2">375 px · Stufe 2 mittel</p><div class="f375" id="f-s2"></div></div>
+      <div><p class="frame-label" id="lbl-s3">375 px · Stufe 3 deutlich</p><div class="f375" id="f-s3"></div></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Gegen hell und gegen den MUI-Standard</h2>
+    <div class="row375">
+      <div><p class="frame-label" id="lbl-d375">375 px · Vorschlag dunkel</p><div class="f375" id="f-dark"></div></div>
+      <div><p class="frame-label" id="lbl-l375">375 px · helle Baseline heute</p><div class="f375" id="f-light"></div></div>
+      <div><p class="frame-label">375 px · MUI-Standard dunkel (zum Vergleich)</p><div class="f375" id="f-mui"></div></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Kontraste der gewählten Stufe</h2>
+    <div class="tablewrap"><table class="ct" id="ct"><thead><tr><th>Paar</th><th>Vordergrund</th><th>Hintergrund</th><th>Verhältnis</th><th>Schwelle</th><th></th></tr></thead><tbody></tbody></table></div>
+  </section>
+
+  <p class="coverage"><strong>Abdeckung:</strong> Tokens der dunklen Baseline auf einem typischen Screen aus ui-core-micha (Kopfzeile, Benutzerliste, Formular mit Fehler- und Autofill-Zustand, Statusmeldungen, Buttons, kategorisches Chart, Dialog). Nicht abgedeckt: Bewegung, Hover und Fokus im laufenden Betrieb, native Auswahllisten, Datumsfelder. Werte mit (erfunden) haben im Bestand kein Vorbild; dazu gehören die Stufen 2 und 3 und die dunkle Info-Farbe. Alles andere ist aus cockpit OBS-10, KB-23 und ucm SHELL-2 übernommen. Runde 1 (2026-10-02): neutrale Basis A gewählt; B (#121212, ohne Farbstich) und C (#16181B, Fortsetzung der hellen Tinte) verworfen, weil sie bei dieser Helligkeit nicht von A zu unterscheiden waren und A im Bestand belegt ist. Runde 2: Stufe 1 gewählt, Stufen 2 und 3 verworfen. Eingefroren am 2026-10-02; die gültigen Werte stehen in docs/DARK-TOKENS.md.</p>
+</div>
+
+<template id="tpl-screen">
+  <div class="appbar"><span class="brand" data-brand></span>
+    <nav class="nav" aria-label="Hauptnavigation"><a href="#" class="on">Konto</a><a href="#">Belege</a><a href="#">Auswertung</a></nav>
+    <span class="avatar" aria-label="Anna Meier">AM</span></div>
+  <main>
+    <div class="card">
+      <div class="head"><div><h3>Benutzer</h3><p class="sub">4 Personen in dieser Organisation</p></div>
+        <div class="actions"><button class="btn outlined" type="button">Exportieren</button><button class="btn contained" type="button">Einladen</button></div></div>
+      <table class="users"><thead><tr><th>Name</th><th class="mail">E-Mail</th><th>Rolle</th><th>Status</th></tr></thead>
+        <tbody>
+          <tr><td>Anna Meier</td><td class="mail">anna.meier@example.ch</td><td>Admin</td><td><span class="chip success">Aktiv</span></td></tr>
+          <tr><td>Jonas Keller</td><td class="mail">jonas.keller@example.ch</td><td>Mitglied</td><td><span class="chip warning">Eingeladen</span></td></tr>
+          <tr><td>Lea Frei</td><td class="mail">lea.frei@example.ch</td><td>Mitglied</td><td><span class="chip error">Gesperrt</span></td></tr>
+          <tr><td>Marco Rossi</td><td class="mail">marco.rossi@example.ch</td><td>Leser</td><td><span class="chip neutral">Inaktiv</span></td></tr>
+        </tbody></table>
+      <div class="alerts">
+        <div class="alert success" role="status"><span class="dot"></span>Die Rolle wurde aktualisiert.</div>
+        <div class="alert warning"><span class="dot"></span>Die Einladung an Jonas Keller läuft in 2 Tagen ab.</div>
+        <div class="alert error" role="alert"><span class="dot"></span>Die Benutzerliste konnte nicht geladen werden.</div>
+        <div class="alert info"><span class="dot"></span>Neue Rollen gelten ab der nächsten Anmeldung.</div>
+      </div>
+    </div>
+    <div style="display:grid;gap:20px;align-content:start;min-width:0">
+      <div class="card">
+        <div><h3>Profil</h3><p class="sub">Angaben für Belege und Benachrichtigungen</p></div>
+        <div class="field autofill"><label for="x-name">Name</label><input id="x-name" value="Anna Meier" readonly></div>
+        <div class="field err"><label for="x-mail">E-Mail-Adresse</label><input id="x-mail" value="micha.bigler2@gmail.com2" readonly aria-invalid="true"><small>Bitte geben Sie eine gültige E-Mail-Adresse ein.</small></div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn contained" type="button">Speichern</button><button class="btn text" type="button">Abbrechen</button></div>
+      </div>
+      <div class="card chart" role="img" aria-label="Belege nach Kategorie, Anzahl im 3. Quartal">
+        <div><h3>Belege nach Kategorie</h3><p class="sub">Anzahl, Juli bis September</p></div>
+        <div class="bars" data-bars></div>
+        <div class="axis">0 bis 50 Belege</div>
+      </div>
+    </div>
+  </main>
+  <div class="scrim" aria-hidden="true"></div>
+  <div class="dialog" role="dialog" aria-label="Benutzer sperren">
+    <h3>Lea Frei sperren?</h3>
+    <p>Lea Frei kann sich danach nicht mehr anmelden. Belege bleiben erhalten.</p>
+    <div class="actions"><button class="btn text" type="button">Abbrechen</button><button class="btn danger" type="button">Sperren</button></div>
+  </div>
+</template>
+
+<script>
+(function () {
+  // ---------- colour maths (WCAG 2.x, alpha composited over the given ground) ----------
+  const hex = (h) => { h = h.replace('#', ''); if (h.length === 3) h = h.split('').map((c) => c + c).join(''); return [0, 2, 4].map((i) => parseInt(h.slice(i, i + 2), 16)); };
+  const toHex = (c) => '#' + c.map((v) => Math.round(Math.max(0, Math.min(255, v))).toString(16).padStart(2, '0')).join('').toUpperCase();
+  const parse = (s) => { s = s.trim(); if (s.startsWith('#')) return { c: hex(s), a: 1 }; const m = s.match(/rgba?\(([^)]+)\)/); const p = m[1].split(',').map(Number); return { c: p.slice(0, 3), a: p.length > 3 ? p[3] : 1 }; };
+  const over = (fg, bg) => { const f = parse(fg), b = parse(bg).c; return f.c.map((v, i) => v * f.a + b[i] * (1 - f.a)); };
+  const lum = (c) => { const l = c.map((v) => { v /= 255; return v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; }); return 0.2126 * l[0] + 0.7152 * l[1] + 0.0722 * l[2]; };
+  const ratio = (fg, bg) => { const a = lum(over(fg, bg)), b = lum(parse(bg).c); return (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05); };
+  const lighten = (h, k) => toHex(hex(h).map((v) => v + (255 - v) * k));
+  const darken = (h, k) => toHex(hex(h).map((v) => v * (1 - k)));
+  const alpha = (h, a) => { const c = hex(h); return `rgba(${c[0]},${c[1]},${c[2]},${a})`; };
+  // Smallest lightening step (0.05) that clears `min` against every ground; capped at 0.9.
+  const lightenUntil = (h, grounds, min) => { for (let k = 0; k <= 0.9001; k += 0.05) { const c = lighten(h, k); if (grounds.every((g) => ratio(c, g) >= min)) return c; } return lighten(h, 0.9); };
+  // Smallest alpha (0.02 steps) of an ink that clears `min` against every ground.
+  const alphaUntil = (ink, grounds, min, start) => { for (let a = start; a <= 1.0001; a += 0.02) { const c = alpha(ink, +a.toFixed(2)); if (grounds.every((g) => ratio(c, g) >= min)) return c; } return alpha(ink, 1); };
+  const bestText = (fill, dark) => (ratio('#FFFFFF', fill) >= ratio(dark, fill) ? '#FFFFFF' : dark);
+
+  // ---------- inputs ----------
+  const SERIES = ['#3D5A99', '#3E80B8', '#2E8F8A', '#7A5FA8', '#9C4F86', '#8A7355'];
+  const CATS = [['Reise', 42], ['Material', 31], ['Verpflegung', 18], ['Unterkunft', 12], ['Weiterbildung', 9], ['Sonstiges', 6]];
+  const APPS = {
+    tpl: { name: 'Template-App', primary: '#468AB2' },
+    hram: { name: 'hram', primary: '#2F4F96' },
+    sva: { name: 'Survey', primary: '#432CA1' },
+    wsg: { name: 'Les Abeilles Günter', primary: '#C8771A', brand: true },
+  };
+  // Neutral base A, decided in round 1 (2026-10-02): the estate convergence (cockpit OBS-10/KB-23, ucm SHELL-2).
+  const NEUTRAL = { page: '#14181B', ink1: '#E6EBEF', ink2: '#AAB5BF', ink3: '#87919A' };
+  // Round 2: how far card, subtle surface, dialog and border step up from the page.
+  // S1 is the estate's own step; S2 and S3 are proposals (invented) on the same hue.
+  const VARIANTS = {
+    S1: { label: 'Stufe 1 eng', paper: '#1B2126', subtle: '#20262C', overlay: '#232A31', divider: '#2B333A' },
+    S2: { label: 'Stufe 2 mittel', paper: '#1F262C', subtle: '#252C33', overlay: '#29313A', divider: '#313A42', invented: true },
+    S3: { label: 'Stufe 3 deutlich', paper: '#232B32', subtle: '#29323A', overlay: '#2F3942', divider: '#37414A', invented: true },
+  };
+  // Fixed dark status set: text on a dark tint. From the estate prototypes except info (invented).
+  const STATUS_DARK = {
+    success: { text: '#7BC496', bg: '#1C2A22' },
+    warning: { text: '#D8BD7E', bg: '#2A2418' },
+    error: { text: '#E58B80', bg: '#3A2320' },
+    info: { text: '#8FB8E0', bg: '#1A2633', invented: true },
+  };
+  const WSG_DARK = { page: '#0E0B08', paper: '#171209', subtle: '#1E1710', overlay: '#211910', divider: 'rgba(255,255,255,0.09)', ink1: '#EDE3CC', ink2: '#9A7F60', ink3: '#86704F', primary: '#D49040', onPrimary: '#0E0B08' };
+  const LIGHT = {
+    page: '#FAFAFA', paper: '#FFFFFF', subtle: '#F4F5F6', overlay: '#FFFFFF', divider: 'rgba(33,37,41,.10)', ink1: '#212529', ink2: '#5B6670', ink3: '#6A7178',
+    cbMain: 'rgba(33,37,41,.50)', status: { success: ['#35794A', '#E5F4E9', '#1B8038'], warning: ['#976100', '#FBF0DC', '#976100'], error: ['#BF3227', '#FBEAE8', '#BF3227'], info: ['#01579B', '#E5F6FD', '#01579B'] },
+    shadow: '0 8px 24px rgba(20,26,31,.16), 0 2px 8px rgba(20,26,31,.08)',
+  };
+
+  // ---------- token sets ----------
+  function darkTokens(vk, ak) {
+    const app = APPS[ak];
+    const n = app.brand ? WSG_DARK : { ...NEUTRAL, ...VARIANTS[vk] };
+    const grounds = [n.page, n.paper];
+    const primary = app.brand ? WSG_DARK.primary : lightenUntil(app.primary, [n.page], 4.5);
+    const st = {};
+    for (const [k, v] of Object.entries(STATUS_DARK)) {
+      // The safety net: lighten only where a page (e.g. webshop's warm black) makes the fixed value fail.
+      const text = lightenUntil(v.text, [v.bg, n.page], 4.5);
+      st[k] = { text, bg: v.bg, main: text, moved: text !== v.text.toUpperCase(), invented: !!v.invented };
+    }
+    const cbMain = alphaUntil(n.ink1, grounds, 3, 0.30);
+    return {
+      mode: 'dark', name: app.name, font: app.brand ? "'Jost', sans-serif" : "'DM Sans', sans-serif",
+      fontHead: app.brand ? "'Cormorant Garamond', serif" : "'DM Sans', sans-serif", fsH: app.brand ? '20px' : '16px', fsBody: '14px',
+      r: app.brand ? [0, 0, 0] : [3, 8, 16],
+      ...n, primary, onPrimary: app.brand ? WSG_DARK.onPrimary : bestText(primary, n.page), primaryTint: alpha(primary, 0.14),
+      focus: lightenUntil(app.brand ? WSG_DARK.primary : app.primary, grounds, 3),
+      cbMain, cbError: lightenUntil(st.error.text, grounds, 3), st,
+      series: SERIES.map((c) => lightenUntil(c, [n.paper], 3)),
+      autofillBg: n.paper, autofillInk: n.ink1,
+      scrim: 'rgba(0,0,0,.55)', overlayShadow: '0 8px 28px rgba(0,0,0,.45)', base: app.primary,
+    };
+  }
+  function lightTokens(ak) {
+    const app = APPS[ak];
+    const n = app.brand ? { ...LIGHT, page: '#FAF6EE', paper: '#FFFDF7', overlay: '#FFFDF7' } : LIGHT;
+    const st = {}; for (const [k, v] of Object.entries(LIGHT.status)) st[k] = { text: v[0], bg: v[1], main: v[2] };
+    return {
+      mode: 'light', name: app.name, font: app.brand ? "'Jost', sans-serif" : "'DM Sans', sans-serif",
+      fontHead: app.brand ? "'Cormorant Garamond', serif" : "'DM Sans', sans-serif", fsH: app.brand ? '20px' : '16px', fsBody: '14px',
+      r: app.brand ? [0, 0, 0] : [3, 8, 16], ...n, primary: app.primary, onPrimary: bestText(app.primary, '#212529'), primaryTint: alpha(app.primary, 0.10),
+      focus: app.primary, cbMain: LIGHT.cbMain, cbError: LIGHT.status.error[0], st, series: SERIES,
+      autofillBg: n.paper, autofillInk: LIGHT.ink1, scrim: 'rgba(20,26,31,.32)', overlayShadow: LIGHT.shadow,
+    };
+  }
+  function muiTokens(ak) {
+    // MUI v7 dark defaults; standard alerts use darken(main, .9) as ground and lighten(main, .6) as text.
+    const m = { success: '#66BB6A', warning: '#FFA726', error: '#F44336', info: '#29B6F6' };
+    const st = {}; for (const [k, v] of Object.entries(m)) st[k] = { text: lighten(v, 0.6), bg: darken(v, 0.9), main: v };
+    return {
+      mode: 'mui', name: APPS[ak].name, font: "'DM Sans', sans-serif", fontHead: "'DM Sans', sans-serif", fsH: '16px', fsBody: '14px', r: [4, 4, 16],
+      page: '#121212', paper: '#121212', subtle: '#1E1E1E', overlay: '#383838', divider: 'rgba(255,255,255,0.12)',
+      ink1: '#FFFFFF', ink2: 'rgba(255,255,255,0.7)', ink3: 'rgba(255,255,255,0.5)', primary: '#90CAF9', onPrimary: 'rgba(0,0,0,0.87)',
+      primaryTint: 'rgba(144,202,249,0.16)', focus: '#90CAF9', cbMain: 'rgba(255,255,255,0.23)', cbError: '#F44336', st,
+      series: ['#02B2AF', '#2E96FF', '#B800D8', '#60009B', '#2731C8', '#03008D'],
+      autofillBg: '#E8F0FE', autofillInk: '#000000', scrim: 'rgba(0,0,0,.5)', overlayShadow: '0 11px 15px -7px rgba(0,0,0,.2), 0 24px 38px 3px rgba(0,0,0,.14)',
+    };
+  }
+
+  // ---------- render ----------
+  const tpl = document.getElementById('tpl-screen');
+  function buildScreen(t) {
+    const el = document.createElement('div');
+    el.className = 'screen';
+    el.appendChild(tpl.content.cloneNode(true));
+    const set = (k, v) => el.style.setProperty(k, v);
+    set('--font', t.font); set('--font-head', t.fontHead); set('--fs-h', t.fsH); set('--fs-body', t.fsBody);
+    set('--r-control', t.r[0] + 'px'); set('--r-card', t.r[1] + 'px'); set('--r-chip', t.r[2] + 'px');
+    for (const k of ['page', 'paper', 'subtle', 'overlay', 'divider', 'ink1', 'ink2', 'ink3', 'primary', 'focus', 'scrim']) set('--' + k, t[k]);
+    set('--on-primary', t.onPrimary); set('--primary-tint', t.primaryTint); set('--cb-main', t.cbMain); set('--cb-error', t.cbError);
+    set('--autofill-bg', t.autofillBg); set('--autofill-ink', t.autofillInk); set('--overlay-shadow', t.overlayShadow);
+    for (const [k, v] of Object.entries(t.st)) { set(`--st-${k}-text`, v.text); set(`--st-${k}-bg`, v.bg); set(`--st-${k}-main`, v.main); }
+    el.querySelector('[data-brand]').textContent = t.name;
+    el.querySelector('[data-bars]').innerHTML = CATS.map(([l, v], i) =>
+      `<div class="barrow"><span class="lbl">${l}</span><span class="track"><span class="fill" style="display:block;width:${v * 2}%;background:${t.series[i]}"></span></span><span class="val">${v}</span></div>`).join('');
+    return el;
+  }
+
+  let state = { v: 'S1', a: 'tpl' };
+  try { const s = JSON.parse(localStorage.getItem('ucm-theme-13-proto-r2') || 'null'); if (s && VARIANTS[s.v] && APPS[s.a]) state = s; } catch (e) { /* storage unavailable */ }
+
+  const scaler = document.getElementById('scaler');
+  function fit() {
+    const s = scaler.firstElementChild; if (!s) return;
+    const k = Math.min(1, scaler.clientWidth / 1280);
+    s.style.transform = `scale(${k})`;
+    scaler.style.height = Math.ceil(s.offsetHeight * k) + 'px';
+  }
+
+  function row(label, fg, bg, min, note) {
+    const r = ratio(fg, bg); const ok = r >= min;
+    return `<tr><td>${label}${note ? ' <span class="muted">' + note + '</span>' : ''}</td><td><span class="sw" style="background:${fg}"></span>${fg}</td><td><span class="sw" style="background:${bg}"></span>${bg}</td><td>${r.toFixed(2)} : 1</td><td>${min} : 1</td><td class="${ok ? 'pass' : 'fail'}">${ok ? 'besteht' : 'zu schwach'}</td></tr>`;
+  }
+
+  function render() {
+    const d = darkTokens(state.v, state.a);
+    scaler.replaceChildren(buildScreen(d));
+    document.getElementById('f-dark').replaceChildren(buildScreen(d));
+    for (const k of ['S1', 'S2', 'S3']) document.getElementById('f-' + k.toLowerCase()).replaceChildren(buildScreen(darkTokens(k, state.a)));
+    document.getElementById('f-light').replaceChildren(buildScreen(lightTokens(state.a)));
+    document.getElementById('f-mui').replaceChildren(buildScreen(muiTokens(state.a)));
+    const vlabel = APPS[state.a].brand ? 'Marke webshop-guenter (die Stufen gelten hier nicht, die Marke setzt ihre Flächen selbst)' : VARIANTS[state.v].label;
+    document.getElementById('lbl-1280').textContent = `1280 px · ${vlabel} · ${APPS[state.a].name}`;
+    document.getElementById('lbl-d375').textContent = `375 px · ${vlabel}`;
+    for (const b of document.querySelectorAll('[data-v]')) b.setAttribute('aria-pressed', String(b.dataset.v === state.v));
+    for (const b of document.querySelectorAll('[data-a]')) b.setAttribute('aria-pressed', String(b.dataset.a === state.a));
+
+    const rows = [];
+    // Surface steps: no WCAG threshold applies; the number shows how far each surface stands off.
+    const step = (label, fg, bg) => `<tr><td>${label} <span class="muted">(Helligkeitsabstand)</span></td><td><span class="sw" style="background:${fg}"></span>${fg}</td><td><span class="sw" style="background:${bg}"></span>${bg}</td><td>${ratio(fg, bg).toFixed(2)} : 1</td><td>–</td><td></td></tr>`;
+    rows.push(step('Karte gegen Seite', d.paper, d.page));
+    rows.push(step('Dialog gegen Karte', d.overlay, d.paper));
+    if (!d.divider.startsWith('rgba')) rows.push(step('Rahmen gegen Karte', d.divider, d.paper));
+    rows.push(row('Text 1 auf Seite', d.ink1, d.page, 4.5));
+    rows.push(row('Text 2 auf Karte', d.ink2, d.paper, 4.5));
+    rows.push(row('Text 3 auf Karte', d.ink3, d.paper, 3, '(Hilfstext, Achse)'));
+    rows.push(row('Primär auf Seite', d.primary, d.page, 4.5, APPS[state.a].brand ? '(Marke)' : `(abgeleitet aus ${d.base})`));
+    rows.push(row('Text auf Primär-Button', d.onPrimary, d.primary, 4.5));
+    rows.push(row('Fokusring auf Karte', d.focus, d.paper, 3));
+    rows.push(row('Feldrahmen auf Karte', d.cbMain, d.paper, 3));
+    rows.push(row('Feldrahmen Fehler auf Karte', d.cbError, d.paper, 3));
+    for (const [k, v] of Object.entries(d.st)) rows.push(row(`Status ${k}: Text auf Grund`, v.text, v.bg, 4.5, (v.invented ? '(erfunden) ' : '') + (v.moved ? '(vom Netz aufgehellt)' : '')));
+    d.series.forEach((c, i) => rows.push(row(`Chart-Farbe ${i + 1} auf Karte`, c, d.paper, 3, c !== SERIES[i] ? `(aus ${SERIES[i]})` : '')));
+    document.querySelector('#ct tbody').innerHTML = rows.join('');
+    requestAnimationFrame(fit);
+    try { localStorage.setItem('ucm-theme-13-proto-r2', JSON.stringify(state)); } catch (e) { /* storage unavailable */ }
+  }
+
+  document.getElementById('g-variant').addEventListener('click', (e) => { const b = e.target.closest('[data-v]'); if (b) { state.v = b.dataset.v; render(); } });
+  document.getElementById('g-app').addEventListener('click', (e) => { const b = e.target.closest('[data-a]'); if (b) { state.a = b.dataset.a; render(); } });
+  if ('ResizeObserver' in window) new ResizeObserver(fit).observe(scaler); else window.addEventListener('resize', fit);
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(fit);
+  render();
+})();
+</script>
+</body>
+</html>
