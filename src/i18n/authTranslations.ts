@@ -2053,6 +2053,18 @@ export const authTranslations = {
     "en": "Rows per page:",
     "sw": "Safu kwa ukurasa:"
   },
+  "UserList.DISPLAYED_ROWS": {
+    "de": "{{from}}–{{to}} von {{count}}",
+    "fr": "{{from}}–{{to}} sur {{count}}",
+    "en": "{{from}}–{{to}} of {{count}}",
+    "sw": "{{from}}–{{to}} ya {{count}}"
+  },
+  "UserList.DISPLAYED_ROWS_MORE_THAN": {
+    "de": "{{from}}–{{to}} von mehr als {{to}}",
+    "fr": "{{from}}–{{to}} sur plus de {{to}}",
+    "en": "{{from}}–{{to}} of more than {{to}}",
+    "sw": "{{from}}–{{to}} ya zaidi ya {{to}}"
+  },
   "Auth.INVITE_SENT_SUCCESS": {
     "de": "Einladung gesendet.",
     "fr": "Invitation envoyée.",

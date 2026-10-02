@@ -33,7 +33,7 @@ vi.mock('react-i18next', () => {
   };
 });
 
-import { UserListComponent } from '../src/components/UserListComponent';
+import { UserListComponent, formatDisplayedRowsLabel } from '../src/components/UserListComponent';
 
 const currentUser = { id: 99, is_superuser: true, role: 'admin' };
 const user = { id: 1, email: 'person@example.com', role: 'student' };
@@ -165,5 +165,28 @@ describe('UserListComponent delete actions', () => {
 
     expect(within(getRowByEmail(ownUser.email)).queryByRole('button', { name: 'Delete' })).toBeNull();
     expect(within(getRowByEmail(user.email)).getByRole('button', { name: 'Delete' }).disabled).toBe(false);
+  });
+});
+
+describe('formatDisplayedRowsLabel (UCM-I18N-5)', () => {
+  // A real i18next instance's t() supports {{var}} interpolation; this fake mirrors just that,
+  // so these assertions pin the KEY and VARS formatDisplayedRowsLabel passes through -- the
+  // count === -1 ("more than") branch can never be reached by rendering UserListComponent itself
+  // (its own TablePagination always receives a real, non-negative count), so this is the only way
+  // to exercise it at all (UCM-I18N-5 review, tests lens).
+  function fakeT(key, fallback, vars = {}) {
+    const template = { [key]: fallback }[key] ?? fallback;
+    return template.replace(/\{\{(\w+)\}\}/g, (_, name) => String(vars[name] ?? `{{${name}}}`));
+  }
+
+  it('uses the exact-count key when count is a real number', () => {
+    const label = formatDisplayedRowsLabel(fakeT)({ from: 1, to: 10, count: 42 });
+    expect(label).toBe('1–10 of 42');
+  });
+
+  it('uses the "more than" key, without a literal count, when count is -1', () => {
+    const label = formatDisplayedRowsLabel(fakeT)({ from: 1, to: 10, count: -1 });
+    expect(label).toBe('1–10 of more than 10');
+    expect(label).not.toContain('-1');
   });
 });

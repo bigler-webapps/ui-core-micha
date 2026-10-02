@@ -1,5 +1,12 @@
 # Changelog
 
+## 3.11.1 — UCM-I18N-5
+
+`UserListComponent`'s pagination range text ("1–4 of 4") now goes through `labelDisplayedRows`,
+translated in all four supported locales (de/fr/en/sw), including the "more than" wording for an
+unbounded count. Previously only `labelRowsPerPage` was translated, so MUI's English default leaked
+through regardless of locale.
+
 ## 3.11.0 — UCM-THEME-14
 
 Added dark-mode composition to `createAppTheme` from the central dark token baseline, including own-surface

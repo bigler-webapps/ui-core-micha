@@ -22,11 +22,23 @@ import { UserListComponent } from '../src/components/UserListComponent';
 const germanResources = Object.fromEntries(
   Object.entries(authTranslations).map(([key, value]) => [key, value.de]),
 );
+const englishResources = Object.fromEntries(
+  Object.entries(authTranslations).map(([key, value]) => [key, value.en]),
+);
 const i18n = i18next.createInstance();
 i18n.init({
   lng: 'de',
   fallbackLng: 'de',
   resources: { de: { translation: germanResources } },
+  keySeparator: false,
+  nsSeparator: false,
+  interpolation: { escapeValue: false },
+});
+const englishI18n = i18next.createInstance();
+englishI18n.init({
+  lng: 'en',
+  fallbackLng: 'en',
+  resources: { en: { translation: englishResources } },
   keySeparator: false,
   nsSeparator: false,
   interpolation: { escapeValue: false },
@@ -37,6 +49,7 @@ const ENGLISH_DEFAULTS = [
   'Search',
   'Search users...',
   'Rows per page:',
+  'of 1',
   'Successful Login',
   'Are you sure you want to delete this user?',
   'Invite a new user',
@@ -49,6 +62,10 @@ const ENGLISH_DEFAULTS = [
 
 function withGermanI18n(children) {
   return <I18nextProvider i18n={i18n}>{children}</I18nextProvider>;
+}
+
+function withEnglishI18n(children) {
+  return <I18nextProvider i18n={englishI18n}>{children}</I18nextProvider>;
 }
 
 function expectNoEnglishDefaults() {
@@ -112,6 +129,7 @@ describe('German user and invite screen translations', () => {
     await waitFor(() => expect(screen.getByText('Alle Benutzer')).toBeTruthy());
     expect(screen.getByLabelText('Suche')).toBeTruthy();
     expect(screen.getByPlaceholderText('Benutzer suchen...')).toBeTruthy();
+    expect(screen.getByText('1–1 von 1')).toBeTruthy();
     for (const german of ['Neu', 'Erfolgreiche Anmeldung', 'Rolle', 'Aktionen', 'Zeilen pro Seite:', 'Löschen']) {
       expect(screen.getByText(german)).toBeTruthy();
     }
@@ -122,6 +140,41 @@ describe('German user and invite screen translations', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Aktion' }));
     await waitFor(() => expect(alert).toHaveBeenCalledWith('Vorgang fehlgeschlagen.'));
     expectNoEnglishDefaults();
+  });
+
+  it('renders the pagination range in English when the locale is English', async () => {
+    render(withEnglishI18n(<UserListComponent currentUser={{ id: 99, is_superuser: true, role: 'admin' }} />));
+
+    await waitFor(() => expect(screen.getByText('1–1 of 1')).toBeTruthy());
+  });
+
+  it('actually goes through the translation key, not a coincidental match with MUI\'s own default', async () => {
+    // The real English wording is deliberately identical to MUI's own hardcoded default text
+    // (both "{from}-{to} of {count}"), so the assertion above would still pass even if
+    // labelDisplayedRows were reverted to unset entirely. Swap in a distinctive marker for just
+    // this one key to prove the render genuinely resolves it through i18next, not MUI's fallback
+    // (UCM-I18N-5 review, tests lens).
+    const markerI18n = i18next.createInstance();
+    markerI18n.init({
+      lng: 'en',
+      fallbackLng: 'en',
+      resources: {
+        en: {
+          translation: { ...englishResources, 'UserList.DISPLAYED_ROWS': '__MARKER__ {{from}}-{{to}}/{{count}}' },
+        },
+      },
+      keySeparator: false,
+      nsSeparator: false,
+      interpolation: { escapeValue: false },
+    });
+
+    render(
+      <I18nextProvider i18n={markerI18n}>
+        <UserListComponent currentUser={{ id: 99, is_superuser: true, role: 'admin' }} />
+      </I18nextProvider>,
+    );
+
+    await waitFor(() => expect(screen.getByText('__MARKER__ 1-1/1')).toBeTruthy());
   });
 
   it('renders UserInviteComponent in German and translates the success message', async () => {

@@ -34,6 +34,17 @@ export const USER_LIST_HEADER_CELL_SX = { fontWeight: 600, whiteSpace: 'nowrap' 
 export const USER_LIST_EMPTY_CELL_SX = { py: 4, color: 'text.secondary' };
 export const USER_LIST_BODY_CELL_SX = { verticalAlign: 'top', py: 1 };
 
+// Extracted so the count === -1 ("more than") branch is directly unit-testable -- the live
+// TablePagination call site always passes a real count from sortedUsers.length, so that branch
+// can never actually be exercised through a render of this component itself (UCM-I18N-5 review).
+export function formatDisplayedRowsLabel(t) {
+  return ({ from, to, count }) => (
+    count === -1
+      ? t('UserList.DISPLAYED_ROWS_MORE_THAN', '{{from}}–{{to}} of more than {{to}}', { from, to })
+      : t('UserList.DISPLAYED_ROWS', '{{from}}–{{to}} of {{count}}', { from, to, count })
+  );
+}
+
 export function UserListComponent({
     roles = DEFAULT_ROLES,
     currentUser,
@@ -597,6 +608,7 @@ export function UserListComponent({
               setPage(0);
             }}
             labelRowsPerPage={t('UserList.ROWS_PER_PAGE', 'Rows per page:')}
+            labelDisplayedRows={formatDisplayedRowsLabel(t)}
             rowsPerPageOptions={[10, 25, 50, 100]}
           />
         </Box>

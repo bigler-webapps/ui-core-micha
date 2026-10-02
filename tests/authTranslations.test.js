@@ -50,3 +50,25 @@ describe('authTranslations — AUTH-2 raw backend error codes', () => {
     expect(authTranslations['Auth.MFA_AUTHENTICATE_FAILED']).toBeDefined();
   });
 });
+
+describe('authTranslations — UserList pagination labels', () => {
+  it.each(['UserList.DISPLAYED_ROWS', 'UserList.DISPLAYED_ROWS_MORE_THAN'])('%s has all supported locale entries', (key) => {
+    expect(authTranslations[key]).toBeDefined();
+    for (const locale of ['de', 'fr', 'en', 'sw']) {
+      expect(authTranslations[key][locale]).toEqual(expect.any(String));
+      expect(authTranslations[key][locale].trim()).not.toBe('');
+    }
+  });
+
+  // A nonempty string isn't enough -- a locale missing an interpolation placeholder the
+  // others carry would silently render the literal "{{count}}" to a real user (UCM-I18N-5 review).
+  it.each(['de', 'fr', 'en', 'sw'])('%s has {{from}} and {{to}} in both pagination keys, and {{count}} only in the exact-count one', (locale) => {
+    expect(authTranslations['UserList.DISPLAYED_ROWS'][locale]).toContain('{{from}}');
+    expect(authTranslations['UserList.DISPLAYED_ROWS'][locale]).toContain('{{to}}');
+    expect(authTranslations['UserList.DISPLAYED_ROWS'][locale]).toContain('{{count}}');
+
+    expect(authTranslations['UserList.DISPLAYED_ROWS_MORE_THAN'][locale]).toContain('{{from}}');
+    expect(authTranslations['UserList.DISPLAYED_ROWS_MORE_THAN'][locale]).toContain('{{to}}');
+    expect(authTranslations['UserList.DISPLAYED_ROWS_MORE_THAN'][locale]).not.toContain('{{count}}');
+  });
+});
