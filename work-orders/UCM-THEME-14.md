@@ -154,9 +154,128 @@ branch.
 
 # B. Implementation map, filled by the Orchestrator and ADDRESSED TO THE IMPLEMENTER
 
-*Placeholder. The Orchestrator fills the context package, the absolute working directory, the
-progress contract and the preamble block on `git pull`, per `AGENTS.md` -> "Work Order". Do not
-dispatch while this placeholder stands, and not before `UCM-THEME-13` is frozen.*
+Work from this package; do not explore broadly from scratch; open only the named files to verify. If
+you must dig deeper, delegate to a read-only Explore sub-agent.
+
+## Target working directory (absolute)
+
+`C:\Users\biglmi\Documents\webapps\ui-core-micha` (branch `main`). Never the workspace root.
+
+## Context package
+
+Value source for every dark value: `docs/DARK-TOKENS.md` (read it fully first). Do not invent a value;
+one the sheet lacks is `RESULT: BLOCKED <value>`.
+
+**`src/theme/tokens.js`**
+- `BASELINE_PALETTE` (l.~52-123) is the light baseline. Add `BASELINE_PALETTE_DARK` next to it with the
+  same shape, every key from the sheet: `ink`, `text`, `background`, `divider`, `controlBorder`
+  (`main`/`hover`/`error`), the five status keys (use `withMainShades(main, '#14181B')` for
+  success/warning/error/info, plus `text`/`fill`/`fillText`/`bg`; `stale` has no `main`, as in light),
+  `dataSeries.categorical`. Do NOT hardcode series slots 1 and 5, `controlBorder.main/hover`, or the
+  primary as literals: those are rule-derived (see below); the sheet's numbers are the expected OUTPUT.
+  The dark `dataSeries` base is the light `SERIES_COLOURS`, lightened by the factory.
+- Export a dark overlay surface (`#232A31`), a dark overlay shadow (`0 8px 28px rgba(0,0,0,.45)`) and the
+  scrim (`rgba(0,0,0,.55)`) as named constants.
+- `BASELINE_STATIC.shadow` (~l.200) carries `rest`/`overlay`; the dark theme needs the dark overlay value
+  there. `BASELINE_STATIC.components` has static `MuiDialog.paper`/`MuiDrawer.paper`/`MuiMenu.paper`
+  boxShadow `OVERLAY_SHADOW` (~l.340-355): in dark these are overridden, never edited for light.
+- The static light `autofill` block (~l.147) is shadowed by the palette-aware one; leave it, confirm by test.
+- `BASELINE_INTENTIONAL_DEFAULT_EXEMPTIONS` (end of file): the `palette.background.paper` entry says "MUI
+  white". Provide the list by mode: in dark, drop that entry (the dark paper differs from MUI's default, so
+  no exemption is needed), keep the others. The light list stays byte-identical.
+
+**`src/theme/createAppTheme.js`**
+- `createAppTheme` (l.~176): the three-layer `createTheme(app, BASELINE_PALETTE, app)` resolution. Read
+  `appConfig.palette.mode`; `'dark'` selects `BASELINE_PALETTE_DARK` and passes `mode: 'dark'` through to the
+  theme; anything else is the unchanged light path. Do not read `prefers-color-scheme`.
+- `contrastSurfaces = ['#FFFFFF', background.default]` (l.~186): in dark this must be the theme's own
+  `[background.default, background.paper]`; light stays exactly `['#FFFFFF', default]`.
+- `deriveFocusColour`/`clearsContrast` (l.~48-60) only darken and use MUI `getContrastRatio`. In dark add a
+  lightening counterpart (lighten in 0.05 steps, same 0.9 cap) alongside, not a rewrite. Same for
+  `deriveDarkenedPageColour`: add a lightened sibling next to it. For dark `controlBorder.main/hover`:
+  `rgba(230, 235, 239, a)` from `ink.primary`, `a` = the smallest alpha (0.01 steps) that clears 3:1 on
+  page and paper, hover = main + 0.15; the sheet's 0.38 / 0.53 are the expected result.
+- Rule 3 (primary), rule 4 (status net: baseline-supplied status `main` and `controlBorder.error`, judged
+  against page AND its own `bg`, lightened; per-key check off `appConfig.palette` exactly as the existing
+  light loops do), rule 5 (series: each baseline light series colour lightened in 0.05 steps until it clears
+  3:1 on the theme's own `background.paper`; app-supplied series untouched, the final merge argument already
+  lets them win), rule 6 (own surfaces) are all computed here, dark branch only. Primary `contrastText` =
+  whichever of `#FFFFFF` / `background.default` contrasts more. The app may pass `primary` as `{ main }`.
+- `createPaletteAwareComponents(palette)` (l.~84): add dark-only overlay slots: `MuiDialog`, `MuiMenu`,
+  `MuiPopover`, `MuiDrawer` `paper` -> background colour = overlay surface `#232A31`, `boxShadow` = dark
+  overlay shadow; `MuiBackdrop.root` -> scrim. Keep the overlay surface a local constant unless a palette
+  key is clearly cleaner and trips no completeness check. Emitted only when mode is dark, so the light
+  component tree is untouched.
+- Preserve the final merge order (BASELINE_STATIC, palette-aware components, `appConfig`, the dataSeries
+  re-merge). The dark theme's `shadow.overlay` = the dark value.
+
+**`src/theme/themeCompleteness.js`**
+- `contrastFindings` (l.~268-345): `backgrounds = { white: '#FFFFFF', page: default }` (~l.298). In dark use
+  the theme's own page and paper instead of a fixed white. Light keeps the exact same keys
+  (`...-on-white`, `...-on-page`) and values; existing tests assert those surface names. For dark name them
+  `...-on-paper` / `...-on-page`.
+- `assertThemeComplete` (~l.620): `MUI_DEFAULT_THEME` is the light MUI default. Verify a dark theme neither
+  produces a false "still MUI default" finding nor a false pass; fix only what is wrong.
+
+**Kit components with hard-coded light values:** `src/components/QrSignupManager.jsx` has an inline CSS
+block (l.~225-274: `#f5f7fb`, `#122033`, `#d9e2f2`, `#ffffff`, `#e8f0ff`, `#23408e`, `#f8faff`) and
+`bgcolor: '#ffffff'` at l.361. **The l.361 white is a QR quiet zone and stays.** List every hard-coded
+light colour under `src/` outside `src/theme/` and tests in your final report. Switching one to an existing
+palette token is in scope (check its consumers and `tests/QrSignupManager.registrationContext.test.jsx`
+first); a spot that would need a new token is reported, not built. `src/auth/UserMenu.jsx:44` and
+`src/components/charts/chartLabels.js` only mention colours in comments.
+
+**Docs / release:** `DESIGN.md` gets a concise dark-mode section (how to opt in, primary rule, status net,
+overlay surface, series rule, what an app owns in dark). `CHANGELOG.md` entry. `package.json` version
+`3.10.0` -> `3.11.0` (and `package-lock.json` where the version appears for this package).
+
+**Existing tests to follow** (style, imports): `tests/createAppTheme.test.js`,
+`tests/createAppThemePageContrast.test.js` (imports `assertThemeComplete`, `createAppTheme` from
+`../src/theme`), `tests/themeCompleteness.test.js`. New dark tests go in `tests/createAppThemeDark.test.js`,
+the light guard in `tests/createAppThemeLightGuard.test.js`.
+
+**Light regression guard (required test 1):** BEFORE editing any source, capture the output of
+`createAppTheme({ palette: { primary: { main: '#0F62FE' } } })` and of one overriding app config (fontFamily,
+a custom page background, an app-supplied status main) as a JSON fixture
+(`tests/fixtures/light-theme-baseline.json`, stable serialization, functions as strings), from the
+unmodified code, and assert equality afterwards. Prove it can fail: one test mutates a light value in a
+clone of the snapshot and asserts the comparison reports a difference.
+
+**Invariants / pitfalls**
+- Light output byte-identical: no key-order change that alters serialization, no new keys on the light theme.
+- Only the first `createTheme` argument is augmented (comment at the top of `tokens.js`): every status
+  entry needs explicit `main/light/dark/contrastText`.
+- MUI `getContrastRatio` vs the kit's alpha-aware `calculateContrastRatio`: use the kit's for anything with
+  alpha, as THEME-15 did.
+- Build `controlBorder.main/hover`, the series and the primary from the rules, not literals; the tests
+  assert the rules reproduce the sheet's values.
+- Do not touch auth, CI, dependencies, `WORK_ORDERS.md`, or `docs/DARK-TOKENS.md` (read-only here).
+
+## Required tests, restated
+
+The nine tests of Part A, in the new files named above. Run only the tests you wrote.
+
+## Preamble
+
+The text above is the COMPLETE spec: the committed WO file's content, not a plan to refine; there is no
+separate plan file. Read the nearest `AGENTS.md`, the relevant `.codex/skills/<role>/SKILL.md`, and the app
+`MEMORY.md` ONLY for conventions. Stay in scope; do not touch auth/permissions/deps/schema/CI unless the
+spec says so; do not update `MEMORY.md`. **Do NOT edit `WORK_ORDERS.md`: the register row and the review
+verdicts are the orchestrator's alone.** **Your tools are for editing source and test files and for running
+the tests you wrote, nothing else.** Do NOT install dependencies, touch a lockfile (the version line in
+`package-lock.json` is the one exception, a plain text edit), run a package manager, or tidy up stray
+files; if something in the repo state blocks you, stop and report it as `RESULT: BLOCKED <reason>` instead
+of fixing it. Do NOT `git add`/`commit`/`push`: leave every change uncommitted in the working tree for the
+orchestrator's independent review. WRITE the tests the `Required tests` section calls for AND **RUN the
+tests you just wrote** to confirm they execute and pass: that is the ONLY test run you do (NOT the
+affected/full suite, NOT any review). Run them with `npx vitest run <your test files>`. The orchestrator
+re-runs the authoritative set and does the independent review after you finish; those are the gate.
+
+Narrate continuously: a `PLAN: <step1> | <step2> | ...` line up front, then a single-line
+`PROGRESS: [<n>/<total>] <present-tense action>` before every relevant action (and `... done` on
+completion), spaced so no gap exceeds ~2 min, stdout unbuffered, plus exactly one final
+`RESULT: DONE|BLOCKED <reason>`. Your final report must also list every hard-coded light colour found under
+`src/` outside the theme folder.
 
 ---
 
