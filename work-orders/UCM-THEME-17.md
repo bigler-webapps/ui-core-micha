@@ -31,6 +31,38 @@ Operator decision (2026-10-04): treat this as a baseline finding, the way dark m
   own sizes (`jg-ferien` `JG-DL-7`). Six other apps accepted the baseline scale without comment.
 - **The MUI scale is the other extreme**: 34/24 px titles read heavy in a dense tool.
 
+## Inventory (stage 1, 2026-10-04)
+
+From 88 prototypes in `*/work-orders/assets/` (screen selectors hand-checked in nine: KZ-UI-1, RES-14,
+INNO-PLAN-1, JG-MEM-1, UX-10, PRIM-1, FM-8, OBS-10, KIRA-CRUD-6), the app theme overrides and the
+measurements above:
+
+| Role | Baseline today | Approved prototypes (typical) | MUI |
+|---|---|---|---|
+| Screen title | h4 20/600, fixed | 24 at 1280, 17-21 at 375 (KZ 24->17, jg 25.6->20, survey 24->21) | 34 |
+| Panel / dialog | h5 18 | 18-20 | 24 |
+| Card title | h6 16 | 15-18 | 20/500 |
+| Section label | subtitle1 15/600 | 12-13 at 600-700 | - |
+| Body | 14 | 14 (20 sheets), 15 (13 sheets) | 16 |
+
+- The approved designs had the larger title step (screen title about 1.7x body; baseline 1.43x), and step
+  the title down on mobile. Both were lost between prototype and baseline.
+- The section label sits on the wrong side of body: 15 px, one pixel under the card title.
+- jg-ferien rejected larger **body** text (`JG-DL-7`); survey_app misses **heading** steps. The two are
+  compatible.
+- Weight no longer carries hierarchy: every heading is 600 and apps override it per level (survey_app 800,
+  hram 500).
+
+## Structural decisions (operator, 2026-10-04)
+
+1. **One scale** for every app and page type; no separate reading register. Body stays the tool density.
+2. **The screen title steps down one size on narrow screens.**
+3. **Size carries the hierarchy, weight is fixed**: headings share one weight; the section label is small
+   and strong. App overrides are for font family, not for per-level weight.
+4. **The section label (subtitle1) moves below body size**, set apart by weight.
+
+The role mapping of the `THEME-1` sheet stands: h4 screen title, h5 panel/dialog, h6 card title.
+
 ## Scope + non-goals
 
 In scope: an inventory of the type sizes the estate actually uses (app overrides, prototypes, the
