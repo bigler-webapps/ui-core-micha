@@ -97,9 +97,74 @@ webshop-guenter (own handoff scale), Kira, Cinevia and Gustav (no MUI heading va
 
 # B. Implementation map, filled by the Orchestrator and ADDRESSED TO THE IMPLEMENTER
 
-*Placeholder. The Orchestrator fills the context package, the absolute working directory, the
-progress contract and the preamble block on `git pull`, per `AGENTS.md` -> "Work Order". Do not dispatch
-while this placeholder stands.*
+Work from this package; open only the named files. A value the sheet lacks is `RESULT: BLOCKED <value>`.
+
+## Target working directory (absolute)
+
+`C:\Users\biglmi\Documents\webapps\ui-core-micha` (branch `main`). Never the workspace root.
+
+## Context package
+
+- **`src/theme/tokens.js`**: `BASELINE_STATIC.typography` (l.~222-241) uses `typeVariant(size, weight, lineHeight, extra)`
+  (l.45). Change h1/h2/h3/h4/h5/subtitle1 to the table in Part A; nothing else in that block moves.
+  h4 gets the mobile step as a nested media-query key inside the variant (`extra`), `fontSize: '23px'`.
+  The query must be **derived from the breakpoint value**, not typed a second time: introduce one
+  constant for `sm` (600) in `tokens.js`, use it in `breakpoints.values.sm` (l.~251) and build the key
+  from it, in the form MUI's `breakpoints.down('sm')` produces (`@media (max-width:599.95px)`, that is
+  `sm - 0.05`). Export the constant or the key builder so the test can reference it.
+- **`src/theme/createAppTheme.js`** (l.~379-387) spreads `BASELINE_STATIC.typography` and takes only
+  `fontFamily` from the app; no change expected. Verify the nested media key survives `createTheme`
+  into `theme.typography.h4` in both light and dark (read the resolved theme, do not assume).
+- **`src/theme/themeCompleteness.js`** (`TYPOGRAPHY_SURFACES`, l.~38) reads fontSize/fontWeight/lineHeight/
+  letterSpacing per variant. Verify the baseline h4 with its media key raises no finding; change this file
+  only if it does.
+- **Light regression fixture** `tests/fixtures/light-theme-baseline.json` (checked by
+  `tests/createAppThemeLightGuard.test.js`): update ONLY the typography entries that this order changes
+  (h1-h5 and subtitle1 `fontSize`, and h4's new media key), in both of its snapshots (`baseline`, `override`).
+  Regenerate carefully: the diff of the fixture must contain nothing but those typography lines. Do not
+  re-capture the whole file blindly; check `git diff` of the fixture afterwards (use `git diff` to read it,
+  do not stage).
+- **Docs / release**: `CHANGELOG.md` entry `3.12.0 - UCM-THEME-18` (newest first, same style as the
+  existing entries): the new scale in one table-free sentence; the visible change for every adopted app;
+  that an app overriding h4's `fontSize` keeps the baseline's 23px below `sm` (survey_app sets h4
+  `2.125rem`); that headings are fixed at weight 600 and apps should not override per level.
+  `package.json` version `3.11.2` -> `3.12.0` (no lockfile in this repo).
+- Kit components: no edit expected (they use the variants).
+
+**Existing tests to follow** (style): `tests/createAppTheme.test.js`, `tests/createAppThemeDark.test.js`.
+New tests go in `tests/createAppThemeTypography.test.js`.
+
+**Pitfalls**: weights, line heights, letterSpacing, h6, subtitle2, body1/2, button, caption, overline are
+unchanged and must stay byte-identical. Do not touch `breakpoints` values or add a second source for `sm`.
+
+## Required tests, restated
+
+The three tests of Part A. Test 2 must show it can fail: derive the expected query from
+`breakpoints.values.sm` of the resolved theme (not a literal), and include an assertion that would break if
+the baseline's key were typed independently of that value (for example by building a theme with a different
+`sm` through the same constant, if the constant is the single source, or by asserting the key string equals
+the builder applied to the theme's own `sm`).
+
+## Preamble
+
+The text above is the COMPLETE spec: the committed WO file's content, not a plan to refine; there is no
+separate plan file. Read the nearest `AGENTS.md`, the relevant `.codex/skills/<role>/SKILL.md`, and the app
+`MEMORY.md` ONLY for conventions. Stay in scope; do not touch auth/permissions/deps/schema/CI unless the
+spec says so; do not update `MEMORY.md`. **Do NOT edit `WORK_ORDERS.md`: the register row and the review
+verdicts are the orchestrator's alone.** **Your tools are for editing source and test files and for running
+the tests you wrote, nothing else.** Do NOT install dependencies, touch a lockfile, run a package manager,
+or tidy up stray files; if something in the repo state blocks you, stop and report it as
+`RESULT: BLOCKED <reason>` instead of fixing it. Do NOT `git add`/`commit`/`push`: leave every change
+uncommitted in the working tree for the orchestrator's independent review. WRITE the tests the
+`Required tests` section calls for AND **RUN the tests you just wrote** to confirm they execute and pass:
+that is the ONLY test run you do (NOT the affected/full suite, NOT any review). Run them with
+`npx vitest run <your test files>`. The orchestrator re-runs the authoritative set and does the independent
+review after you finish; those are the gate.
+
+Narrate continuously: a `PLAN: <step1> | <step2> | ...` line up front, then a single-line
+`PROGRESS: [<n>/<total>] <present-tense action>` before every relevant action (and `... done` on
+completion), spaced so no gap exceeds ~2 min, stdout unbuffered, plus exactly one final
+`RESULT: DONE|BLOCKED <reason>`.
 
 ---
 
