@@ -1,5 +1,9 @@
 # Changelog
 
+## 3.12.0 - UCM-THEME-18
+
+The shared type scale now uses h1–h5 sizes of 36/32/28/24/20px, h4 steps to 23px below `sm`, and subtitle1 is 13px; every adopted app changes on its next bump, with hram, jg-ferien, kerzenziehen, spesix, and fitness-monitor moving screen titles from h5 to h4, while survey_app should remove its 800/700 weights and h4 `2.125rem`/400 override and decide its h3 page titles (24px to 28px), closing the held `SVA-THEME-1` typography revert. An app h4 `fontSize` override retains the baseline’s 23px mobile step (survey_app currently sets `2.125rem`); heading weights are fixed at 600, so apps should not override them per level. All other adopted apps need only bump; webshop-guenter, Kira, Cinevia, and Gustav are unaffected.
+
 ## 3.11.2 — UCM-THEME-16
 
 The "Signup Access / valid until" box in `QrSignupManager` now takes `background.subtle` instead of the fixed light `grey.50`,

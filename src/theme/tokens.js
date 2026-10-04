@@ -50,6 +50,9 @@ const typeVariant = (fontSize, fontWeight, lineHeight, extra = {}) => ({
   ...extra,
 });
 
+export const BREAKPOINT_SM = 600;
+export const breakpointDownQuery = (value) => `@media (max-width:${value - 0.05}px)`;
+
 export const BASELINE_PALETTE = {
   ink: {
     primary: '#212529',
@@ -222,13 +225,15 @@ const autofill = {
 export const BASELINE_STATIC = {
   typography: {
     fontFamily: "'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
-    h1: typeVariant('32px', 600, 1.2),
-    h2: typeVariant('28px', 600, 1.22),
-    h3: typeVariant('24px', 600, 1.25),
-    h4: typeVariant('20px', 600, 1.3),
-    h5: typeVariant('18px', 600, 1.3),
+    h1: typeVariant('36px', 600, 1.2),
+    h2: typeVariant('32px', 600, 1.22),
+    h3: typeVariant('28px', 600, 1.25),
+    h4: typeVariant('24px', 600, 1.3, {
+      [breakpointDownQuery(BREAKPOINT_SM)]: { fontSize: '23px' },
+    }),
+    h5: typeVariant('20px', 600, 1.3),
     h6: typeVariant('16px', 600, 1.35),
-    subtitle1: typeVariant('15px', 600, 1.4),
+    subtitle1: typeVariant('13px', 600, 1.4),
     subtitle2: typeVariant('13px', 500, 1.4),
     body1: typeVariant('14px', 400, 1.55),
     body2: typeVariant('13px', 400, 1.55),
@@ -248,7 +253,7 @@ export const BASELINE_STATIC = {
   },
   spacing: 8,
   breakpoints: {
-    values: { xs: 0, sm: 600, md: 900, lg: 1200, xl: 1536 },
+    values: { xs: 0, sm: BREAKPOINT_SM, md: 900, lg: 1200, xl: 1536 },
   },
   density: {
     controlHeight: 40,

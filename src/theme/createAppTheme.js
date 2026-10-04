@@ -8,10 +8,12 @@ import {
   BASELINE_PALETTE,
   BASELINE_PALETTE_DARK,
   BASELINE_STATIC,
+  BREAKPOINT_SM,
   DARK_OVERLAY_SHADOW,
   DARK_OVERLAY_SURFACE,
   DARK_SCRIM,
   MOTION,
+  breakpointDownQuery,
   withMainShades,
 } from './tokens';
 import { calculateContrastRatio } from './themeCompleteness';
@@ -377,6 +379,10 @@ export function createAppTheme(appConfig = {}) {
   };
   const resolvedPalette = { ...finalPalette, ...computedPalette };
   const fontFamily = appConfig.typography?.fontFamily || BASELINE_STATIC.typography.fontFamily;
+  // The h4 step below `sm` follows the app's own `sm` if it overrides the breakpoint,
+  // so the step always ends where theme.breakpoints.down('sm') ends.
+  const { [breakpointDownQuery(BREAKPOINT_SM)]: h4Mobile, ...h4Base } = BASELINE_STATIC.typography.h4;
+  const smValue = appConfig.breakpoints?.values?.sm ?? BREAKPOINT_SM;
 
   return createTheme(
     {
@@ -384,6 +390,7 @@ export function createAppTheme(appConfig = {}) {
       typography: {
         ...BASELINE_STATIC.typography,
         fontFamily,
+        h4: { ...h4Base, [breakpointDownQuery(smValue)]: h4Mobile },
       },
       fontLoading: {
         ...BASELINE_STATIC.fontLoading,
