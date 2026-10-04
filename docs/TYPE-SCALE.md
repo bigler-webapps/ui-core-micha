@@ -98,6 +98,10 @@ These are inputs for the per-app follow-up after the release, not part of the ba
   The operator looked at jg-ferien on the 3.12.0 build, including `FinanceSummaryPanel` with subtitle1 as a
   panel section title, and accepted it without any remapping. Rollout orders therefore do not remap
   subtitle1 by default; a remap happens only where an app's own look rejects a specific screen.
+- **Exception to decision 3: spesix keeps its own heading weights** (operator, 2026-10-04, at `SPX-DEP-3`). Its
+  `DESIGN` block (h1 800, h2-h5 700, h6 600, button 700) belongs to a decided design (`SPX-THEME-1`, identity
+  bucket), and the new sizes separate the levels on their own. survey_app's 800/700 weights are not covered by
+  this exception: there the operator found the bold levels themselves to be the problem.
 - webshop-guenter keeps its handoff scale (decided brand, identity bucket). Kira, Cinevia and Gustav use no MUI
   heading variants and are unaffected.
 
