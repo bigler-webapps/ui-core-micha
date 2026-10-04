@@ -94,8 +94,10 @@ These are inputs for the per-app follow-up after the release, not part of the ba
   inventory missed it, because it read subtitle1 only in its section-label role on hram Research). Uses in
   `src/`: hram 72, jg-ferien 39, ui-core-micha itself 12 (`UserMenu` user name, `SectionNav` active item,
   announcement titles), innoservice 9, survey_app 7, reimbursements 6, spesix 5. As item or panel titles they
-  fall below body size. **Open, decided at the jg-ferien pilot `JG-DEPS-4` on staging** (operator 2026-10-04):
-  13 stays and the app orders map subtitle1-as-title to h6 or body1, or a patch moves subtitle1.
+  fall below body size. **Decided at the jg-ferien pilot `JG-DEPS-4`, 2026-10-04: subtitle1 stays at 13 px.**
+  The operator looked at jg-ferien on the 3.12.0 build, including `FinanceSummaryPanel` with subtitle1 as a
+  panel section title, and accepted it without any remapping. Rollout orders therefore do not remap
+  subtitle1 by default; a remap happens only where an app's own look rejects a specific screen.
 - webshop-guenter keeps its handoff scale (decided brand, identity bucket). Kira, Cinevia and Gustav use no MUI
   heading variants and are unaffected.
 
