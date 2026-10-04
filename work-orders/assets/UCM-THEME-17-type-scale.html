@@ -112,7 +112,10 @@ ol.decisions { margin: 6px 0 0; padding-left: 20px; max-width: 900px; } ol.decis
     <li>Die Grösse trägt die Hierarchie, das Gewicht ist fix: alle Überschriften 600.</li>
     <li>Das Abschnittslabel (subtitle1) liegt unter der Textgrösse und wird über das Gewicht abgesetzt.</li>
   </ol>
-  <p class="note" style="margin-top:8px">Strukturentscheide des Operators vom 2026-10-04. MUI ist der rohe Framework-Standard (Roboto ersetzt durch DM Sans, damit nur die Grössen verglichen werden).</p>
+  <p class="note" style="margin-top:8px"><b>Wertrunde 1 (2026-10-04):</b> Mobiler Seitentitel näher an den Desktop-Titel, jetzt Desktop minus 2 px in allen Kandidaten (vorher A 19, B 20, C 22).</p>
+  <p class="note"><b>Wertrunde 2 (2026-10-04):</b> Kandidat B gewählt. Mobiler Seitentitel 23 px (bei 22 läge Titel zu Panel bei 375 nur bei 1.10). h1 / h2 / h3 = 36 / 32 / 28, fix. Die übrigen Spalten bleiben als verworfene Kandidaten stehen.</p>
+  <p class="note"><b>Eingefroren 2026-10-04.</b> Wertquelle ist <code>docs/TYPE-SCALE.md</code>, nicht dieses Blatt.</p>
+  <p class="note">Strukturentscheide des Operators vom 2026-10-04. MUI ist der rohe Framework-Standard (Roboto ersetzt durch DM Sans, damit nur die Grössen verglichen werden).</p>
 </header>
 
 <div class="controls" id="controls"><span class="lbl">Spalten</span></div>
@@ -138,13 +141,13 @@ const SCALES = [
     h3: [24, 600, 1.25], h4: [20, 600, 1.3], h4m: 20, h5: [18, 600, 1.3], h6: [16, 600, 1.35],
     s1: [15, 600, 1.4], s2: [13, 500], b1: [14, 1.55], b2: [13, 1.55], cap: 12, btn: [14, 'none', '0'], ovl: [11, 600] },
   { id: 'a', name: 'A', sub: 'knapp',
-    h3: [26, 600, 1.25], h4: [22, 600, 1.3], h4m: 19, h5: [18, 600, 1.3], h6: [16, 600, 1.35],
+    h3: [26, 600, 1.25], h4: [22, 600, 1.3], h4m: 20, h5: [18, 600, 1.3], h6: [16, 600, 1.35],
     s1: [13, 600, 1.4], s2: [13, 500], b1: [14, 1.55], b2: [13, 1.55], cap: 12, btn: [14, 'none', '0'], ovl: [11, 600] },
   { id: 'b', name: 'B', sub: 'Mitte der Prototypen',
-    h3: [28, 600, 1.25], h4: [24, 600, 1.3], h4m: 20, h5: [20, 600, 1.3], h6: [16, 600, 1.35],
+    h3: [28, 600, 1.25], h4: [24, 600, 1.3], h4m: 23, h5: [20, 600, 1.3], h6: [16, 600, 1.35],
     s1: [13, 600, 1.4], s2: [13, 500], b1: [14, 1.55], b2: [13, 1.55], cap: 12, btn: [14, 'none', '0'], ovl: [11, 600] },
   { id: 'c', name: 'C', sub: 'weit',
-    h3: [32, 600, 1.25], h4: [28, 600, 1.3], h4m: 22, h5: [22, 600, 1.3], h6: [17, 600, 1.35],
+    h3: [32, 600, 1.25], h4: [28, 600, 1.3], h4m: 26, h5: [22, 600, 1.3], h6: [17, 600, 1.35],
     s1: [12, 600, 1.4], s2: [13, 500], b1: [14, 1.55], b2: [13, 1.55], cap: 12, btn: [14, 'none', '0'], ovl: [11, 600] },
 ];
 
@@ -339,10 +342,10 @@ function buildRatios() {
     const [h4, h5, h6, b1, s1] = [...probe.children].map(fsOf);
     const h4m = parseFloat(getComputedStyle(probe).getPropertyValue('--h4m-fs'));
     const cell = (r, lo) => `<td class="${r < lo ? 'warn' : 'pass'}">${fmt(r)}</td>`;
-    return `<tr data-scale-col="${s.id}"><td><b>${s.name}</b></td>${cell(h4 / h5, 1.12)}${cell(h5 / h6, 1.12)}${cell(h6 / b1, 1.12)}<td>${fmt(h4 / b1)}</td><td>${fmt(h4m / b1)}</td><td class="${s1 < b1 ? 'pass' : 'warn'}">${fmt(s1 / b1)}</td></tr>`;
+    return `<tr data-scale-col="${s.id}"><td><b>${s.name}</b></td>${cell(h4 / h5, 1.12)}${cell(h5 / h6, 1.12)}${cell(h6 / b1, 1.12)}<td>${fmt(h4 / b1)}</td><td>${fmt(h4m / b1)}</td>${cell(h4m / h5, 1.12)}<td class="${s1 < b1 ? 'pass' : 'warn'}">${fmt(s1 / b1)}</td></tr>`;
   }).join('');
   probe.remove();
-  t.innerHTML = `<thead><tr><th>Skala</th><th>h4 / h5<br>Titel zu Panel</th><th>h5 / h6<br>Panel zu Karte</th><th>h6 / body1<br>Karte zu Text</th><th>h4 / body1<br>bei 1280</th><th>h4 / body1<br>bei 375</th><th>subtitle1 / body1<br>Label zu Text (&lt; 1 gewollt)</th></tr></thead><tbody>${rows}</tbody>`;
+  t.innerHTML = `<thead><tr><th>Skala</th><th>h4 / h5<br>Titel zu Panel</th><th>h5 / h6<br>Panel zu Karte</th><th>h6 / body1<br>Karte zu Text</th><th>h4 / body1<br>bei 1280</th><th>h4 / body1<br>bei 375</th><th>h4 / h5<br>bei 375</th><th>subtitle1 / body1<br>Label zu Text (&lt; 1 gewollt)</th></tr></thead><tbody>${rows}</tbody>`;
 }
 
 function buildScreens() {

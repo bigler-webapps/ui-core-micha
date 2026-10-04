@@ -63,6 +63,11 @@ measurements above:
 
 The role mapping of the `THEME-1` sheet stands: h4 screen title, h5 panel/dialog, h6 card title.
 
+## Outcome
+
+**Frozen 2026-10-04** after two value rounds: candidate B, mobile screen title 23, h1 to h3 36 / 32 / 28. The
+frozen sheet is [`docs/TYPE-SCALE.md`](../docs/TYPE-SCALE.md); the implementation order is `UCM-THEME-18`.
+
 ## Scope + non-goals
 
 In scope: an inventory of the type sizes the estate actually uses (app overrides, prototypes, the
