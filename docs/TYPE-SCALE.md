@@ -90,6 +90,12 @@ These are inputs for the per-app follow-up after the release, not part of the ba
   1 page h5; survey_app uses h3 on 7 pages, which grows from 24 to 28.
 - **Per-level weight overrides** contradict decision 3: survey_app (h1 to h6 800/700, site builder 800),
   hram (500), spesix (weights). survey_app's held typography revert (`SVA-THEME-1`) is decided by this sheet.
+- **subtitle1 also serves as a title, not only as a section label** (added 2026-10-04, after the freeze; the
+  inventory missed it, because it read subtitle1 only in its section-label role on hram Research). Uses in
+  `src/`: hram 72, jg-ferien 39, ui-core-micha itself 12 (`UserMenu` user name, `SectionNav` active item,
+  announcement titles), innoservice 9, survey_app 7, reimbursements 6, spesix 5. As item or panel titles they
+  fall below body size. **Open, decided at the jg-ferien pilot `JG-DEPS-4` on staging** (operator 2026-10-04):
+  13 stays and the app orders map subtitle1-as-title to h6 or body1, or a patch moves subtitle1.
 - webshop-guenter keeps its handoff scale (decided brand, identity bucket). Kira, Cinevia and Gustav use no MUI
   heading variants and are unaffected.
 
