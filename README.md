@@ -10,6 +10,12 @@ To add an entry, create a small component in `dev/entries.jsx` and append it to 
 
 Spread `uiCoreTranslations` into the default i18n namespace as the supported aggregate; per-feature translation exports remain available to selective apps that accept responsibility for pairing every adopted feature with its bundle.
 
+## Account profile statements
+
+`AccountPage` defaults `showProfileStatements` to `true`. Pass `false` when the consumer does not
+offer privacy/cookie statement text endpoints; this hides their panels and prevents their requests.
+The privacy and cookie consent controls and their submitted values remain available.
+
 ## Consumer integration check
 
 ```js

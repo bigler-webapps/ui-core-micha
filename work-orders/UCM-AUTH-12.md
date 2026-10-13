@@ -90,3 +90,9 @@ publish job success before app pin. Minor 3.13.0 is additive; read exact release
 Final core row includes deduplicated review totals and test results; second register commit before
 one main push. innoservice AccountPage/WelcomePage statements false and capture evidence remain
 INNO-FIX-13; keep existing consents, request diagnostics and capture checks intact.
+
+Accepted native implementer: `/root/kit_account_statements`, explicit requested gpt-6-luna,
+high reasoning, fresh context, complete WO inline. Effective native provider/model metadata
+was not exposed and remains unverified. Source/test edits only; the one permitted author test
+attempt failed before collection with temporary-file EPERM (zero tests). Parent runs the
+authoritative scoped gate through the normal runtime approval path. No author review or git.

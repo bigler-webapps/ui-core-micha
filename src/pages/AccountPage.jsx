@@ -53,6 +53,7 @@ export function AccountPage({
   showBulkInviteCsvTab = false,
   bulkInviteCsvProps = {},
   extraTabs = [],
+  showProfileStatements = true,
 }) {
   const { t, i18n } = useTranslation();
   const { user, login, loading } = useContext(AuthContext);
@@ -253,6 +254,7 @@ export function AccountPage({
             showName
             showPrivacy
             showCookies
+            showStatements={showProfileStatements}
           />
         </Box>
       )}
