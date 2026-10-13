@@ -91,3 +91,23 @@ normal reviewed main push, no manual publish dispatch. Confirm successful public
 3.13.1 before innoservice exact pin and lockfile update. Keep all app capture/axe checks.
 Fresh app capture at 375/1280 must verify navigation and absence of the three list violations.
 Finalize register with named reviews, deduplicated dispositions and actual test/release proof.
+
+Accepted native implementer: `/root/kit_sectionnav`, explicit requested gpt-6-luna, high
+reasoning, fresh context. Effective native provider/model metadata was not exposed and
+remains unverified. Only the two assigned files changed; no author git/review/repo-state
+operations. Author's single permitted test run failed before collection with temporary-file
+EPERM (zero tests). Parent runs the authoritative gate through the normal runtime path.
+
+Core acceptance: five fresh concurrent CLI reviews (envelope, regression, duplication,
+tests, UI), all exit 0, banners confirm codex/gpt-6-luna, provider openai, read-only.
+Deduplicated disposition: 1 raised, 0 accepted, worst accepted none. Tests lens R1 proposed
+proving the MUI implementation identity against a fabricated class-bearing stub. Rejected:
+the structural assertion fails against the actual pre-change direct div children, existing
+selection/theme/drawer tests retain their behavior checks, and the source still directly
+imports and renders the real MUI ListItemButton. No behavior or identity abstraction is added.
+Other lenses report no findings. Parent targeted pass confirms callbacks/permission filtering,
+labels and selected/remembered state unchanged; wrappers use disablePadding.
+Parent gate: 21 tests in SectionNav.test.jsx, AccountPage.test.jsx and
+AccountPage.profileStatements.test.jsx passed with maxWorkers=2; TypeScript build exit 0.
+Publish workflow's full suite is justified by shared-core consumer ripple. App pin and fresh
+consumer capture remain pending after the reviewed core source/release lands.

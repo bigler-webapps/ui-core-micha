@@ -5,6 +5,7 @@ import {
   ButtonBase,
   Drawer,
   List,
+  ListItem,
   ListItemButton,
   ListItemText,
   Paper,
@@ -118,13 +119,15 @@ function SectionNavList({
       {overviewItem && (
         <Paper variant="outlined" sx={SECTION_NAV_GROUP_PAPER_SX}>
           <List disablePadding>
-            <ListItemButton
-              selected={activeKey == null}
-              aria-current={activeKey == null ? 'page' : undefined}
-              onClick={() => onSelect?.(null)}
-            >
-              <ListItemText primary={overviewItem.label} />
-            </ListItemButton>
+            <ListItem disablePadding>
+              <ListItemButton
+                selected={activeKey == null}
+                aria-current={activeKey == null ? 'page' : undefined}
+                onClick={() => onSelect?.(null)}
+              >
+                <ListItemText primary={overviewItem.label} />
+              </ListItemButton>
+            </ListItem>
           </List>
         </Paper>
       )}
@@ -143,17 +146,18 @@ function SectionNavList({
               {group.items.map((item) => {
                 const selected = item.key === activeKey;
                 return (
-                  <ListItemButton
-                    key={item.key}
-                    selected={selected}
-                    aria-current={selected ? 'page' : undefined}
-                    onClick={() => onSelect?.(item.key)}
-                  >
-                    <ListItemText
-                      primary={item.label}
-                      secondary={!selected && item.key === rememberedKey ? rememberedLabel : null}
-                    />
-                  </ListItemButton>
+                  <ListItem key={item.key} disablePadding>
+                    <ListItemButton
+                      selected={selected}
+                      aria-current={selected ? 'page' : undefined}
+                      onClick={() => onSelect?.(item.key)}
+                    >
+                      <ListItemText
+                        primary={item.label}
+                        secondary={!selected && item.key === rememberedKey ? rememberedLabel : null}
+                      />
+                    </ListItemButton>
+                  </ListItem>
                 );
               })}
             </List>

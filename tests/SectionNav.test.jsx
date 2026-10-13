@@ -68,6 +68,17 @@ function renderNav(props = {}, currentTheme = theme) {
   );
 }
 
+function expectListsToContainListItemButtons(lists) {
+  expect(lists.length).toBeGreaterThan(0);
+  lists.forEach((list) => {
+    expect(Array.from(list.children).every((child) => child.tagName === 'LI')).toBe(true);
+    expect(list.querySelectorAll(':scope > li')).toHaveLength(list.children.length);
+    list.querySelectorAll(':scope > li').forEach((item) => {
+      expect(item.querySelectorAll(':scope > .MuiListItemButton-root')).toHaveLength(1);
+    });
+  });
+}
+
 describe('SectionNav', () => {
   afterEach(() => {
     cleanup();
@@ -131,6 +142,35 @@ describe('SectionNav', () => {
     expect(screen.queryByText('Overview')).toBeNull();
     expect(screen.queryByText('Last opened')).toBeNull();
     expect(container.querySelectorAll('.MuiPaper-root')).toHaveLength(groups.length);
+  });
+
+  it('renders overview and grouped controls inside list items on desktop and mobile', () => {
+    const overviewItem = { label: 'Overview' };
+    const { container } = renderNav({ overviewItem });
+
+    expectListsToContainListItemButtons(container.querySelectorAll('nav ul'));
+    expect(container.querySelectorAll('nav ul')).toHaveLength(groups.length + 1);
+
+    cleanup();
+    renderNav({ mode: 'mobile', overviewItem, open: true });
+    const dialog = screen.getByRole('dialog', { name: 'Switch section' });
+    const lists = dialog.querySelectorAll('ul');
+
+    expectListsToContainListItemButtons(lists);
+    expect(lists).toHaveLength(groups.length + 1);
+  });
+
+  it('passes null for overview selection and closes the mobile drawer', async () => {
+    const onSelect = vi.fn();
+    renderNav({ mode: 'mobile', onSelect, overviewItem: { label: 'Overview' } });
+
+    fireEvent.click(screen.getByRole('button', { name: /Section Profile/i }));
+    expect(screen.getByRole('dialog', { name: 'Switch section' })).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Overview' }));
+
+    expect(onSelect).toHaveBeenCalledOnce();
+    expect(onSelect).toHaveBeenCalledWith(null);
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Switch section' })).toBeNull());
   });
 
   it('shows the remembered secondary line only on its unselected item', () => {

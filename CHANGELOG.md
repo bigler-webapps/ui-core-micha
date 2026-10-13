@@ -1,5 +1,10 @@
 # Changelog
 
+## 3.13.1 - UCM-SHELL-8
+
+`SectionNav` now renders grouped and overview navigation buttons inside list items on
+desktop and in the mobile drawer. Selection, callbacks, labels and spacing are preserved.
+
 ## 3.13.0 - UCM-AUTH-12
 
 `AccountPage` accepts `showProfileStatements` (default `true`). Set it to `false` in consumers
