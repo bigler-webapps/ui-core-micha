@@ -111,3 +111,15 @@ Parent gate: 21 tests in SectionNav.test.jsx, AccountPage.test.jsx and
 AccountPage.profileStatements.test.jsx passed with maxWorkers=2; TypeScript build exit 0.
 Publish workflow's full suite is justified by shared-core consumer ripple. App pin and fresh
 consumer capture remain pending after the reviewed core source/release lands.
+
+Closing consumer proof: published3.13.1 verified by workflow38435441867,
+744tests89files plus build and npm Trusted Publishing successful. Innoservice
+exact pin3.13.1 is in sourcec527918, CI38444366349. Both source-matching account
+captures375/1280 have no axe failures, no console/network failures, and all11
+rubric items yes (22answers). Parent inspected both actual account images: same
+profile/security/admin/help navigation and consent controls, readable at both
+widths. Three previous kit list violations are gone. This completes the scoped
+consumer gate; unrelated Organisation-policy axe failures in that app candidate
+remain owned by INNO-FIX-11 and do not reopen the kit list correction.
+Review remains the named five independent readonly Luna source passes above,
+1deduplicated raised0accepted,worst accepted none; no source changes afterward.
