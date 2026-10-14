@@ -1,5 +1,5 @@
 // src/components/ProfileComponent.jsx
-import React, { useEffect, useState, useContext } from 'react';
+import React, { useEffect, useState, useContext, useRef } from 'react';
 import {
   Box,
   Stack,
@@ -47,20 +47,42 @@ export function ProfileComponent({
   const [lastName, setLastName] = useState('');
   const [acceptedPrivacy, setAcceptedPrivacy] = useState(false);
   const [acceptedCookies, setAcceptedCookies] = useState(false);
+  const previousUserIdentity = useRef(Symbol('uninitialized'));
+  const editedFields = useRef(new Set());
   const [privacyStatement, setPrivacyStatement] = useState(privacyStatementText || '');
   const [cookieStatement, setCookieStatement] = useState(cookieStatementText || '');
   const [loadingPrivacyStatement, setLoadingPrivacyStatement] = useState(false);
   const [loadingCookieStatement, setLoadingCookieStatement] = useState(false);
 
-  // Synchronisiere Formular-Daten, sobald der User aus dem Context da ist
+  // Refresh server values for untouched fields, while keeping edits for this identity.
   useEffect(() => {
+    const userIdentity = user
+      ? (user.id ?? user.email ?? user.username ?? null)
+      : null;
+
+    if (previousUserIdentity.current !== userIdentity) {
+      previousUserIdentity.current = userIdentity;
+      editedFields.current = new Set();
+    }
+
     if (user) {
       setUsername(user.username ?? '');
       setEmail(user.email ?? '');
-      setFirstName(user.first_name ?? '');
-      setLastName(user.last_name ?? '');
-      setAcceptedPrivacy(Boolean(user.accepted_privacy_statement)); 
-      setAcceptedCookies(Boolean(user.accepted_convenience_cookies));
+      if (!editedFields.current.has('firstName')) setFirstName(user.first_name ?? '');
+      if (!editedFields.current.has('lastName')) setLastName(user.last_name ?? '');
+      if (!editedFields.current.has('acceptedPrivacy')) {
+        setAcceptedPrivacy(Boolean(user.accepted_privacy_statement));
+      }
+      if (!editedFields.current.has('acceptedCookies')) {
+        setAcceptedCookies(Boolean(user.accepted_convenience_cookies));
+      }
+    } else {
+      setUsername('');
+      setEmail('');
+      setFirstName('');
+      setLastName('');
+      setAcceptedPrivacy(false);
+      setAcceptedCookies(false);
     }
   }, [user]);
 
@@ -208,13 +230,19 @@ export function ProfileComponent({
           <TextField
             label={t('Profile.FIRST_NAME_LABEL')}
             value={firstName}
-            onChange={(e) => setFirstName(e.target.value)}
+            onChange={(e) => {
+              editedFields.current.add('firstName');
+              setFirstName(e.target.value);
+            }}
             fullWidth
           />
           <TextField
             label={t('Profile.LAST_NAME_LABEL')}
             value={lastName}
-            onChange={(e) => setLastName(e.target.value)}
+            onChange={(e) => {
+              editedFields.current.add('lastName');
+              setLastName(e.target.value);
+            }}
             fullWidth
           />
         </Stack>
@@ -232,7 +260,10 @@ export function ProfileComponent({
                 control={
                   <Checkbox
                     checked={acceptedPrivacy}
-                    onChange={(e) => setAcceptedPrivacy(e.target.checked)}
+                    onChange={(e) => {
+                      editedFields.current.add('acceptedPrivacy');
+                      setAcceptedPrivacy(e.target.checked);
+                    }}
                   />
                 }
                 label={t('Profile.ACCEPT_PRIVACY_LABEL')}
@@ -244,7 +275,10 @@ export function ProfileComponent({
                 control={
                   <Checkbox
                     checked={acceptedCookies}
-                    onChange={(e) => setAcceptedCookies(e.target.checked)}
+                    onChange={(e) => {
+                      editedFields.current.add('acceptedCookies');
+                      setAcceptedCookies(e.target.checked);
+                    }}
                   />
                 }
                 label={t('Profile.ACCEPT_COOKIES_LABEL')}

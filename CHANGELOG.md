@@ -1,5 +1,11 @@
 # Changelog
 
+## 3.13.2 - UCM-AUTH-13
+
+`ProfileComponent` preserves edited names and consent values when the same person's
+context data refreshes. Untouched fields still receive server updates. Account changes
+and logout reset the form, keeping edits and consent isolated between people.
+
 ## 3.13.1 - UCM-SHELL-8
 
 `SectionNav` now renders grouped and overview navigation buttons inside list items on
