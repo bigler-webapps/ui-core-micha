@@ -18,6 +18,10 @@ describe('chat api client', () => {
     expect(apiClient.get).toHaveBeenLastCalledWith('/api/assistant/catalogue/');
     await api.listChats({ archived: true, cursor: 'c1' });
     expect(apiClient.get).toHaveBeenLastCalledWith('/api/assistant/chats/', { params: { archived: true, cursor: 'c1' } });
+    await api.listChats({ scope: 'project-1' });
+    expect(apiClient.get).toHaveBeenLastCalledWith('/api/assistant/chats/', { params: { archived: false, scope: 'project-1' } });
+    await api.getStatus({ scope: 'project-1' });
+    expect(apiClient.get).toHaveBeenLastCalledWith('/api/assistant/status/', { params: { scope: 'project-1' } });
     await api.createChat({ scope: 'x' });
     expect(apiClient.post).toHaveBeenLastCalledWith('/api/assistant/chats/', { scope: 'x' });
     await api.updateChat(4, { selection: { entry: 'a', effort: 'low' } });

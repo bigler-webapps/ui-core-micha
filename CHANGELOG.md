@@ -1,5 +1,18 @@
 # Changelog
 
+## 4.1.0 - UCM-CHAT-3
+
+Extension points on the `/chat` surface; with none of the new props `ChatWorkspace` renders and behaves as in 4.0.x.
+New `ChatWorkspace` props: `scope` (now also sent on the chat lists and the status request), `unavailableReasonText`
+(object or function mapping the server's `unavailable` reason to the app's text; generic fallback otherwise),
+`sidePanel(chat)` with `sidePanelLabel` (a column next to the thread, a sheet in the narrow and compact layouts),
+`renderAnswerExtra({ turn, chat, appFrames })` (under each answer, with the `app` frames that arrived during that turn),
+`renderComposerExtra({ chat })`, `onAppFrame({ name, payload, chatId, turnId })`, and `layout` (`'viewport'` default,
+`'container'` follows the container width below `compactBelow` px, `'compact'` always narrow). `ModelPicker` takes an
+optional `sheet` boolean. A `history_trimmed` notice shows a quiet chip with the number of left-out messages. New texts
+`Chat.notAvailableHere`, `Chat.historyTrimmed_one/_other` and the fallback `Chat.sidePanel` (de/en/fr/sw). Built
+against the `django-core-micha` DCM-CHAT-10 contract.
+
 ## 4.0.1 - UCM-DEP-3
 
 The `exports` map no longer lists `./package.json`; the public entries are exactly `.`, `./charts`, `./chat` and `./markdown`.

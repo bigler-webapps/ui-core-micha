@@ -25,6 +25,10 @@ describe('chatTranslations', () => {
     expect(chatTranslations['Chat.interrupted'].en).toBe('Interrupted');
     expect(chatTranslations['Chat.reconnecting'].en).toBe('Reconnecting');
     expect(chatTranslations['Chat.archived'].en).toBe('Archived');
+    expect(chatTranslations['Chat.notAvailableHere'].en).toBe('The assistant is not available here.');
+    expect(chatTranslations['Chat.historyTrimmed_one'].en).toBe('{{count}} earlier message left out');
+    expect(chatTranslations['Chat.historyTrimmed_other'].en).toBe('{{count}} earlier messages left out');
+    expect(chatTranslations['Chat.sidePanel'].en).toBe('Details');
   });
 
   it('includes non-empty driver names in every locale', () => {

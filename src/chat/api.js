@@ -6,12 +6,12 @@ export function createChatApi(overrides = {}, { apiBase = '/api/assistant/' } = 
   const data = (request) => request.then((response) => response.data);
   const defaults = {
     getCatalogue: () => data(apiClient.get(urls.catalogue)),
-    listChats: ({ archived = false, cursor } = {}) => data(apiClient.get(urls.chats, { params: { archived, ...(cursor ? { cursor } : {}) } })),
+    listChats: ({ archived = false, cursor, scope } = {}) => data(apiClient.get(urls.chats, { params: { archived, ...(cursor ? { cursor } : {}), ...(scope !== undefined ? { scope } : {}) } })),
     createChat: (payload = {}) => data(apiClient.post(urls.chats, payload)),
     updateChat: (id, patch) => data(apiClient.patch(urls.chat(id), patch)),
     deleteChat: (id) => data(apiClient.delete(urls.chat(id))),
     listTurns: (id, { cursor } = {}) => data(apiClient.get(urls.turns(id), { params: cursor ? { cursor } : {} })),
-    getStatus: () => data(apiClient.get(urls.status)),
+    getStatus: ({ scope } = {}) => data(scope !== undefined ? apiClient.get(urls.status, { params: { scope } }) : apiClient.get(urls.status)),
   };
   return { ...defaults, ...overrides };
 }

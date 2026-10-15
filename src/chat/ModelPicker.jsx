@@ -14,10 +14,11 @@ const groupByDriver = (entries) => entries.reduce((groups, entry) => {
  * Model and effort of one chat. A popover at wide widths, a bottom sheet at narrow widths. `onChange` receives
  * `{ entry, effort }`; the caller persists it (the change applies from the next turn). Can be controlled with `open`.
  */
-export function ModelPicker({ entries = [], selection, onChange, disabled = false, open, onOpenChange }) {
+export function ModelPicker({ entries = [], selection, onChange, disabled = false, open, onOpenChange, sheet }) {
   const { t } = useTranslation();
   const theme = useTheme();
-  const narrow = useMediaQuery(theme.breakpoints.down('md'));
+  const viewportNarrow = useMediaQuery(theme.breakpoints.down('md'));
+  const narrow = sheet ?? viewportNarrow;
   const anchor = useRef(null);
   const [innerOpen, setInnerOpen] = useState(false);
   const isOpen = open ?? innerOpen;

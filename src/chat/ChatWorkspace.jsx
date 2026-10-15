@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, Box, Button, Chip, Drawer, Stack, Typography, useMediaQuery, useTheme } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import { createChatApi } from './api';
@@ -22,6 +22,14 @@ const settleTurn = (turns, final) => {
 const failGenerating = (turns, code) => turns.map((turn) => (isGenerating(turn)
   ? { ...turn, state: 'failed', error_code: code === 'quota_exceeded' ? null : code }
   : turn));
+/** Stores an app frame on the turn that is generating; frames outside a running turn are dropped. */
+const attachAppFrame = (turns, frame) => {
+  const index = turns.findLastIndex(isGenerating);
+  if (index < 0) return turns;
+  const turn = turns[index];
+  const appFrames = [...(turn.appFrames || []), { name: frame.name, payload: frame.payload }];
+  return turns.map((item, i) => (i === index ? { ...turn, appFrames } : item));
+};
 const appendDelta = (turns, text) => {
   const index = turns.findLastIndex(isGenerating);
   if (index < 0) return turns;
@@ -34,13 +42,24 @@ const appendDelta = (turns, text) => {
  * Props: `apiBase` and `wsUrl` (where the app mounted the chat routes), `api` (partial overrides of the REST
  * calls; every function not given keeps its default), `scope` (passed when creating a chat), `sx`.
  */
-export function ChatWorkspace({ apiBase, wsUrl, api: apiOverrides, scope, sx }) {
+export function ChatWorkspace({ apiBase, wsUrl, api: apiOverrides, scope, sx, unavailableReasonText, sidePanel, sidePanelLabel, renderAnswerExtra, renderComposerExtra, onAppFrame, layout = 'viewport', compactBelow = 720 }) {
   const { t } = useTranslation();
   const theme = useTheme();
-  const narrow = useMediaQuery(theme.breakpoints.down('md'));
+  const viewportNarrow = useMediaQuery(theme.breakpoints.down('md'));
+  const rootRef = useRef(null);
+  const [containerNarrow, setContainerNarrow] = useState(false);
+  const [status, setStatus] = useState('loading'); // loading | available | not_configured | error
+  const narrow = layout === 'compact' || (layout === 'container' ? containerNarrow : viewportNarrow);
+  const appFrameCallback = useRef(onAppFrame);
+  useEffect(() => { appFrameCallback.current = onAppFrame; }, [onAppFrame]);
+  useEffect(() => {
+    if (layout !== 'container') return undefined;
+    if (typeof ResizeObserver === 'undefined' || !rootRef.current) { setContainerNarrow(viewportNarrow); return undefined; }
+    const observer = new ResizeObserver((entries) => { const width = entries[0]?.contentRect?.width; if (width !== undefined) setContainerNarrow(width < compactBelow); });
+    observer.observe(rootRef.current); return () => observer.disconnect();
+  }, [layout, compactBelow, viewportNarrow, status]);
   const api = useMemo(() => createChatApi(apiOverrides, { apiBase }), [apiOverrides, apiBase]);
 
-  const [status, setStatus] = useState('loading'); // loading | available | not_configured | error
   const [catalogue, setCatalogue] = useState({ entries: [], default: null });
   const [chats, setChats] = useState([]);
   const [archived, setArchived] = useState([]);
@@ -51,7 +70,12 @@ export function ChatWorkspace({ apiBase, wsUrl, api: apiOverrides, scope, sx }) 
   const [olderBusy, setOlderBusy] = useState(false);
   const [tool, setTool] = useState(null);
   const [draft, setDraft] = useState('');
-  const [problem, setProblem] = useState(null); // an error code or close reason, shown as a notice
+  const [problem, setProblem] = useState(null);
+  const [unavailableReason, setUnavailableReason] = useState(null);
+  const [trimmedCount, setTrimmedCount] = useState(null);
+  const [sidePanelOpen, setSidePanelOpen] = useState(false);
+  const turnsRef = useRef(turns);
+  useEffect(() => { turnsRef.current = turns; }, [turns]);
   const [listOpen, setListOpen] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [openedOnce, setOpenedOnce] = useState(false); // distinguishes a reconnect from the first connect
@@ -61,48 +85,63 @@ export function ChatWorkspace({ apiBase, wsUrl, api: apiOverrides, scope, sx }) 
   const selection = chat?.selection || catalogue.default;
   const activeEntry = catalogue.entries.find((entry) => entry.id === selection?.entry);
 
+  // Bumped on every scope change so that a list response of the previous scope is dropped.
+  const scopeVersion = useRef(0);
+  useEffect(() => { scopeVersion.current += 1; setChat(null); }, [scope]);
+
   const loadLists = useCallback(async () => {
-    const [active, old] = await Promise.all([api.listChats(), api.listChats({ archived: true })]);
+    const version = scopeVersion.current;
+    // Without a scope the api is called exactly as before the scope existed.
+    const [active, old] = scope === undefined
+      ? await Promise.all([api.listChats(), api.listChats({ archived: true })])
+      : await Promise.all([api.listChats({ scope }), api.listChats({ scope, archived: true })]);
+    if (version !== scopeVersion.current) return;
     setChats(active.results || []);
     setNextChats(active.next || null);
     setArchived(old.results || []);
-  }, [api]);
+  }, [api, scope]);
 
   useEffect(() => {
     let live = true;
-    api.getStatus()
+    const request = scope === undefined ? api.getStatus() : api.getStatus({ scope });
+    request
       .then(async (state) => {
-        if (state.status !== 'available') { if (live) setStatus(state.status); return; }
+        if (state.status !== 'available') { if (live) { setStatus(state.status); setUnavailableReason(state.reason || null); } return; }
         const [entries] = await Promise.all([api.getCatalogue(), loadLists()]);
         if (live) { setStatus(state.status); setCatalogue(entries); }
       })
       .catch(() => { if (live) setStatus('error'); });
     return () => { live = false; };
-  }, [api, loadLists]);
+  }, [api, loadLists, scope]);
 
   useEffect(() => {
-    setTurns([]); setOlderCursor(null); setTool(null); setProblem(null); setDraft(''); setOpenedOnce(false);
+    setTurns([]); setOlderCursor(null); setTool(null); setProblem(null); setTrimmedCount(null); setSidePanelOpen(false); setDraft(''); setOpenedOnce(false);
     if (!chat?.id) return undefined;
     let live = true;
     api.listTurns(chat.id)
-      .then((page) => { if (live) { setTurns(chronological(page.results)); setOlderCursor(page.next || null); } })
+      .then((page) => { if (live) { setTurns(chronological((page.results || []).map((turn) => ({ ...turn, appFrames: [] })))); setOlderCursor(page.next || null); } })
       .catch(() => { if (live) setProblem('load_error'); });
     return () => { live = false; };
   }, [api, chat?.id]);
 
   const onFrame = useCallback((frame, chatId) => {
     if (chatId !== chat?.id) return;
-    if (frame.type === 'history') setTurns(chronological(frame.turns));
+    if (frame.type === 'history') setTurns(chronological((frame.turns || []).map((turn) => ({ ...turn, appFrames: [] }))));
     else if (frame.type === 'delta') setTurns((current) => appendDelta(current, frame.text || ''));
+    else if (frame.type === 'app') {
+      setTurns((current) => attachAppFrame(current, frame));
+      const running = turnsRef.current.findLast(isGenerating);
+      appFrameCallback.current?.({ name: frame.name, payload: frame.payload, chatId, turnId: running?.id });
+    } else if (frame.type === 'notice' && frame.code === 'history_trimmed') setTrimmedCount(frame.left_out || 0);
     else if (frame.type === 'tool') setTool(frame.phase === 'start' ? { label: frame.label, name: frame.name } : null);
     else if (frame.type === 'turn' && frame.turn) {
       setTool(null);
-      setTurns((current) => settleTurn(current, frame.turn));
+      setTurns((current) => { const pending = current.findLast(isGenerating); return settleTurn(current, { ...frame.turn, appFrames: pending?.appFrames || [] }); });
       if (frame.turn.error_code === 'quota_exceeded') setProblem('quota_exceeded');
     } else if (frame.type === 'error') {
       setTool(null);
       setTurns((current) => failGenerating(current, frame.code));
-      setProblem(frame.code);
+      setProblem(frame.code); if (frame.code === 'unavailable') setUnavailableReason(frame.reason || unavailableReason);
     }
   }, [chat?.id]);
   const onOpen = useCallback(() => { setOpenedOnce(true); setProblem((current) => (current === 'connection_lost' ? null : current)); }, []);
@@ -115,7 +154,7 @@ export function ChatWorkspace({ apiBase, wsUrl, api: apiOverrides, scope, sx }) 
 
   const selectChat = (next) => { setChat(next); setListOpen(false); };
   const createChat = guarded(async () => {
-    const created = await api.createChat(scope ? { scope } : {});
+    const created = await api.createChat(scope !== undefined ? { scope } : {});
     setChats((current) => [created, ...current]);
     selectChat(created);
   });
@@ -131,7 +170,7 @@ export function ChatWorkspace({ apiBase, wsUrl, api: apiOverrides, scope, sx }) 
     if (chat?.id === target.id) setChat(null);
   });
   const loadMoreChats = guarded(async () => {
-    const page = await api.listChats({ cursor: nextChats });
+    const page = await api.listChats({ ...(scope !== undefined ? { scope } : {}), cursor: nextChats });
     setChats((current) => [...current, ...(page.results || [])]);
     setNextChats(page.next || null);
   });
@@ -190,10 +229,12 @@ export function ChatWorkspace({ apiBase, wsUrl, api: apiOverrides, scope, sx }) 
     />
   );
 
-  const unavailable = status === 'not_configured' || problem === 'not_configured';
+  const notConfigured = status === 'not_configured' || problem === 'not_configured';
+  const unavailable = status === 'unavailable' || problem === 'unavailable';
+  const unavailableText = typeof unavailableReasonText === 'function' ? unavailableReasonText(unavailableReason) : unavailableReasonText?.[unavailableReason];
   if (status === 'loading') return <Box sx={sx} aria-busy="true" />;
   if (status === 'error') return <Box sx={sx}><Alert severity="error">{t('Chat.loadError')}</Alert></Box>;
-  if (unavailable) {
+  if (notConfigured) {
     return (
       <Stack alignItems="center" justifyContent="center" spacing={1} sx={{ minHeight: 320, p: 3, textAlign: 'center', ...sx }}>
         <Typography variant="h6">{t('Chat.unavailable')}</Typography>
@@ -201,9 +242,16 @@ export function ChatWorkspace({ apiBase, wsUrl, api: apiOverrides, scope, sx }) 
       </Stack>
     );
   }
+  if (unavailable) {
+    return (
+      <Stack alignItems="center" justifyContent="center" spacing={1} sx={{ minHeight: 320, p: 3, textAlign: 'center', ...sx }}>
+        <Typography color="text.secondary">{unavailableText || t('Chat.notAvailableHere')}</Typography>
+      </Stack>
+    );
+  }
 
   return (
-    <Box sx={{ display: 'grid', gridTemplateColumns: narrow ? 'minmax(0, 1fr)' : 'minmax(240px, 320px) minmax(0, 1fr)', height: '100%', minHeight: 480, border: 1, borderColor: 'divider', borderRadius: 1, overflow: 'hidden', bgcolor: 'background.paper', ...sx }}>
+    <Box ref={rootRef} sx={{ display: 'grid', gridTemplateColumns: narrow ? 'minmax(0, 1fr)' : `minmax(240px, 320px) minmax(0, 1fr)${chat && sidePanel ? ' minmax(240px, 320px)' : ''}`, height: '100%', minHeight: 480, border: 1, borderColor: 'divider', borderRadius: 1, overflow: 'hidden', bgcolor: 'background.paper', ...sx }}>
       {narrow ? null : <Box sx={{ borderRight: 1, borderColor: 'divider', minHeight: 0 }}>{list}</Box>}
       <Stack sx={{ minWidth: 0, minHeight: 0 }}>
         <Stack direction="row" alignItems="center" gap={1} sx={{ px: 1.5, py: 0.5, borderBottom: 1, borderColor: 'divider', minHeight: 56 }}>
@@ -220,13 +268,16 @@ export function ChatWorkspace({ apiBase, wsUrl, api: apiOverrides, scope, sx }) 
               open={pickerOpen}
               onOpenChange={setPickerOpen}
               onChange={(next) => updateChat(chat, { selection: next })}
+              sheet={narrow}
             />
           ) : null}
+          {chat && sidePanel && narrow ? <Button color="inherit" onClick={() => setSidePanelOpen(true)}>{sidePanelLabel || t('Chat.sidePanel')}</Button> : null}
         </Stack>
         {chat ? (
           <>
-            <ChatThread turns={turns} tool={tool} notice={noticeFor()} hasOlder={Boolean(olderCursor)} olderBusy={olderBusy} onLoadOlder={loadOlder} onRetry={retry} readOnly={isArchived} />
+            <ChatThread turns={turns} chat={chat} renderAnswerExtra={renderAnswerExtra} trimmedCount={trimmedCount} tool={tool} notice={noticeFor()} hasOlder={Boolean(olderCursor)} olderBusy={olderBusy} onLoadOlder={loadOlder} onRetry={retry} readOnly={isArchived} />
             {isArchived ? <Typography variant="caption" color="text.secondary" sx={{ px: 2, pb: 1 }}>{t('Chat.archivedReadOnly')}</Typography> : null}
+            {renderComposerExtra ? <Box key={chat.id}>{renderComposerExtra({ chat })}</Box> : null}
             <ChatComposer value={draft} onChange={setDraft} onSend={send} onStop={() => socket.send({ type: 'stop' })} running={running} archived={isArchived} connected={socket.connected} />
           </>
         ) : (
@@ -236,6 +287,8 @@ export function ChatWorkspace({ apiBase, wsUrl, api: apiOverrides, scope, sx }) 
           </Stack>
         )}
       </Stack>
+      {chat && sidePanel && !narrow ? <Box key={chat.id} sx={{ borderLeft: 1, borderColor: 'divider', minHeight: 0, overflow: 'auto' }}>{sidePanel(chat)}</Box> : null}
+      {narrow && chat && sidePanel ? <Drawer anchor="right" open={sidePanelOpen} onClose={() => setSidePanelOpen(false)} slotProps={{ paper: { 'aria-label': sidePanelLabel || t('Chat.sidePanel') } }}><Box key={chat.id}>{sidePanel(chat)}</Box></Drawer> : null}
       {narrow ? <Drawer open={listOpen} onClose={() => setListOpen(false)} slotProps={{ paper: { sx: { width: 'min(320px, 86vw)' } } }}>{list}</Drawer> : null}
     </Box>
   );
