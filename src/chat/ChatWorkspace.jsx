@@ -88,7 +88,7 @@ export function ChatWorkspace({ apiBase, wsUrl, api: apiOverrides, scope, sx, un
   const composerInputRef = useRef(null);
   const lastPrefillId = useRef(undefined);
   const lastSendRequestId = useRef(undefined);
-  const deferredSendRequestId = useRef(undefined); // a request that had to wait for the chat named by `activeChatId`
+  const deferredSendRequest = useRef(null); // `{ id, wanted }`: a request that had to wait for the chat named by `activeChatId`
   const connectedChatId = useRef(null);
   const getSendContextRef = useRef(getSendContext);
   getSendContextRef.current = getSendContext;
@@ -186,6 +186,7 @@ export function ChatWorkspace({ apiBase, wsUrl, api: apiOverrides, scope, sx, un
 
   // Clear the previous chat's content before the browser paints, so a host-driven switch never flashes it under the new title.
   useLayoutEffect(() => {
+    connectedChatId.current = null; // the socket of the new chat has not opened yet
     setTurns([]); setOlderCursor(null); setTool(null); setProblem(null); setTrimmedCount(null); setSidePanelOpen(false); setDraft(''); setOpenedOnce(false);
   }, [chat?.id]);
 
@@ -219,7 +220,7 @@ export function ChatWorkspace({ apiBase, wsUrl, api: apiOverrides, scope, sx, un
     }
   }, [chat?.id]);
   const onOpen = useCallback((chatId) => { connectedChatId.current = String(chatId); setOpenedOnce(true); setProblem((current) => (current === 'connection_lost' ? null : current)); }, []);
-  const onClose = useCallback(({ reason, retrying }) => { if (!retrying) setProblem(reason); }, []);
+  const onClose = useCallback(({ reason, retrying }) => { connectedChatId.current = null; if (!retrying) setProblem(reason); }, []);
   const socket = useChatSocket(chat?.id, { wsUrl, onFrame, onOpen, onClose });
 
   useEffect(() => {
@@ -246,13 +247,16 @@ export function ChatWorkspace({ apiBase, wsUrl, api: apiOverrides, scope, sx, un
       lastSendRequestId.current = sendRequest.id;
       sendRequestHandledRef.current?.({ id: sendRequest.id, sent });
     };
-    if (activeChatId === null) { answer(false); return; }
+    const blank = typeof sendRequest.text !== 'string' || !sendRequest.text.trim();
+    if (activeChatId === null || blank) { answer(false); return; }
     const wanted = activeChatId === undefined ? null : String(activeChatId);
+    const deferred = deferredSendRequest.current?.id === sendRequest.id ? deferredSendRequest.current : null;
+    // The host named another chat while the request was waiting: it belonged to the earlier one, so it is not sent.
+    if (deferred && deferred.wanted !== wanted) { answer(false); return; }
     if (wanted !== null && !unloadableIds.current.has(wanted)) {
-      if (String(chat?.id) !== wanted) { deferredSendRequestId.current = sendRequest.id; return; }
+      if (String(chat?.id) !== wanted) { deferredSendRequest.current = { id: sendRequest.id, wanted }; return; }
       // Only a request that could be sent once connected is worth waiting for.
-      const sendable = typeof sendRequest.text === 'string' && sendRequest.text.trim() && !isArchived && !running;
-      if (deferredSendRequestId.current === sendRequest.id && connectedChatId.current !== wanted && sendable) return;
+      if (deferred && connectedChatId.current !== wanted && !isArchived && !running) return;
     }
     const text = sendRequest.text;
     const sent = Boolean(canSendRef.current && typeof text === 'string' && text.trim() && startTurn(text));

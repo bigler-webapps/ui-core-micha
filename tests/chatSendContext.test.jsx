@@ -56,10 +56,17 @@ describe('ChatWorkspace send context and host requests', () => {
     expect(socket.sent).toEqual([{ type: 'send', message: 'Plain send' }]);
 
     cleanup();
-    const result = await mount(makeApi(), { getSendContext: () => null });
+    const result = await mount(makeApi(), { getSendContext: () => undefined });
     fireEvent.change(screen.getByRole('textbox', { name: 'Chat.message' }), { target: { value: 'No context' } });
     fireEvent.click(screen.getByRole('button', { name: 'Chat.send' }));
     expect(result.socket.sent).toEqual([{ type: 'send', message: 'No context' }]);
+    expect(Object.hasOwn(result.socket.sent[0], 'context')).toBe(false);
+
+    cleanup();
+    const nullResult = await mount(makeApi(), { getSendContext: () => null });
+    fireEvent.change(screen.getByRole('textbox', { name: 'Chat.message' }), { target: { value: 'Null context' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Chat.send' }));
+    expect(nullResult.socket.sent).toEqual([{ type: 'send', message: 'Null context' }]);
   });
 
   it('keeps the slot send frame free of a context key when no getSendContext is given', async () => {
@@ -71,6 +78,43 @@ describe('ChatWorkspace send context and host requests', () => {
     act(() => { slotSend('Slot only'); });
     expect(socket.sent).toEqual([{ type: 'send', message: 'Slot only' }]);
     expect(Object.hasOwn(socket.sent[0], 'context')).toBe(false);
+  });
+
+  it('decides a blank request at once even while it waits for a chat that is not shown', async () => {
+    const api = makeApi();
+    const handled = vi.fn();
+    const { view } = await mount(api);
+    view.rerender(<ChatWorkspace api={api} wsUrl={(id) => `ws://test/${id}`} activeChatId={9} sendRequest={{ id: 'blank', text: '   ' }} onSendRequestHandled={handled} />);
+    await waitFor(() => expect(handled).toHaveBeenCalledWith({ id: 'blank', sent: false }));
+    expect(handled).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not send a waiting request to another chat when the host names a different chat meanwhile', async () => {
+    const api = makeApi();
+    const handled = vi.fn();
+    const { view } = await mount(api);
+    view.rerender(<ChatWorkspace api={api} wsUrl={(id) => `ws://test/${id}`} activeChatId={9} sendRequest={{ id: 'moved', text: 'For nine' }} onSendRequestHandled={handled} />);
+    await waitFor(() => expect(FakeSocket.instances.some((item) => item.url === 'ws://test/9')).toBe(true));
+    expect(handled).not.toHaveBeenCalled();
+    view.rerender(<ChatWorkspace api={api} wsUrl={(id) => `ws://test/${id}`} activeChatId={7} sendRequest={{ id: 'moved', text: 'For nine' }} onSendRequestHandled={handled} />);
+    await waitFor(() => expect(handled).toHaveBeenCalledWith({ id: 'moved', sent: false }));
+    expect(FakeSocket.instances.flatMap((item) => item.sent)).toEqual([]);
+  });
+
+  it('waits for the new socket of a chat that was connected before the user left it', async () => {
+    const api = makeApi();
+    const handled = vi.fn();
+    const { view } = await mount(api);
+    view.rerender(<ChatWorkspace api={api} wsUrl={(id) => `ws://test/${id}`} activeChatId={9} />);
+    await waitFor(() => expect(FakeSocket.instances.some((item) => item.url === 'ws://test/9')).toBe(true));
+    act(() => FakeSocket.instances.find((item) => item.url === 'ws://test/9').open());
+    view.rerender(<ChatWorkspace api={api} wsUrl={(id) => `ws://test/${id}`} activeChatId={7} sendRequest={{ id: 'back', text: 'Back to seven' }} onSendRequestHandled={handled} />);
+    await waitFor(() => expect(FakeSocket.instances.filter((item) => item.url === 'ws://test/7').length).toBeGreaterThan(1));
+    expect(handled).not.toHaveBeenCalled();
+    const fresh = FakeSocket.instances.filter((item) => item.url === 'ws://test/7').at(-1);
+    act(() => fresh.open());
+    await waitFor(() => expect(handled).toHaveBeenCalledWith({ id: 'back', sent: true }));
+    expect(fresh.sent).toEqual([{ type: 'send', message: 'Back to seven' }]);
   });
 
   it('waits for the connection when a request comes with the first mount of the chat, then sends once', async () => {
