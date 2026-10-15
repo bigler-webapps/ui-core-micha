@@ -1,5 +1,9 @@
 # Changelog
 
+## 4.0.1 - UCM-DEP-3
+
+The `exports` map no longer lists `./package.json`; the public entries are exactly `.`, `./charts`, `./chat` and `./markdown`.
+
 ## 4.0.0 - UCM-DEP-2
 
 Breaking: a consumer installs only the peers of the features it imports. The package gets an `exports` map, so deep

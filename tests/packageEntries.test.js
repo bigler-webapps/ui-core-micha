@@ -99,7 +99,7 @@ describe('package sub-path entries', () => {
   it('maps every sub-path in package.json to an emitted entry and declares the peers accordingly', () => {
     const manifest = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8'));
     const { exports: exportsMap } = manifest;
-    expect(Object.keys(exportsMap).sort()).toEqual(['.', './charts', './chat', './markdown', './package.json']);
+    expect(Object.keys(exportsMap).sort()).toEqual(['.', './charts', './chat', './markdown']);
     expect(exportsMap['.']).toBe('./dist/index.js');
     for (const name of ['charts', 'chat', 'markdown']) {
       expect(exportsMap[`./${name}`]).toBe(`./dist/entries/${name}.js`);

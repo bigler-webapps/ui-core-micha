@@ -1,14 +1,13 @@
 {
   "name": "@micha.bigler/ui-core-micha",
-  "version": "4.0.0",
+  "version": "4.0.1",
   "main": "dist/index.js",
   "module": "dist/index.js",
   "exports": {
     ".": "./dist/index.js",
     "./charts": "./dist/entries/charts.js",
     "./chat": "./dist/entries/chat.js",
-    "./markdown": "./dist/entries/markdown.js",
-    "./package.json": "./package.json"
+    "./markdown": "./dist/entries/markdown.js"
   },
   "files": [
     "dist",
