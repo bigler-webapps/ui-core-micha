@@ -1,5 +1,20 @@
 # Changelog
 
+## 4.3.0 - UCM-CHAT-5
+
+`ChatWorkspace` gets three optional props; without them it behaves as in 4.2.x. `getSendContext()` (synchronous, no
+arguments) is called once per `send` frame, right before it is sent, for every route: the composer, `send(text)` from
+the answer slot, `sendRequest` and the retry of a failed turn. A plain object is sent as `context` on the frame
+(`{ type: 'send', message, context }`, read by `django-core-micha` 3.3.0, DCM-CHAT-11); `undefined` or `null` sends no
+`context`; anything else, or a thrown error, sends nothing, keeps the draft and shows the generic action-error notice
+(a failed retry also keeps the failed turn on screen). The surface does not interpret or size-check the context; the core
+answers `invalid_frame` for a bad or oversized one. The context never appears in the displayed turn text.
+`sendRequest` (`{ id, text }`) sends `text` as the next message of the shown chat, like a typed send including
+`getSendContext`. Each new `id` is handled once; with no chat shown, an archived chat, no connection, a running turn,
+blank text or `activeChatId` `null` it is not sent. A request that arrives together with an `activeChatId` switch waits
+for that chat. `onSendRequestHandled({ id, sent })` is called once per request so a host can fall back to
+`composerPrefill` when `sent` is `false`.
+
 ## 4.2.0 - UCM-CHAT-4
 
 `ChatWorkspace` takes two optional props so a host can control which chat is shown. `activeChatId` shows that chat

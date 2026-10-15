@@ -9,6 +9,20 @@ import ChatComposer from './ChatComposer';
 import ModelPicker from './ModelPicker';
 
 const PENDING_ID = 'pending';
+const buildSendFrame = (message, getContext) => {
+  if (typeof getContext !== 'function') return { frame: { type: 'send', message } };
+  try {
+    const context = getContext();
+    if (context == null) return { frame: { type: 'send', message } };
+    if (typeof context !== 'object' || Array.isArray(context)) return { error: true };
+    const prototype = Object.getPrototypeOf(context);
+    if (prototype !== Object.prototype && prototype !== null) return { error: true };
+    if (typeof JSON.stringify(context) !== 'string') return { error: true };
+    return { frame: { type: 'send', message, context } };
+  } catch {
+    return { error: true };
+  }
+};
 const bySeq = (a, b) => (a.seq ?? Number.MAX_SAFE_INTEGER) - (b.seq ?? Number.MAX_SAFE_INTEGER);
 const chronological = (turns) => [...(turns || [])].sort(bySeq);
 const isGenerating = (turn) => turn.state === 'generating';
@@ -42,7 +56,7 @@ const appendDelta = (turns, text) => {
  * Props: `apiBase` and `wsUrl` (where the app mounted the chat routes), `api` (partial overrides of the REST
  * calls; every function not given keeps its default), `scope` (passed when creating a chat), `sx`.
  */
-export function ChatWorkspace({ apiBase, wsUrl, api: apiOverrides, scope, sx, unavailableReasonText, sidePanel, sidePanelLabel, renderAnswerExtra, renderComposerExtra, onAppFrame, activeChatId, onActiveChatChange, composerPrefill, layout = 'viewport', compactBelow = 720 }) {
+export function ChatWorkspace({ apiBase, wsUrl, api: apiOverrides, scope, sx, unavailableReasonText, sidePanel, sidePanelLabel, renderAnswerExtra, renderComposerExtra, onAppFrame, activeChatId, onActiveChatChange, composerPrefill, getSendContext, sendRequest, onSendRequestHandled, layout = 'viewport', compactBelow = 720 }) {
   const { t } = useTranslation();
   const theme = useTheme();
   const viewportNarrow = useMediaQuery(theme.breakpoints.down('md'));
@@ -73,6 +87,14 @@ export function ChatWorkspace({ apiBase, wsUrl, api: apiOverrides, scope, sx, un
   const [draft, setDraft] = useState('');
   const composerInputRef = useRef(null);
   const lastPrefillId = useRef(undefined);
+  const lastSendRequestId = useRef(undefined);
+  const waitingSendRequest = useRef(null);
+  const previousActiveChatId = useRef(activeChatId);
+  const connectedChatId = useRef(null);
+  const getSendContextRef = useRef(getSendContext);
+  getSendContextRef.current = getSendContext;
+  const sendRequestHandledRef = useRef(onSendRequestHandled);
+  sendRequestHandledRef.current = onSendRequestHandled;
   const [focusRequest, setFocusRequest] = useState(0);
   const focusPending = useRef(false);
   const [problem, setProblem] = useState(null);
@@ -197,7 +219,7 @@ export function ChatWorkspace({ apiBase, wsUrl, api: apiOverrides, scope, sx, un
       setProblem(frame.code); if (frame.code === 'unavailable') setUnavailableReason(frame.reason || unavailableReason);
     }
   }, [chat?.id]);
-  const onOpen = useCallback(() => { setOpenedOnce(true); setProblem((current) => (current === 'connection_lost' ? null : current)); }, []);
+  const onOpen = useCallback((chatId) => { connectedChatId.current = String(chatId); setOpenedOnce(true); setProblem((current) => (current === 'connection_lost' ? null : current)); }, []);
   const onClose = useCallback(({ reason, retrying }) => { if (!retrying) setProblem(reason); }, []);
   const socket = useChatSocket(chat?.id, { wsUrl, onFrame, onOpen, onClose });
 
@@ -214,6 +236,34 @@ export function ChatWorkspace({ apiBase, wsUrl, api: apiOverrides, scope, sx, un
     focusPending.current = true;
     setFocusRequest((count) => count + 1);
   }, [composerPrefill, chat, isArchived, activeChatId]);
+
+  // Host send request. Handled once per id. A request that comes with an `activeChatId` switch waits until the requested
+  // chat is shown AND its socket has opened (sending needs a connected socket of that chat); everything else is decided
+  // at once: sent if the surface can send right now, otherwise reported as not sent.
+  useEffect(() => {
+    if (sendRequest == null || sendRequest.id === lastSendRequestId.current) return;
+    if (activeChatId === null) {
+      lastSendRequestId.current = sendRequest.id;
+      sendRequestHandledRef.current?.({ id: sendRequest.id, sent: false });
+      return;
+    }
+    const wanted = activeChatId == null ? null : String(activeChatId);
+    if (wanted !== null && String(chat?.id) !== wanted && !unloadableIds.current.has(wanted)) {
+      if (chat) waitingSendRequest.current = { id: sendRequest.id, wanted };
+      return;
+    }
+    if (wanted !== null && previousActiveChatId.current != null && String(previousActiveChatId.current) !== wanted) {
+      waitingSendRequest.current = { id: sendRequest.id, wanted };
+    }
+    if (waitingSendRequest.current?.id === sendRequest.id && wanted !== null && connectedChatId.current !== wanted && !unloadableIds.current.has(wanted)) return;
+    waitingSendRequest.current = null;
+    lastSendRequestId.current = sendRequest.id;
+    const text = sendRequest.text;
+    const sent = Boolean(canSendRef.current && typeof text === 'string' && text.trim() && startTurn(text));
+    if (sent) canSendRef.current = false;
+    sendRequestHandledRef.current?.({ id: sendRequest.id, sent });
+  }, [sendRequest, chat, activeChatId, socket.connected, running]);
+  useEffect(() => { previousActiveChatId.current = activeChatId; }, [activeChatId]); // lets the effect above tell a switch from a stable target
 
   // Runs after the render that carries the prefilled draft; a counter, so the same text requested twice focuses twice.
   // A disabled input (connection down) cannot take focus, so the request stays pending until it is enabled again.
@@ -262,7 +312,9 @@ export function ChatWorkspace({ apiBase, wsUrl, api: apiOverrides, scope, sx, un
   });
 
   const startTurn = (message) => {
-    if (!socket.send({ type: 'send', message })) return false;
+    const built = buildSendFrame(message, getSendContextRef.current);
+    if (built.error) { setProblem('action_error'); return false; }
+    if (!socket.send(built.frame)) return false;
     setProblem(null);
     setTurns((current) => [...current, {
       id: PENDING_ID, user_text: message, assistant_text: '', state: 'generating', sources: [],
@@ -287,8 +339,7 @@ export function ChatWorkspace({ apiBase, wsUrl, api: apiOverrides, scope, sx, un
   const send = () => { if (startTurn(draft)) setDraft(''); };
   const retry = (turn) => {
     if (!socket.connected) return;
-    setTurns((current) => current.filter((item) => item.id !== turn.id));
-    startTurn(turn.user_text);
+    if (startTurn(turn.user_text)) setTurns((current) => current.filter((item) => item.id !== turn.id));
   };
 
   const noticeFor = () => {
