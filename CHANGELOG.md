@@ -1,5 +1,11 @@
 # Changelog
 
+## 3.14.4 - UCM-DEP-1
+
+Dependency updates. The runtime dependency `@fontsource/dm-sans` moves to ^5.3.0; the peer dependency ranges are
+unchanged. Tooling: TypeScript 7 (`moduleResolution: Bundler` in `tsconfig.build.json`), vitest 5, jsdom 30, pnpm 12
+and updated GitHub Actions in both workflows. No source or API change.
+
 ## 3.14.3 - UCM-CHAT-1 publish fix
 
 3.14.0 to 3.14.2 were never published: `themeCompleteness` rejected the chat components' inline `sx` on baseline-styled
