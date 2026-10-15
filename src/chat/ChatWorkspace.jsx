@@ -42,7 +42,7 @@ const appendDelta = (turns, text) => {
  * Props: `apiBase` and `wsUrl` (where the app mounted the chat routes), `api` (partial overrides of the REST
  * calls; every function not given keeps its default), `scope` (passed when creating a chat), `sx`.
  */
-export function ChatWorkspace({ apiBase, wsUrl, api: apiOverrides, scope, sx, unavailableReasonText, sidePanel, sidePanelLabel, renderAnswerExtra, renderComposerExtra, onAppFrame, layout = 'viewport', compactBelow = 720 }) {
+export function ChatWorkspace({ apiBase, wsUrl, api: apiOverrides, scope, sx, unavailableReasonText, sidePanel, sidePanelLabel, renderAnswerExtra, renderComposerExtra, onAppFrame, activeChatId, onActiveChatChange, layout = 'viewport', compactBelow = 720 }) {
   const { t } = useTranslation();
   const theme = useTheme();
   const viewportNarrow = useMediaQuery(theme.breakpoints.down('md'));
@@ -65,6 +65,7 @@ export function ChatWorkspace({ apiBase, wsUrl, api: apiOverrides, scope, sx, un
   const [archived, setArchived] = useState([]);
   const [nextChats, setNextChats] = useState(null);
   const [chat, setChat] = useState(null);
+  const [listsLoaded, setListsLoaded] = useState(false);
   const [turns, setTurns] = useState([]);
   const [olderCursor, setOlderCursor] = useState(null);
   const [olderBusy, setOlderBusy] = useState(false);
@@ -76,6 +77,12 @@ export function ChatWorkspace({ apiBase, wsUrl, api: apiOverrides, scope, sx, un
   const [sidePanelOpen, setSidePanelOpen] = useState(false);
   const turnsRef = useRef(turns);
   useEffect(() => { turnsRef.current = turns; }, [turns]);
+  const activeChangeCallback = useRef(onActiveChatChange);
+  activeChangeCallback.current = onActiveChatChange;
+  const lastReportedId = useRef(null);
+  const latestWantedId = useRef(activeChatId);
+  latestWantedId.current = activeChatId;
+  const appliedId = useRef(undefined);
   const [listOpen, setListOpen] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [openedOnce, setOpenedOnce] = useState(false); // distinguishes a reconnect from the first connect
@@ -87,7 +94,7 @@ export function ChatWorkspace({ apiBase, wsUrl, api: apiOverrides, scope, sx, un
 
   // Bumped on every scope change so that a list response of the previous scope is dropped.
   const scopeVersion = useRef(0);
-  useEffect(() => { scopeVersion.current += 1; setChat(null); }, [scope]);
+  useEffect(() => { scopeVersion.current += 1; setChat(null); setListsLoaded(false); appliedId.current = undefined; }, [scope]);
 
   const loadLists = useCallback(async () => {
     const version = scopeVersion.current;
@@ -95,10 +102,11 @@ export function ChatWorkspace({ apiBase, wsUrl, api: apiOverrides, scope, sx, un
     const [active, old] = scope === undefined
       ? await Promise.all([api.listChats(), api.listChats({ archived: true })])
       : await Promise.all([api.listChats({ scope }), api.listChats({ scope, archived: true })]);
-    if (version !== scopeVersion.current) return;
+    if (version !== scopeVersion.current) return undefined;
     setChats(active.results || []);
     setNextChats(active.next || null);
     setArchived(old.results || []);
+    return [...(active.results || []), ...(old.results || [])];
   }, [api, scope]);
 
   useEffect(() => {
@@ -108,11 +116,42 @@ export function ChatWorkspace({ apiBase, wsUrl, api: apiOverrides, scope, sx, un
       .then(async (state) => {
         if (state.status !== 'available') { if (live) { setStatus(state.status); setUnavailableReason(state.reason || null); } return; }
         const [entries] = await Promise.all([api.getCatalogue(), loadLists()]);
-        if (live) { setStatus(state.status); setCatalogue(entries); }
+        if (live) { setStatus(state.status); setCatalogue(entries); setListsLoaded(true); }
       })
       .catch(() => { if (live) setStatus('error'); });
     return () => { live = false; };
   }, [api, loadLists, scope]);
+
+  useEffect(() => {
+    const id = chat?.id ?? null;
+    if (id === lastReportedId.current) return;
+    lastReportedId.current = id;
+    activeChangeCallback.current?.(id);
+  }, [chat?.id]);
+
+  useEffect(() => {
+    if (activeChatId === undefined || status !== 'available' || !listsLoaded) return;
+    const wantedKey = activeChatId === null ? null : String(activeChatId);
+    if (wantedKey === null) {
+      appliedId.current = null;
+      setChat(null);
+      return;
+    }
+    if (String(chat?.id) === wantedKey) return;
+    const existing = [...chats, ...archived].find((item) => String(item.id) === wantedKey);
+    if (existing) { setChat(existing); return; }
+    if (appliedId.current === wantedKey) return;
+    appliedId.current = wantedKey;
+    let live = true;
+    loadLists().then((loaded) => {
+      if (!live || loaded === undefined || latestWantedId.current === undefined || String(latestWantedId.current) !== wantedKey) return;
+      const found = loaded.find((item) => String(item.id) === wantedKey);
+      setChat(found || null);
+    }).catch(() => {
+      if (live && latestWantedId.current !== undefined && String(latestWantedId.current) === wantedKey) setChat(null);
+    });
+    return () => { live = false; };
+  }, [activeChatId, status, listsLoaded]);
 
   useEffect(() => {
     setTurns([]); setOlderCursor(null); setTool(null); setProblem(null); setTrimmedCount(null); setSidePanelOpen(false); setDraft(''); setOpenedOnce(false);

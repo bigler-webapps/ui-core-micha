@@ -1,5 +1,15 @@
 # Changelog
 
+## 4.2.0 - UCM-CHAT-4
+
+`ChatWorkspace` takes two optional props so a host can control which chat is shown. `activeChatId` shows that chat
+(`null` shows none, `undefined`, the default, keeps the selection internal); an id that is not in the loaded lists
+triggers one reload of the lists, and an id that still cannot be found leaves the normal no-chat state. It is applied
+only when the prop value changes, so a host that echoes `onActiveChatChange` back causes no extra requests.
+`onActiveChatChange(chatId)` is called when the id of the shown chat changes (selection, creation, deletion as `null`,
+a change driven by `activeChatId`), not on mount and not when the shown chat is only archived, renamed or updated.
+Without the new props nothing changes.
+
 ## 4.1.0 - UCM-CHAT-3
 
 Extension points on the `/chat` surface; with none of the new props `ChatWorkspace` renders and behaves as in 4.0.x.
