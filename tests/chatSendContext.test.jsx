@@ -62,6 +62,33 @@ describe('ChatWorkspace send context and host requests', () => {
     expect(result.socket.sent).toEqual([{ type: 'send', message: 'No context' }]);
   });
 
+  it('keeps the slot send frame free of a context key when no getSendContext is given', async () => {
+    let slotSend;
+    const finished = { id: 21, seq: 1, user_text: 'Earlier', assistant_text: 'Answer', state: 'completed', sources: [] };
+    const api = makeApi({ listTurns: vi.fn().mockResolvedValue({ results: [finished], next: null }) });
+    const { socket } = await mount(api, { renderAnswerExtra: ({ send }) => { slotSend = send; return null; } });
+    await waitFor(() => expect(typeof slotSend).toBe('function'));
+    act(() => { slotSend('Slot only'); });
+    expect(socket.sent).toEqual([{ type: 'send', message: 'Slot only' }]);
+    expect(Object.hasOwn(socket.sent[0], 'context')).toBe(false);
+  });
+
+  it('waits for the connection when a request comes with the first mount of the chat, then sends once', async () => {
+    const api = makeApi();
+    const handled = vi.fn();
+    render(<ChatWorkspace api={api} wsUrl={(id) => `ws://test/${id}`} activeChatId={7} sendRequest={{ id: 'mount', text: 'From the host' }} onSendRequestHandled={handled} />);
+    await screen.findByRole('textbox', { name: 'Chat.message' });
+    await waitFor(() => expect(FakeSocket.instances.length).toBeGreaterThan(0));
+    await act(async () => { await new Promise((resolve) => setTimeout(resolve, 50)); });
+    expect(handled).not.toHaveBeenCalled();
+    const connection = FakeSocket.instances.at(-1);
+    expect(connection.sent).toEqual([]);
+    act(() => connection.open());
+    await waitFor(() => expect(handled).toHaveBeenCalledWith({ id: 'mount', sent: true }));
+    expect(handled).toHaveBeenCalledTimes(1);
+    expect(connection.sent).toEqual([{ type: 'send', message: 'From the host' }]);
+  });
+
   it('reads current context exactly once for composer and answer-slot sends, without displaying it', async () => {
     let hostState = { revision: 1 };
     const getSendContext = vi.fn(() => hostState);
@@ -135,6 +162,9 @@ describe('ChatWorkspace send context and host requests', () => {
     view.rerender(<ChatWorkspace api={api} wsUrl={(id) => `ws://test/${id}`} activeChatId={9} sendRequest={{ id: 'switch', text: 'For other' }} onSendRequestHandled={onSendRequestHandled} />);
     await waitFor(() => expect(api.listTurns).toHaveBeenCalledWith(9));
     await waitFor(() => expect(FakeSocket.instances.some((item) => item.url === 'ws://test/9')).toBe(true));
+    // Before the requested chat's socket has opened nothing was sent anywhere and nothing was reported.
+    expect(FakeSocket.instances.flatMap((item) => item.sent)).toEqual([]);
+    expect(onSendRequestHandled).not.toHaveBeenCalled();
     act(() => FakeSocket.instances.find((item) => item.url === 'ws://test/9').open());
     await waitFor(() => expect(onSendRequestHandled).toHaveBeenCalledWith({ id: 'switch', sent: true }));
     const socketForOther = FakeSocket.instances.find((item) => item.url === 'ws://test/9');
@@ -158,8 +188,17 @@ describe('ChatWorkspace send context and host requests', () => {
   it('reports false for disconnected, archived, running, and invalid-context requests', async () => {
     const onSendRequestHandled = vi.fn();
     const api = makeApi();
-    render(<ChatWorkspace api={api} wsUrl={(id) => `ws://test/${id}`} activeChatId={7} sendRequest={{ id: 'offline', text: 'No' }} onSendRequestHandled={onSendRequestHandled} />);
+    const view = render(<ChatWorkspace api={api} wsUrl={(id) => `ws://test/${id}`} activeChatId={7} />);
+    await screen.findByRole('textbox', { name: 'Chat.message' });
+    await waitFor(() => expect(FakeSocket.instances.length).toBeGreaterThan(0));
+    const connection = FakeSocket.instances.at(-1);
+    act(() => connection.open());
+    // The connection was open and is lost now: a request is decided at once and reported as not sent.
+    act(() => { connection.readyState = 3; connection.onclose?.({ code: 1006 }); });
+    await waitFor(() => expect(screen.getByRole('textbox', { name: 'Chat.message' }).disabled).toBe(true));
+    view.rerender(<ChatWorkspace api={api} wsUrl={(id) => `ws://test/${id}`} activeChatId={7} sendRequest={{ id: 'offline', text: 'No' }} onSendRequestHandled={onSendRequestHandled} />);
     await waitFor(() => expect(onSendRequestHandled).toHaveBeenCalledWith({ id: 'offline', sent: false }));
+    expect(onSendRequestHandled).toHaveBeenCalledTimes(1);
     expect(FakeSocket.instances.flatMap((socket) => socket.sent)).toEqual([]);
 
     cleanup();
@@ -167,12 +206,14 @@ describe('ChatWorkspace send context and host requests', () => {
     const archivedHandled = vi.fn();
     render(<ChatWorkspace api={archivedApi} wsUrl={(id) => `ws://test/${id}`} activeChatId={7} sendRequest={{ id: 'archived', text: 'No' }} onSendRequestHandled={archivedHandled} />);
     await waitFor(() => expect(archivedHandled).toHaveBeenCalledWith({ id: 'archived', sent: false }));
+    expect(archivedHandled).toHaveBeenCalledTimes(1);
 
     cleanup();
     const runningApi = makeApi({ listTurns: vi.fn().mockResolvedValue({ results: [{ ...interrupted, state: 'generating' }], next: null }) });
     const runningHandled = vi.fn();
     render(<ChatWorkspace api={runningApi} wsUrl={(id) => `ws://test/${id}`} activeChatId={7} sendRequest={{ id: 'running', text: 'No' }} onSendRequestHandled={runningHandled} />);
     await waitFor(() => expect(runningHandled).toHaveBeenCalledWith({ id: 'running', sent: false }));
+    expect(runningHandled).toHaveBeenCalledTimes(1);
 
     cleanup();
     const invalidHandled = vi.fn();

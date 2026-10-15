@@ -44,3 +44,12 @@ The main entry needs only the required peers. Charts, the chat surface and `Mark
 extra peers are optional: `@micha.bigler/ui-core-micha/charts` (`@mui/x-charts`), `/chat` and `/markdown`
 (`react-markdown`, `remark-gfm`). Install those peers only in apps that import the sub-path. The 4.0.0 entry in
 `CHANGELOG.md` has the migration table.
+
+## Shared chat: host controls
+
+`ChatWorkspace` (from `@micha.bigler/ui-core-micha/chat`) takes optional props for apps that put UI around the surface;
+without them it behaves as before. Each is described in `CHANGELOG.md` under the release that added it.
+Since 4.3.0: `getSendContext()` (a plain object attached as `context` to every `send` frame, read by
+`django-core-micha` 3.3.0), `sendRequest` (`{ id, text }`, sends a message on the host's behalf) and
+`onSendRequestHandled({ id, sent })`. Since 4.2.0: `activeChatId`, `onActiveChatChange`, `composerPrefill` and
+`send(text)` / `canSend` in `renderAnswerExtra`.

@@ -88,8 +88,7 @@ export function ChatWorkspace({ apiBase, wsUrl, api: apiOverrides, scope, sx, un
   const composerInputRef = useRef(null);
   const lastPrefillId = useRef(undefined);
   const lastSendRequestId = useRef(undefined);
-  const waitingSendRequest = useRef(null);
-  const previousActiveChatId = useRef(activeChatId);
+  const deferredSendRequestId = useRef(undefined); // a request that had to wait for the chat named by `activeChatId`
   const connectedChatId = useRef(null);
   const getSendContextRef = useRef(getSendContext);
   getSendContextRef.current = getSendContext;
@@ -237,33 +236,29 @@ export function ChatWorkspace({ apiBase, wsUrl, api: apiOverrides, scope, sx, un
     setFocusRequest((count) => count + 1);
   }, [composerPrefill, chat, isArchived, activeChatId]);
 
-  // Host send request. Handled once per id. A request that comes with an `activeChatId` switch waits until the requested
-  // chat is shown AND its socket has opened (sending needs a connected socket of that chat); everything else is decided
-  // at once: sent if the surface can send right now, otherwise reported as not sent.
+  // Host send request, handled once per id. A request that arrives before the chat named by `activeChatId` is shown waits
+  // for that chat AND for its socket to open (sending needs a connected socket of that chat); a chat that cannot be found
+  // ends the wait. Every other request is decided at once. Decided = sent if the surface can send right now, otherwise
+  // reported as not sent.
   useEffect(() => {
     if (sendRequest == null || sendRequest.id === lastSendRequestId.current) return;
-    if (activeChatId === null) {
+    const answer = (sent) => {
       lastSendRequestId.current = sendRequest.id;
-      sendRequestHandledRef.current?.({ id: sendRequest.id, sent: false });
-      return;
+      sendRequestHandledRef.current?.({ id: sendRequest.id, sent });
+    };
+    if (activeChatId === null) { answer(false); return; }
+    const wanted = activeChatId === undefined ? null : String(activeChatId);
+    if (wanted !== null && !unloadableIds.current.has(wanted)) {
+      if (String(chat?.id) !== wanted) { deferredSendRequestId.current = sendRequest.id; return; }
+      // Only a request that could be sent once connected is worth waiting for.
+      const sendable = typeof sendRequest.text === 'string' && sendRequest.text.trim() && !isArchived && !running;
+      if (deferredSendRequestId.current === sendRequest.id && connectedChatId.current !== wanted && sendable) return;
     }
-    const wanted = activeChatId == null ? null : String(activeChatId);
-    if (wanted !== null && String(chat?.id) !== wanted && !unloadableIds.current.has(wanted)) {
-      if (chat) waitingSendRequest.current = { id: sendRequest.id, wanted };
-      return;
-    }
-    if (wanted !== null && previousActiveChatId.current != null && String(previousActiveChatId.current) !== wanted) {
-      waitingSendRequest.current = { id: sendRequest.id, wanted };
-    }
-    if (waitingSendRequest.current?.id === sendRequest.id && wanted !== null && connectedChatId.current !== wanted && !unloadableIds.current.has(wanted)) return;
-    waitingSendRequest.current = null;
-    lastSendRequestId.current = sendRequest.id;
     const text = sendRequest.text;
     const sent = Boolean(canSendRef.current && typeof text === 'string' && text.trim() && startTurn(text));
     if (sent) canSendRef.current = false;
-    sendRequestHandledRef.current?.({ id: sendRequest.id, sent });
+    answer(sent);
   }, [sendRequest, chat, activeChatId, socket.connected, running]);
-  useEffect(() => { previousActiveChatId.current = activeChatId; }, [activeChatId]); // lets the effect above tell a switch from a stable target
 
   // Runs after the render that carries the prefilled draft; a counter, so the same text requested twice focuses twice.
   // A disabled input (connection down) cannot take focus, so the request stays pending until it is enabled again.
