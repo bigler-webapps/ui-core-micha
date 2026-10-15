@@ -36,9 +36,26 @@ afterEach(() => { cleanup(); delete globalThis.WebSocket; FakeSocket.instances =
 
 describe('ChatWorkspace activeChatId', () => {
   it('opens a chat that is already in the loaded list', async () => {
-    render(<ChatWorkspace api={makeApi()} activeChatId="7" />);
-    expect(await screen.findByText('Budget')).toBeTruthy();
+    const other = { ...chat, id: 9, title: 'Other' };
+    const api = makeApi({ listChats: vi.fn().mockImplementation(async ({ archived } = {}) => ({ results: archived ? [] : [chat, other], next: null })) });
+    render(<ChatWorkspace api={api} activeChatId="9" />);
     await waitFor(() => expect(screen.getByRole('textbox', { name: 'Chat.message' })).toBeTruthy());
+    // The requested chat, not the first one of the list, was opened.
+    await waitFor(() => expect(api.listTurns).toHaveBeenCalledWith(9));
+    expect(api.listTurns).not.toHaveBeenCalledWith(7);
+  });
+
+  it('retries an id that was missing once the host went through null and asks for it again', async () => {
+    let available = false;
+    const late = { ...chat, id: 12, title: 'Late chat' };
+    const api = makeApi({ listChats: vi.fn().mockImplementation(async ({ archived } = {}) => ({ results: archived ? [] : (available ? [chat, late] : [chat]), next: null })) });
+    const view = render(<ChatWorkspace api={api} activeChatId={12} />);
+    await waitFor(() => expect(api.listChats).toHaveBeenCalledTimes(4));
+    expect(screen.getByText('Chat.selectChat')).toBeTruthy();
+    available = true;
+    view.rerender(<ChatWorkspace api={api} activeChatId={null} />);
+    view.rerender(<ChatWorkspace api={api} activeChatId={12} />);
+    await waitFor(() => expect(api.listTurns).toHaveBeenCalledWith(12));
   });
 
   it('reloads the lists once to find and open a newly created chat', async () => {
@@ -85,6 +102,8 @@ describe('ChatWorkspace activeChatId', () => {
     menu();
     fireEvent.click(screen.getByRole('menuitem', { name: 'Chat.archive' }));
     await waitFor(() => expect(api.updateChat).toHaveBeenCalledWith(8, { archived: true }));
+    // Chat 8 stays shown, now read-only, and nothing was reported for the archive.
+    await waitFor(() => expect(screen.getByRole('textbox', { name: 'Chat.message' }).disabled).toBe(true));
     expect(onActiveChatChange.mock.calls).toEqual([[7], [8]]);
     menu();
     fireEvent.click(screen.getByRole('menuitem', { name: 'Chat.delete' }));

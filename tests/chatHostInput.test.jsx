@@ -63,6 +63,19 @@ describe('ChatWorkspace host input controls', () => {
     expect(document.activeElement).toBe(input);
   });
 
+  it('keeps the focus request pending while the connection is down and focuses once the input is enabled', async () => {
+    const api = makeApi();
+    const view = render(<ChatWorkspace api={api} wsUrl={(id) => `ws://test/${id}`} activeChatId={7} />);
+    const input = await screen.findByRole('textbox', { name: 'Chat.message' });
+    await waitFor(() => expect(FakeSocket.instances.length).toBeGreaterThan(0));
+    expect(input.disabled).toBe(true);
+    view.rerender(<ChatWorkspace api={api} wsUrl={(id) => `ws://test/${id}`} activeChatId={7} composerPrefill={{ id: 1, text: 'While offline' }} />);
+    await waitFor(() => expect(input.value).toBe('While offline'));
+    expect(document.activeElement).not.toBe(input);
+    act(() => FakeSocket.instances.at(-1).open());
+    await waitFor(() => expect(document.activeElement).toBe(input));
+  });
+
   it('does not reapply a request with the same id when the host rerenders it', async () => {
     const api = makeApi();
     const request = { id: 'same', text: 'Initial' };
@@ -94,16 +107,19 @@ describe('ChatWorkspace host input controls', () => {
   });
 
   it('sends once from the answer slot, exposes running availability and rejects blank text', async () => {
+    const sendCalls = [];
     function Slot({ send, canSend, turn }) {
       const [result, setResult] = useState('');
       return <div>
         <span data-testid={`can-send-${turn.id}`}>{String(canSend)}</span>
-        {turn.state !== 'generating' ? <button onClick={() => setResult(String(send('Try this')))}>Send suggestion</button> : null}
+        {turn.state !== 'generating' ? <button onClick={() => { sendCalls.push('Try this'); setResult(String(send('Try this'))); }}>Send suggestion</button> : null}
         <span data-testid="send-result">{result}</span>
       </div>;
     }
     const socket = await showChat(makeApi(), { renderAnswerExtra: (args) => <Slot {...args} /> });
     fireEvent.click(screen.getByRole('button', { name: 'Send suggestion' }));
+    // The frame was produced by the slot's call of send, exactly once.
+    expect(sendCalls).toEqual(['Try this']);
     expect(socket.sent).toEqual([{ type: 'send', message: 'Try this' }]);
     expect(screen.getByText('Try this')).toBeTruthy();
     expect(screen.getAllByTestId('send-result')[0].textContent).toBe('true');

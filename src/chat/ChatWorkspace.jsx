@@ -74,6 +74,7 @@ export function ChatWorkspace({ apiBase, wsUrl, api: apiOverrides, scope, sx, un
   const composerInputRef = useRef(null);
   const lastPrefillId = useRef(undefined);
   const [focusRequest, setFocusRequest] = useState(0);
+  const focusPending = useRef(false);
   const [problem, setProblem] = useState(null);
   const [unavailableReason, setUnavailableReason] = useState(null);
   const [trimmedCount, setTrimmedCount] = useState(null);
@@ -199,17 +200,20 @@ export function ChatWorkspace({ apiBase, wsUrl, api: apiOverrides, scope, sx, un
     lastPrefillId.current = composerPrefill.id;
     if (!chat || isArchived) return;
     setDraft(composerPrefill.text);
+    focusPending.current = true;
     setFocusRequest((count) => count + 1);
   }, [composerPrefill, chat, isArchived]);
 
   // Runs after the render that carries the prefilled draft; a counter, so the same text requested twice focuses twice.
+  // A disabled input (connection down) cannot take focus, so the request stays pending until it is enabled again.
   useEffect(() => {
     const input = composerInputRef.current;
-    if (focusRequest === 0 || !input) return;
+    if (!focusPending.current || !input || input.disabled) return;
+    focusPending.current = false;
     input.focus();
     const end = input.value.length;
     input.setSelectionRange?.(end, end);
-  }, [focusRequest]);
+  }, [focusRequest, socket.connected]);
 
   const guarded = (action) => async (...args) => {
     try { return await action(...args); } catch { setProblem('action_error'); return null; }
