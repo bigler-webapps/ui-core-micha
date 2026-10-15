@@ -97,6 +97,8 @@ import { LOGIN_PAGE_ALERT_SX } from '../pages/LoginPage';
 import { SIGN_UP_PAGE_ALERT_SX } from '../pages/SignUpPage';
 import { SIGNUP_CONFIRM_PAGE_ALERT_SX } from '../pages/SignupConfirmPage';
 import { REAUTH_MODAL_ALERT_SX, REAUTH_MODAL_TEXT_FIELD_SX } from '../auth/ReauthModal';
+import { CHAT_LIST_ARCHIVED_ACTION_SX, CHAT_LIST_ROW_ACTION_SX } from '../chat/ChatList';
+import { CHAT_THREAD_NOTICE_SX, CHAT_THREAD_TOOL_CHIP_SX } from '../chat/ChatThread';
 
 const SX_EXPORTS = {
   ACCESS_CODE_ACTION_SX,
@@ -168,6 +170,10 @@ const SX_EXPORTS = {
   SUPPORT_RECOVERY_AGENT_PAPER_SX,
   SUPPORT_RECOVERY_ALERT_SX,
   THREAD_DAY_SEPARATOR_SX,
+  CHAT_LIST_ARCHIVED_ACTION_SX,
+  CHAT_LIST_ROW_ACTION_SX,
+  CHAT_THREAD_NOTICE_SX,
+  CHAT_THREAD_TOOL_CHIP_SX,
   USER_INVITE_ACTION_SX,
   USER_INVITE_ALERT_SX,
   USER_LIST_ACTION_SX,
@@ -272,4 +278,8 @@ export const KIT_COMPONENT_SX_REGISTRY = [
   entry('SignupConfirmPage.alert', 'MuiAlert', SIGNUP_CONFIRM_PAGE_ALERT_SX),
   entry('ReauthModal.alert', 'MuiAlert', REAUTH_MODAL_ALERT_SX),
   entry('ReauthModal.field', 'MuiTextField', REAUTH_MODAL_TEXT_FIELD_SX),
+  entry('ChatList.rowAction', 'MuiIconButton', CHAT_LIST_ROW_ACTION_SX),
+  entry('ChatList.archivedAction', 'MuiButton', CHAT_LIST_ARCHIVED_ACTION_SX),
+  entry('ChatThread.toolChip', 'MuiChip', CHAT_THREAD_TOOL_CHIP_SX),
+  entry('ChatThread.notice', 'MuiAlert', CHAT_THREAD_NOTICE_SX),
 ];

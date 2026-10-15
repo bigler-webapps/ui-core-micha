@@ -1,5 +1,12 @@
 # Changelog
 
+## 3.14.3 - UCM-CHAT-1 publish fix
+
+3.14.0 to 3.14.2 were never published: `themeCompleteness` rejected the chat components' inline `sx` on baseline-styled
+MUI components. The chat surface now follows the kit convention (exported top-level `sx` constants registered in
+`KIT_COMPONENT_SX_REGISTRY`; no `sx` that repeats a theme value such as the button minimum height). No behaviour
+change; this release contains everything from 3.14.0 to 3.14.2.
+
 ## 3.14.2 - UCM-CHAT-2
 
 The chat model picker shows readable, translated names for the drivers `claude_cli`, `anthropic_api` and

@@ -3,6 +3,9 @@ import { Badge, Box, Button, Collapse, Dialog, DialogActions, DialogContent, Dia
 import { MoreVert } from '@mui/icons-material';
 import { useTranslation } from 'react-i18next';
 
+export const CHAT_LIST_ROW_ACTION_SX = { width: 40, height: 40 };
+export const CHAT_LIST_ARCHIVED_ACTION_SX = { justifyContent: 'space-between', px: 2 };
+
 /**
  * The chat list: active chats, then an "Archived" entry that expands the archived ones (read-only, restorable).
  * Rename, Archive/Restore and Delete sit in each row's overflow menu; Delete asks for confirmation first.
@@ -27,7 +30,7 @@ export function ChatList({ chats = [], archivedChats = [], activeId, hasMore = f
     <ListItem
       key={chat.id}
       disablePadding
-      secondaryAction={<IconButton edge="end" aria-label={t('Chat.actions')} onClick={(event) => openMenu(event, chat, archived)} sx={{ width: 40, height: 40 }}><MoreVert fontSize="small" /></IconButton>}
+      secondaryAction={<IconButton edge="end" aria-label={t('Chat.actions')} onClick={(event) => openMenu(event, chat, archived)} sx={CHAT_LIST_ROW_ACTION_SX}><MoreVert fontSize="small" /></IconButton>}
     >
       <ListItemButton selected={chat.id === activeId} onClick={() => onSelect?.(chat)} sx={{ minHeight: 48, pr: 6 }}>
         <ListItemText primary={chat.title || t('Chat.untitled')} slotProps={{ primary: { noWrap: true } }} />
@@ -38,13 +41,13 @@ export function ChatList({ chats = [], archivedChats = [], activeId, hasMore = f
   return (
     <Stack sx={{ minWidth: 0, height: '100%', overflowY: 'auto', ...sx }} component="nav" aria-label={t('Chat.chats')}>
       <Box sx={{ p: 1.5 }}>
-        <Button fullWidth variant="contained" onClick={onNew} sx={{ minHeight: 40 }}>{t('Chat.newChat')}</Button>
+        <Button fullWidth variant="contained" onClick={onNew}>{t('Chat.newChat')}</Button>
       </Box>
       <List disablePadding>{chats.map((chat) => row(chat, false))}</List>
-      {hasMore ? <Button onClick={onLoadMore} sx={{ minHeight: 40 }}>{t('Chat.loadMore')}</Button> : null}
+      {hasMore ? <Button onClick={onLoadMore}>{t('Chat.loadMore')}</Button> : null}
       {archivedChats.length > 0 ? (
         <>
-          <Button color="inherit" onClick={() => setShowArchived((value) => !value)} aria-expanded={showArchived} sx={{ justifyContent: 'space-between', px: 2, minHeight: 48 }}>
+          <Button color="inherit" onClick={() => setShowArchived((value) => !value)} aria-expanded={showArchived} sx={CHAT_LIST_ARCHIVED_ACTION_SX}>
             {t('Chat.archived')}
             <Badge color="default" badgeContent={archivedChats.length} sx={{ mr: 1.5 }} />
           </Button>

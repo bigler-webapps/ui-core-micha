@@ -192,7 +192,7 @@ export function ChatWorkspace({ apiBase, wsUrl, api: apiOverrides, scope, sx }) 
 
   const unavailable = status === 'not_configured' || problem === 'not_configured';
   if (status === 'loading') return <Box sx={sx} aria-busy="true" />;
-  if (status === 'error') return <Alert severity="error" sx={sx}>{t('Chat.loadError')}</Alert>;
+  if (status === 'error') return <Box sx={sx}><Alert severity="error">{t('Chat.loadError')}</Alert></Box>;
   if (unavailable) {
     return (
       <Stack alignItems="center" justifyContent="center" spacing={1} sx={{ minHeight: 320, p: 3, textAlign: 'center', ...sx }}>
@@ -207,11 +207,11 @@ export function ChatWorkspace({ apiBase, wsUrl, api: apiOverrides, scope, sx }) 
       {narrow ? null : <Box sx={{ borderRight: 1, borderColor: 'divider', minHeight: 0 }}>{list}</Box>}
       <Stack sx={{ minWidth: 0, minHeight: 0 }}>
         <Stack direction="row" alignItems="center" gap={1} sx={{ px: 1.5, py: 0.5, borderBottom: 1, borderColor: 'divider', minHeight: 56 }}>
-          {narrow ? <Button color="inherit" onClick={() => setListOpen(true)} sx={{ minHeight: 40 }}>{t('Chat.chats')}</Button> : null}
+          {narrow ? <Button color="inherit" onClick={() => setListOpen(true)}>{t('Chat.chats')}</Button> : null}
           <Typography noWrap sx={{ flex: 1, fontWeight: 600 }}>{chat ? (chat.title || t('Chat.untitled')) : ''}</Typography>
           {socket.status === 'connecting' && openedOnce ? <Chip size="small" color="warning" variant="outlined" label={t('Chat.reconnecting')} /> : null}
           {isArchived ? <Chip size="small" label={t('Chat.archived')} /> : null}
-          {isArchived ? <Button size="small" onClick={() => updateChat(chat, { archived: false })} sx={{ minHeight: 40 }}>{t('Chat.restore')}</Button> : null}
+          {isArchived ? <Button size="small" onClick={() => updateChat(chat, { archived: false })}>{t('Chat.restore')}</Button> : null}
           {chat ? (
             <ModelPicker
               entries={catalogue.entries}

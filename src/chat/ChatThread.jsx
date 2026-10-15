@@ -3,6 +3,9 @@ import { Alert, Box, Button, Chip, Stack, Tooltip, Typography } from '@mui/mater
 import { useTranslation } from 'react-i18next';
 import MarkdownReply from './MarkdownReply';
 
+export const CHAT_THREAD_TOOL_CHIP_SX = { alignSelf: 'flex-start' };
+export const CHAT_THREAD_NOTICE_SX = { mb: 2 };
+
 const selectionLine = (turn, t) => [turn.model, turn.effort && t(`Chat.effort.${turn.effort}`)].filter(Boolean).join(' · ');
 const sameSelection = (a, b) => a.driver === b.driver && a.model === b.model && a.effort === b.effort;
 
@@ -28,17 +31,17 @@ function Answer({ turn, tool, onRetry }) {
     <Stack spacing={1} aria-busy={generating}>
       {turn.assistant_text ? <MarkdownReply text={turn.assistant_text} /> : null}
       {generating && !turn.assistant_text && !tool ? <Typography variant="body2" color="text.secondary">{t('Chat.typing')}</Typography> : null}
-      {generating && tool ? <Chip size="small" color="primary" variant="outlined" label={tool.label} sx={{ alignSelf: 'flex-start' }} /> : null}
+      {generating && tool ? <Chip size="small" color="primary" variant="outlined" label={tool.label} sx={CHAT_THREAD_TOOL_CHIP_SX} /> : null}
       <SourceChips sources={turn.sources} />
       {!generating && selectionLine(turn, t) ? <Typography variant="caption" color="text.secondary">{selectionLine(turn, t)}</Typography> : null}
       {turn.state === 'interrupted' ? (
         <Stack direction="row" alignItems="center" gap={1}>
           <Chip size="small" color="warning" label={t('Chat.interrupted')} />
-          {onRetry ? <Button size="small" sx={{ minHeight: 40 }} onClick={() => onRetry(turn)}>{t('Chat.retry')}</Button> : null}
+          {onRetry ? <Button size="small" onClick={() => onRetry(turn)}>{t('Chat.retry')}</Button> : null}
         </Stack>
       ) : null}
       {failed ? (
-        <Alert severity="error" action={onRetry ? <Button color="inherit" size="small" sx={{ minHeight: 40 }} onClick={() => onRetry(turn)}>{t('Chat.retry')}</Button> : null}>
+        <Alert severity="error" action={onRetry ? <Button color="inherit" size="small" onClick={() => onRetry(turn)}>{t('Chat.retry')}</Button> : null}>
           {t('Chat.answerIncomplete')}
         </Alert>
       ) : null}
@@ -82,7 +85,7 @@ export function ChatThread({ turns = [], tool = null, notice = null, hasOlder = 
     }} role="log" aria-live="polite" aria-label={t('Chat.thread')} sx={{ minHeight: 0, flex: 1, overflowY: 'auto', p: { xs: 1.5, md: 2.5 }, ...sx }}>
       {hasOlder ? (
         <Box sx={{ textAlign: 'center', mb: 2 }}>
-          <Button size="small" onClick={loadOlder} disabled={olderBusy} sx={{ minHeight: 40 }}>{t('Chat.loadOlder')}</Button>
+          <Button size="small" onClick={loadOlder} disabled={olderBusy}>{t('Chat.loadOlder')}</Button>
         </Box>
       ) : null}
       {turns.length === 0 ? (
@@ -111,8 +114,8 @@ export function ChatThread({ turns = [], tool = null, notice = null, hasOlder = 
       {notice ? (
         <Alert
           severity={notice.severity || 'warning'}
-          sx={{ mb: 2 }}
-          action={notice.action ? <Button color="inherit" size="small" sx={{ minHeight: 40 }} onClick={notice.action.onClick}>{notice.action.label}</Button> : null}
+          sx={CHAT_THREAD_NOTICE_SX}
+          action={notice.action ? <Button color="inherit" size="small" onClick={notice.action.onClick}>{notice.action.label}</Button> : null}
         >
           {notice.text}
         </Alert>

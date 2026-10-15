@@ -27,8 +27,8 @@ export function ChatComposer({ value = '', onChange, onSend, onStop, running = f
           if (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent?.isComposing) { event.preventDefault(); submit(); }
         }}
       />
-      {running ? <Button variant="outlined" sx={{ minHeight: 40 }} onClick={onStop}>{t('Chat.stop')}</Button> : null}
-      <Button variant="contained" sx={{ minHeight: 40 }} onClick={submit} disabled={!canSend}>{t('Chat.send')}</Button>
+      {running ? <Button variant="outlined" onClick={onStop}>{t('Chat.stop')}</Button> : null}
+      <Button variant="contained" onClick={submit} disabled={!canSend}>{t('Chat.send')}</Button>
     </Stack>
   );
 }
