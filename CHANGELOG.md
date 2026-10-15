@@ -13,7 +13,8 @@ answers `invalid_frame` for a bad or oversized one. The context never appears in
 `getSendContext`. Each new `id` is handled once; with no chat shown, an archived chat, no connection, a running turn,
 blank text or `activeChatId` `null` it is not sent. A request that arrives together with an `activeChatId` switch waits
 for that chat. `onSendRequestHandled({ id, sent })` is called once per request so a host can fall back to
-`composerPrefill` when `sent` is `false`.
+`composerPrefill` when `sent` is `false`. Give every request a fresh `id` (a counter); an `id` that was answered earlier
+is treated as the same request and ignored.
 
 ## 4.2.0 - UCM-CHAT-4
 

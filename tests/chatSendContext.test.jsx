@@ -87,6 +87,12 @@ describe('ChatWorkspace send context and host requests', () => {
     view.rerender(<ChatWorkspace api={api} wsUrl={(id) => `ws://test/${id}`} activeChatId={9} sendRequest={{ id: 'blank', text: '   ' }} onSendRequestHandled={handled} />);
     await waitFor(() => expect(handled).toHaveBeenCalledWith({ id: 'blank', sent: false }));
     expect(handled).toHaveBeenCalledTimes(1);
+    // The blank request was cleared: once the target chat is shown and connected it is not sent after all.
+    await waitFor(() => expect(FakeSocket.instances.some((item) => item.url === 'ws://test/9')).toBe(true));
+    act(() => FakeSocket.instances.find((item) => item.url === 'ws://test/9').open());
+    await act(async () => { await new Promise((resolve) => setTimeout(resolve, 50)); });
+    expect(FakeSocket.instances.flatMap((item) => item.sent)).toEqual([]);
+    expect(handled).toHaveBeenCalledTimes(1);
   });
 
   it('does not send a waiting request to another chat when the host names a different chat meanwhile', async () => {
