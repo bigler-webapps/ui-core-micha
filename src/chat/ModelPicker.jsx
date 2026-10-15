@@ -3,6 +3,7 @@ import { Box, Button, Chip, Drawer, List, ListItemButton, ListItemText, Popover,
 import { useTranslation } from 'react-i18next';
 
 export const EFFORT_LEVELS = ['low', 'medium', 'high', 'max'];
+export const driverName = (t, id) => t(`Chat.driver.${id}`, { defaultValue: id });
 
 const groupByDriver = (entries) => entries.reduce((groups, entry) => {
   (groups[entry.driver] = groups[entry.driver] || []).push(entry);
@@ -33,8 +34,8 @@ export function ModelPicker({ entries = [], selection, onChange, disabled = fals
     <Box sx={{ p: 2, minWidth: narrow ? 0 : 320, maxWidth: '100%' }}>
       <Stack spacing={1.5}>
         {Object.entries(groups).map(([driver, items]) => (
-          <Box key={driver} role="group" aria-label={driver}>
-            <Typography variant="overline" color="text.secondary">{driver}</Typography>
+          <Box key={driver} role="group" aria-label={driverName(t, driver)}>
+            <Typography variant="overline" color="text.secondary">{driverName(t, driver)}</Typography>
             <List dense disablePadding>
               {items.map((entry) => (
                 <ListItemButton key={entry.id} selected={entry.id === selection?.entry} onClick={() => pickEntry(entry)} sx={{ minHeight: 40, borderRadius: 1 }}>

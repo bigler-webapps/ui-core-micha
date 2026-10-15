@@ -1,5 +1,11 @@
 # Changelog
 
+## 3.14.2 - UCM-CHAT-2
+
+The chat model picker shows readable, translated names for the drivers `claude_cli`, `anthropic_api` and
+`openai_api` as group heading and accessible name (`Chat.driver.<id>`, de/en/fr/sw). An unknown driver id still
+appears as its raw id. No other chat text or behaviour changes.
+
 ## 3.14.1 - UCM-CHAT-1 post-landing review
 
 `ChatThread` starts at most one older-turns request at a time, also for rapid scroll events. `ModelPicker` shows no

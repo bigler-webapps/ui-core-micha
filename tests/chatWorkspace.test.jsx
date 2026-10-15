@@ -21,7 +21,7 @@ class FakeSocket {
 const catalogue = {
   entries: [
     { id: 'cli-sonnet', driver: 'claude_cli', model: 'sonnet', label: 'Sonnet', efforts: ['low', 'high'], billing: 'subscription' },
-    { id: 'oa', driver: 'openai', model: 'gpt', label: 'GPT', efforts: ['medium'], billing: 'pay_per_use' },
+    { id: 'oa', driver: 'openai_api', model: 'gpt', label: 'GPT', efforts: ['medium'], billing: 'pay_per_use' },
   ],
   default: { entry: 'cli-sonnet', effort: 'high' },
 };
@@ -106,7 +106,7 @@ describe('ChatWorkspace edge states', () => {
     act(() => socket.push({ type: 'error', code: 'quota_exceeded' }));
     expect(screen.getByText('Chat.usageLimit:Sonnet')).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Chat.changeModel' }));
-    expect(screen.getByRole('group', { name: 'openai' })).toBeTruthy();
+    expect(screen.getByRole('group', { name: 'Chat.driver.openai_api' })).toBeTruthy();
   });
 
   it('shows an interrupted turn from history with Retry, which sends its text again only on click', async () => {
