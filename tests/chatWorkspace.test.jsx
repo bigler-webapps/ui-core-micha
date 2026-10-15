@@ -163,6 +163,23 @@ describe('ChatWorkspace edge states', () => {
   });
 });
 
+describe('ChatWorkspace load order', () => {
+  it('shows no Reconnecting chip on the first connect', async () => {
+    render(<ChatWorkspace api={makeApi()} wsUrl={(id) => `ws://test/${id}`} />);
+    fireEvent.click(await screen.findByText('Budget'));
+    await waitFor(() => expect(FakeSocket.instances.length).toBe(1));
+    expect(screen.queryByText('Chat.reconnecting')).toBeNull();
+  });
+
+  it('does not request catalogue or chat lists when no model is configured', async () => {
+    const api = makeApi({ getStatus: vi.fn().mockResolvedValue({ status: 'not_configured' }) });
+    render(<ChatWorkspace api={api} />);
+    await screen.findByText('Chat.unavailable');
+    expect(api.getCatalogue).not.toHaveBeenCalled();
+    expect(api.listChats).not.toHaveBeenCalled();
+  });
+});
+
 describe('ChatWorkspace wiring', () => {
   it('calls the update endpoint when the picker selection changes', async () => {
     const api = makeApi();

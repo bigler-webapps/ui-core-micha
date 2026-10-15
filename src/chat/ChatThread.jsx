@@ -66,7 +66,13 @@ export function ChatThread({ turns = [], tool = null, notice = null, hasOlder = 
     if (el && heightBeforeOlder.current !== null) el.scrollTop += el.scrollHeight - heightBeforeOlder.current;
     heightBeforeOlder.current = null;
   }, [turns[0]?.id]);
-  const loadOlder = () => { heightBeforeOlder.current = scroller.current?.scrollHeight ?? null; onLoadOlder?.(); };
+  const loadingOlder = useRef(false); // one request at a time, also across rapid scroll events
+  const loadOlder = async () => {
+    if (loadingOlder.current) return;
+    loadingOlder.current = true;
+    heightBeforeOlder.current = scroller.current?.scrollHeight ?? null;
+    try { await onLoadOlder?.(); } finally { loadingOlder.current = false; }
+  };
 
   return (
     <Box ref={scroller} onScroll={(event) => {

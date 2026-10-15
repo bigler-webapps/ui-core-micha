@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import React from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 
 vi.mock('react-i18next', () => ({ useTranslation: () => ({ t: (key, values) => (values?.model ? `${key}:${values.model}` : key) }) }));
 
@@ -99,5 +99,18 @@ describe('ChatThread', () => {
     expect(onLoadOlder).not.toHaveBeenCalled();
     fireEvent.scroll(log, { target: { scrollTop: 0 } });
     expect(onLoadOlder).toHaveBeenCalledTimes(1);
+  });
+
+  it('starts only one older-turns request for rapid scroll events', async () => {
+    let release;
+    const onLoadOlder = vi.fn(() => new Promise((resolve) => { release = resolve; }));
+    render(<ChatThread turns={[turn()]} hasOlder onLoadOlder={onLoadOlder} />);
+    const log = screen.getByRole('log');
+    fireEvent.scroll(log, { target: { scrollTop: 0 } });
+    fireEvent.scroll(log, { target: { scrollTop: 0 } });
+    fireEvent.click(screen.getByRole('button', { name: 'Chat.loadOlder' }));
+    expect(onLoadOlder).toHaveBeenCalledTimes(1);
+    release();
+    await waitFor(() => { fireEvent.scroll(log, { target: { scrollTop: 0 } }); expect(onLoadOlder).toHaveBeenCalledTimes(2); });
   });
 });

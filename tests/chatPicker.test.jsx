@@ -66,4 +66,9 @@ describe('ModelPicker', () => {
     open();
     expect(baseElement.querySelector('.MuiDrawer-paperAnchorBottom')).toBeTruthy();
   });
+
+  it('shows no trailing separator when the selection has no effort', () => {
+    render(<ModelPicker entries={entries} selection={{ entry: 'cli-sonnet' }} />);
+    expect(screen.getByRole('button', { name: 'Sonnet' })).toBeTruthy();
+  });
 });

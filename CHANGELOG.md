@@ -1,5 +1,10 @@
 # Changelog
 
+## 3.14.1 - UCM-CHAT-1 post-landing review
+
+`ChatThread` starts at most one older-turns request at a time, also for rapid scroll events. `ModelPicker` shows no
+trailing separator when a chat has no effort set.
+
 ## 3.14.0 - UCM-CHAT-1
 
 New shared AI chat surface. `ChatWorkspace` shows the user's chats (rename, archive, restore, delete), streams

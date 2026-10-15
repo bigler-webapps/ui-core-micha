@@ -66,7 +66,7 @@ export function ModelPicker({ entries = [], selection, onChange, disabled = fals
     </Box>
   );
 
-  const label = active ? `${active.label || active.model} · ${selection?.effort ? t(`Chat.effort.${selection.effort}`) : ''}` : t('Chat.chooseModel');
+  const label = active ? [active.label || active.model, selection?.effort && t(`Chat.effort.${selection.effort}`)].filter(Boolean).join(' · ') : t('Chat.chooseModel');
   return (
     <>
       <Button ref={anchor} size="small" color="inherit" disabled={disabled || entries.length === 0} onClick={() => setOpen(true)} aria-haspopup="dialog" sx={{ textTransform: 'none', minHeight: 40 }}>
