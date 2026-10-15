@@ -7,7 +7,7 @@
     "jsx": "react-jsx",
     "module": "ESNext",
     "target": "ES2017",
-    "moduleResolution": "Node",
+    "moduleResolution": "Bundler",
     "ignoreDeprecations": "6.0",
     "esModuleInterop": true,
     "skipLibCheck": true,
