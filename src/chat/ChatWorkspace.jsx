@@ -87,6 +87,7 @@ export function ChatWorkspace({ apiBase, wsUrl, api: apiOverrides, scope, sx, un
   const latestWantedId = useRef(activeChatId);
   latestWantedId.current = activeChatId;
   const appliedId = useRef(undefined);
+  const unloadableIds = useRef(new Set()); // ids the host asked for that no list contains
   const [listOpen, setListOpen] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [openedOnce, setOpenedOnce] = useState(false); // distinguishes a reconnect from the first connect
@@ -98,7 +99,7 @@ export function ChatWorkspace({ apiBase, wsUrl, api: apiOverrides, scope, sx, un
 
   // Bumped on every scope change so that a list response of the previous scope is dropped.
   const scopeVersion = useRef(0);
-  useEffect(() => { scopeVersion.current += 1; setChat(null); setListsLoaded(false); appliedId.current = undefined; }, [scope]);
+  useEffect(() => { scopeVersion.current += 1; setChat(null); setListsLoaded(false); appliedId.current = undefined; unloadableIds.current.clear(); }, [scope]);
 
   const loadLists = useCallback(async () => {
     const version = scopeVersion.current;
@@ -133,8 +134,9 @@ export function ChatWorkspace({ apiBase, wsUrl, api: apiOverrides, scope, sx, un
     activeChangeCallback.current?.(id);
   }, [chat?.id]);
 
-  useEffect(() => {
-    if (activeChatId === undefined || status !== 'available' || !listsLoaded) return;
+  // A layout effect: a host-driven switch to a known chat is applied before the browser paints.
+  useLayoutEffect(() => {
+    if (activeChatId === undefined || status !== 'available' || !listsLoaded) return undefined;
     const wantedKey = activeChatId === null ? null : String(activeChatId);
     if (wantedKey === null) {
       appliedId.current = null;
@@ -150,9 +152,13 @@ export function ChatWorkspace({ apiBase, wsUrl, api: apiOverrides, scope, sx, un
     loadLists().then((loaded) => {
       if (!live || loaded === undefined || latestWantedId.current === undefined || String(latestWantedId.current) !== wantedKey) return;
       const found = loaded.find((item) => String(item.id) === wantedKey);
+      if (!found) unloadableIds.current.add(wantedKey);
       setChat(found || null);
     }).catch(() => {
-      if (live && latestWantedId.current !== undefined && String(latestWantedId.current) === wantedKey) setChat(null);
+      if (live && latestWantedId.current !== undefined && String(latestWantedId.current) === wantedKey) {
+        unloadableIds.current.add(wantedKey);
+        setChat(null);
+      }
     });
     return () => { live = false; };
   }, [activeChatId, status, listsLoaded]);
@@ -197,12 +203,15 @@ export function ChatWorkspace({ apiBase, wsUrl, api: apiOverrides, scope, sx, un
 
   useEffect(() => {
     if (composerPrefill == null || composerPrefill.id === lastPrefillId.current) return;
+    // The host switches chats and prefills in one go: wait for the requested chat instead of filling the one being left.
+    const wanted = activeChatId == null ? null : String(activeChatId);
+    if (wanted !== null && String(chat?.id) !== wanted && !unloadableIds.current.has(wanted)) return;
     lastPrefillId.current = composerPrefill.id;
     if (!chat || isArchived) return;
     setDraft(composerPrefill.text);
     focusPending.current = true;
     setFocusRequest((count) => count + 1);
-  }, [composerPrefill, chat, isArchived]);
+  }, [composerPrefill, chat, isArchived, activeChatId]);
 
   // Runs after the render that carries the prefilled draft; a counter, so the same text requested twice focuses twice.
   // A disabled input (connection down) cannot take focus, so the request stays pending until it is enabled again.

@@ -36,7 +36,7 @@ function makeApi(extra = {}) {
 
 async function showChat(api, props = {}) {
   render(<ChatWorkspace api={api} wsUrl={(id) => `ws://test/${id}`} activeChatId={7} {...props} />);
-  await screen.findByText('Budget');
+  await screen.findAllByText('Budget');
   await waitFor(() => expect(FakeSocket.instances.length).toBeGreaterThan(0));
   const socket = FakeSocket.instances.at(-1);
   act(() => socket.open());
@@ -74,6 +74,35 @@ describe('ChatWorkspace host input controls', () => {
     expect(document.activeElement).not.toBe(input);
     act(() => FakeSocket.instances.at(-1).open());
     await waitFor(() => expect(document.activeElement).toBe(input));
+  });
+
+  it('applies a prefill sent together with a switch to the requested chat, not to the one being left', async () => {
+    const other = { ...chat, id: 9, title: 'Other' };
+    const api = makeApi({ listChats: vi.fn().mockImplementation(async ({ archived } = {}) => ({ results: archived ? [] : [chat, other], next: null })) });
+    const view = render(<ChatWorkspace api={api} wsUrl={(id) => `ws://test/${id}`} activeChatId={7} />);
+    await screen.findByRole('textbox', { name: 'Chat.message' });
+    await waitFor(() => expect(FakeSocket.instances.length).toBeGreaterThan(0));
+    view.rerender(<ChatWorkspace api={api} wsUrl={(id) => `ws://test/${id}`} activeChatId={9} composerPrefill={{ id: 1, text: 'For the other chat' }} />);
+    await waitFor(() => expect(api.listTurns).toHaveBeenCalledWith(9));
+    await waitFor(() => expect(screen.getByRole('textbox', { name: 'Chat.message' }).value).toBe('For the other chat'));
+  });
+
+  it('drops a prefill that waits for a chat which cannot be found', async () => {
+    const api = makeApi({ listChats: vi.fn().mockImplementation(async ({ archived } = {}) => ({ results: archived ? [] : [chat], next: null })) });
+    const view = render(<ChatWorkspace api={api} wsUrl={(id) => `ws://test/${id}`} activeChatId={7} />);
+    const input = await screen.findByRole('textbox', { name: 'Chat.message' });
+    view.rerender(<ChatWorkspace api={api} wsUrl={(id) => `ws://test/${id}`} activeChatId={404} composerPrefill={{ id: 1, text: 'Never shown' }} />);
+    await screen.findByText('Chat.selectChat');
+    view.rerender(<ChatWorkspace api={api} wsUrl={(id) => `ws://test/${id}`} activeChatId={7} />);
+    expect((await screen.findByRole('textbox', { name: 'Chat.message' })).value).toBe('');
+    expect(input).toBeTruthy();
+  });
+
+  it('marks answer-slot sending unavailable while the connection is down', async () => {
+    render(<ChatWorkspace api={makeApi()} wsUrl={(id) => `ws://test/${id}`} activeChatId={7} renderAnswerExtra={({ canSend, turn }) => <span data-testid={`offline-${turn.id}`}>{String(canSend)}</span>} />);
+    expect((await screen.findByTestId('offline-21')).textContent).toBe('false');
+    act(() => FakeSocket.instances.at(-1).open());
+    await waitFor(() => expect(screen.getByTestId('offline-21').textContent).toBe('true'));
   });
 
   it('does not reapply a request with the same id when the host rerenders it', async () => {

@@ -112,6 +112,31 @@ describe('ChatWorkspace activeChatId', () => {
     expect(onActiveChatChange.mock.calls).toEqual([[7], [8], [null]]);
   });
 
+  it('reports a switch that the host drives through activeChatId', async () => {
+    const other = { ...chat, id: 9, title: 'Other' };
+    const api = makeApi({ listChats: vi.fn().mockImplementation(async ({ archived } = {}) => ({ results: archived ? [] : [chat, other], next: null })) });
+    const onActiveChatChange = vi.fn();
+    const view = render(<ChatWorkspace api={api} activeChatId={7} onActiveChatChange={onActiveChatChange} />);
+    await waitFor(() => expect(onActiveChatChange).toHaveBeenLastCalledWith(7));
+    view.rerender(<ChatWorkspace api={api} activeChatId={9} onActiveChatChange={onActiveChatChange} />);
+    await waitFor(() => expect(onActiveChatChange).toHaveBeenLastCalledWith(9));
+    expect(onActiveChatChange.mock.calls).toEqual([[7], [9]]);
+  });
+
+  it('causes no extra requests when the host echoes a real user selection into the prop', async () => {
+    const api = makeApi();
+    function Host() {
+      const [activeChatId, setActiveChatId] = useState(null);
+      return <ChatWorkspace api={api} activeChatId={activeChatId} onActiveChatChange={setActiveChatId} />;
+    }
+    render(<Host />);
+    fireEvent.click(await screen.findByText('Budget'));
+    await waitFor(() => expect(screen.getByRole('textbox', { name: 'Chat.message' })).toBeTruthy());
+    await act(async () => { await new Promise((resolve) => setTimeout(resolve, 100)); });
+    expect(api.listChats).toHaveBeenCalledTimes(2);
+    expect(api.listTurns).toHaveBeenCalledTimes(1);
+  });
+
   it('does not reload when a host echoes the reported id into the prop', async () => {
     const api = makeApi();
     function Host() {
@@ -119,7 +144,7 @@ describe('ChatWorkspace activeChatId', () => {
       return <ChatWorkspace api={api} activeChatId={activeChatId} onActiveChatChange={setActiveChatId} />;
     }
     render(<Host />);
-    await screen.findByText('Budget');
+    await screen.findAllByText('Budget');
     await waitFor(() => expect(api.listChats).toHaveBeenCalledTimes(2));
     // Give an echo loop time to show itself before asserting that nothing more was requested.
     await act(async () => { await new Promise((resolve) => setTimeout(resolve, 100)); });
@@ -130,7 +155,7 @@ describe('ChatWorkspace activeChatId', () => {
   it('clears the shown chat when activeChatId becomes null', async () => {
     const api = makeApi();
     const { rerender } = render(<ChatWorkspace api={api} activeChatId={7} />);
-    await screen.findByText('Budget');
+    await screen.findAllByText('Budget');
     rerender(<ChatWorkspace api={api} activeChatId={null} />);
     expect(await screen.findByText('Chat.selectChat')).toBeTruthy();
   });
