@@ -1,0 +1,447 @@
+<title>AI Chat Surface</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&display=swap">
+<style>
+/* Layout: chat list column + thread column at 1280; list and model picker become sheets at 375.
+   Tokens: cockpit theme (primary #3D5A99) over the ui-core-micha light baseline, identical to
+   cockpit/work-orders/assets/CKP-REM-4-prs.html. Cockpit is light-only, so this spec is too. */
+:root {
+  color-scheme: light;
+  --page: #FAFAFA;
+  --paper: #FFFFFF;
+  --subtle: #F4F5F6;
+  --divider: rgba(33,37,41,.10);
+  --ink: #212529;
+  --ink-2: #5B6670;
+  --ink-3: #6A7178;
+  --primary: #3D5A99;
+  --primary-dark: #324a7d;
+  --accent-tint: #eff2f7;
+  --ok-text: #35794A; --ok-bg: #E5F4E9;
+  --warn-text: #976100; --warn-bg: #FBF0DC;
+  --err-text: #BF3227; --err-bg: #FBEAE8;
+  --stale-text: #5B6B7D; --stale-bg: #EAEDF1;
+  --scrim: rgba(33,37,41,.32);
+  --font: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --mono: ui-monospace, 'SFMono-Regular', Consolas, monospace;
+}
+* { box-sizing: border-box; }
+body { background: var(--page); color: var(--ink); font-family: var(--font); font-size: 13px; margin: 0; padding: 24px 16px 40px; }
+.frames { display: flex; gap: 32px; align-items: flex-start; overflow-x: auto; padding-bottom: 8px; }
+.frame { flex: 0 0 auto; display: grid; gap: 8px; align-content: start; }
+.frame-label { font-size: 12px; color: var(--ink-3); font-variant-numeric: tabular-nums; }
+.vp { background: var(--page); border: 1px solid var(--divider); border-radius: 6px; position: relative; overflow: hidden; }
+.vp-375 { width: 375px; height: 740px; }
+.vp-1280 { width: 1280px; height: 760px; }
+.coverage { max-width: 1280px; margin: 0 0 20px; color: var(--ink-2); font-size: 12.5px; line-height: 1.5; display: grid; gap: 4px; }
+.coverage b { color: var(--ink); font-weight: 600; }
+
+/* Workspace */
+.ws { display: grid; grid-template-columns: 272px minmax(0, 1fr); height: 100%; }
+.vp-375 .ws { grid-template-columns: minmax(0, 1fr); }
+
+/* Chat list */
+.list { background: var(--subtle); border-right: 1px solid var(--divider); display: flex; flex-direction: column; min-height: 0; }
+.list-head { display: flex; align-items: center; justify-content: space-between; padding: 14px 12px 10px 16px; }
+.list-title { font-size: 14px; font-weight: 600; }
+.items { display: grid; gap: 2px; padding: 0 8px; overflow: hidden; }
+.item { display: grid; grid-template-columns: minmax(0, 1fr) 28px; align-items: center; gap: 4px; padding: 8px 4px 8px 10px; border-radius: 6px; color: var(--ink); }
+.item.active { background: var(--accent-tint); }
+.item.active .item-title { color: var(--primary-dark); font-weight: 600; }
+.item-title { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.item-meta { font-size: 11.5px; color: var(--ink-3); font-variant-numeric: tabular-nums; }
+.item .icon-btn { opacity: .0; }
+.item.active .icon-btn, .item.hover .icon-btn { opacity: 1; }
+.list-foot { margin-top: auto; border-top: 1px solid var(--divider); padding: 8px; }
+.archived-toggle { display: flex; align-items: center; justify-content: space-between; width: 100%; padding: 8px 10px; border-radius: 6px; color: var(--ink-2); font-weight: 500; }
+.count { color: var(--ink-3); font-variant-numeric: tabular-nums; font-weight: 500; }
+
+/* Menu (row overflow) */
+.menu { position: absolute; background: var(--paper); border: 1px solid var(--divider); border-radius: 6px; box-shadow: 0 6px 20px rgba(33,37,41,.14); padding: 4px 0; min-width: 168px; z-index: 3; }
+.menu-item { display: flex; align-items: center; gap: 10px; padding: 7px 14px; }
+.menu-item.danger { color: var(--err-text); }
+.menu-sep { height: 1px; background: var(--divider); margin: 4px 0; }
+
+/* Thread */
+.main { display: flex; flex-direction: column; min-width: 0; min-height: 0; background: var(--paper); }
+.bar { display: flex; align-items: center; gap: 8px; padding: 10px 16px; border-bottom: 1px solid var(--divider); min-height: 52px; }
+.vp-375 .bar { padding: 8px 8px 8px 4px; }
+.bar-title { font-size: 15px; font-weight: 600; min-width: 0; flex: 1 1 auto; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.picker-btn { display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 10px; border: 1px solid var(--divider); border-radius: 6px; background: var(--paper); color: var(--ink); font-weight: 500; white-space: nowrap; }
+.picker-btn .sep { color: var(--ink-3); }
+.picker-btn .effort { color: var(--ink-2); }
+.vp-375 .picker-btn { padding: 0 8px; }
+.icon-btn { width: 32px; height: 32px; display: inline-grid; place-items: center; border-radius: 6px; color: var(--ink-2); flex: 0 0 32px; }
+.icon-btn svg, .menu-item svg, .archived-toggle svg, .picker-btn svg, .send svg, .opt svg { width: 18px; height: 18px; fill: currentColor; }
+
+.thread { flex: 1 1 auto; overflow: hidden; padding: 20px 24px 8px; display: grid; gap: 18px; align-content: start; }
+.vp-375 .thread { padding: 14px 12px 8px; gap: 14px; }
+.col { width: 100%; max-width: 760px; margin: 0 auto; display: grid; gap: 18px; }
+.vp-375 .col { gap: 14px; }
+.msg-user { justify-self: end; max-width: 78%; background: var(--accent-tint); border-radius: 10px 10px 2px 10px; padding: 10px 14px; line-height: 1.5; }
+.vp-375 .msg-user { max-width: 88%; }
+.msg-ai { display: grid; gap: 8px; line-height: 1.55; min-width: 0; }
+.md p { margin: 0; }
+.md ul { margin: 0; padding-left: 20px; display: grid; gap: 3px; }
+.md code { font-family: var(--mono); font-size: 12px; background: var(--subtle); padding: 1px 4px; border-radius: 3px; }
+.md table { border-collapse: collapse; font-size: 12.5px; font-variant-numeric: tabular-nums; }
+.md th, .md td { text-align: left; padding: 5px 12px 5px 0; border-bottom: 1px solid var(--divider); }
+.md th { font-weight: 600; color: var(--ink-2); }
+.md .table-wrap { overflow-x: auto; }
+.md { display: grid; gap: 8px; }
+
+.sources { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+.src { display: inline-flex; align-items: center; gap: 5px; height: 24px; max-width: 260px; padding: 0 8px; border: 1px solid var(--divider); border-radius: 4px; font-size: 12px; color: var(--ink-2); background: var(--paper); }
+.src svg { width: 13px; height: 13px; fill: var(--ink-3); flex: 0 0 13px; }
+.src span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.turn-meta { font-size: 11.5px; color: var(--ink-3); font-variant-numeric: tabular-nums; }
+.switch-mark { display: flex; align-items: center; gap: 10px; color: var(--ink-3); font-size: 11.5px; }
+.switch-mark::before, .switch-mark::after { content: ""; height: 1px; background: var(--divider); flex: 1 1 auto; }
+
+.typing { display: inline-flex; gap: 4px; align-items: center; height: 18px; }
+.typing i { width: 6px; height: 6px; border-radius: 50%; background: var(--ink-3); opacity: .55; }
+.caret { display: inline-block; width: 7px; height: 14px; background: var(--ink-2); vertical-align: -2px; margin-left: 1px; }
+.searching { display: inline-flex; align-items: center; gap: 6px; height: 24px; padding: 0 8px; border-radius: 4px; background: var(--subtle); color: var(--ink-2); font-size: 12px; }
+
+/* Composer */
+.composer { border-top: 1px solid var(--divider); padding: 12px 24px 14px; }
+.vp-375 .composer { padding: 10px 12px 12px; }
+.composer .col { gap: 8px; }
+.input { border: 1px solid rgba(33,37,41,.23); border-radius: 8px; min-height: 64px; padding: 10px 12px; color: var(--ink-3); line-height: 1.5; background: var(--paper); }
+.input.filled { color: var(--ink); }
+.input.focus { border: 2px solid var(--primary); padding: 9px 11px; }
+.actions { display: flex; justify-content: flex-end; gap: 8px; align-items: center; }
+.btn { display: inline-flex; align-items: center; gap: 6px; height: 34px; padding: 0 14px; border-radius: 6px; font-weight: 600; font-size: 13px; letter-spacing: .02em; }
+.btn.contained { background: var(--primary); color: #FFFFFF; }
+.btn.contained.disabled { background: rgba(33,37,41,.12); color: rgba(33,37,41,.38); }
+.btn.outlined { border: 1px solid rgba(61,90,153,.5); color: var(--primary); }
+.btn.text { color: var(--primary); padding: 0 8px; }
+.send svg { fill: currentColor; }
+
+/* Notices */
+.notice { display: flex; align-items: flex-start; gap: 10px; padding: 10px 12px; border-radius: 6px; line-height: 1.45; }
+.notice.err { background: var(--err-bg); color: var(--err-text); }
+.notice.warn { background: var(--warn-bg); color: var(--warn-text); }
+.notice .grow { flex: 1 1 auto; min-width: 0; }
+.notice .btn { height: 28px; padding: 0 8px; color: inherit; }
+.chip { display: inline-flex; align-items: center; gap: 6px; height: 22px; padding: 0 8px; border-radius: 4px; font-size: 11.5px; font-weight: 500; white-space: nowrap; }
+.chip.stale { background: var(--stale-bg); color: var(--stale-text); }
+.chip.warn { background: var(--warn-bg); color: var(--warn-text); }
+.chip .dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+
+/* Sheets / popover */
+.scrim { position: absolute; inset: 0; background: var(--scrim); z-index: 2; }
+.drawer { position: absolute; top: 0; bottom: 0; left: 0; width: 300px; background: var(--paper); z-index: 3; display: flex; flex-direction: column; box-shadow: 4px 0 24px rgba(33,37,41,.18); }
+.drawer .list { background: var(--paper); border-right: 0; height: 100%; }
+.sheet { position: absolute; left: 0; right: 0; bottom: 0; background: var(--paper); z-index: 3; border-radius: 12px 12px 0 0; box-shadow: 0 -6px 24px rgba(33,37,41,.18); padding: 8px 0 12px; }
+.grabber { width: 36px; height: 4px; border-radius: 2px; background: var(--divider); margin: 0 auto 8px; }
+.popover { position: absolute; top: 50px; right: 56px; width: 340px; background: var(--paper); border: 1px solid var(--divider); border-radius: 8px; box-shadow: 0 8px 28px rgba(33,37,41,.16); z-index: 3; padding: 6px 0 12px; }
+.grp { font-size: 11.5px; font-weight: 600; color: var(--ink-3); padding: 10px 16px 4px; }
+.opt { display: grid; grid-template-columns: 20px minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 7px 16px; }
+.opt.sel { background: var(--accent-tint); }
+.opt .check { color: var(--primary); }
+.opt .name { font-weight: 500; }
+.opt .cost { font-size: 11.5px; color: var(--ink-3); }
+.effort-row { border-top: 1px solid var(--divider); margin-top: 6px; padding: 12px 16px 0; display: grid; gap: 8px; }
+.effort-label { font-size: 11.5px; font-weight: 600; color: var(--ink-3); }
+.seg { display: grid; grid-template-columns: repeat(4, 1fr); border: 1px solid rgba(61,90,153,.5); border-radius: 6px; overflow: hidden; }
+.seg span { text-align: center; padding: 6px 0; font-weight: 500; color: var(--primary); border-left: 1px solid rgba(61,90,153,.5); }
+.seg span:first-child { border-left: 0; }
+.seg span.on { background: var(--primary); color: #FFFFFF; }
+.seg span.off { color: rgba(33,37,41,.38); background: var(--subtle); }
+
+/* Edge-state gallery */
+.states { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; padding: 20px; height: 100%; align-content: start; background: var(--page); }
+.state { background: var(--paper); border: 1px solid var(--divider); border-radius: 6px; display: flex; flex-direction: column; min-height: 220px; overflow: hidden; }
+.state-label { font-size: 12px; color: var(--ink-3); padding: 8px 12px; border-bottom: 1px solid var(--divider); background: var(--subtle); }
+.state-body { padding: 16px; display: grid; gap: 12px; align-content: start; flex: 1 1 auto; }
+.empty { display: grid; gap: 6px; justify-items: center; text-align: center; padding: 28px 8px; color: var(--ink-2); }
+.empty h3 { margin: 0; font-size: 15px; color: var(--ink); font-weight: 600; }
+</style>
+
+<div class="coverage">
+  <div><b>Coverage:</b> the shared ui-core-micha chat surface (chat list with archive, thread with Markdown replies and source chips, composer with stop, per-chat model and effort picker, edge states), shown in cockpit's theme as the first consumer. Everything app-specific around it (cockpit navigation, the existing Open WebUI chat page) is outside this prototype and stays untouched.</div>
+  <div><b>Example content:</b> chat titles, questions, answers and source paths are illustrative, not real knowledge-base data.</div>
+</div>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-more" viewBox="0 0 24 24"><path d="M12 8a2 2 0 1 0 0-4 2 2 0 0 0 0 4zm0 2a2 2 0 1 0 0 4 2 2 0 0 0 0-4zm0 6a2 2 0 1 0 0 4 2 2 0 0 0 0-4z"/></symbol>
+  <symbol id="i-new" viewBox="0 0 24 24"><path d="M20 2H4a2 2 0 0 0-2 2v18l4-4h14a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2zm0 14H5.17L4 17.17V4h16v12zM11 5h2v3h3v2h-3v3h-2v-3H8V8h3z"/></symbol>
+  <symbol id="i-menu" viewBox="0 0 24 24"><path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/></symbol>
+  <symbol id="i-down" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></symbol>
+  <symbol id="i-right" viewBox="0 0 24 24"><path d="M10 6 8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/></symbol>
+  <symbol id="i-send" viewBox="0 0 24 24"><path d="M2.01 21 23 12 2.01 3 2 10l15 2-15 2z"/></symbol>
+  <symbol id="i-stop" viewBox="0 0 24 24"><path d="M6 6h12v12H6z"/></symbol>
+  <symbol id="i-doc" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zM6 20V4h7v5h5v11H6z"/></symbol>
+  <symbol id="i-edit" viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></symbol>
+  <symbol id="i-archive" viewBox="0 0 24 24"><path d="M20.54 5.23 19.15 3.55A1.45 1.45 0 0 0 18 3H6c-.47 0-.88.21-1.16.55L3.46 5.23A1.97 1.97 0 0 0 3 6.5V19a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6.5c0-.48-.17-.93-.46-1.27zM12 17.5 6.5 12H10v-2h4v2h3.5L12 17.5zM5.12 5l.81-1h12l.94 1H5.12z"/></symbol>
+  <symbol id="i-delete" viewBox="0 0 24 24"><path d="M6 19a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M9 16.17 4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.47 6.47 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></symbol>
+</svg>
+
+<div class="frames">
+
+  <!-- ===================== 1280 · main working state ===================== -->
+  <div class="frame">
+    <div class="frame-label">1280 px · chat with a completed answer, a streaming answer and the model picker open</div>
+    <div class="vp vp-1280">
+      <div class="ws">
+        <aside class="list" aria-label="Chats">
+          <div class="list-head">
+            <span class="list-title">Chats</span>
+            <span class="icon-btn" role="button" aria-label="New chat" title="New chat"><svg><use href="#i-new"/></svg></span>
+          </div>
+          <div class="items">
+            <div class="item active"><div><div class="item-title">Steering meeting follow-ups</div><div class="item-meta">Today 09:42</div></div><span class="icon-btn" aria-label="Chat actions" title="Chat actions"><svg><use href="#i-more"/></svg></span></div>
+            <div class="item hover"><div><div class="item-title">Funding call deadlines Q1 2027</div><div class="item-meta">Yesterday</div></div><span class="icon-btn" aria-label="Chat actions" title="Chat actions"><svg><use href="#i-more"/></svg></span></div>
+            <div class="item"><div><div class="item-title">Calibration targets for the Kigoma run</div><div class="item-meta">13 Oct</div></div><span class="icon-btn" aria-label="Chat actions"><svg><use href="#i-more"/></svg></span></div>
+            <div class="item"><div><div class="item-title">What the backup runbook says about restic</div><div class="item-meta">9 Oct</div></div><span class="icon-btn" aria-label="Chat actions"><svg><use href="#i-more"/></svg></span></div>
+            <div class="item"><div><div class="item-title">Ethics amendment wording</div><div class="item-meta">2 Oct</div></div><span class="icon-btn" aria-label="Chat actions"><svg><use href="#i-more"/></svg></span></div>
+          </div>
+          <div class="list-foot">
+            <div class="archived-toggle" role="button"><span>Archived</span><span class="count">7 <svg style="vertical-align:-4px"><use href="#i-right"/></svg></span></div>
+          </div>
+          <!-- row overflow menu, opened on the hovered row -->
+          <div class="menu" style="top: 118px; left: 214px;">
+            <div class="menu-item"><svg><use href="#i-edit"/></svg>Rename</div>
+            <div class="menu-item"><svg><use href="#i-archive"/></svg>Archive</div>
+            <div class="menu-sep"></div>
+            <div class="menu-item danger"><svg><use href="#i-delete"/></svg>Delete</div>
+          </div>
+        </aside>
+
+        <section class="main" aria-label="Chat">
+          <div class="bar">
+            <span class="bar-title">Steering meeting follow-ups</span>
+            <span class="picker-btn" role="button" aria-haspopup="listbox">Opus 5.5 <span class="sep">·</span> <span class="effort">High</span><svg><use href="#i-down"/></svg></span>
+          </div>
+
+          <div class="thread">
+            <div class="col">
+              <div class="msg-user">Which open points from the October steering meeting are still without an owner?</div>
+              <div class="msg-ai">
+                <div class="md">
+                  <p>Three of the eight action items in the minutes have no owner assigned:</p>
+                  <ul>
+                    <li><b>Data-sharing agreement</b> with the regional health office, due before the field phase.</li>
+                    <li><b>Re-run of the calibration</b> with the corrected referral distances (<code>v3.1</code> inputs).</li>
+                    <li><b>Budget reallocation</b> of the travel line to transcription.</li>
+                  </ul>
+                  <div class="table-wrap"><table>
+                    <thead><tr><th>Item</th><th>Due</th><th>Raised by</th></tr></thead>
+                    <tbody>
+                      <tr><td>Data-sharing agreement</td><td>30 Nov</td><td>Supervisor</td></tr>
+                      <tr><td>Calibration re-run</td><td>15 Nov</td><td>Modelling team</td></tr>
+                      <tr><td>Budget reallocation</td><td>31 Dec</td><td>Finance</td></tr>
+                    </tbody>
+                  </table></div>
+                </div>
+                <div class="sources" aria-label="Sources">
+                  <span class="src" title="PhD/hram/meetings/2026-10-07 steering minutes.docx"><svg><use href="#i-doc"/></svg><span>2026-10-07 steering minutes.docx</span></span>
+                  <span class="src" title="PhD/hram/planning/field phase plan.xlsx"><svg><use href="#i-doc"/></svg><span>field phase plan.xlsx</span></span>
+                </div>
+                <div class="turn-meta">Opus 5.5 · High</div>
+              </div>
+
+              <div class="msg-user">Draft a short email to the supervisor proposing owners for the first two.</div>
+              <div class="msg-ai">
+                <span class="searching"><svg style="width:13px;height:13px;fill:currentColor"><use href="#i-search"/></svg>Searching the knowledge base</span>
+                <div class="md">
+                  <p>Here is a draft you can adapt:</p>
+                  <p>Dear Grace, following up on the steering meeting of 7 October, I would suggest that I take the calibration re-run, since the corrected referral distances are already in the v3.1 inputs, and that<span class="caret"></span></p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="composer">
+            <div class="col">
+              <div class="input">Message</div>
+              <div class="actions">
+                <span class="btn outlined"><svg style="width:16px;height:16px;fill:currentColor"><use href="#i-stop"/></svg>Stop</span>
+                <span class="btn contained disabled send">Send<svg style="width:16px;height:16px"><use href="#i-send"/></svg></span>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <!-- model picker, opened from the bar -->
+      <div class="popover" role="listbox" aria-label="Model" style="right: 16px;">
+        <div class="grp">Claude Code subscription</div>
+        <div class="opt sel"><span class="check"><svg><use href="#i-check"/></svg></span><span class="name">Opus 5.5</span><span></span></div>
+        <div class="opt"><span></span><span class="name">Sonnet 5.5</span><span></span></div>
+        <div class="grp">Anthropic API</div>
+        <div class="opt"><span></span><span class="name">Sonnet 5.5</span><span class="cost">pay per use</span></div>
+        <div class="opt"><span></span><span class="name">Haiku 5.5</span><span class="cost">pay per use</span></div>
+        <div class="grp">OpenAI API</div>
+        <div class="opt"><span></span><span class="name">GPT-6 Luna</span><span class="cost">pay per use</span></div>
+        <div class="effort-row">
+          <span class="effort-label">Effort</span>
+          <div class="seg" role="radiogroup" aria-label="Effort"><span>Low</span><span>Medium</span><span class="on">High</span><span>Max</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== 375 · thread ===================== -->
+  <div class="frame">
+    <div class="frame-label">375 px · thread (list and picker collapse into the bar)</div>
+    <div class="vp vp-375">
+      <div class="ws">
+        <section class="main" aria-label="Chat">
+          <div class="bar">
+            <span class="icon-btn" role="button" aria-label="Chats" title="Chats"><svg><use href="#i-menu"/></svg></span>
+            <span class="bar-title">Steering meeting follow-ups</span>
+            <span class="picker-btn" role="button">Opus 5.5 <span class="sep">·</span> <span class="effort">High</span></span>
+            <span class="icon-btn" role="button" aria-label="New chat" title="New chat"><svg><use href="#i-new"/></svg></span>
+          </div>
+          <div class="thread">
+            <div class="col">
+              <div class="msg-user">Which open points from the October steering meeting are still without an owner?</div>
+              <div class="msg-ai">
+                <div class="md">
+                  <p>Three of the eight action items in the minutes have no owner assigned:</p>
+                  <ul>
+                    <li><b>Data-sharing agreement</b> with the regional health office, due before the field phase.</li>
+                    <li><b>Re-run of the calibration</b> with the corrected referral distances (<code>v3.1</code> inputs).</li>
+                    <li><b>Budget reallocation</b> of the travel line to transcription.</li>
+                  </ul>
+                </div>
+                <div class="sources" aria-label="Sources">
+                  <span class="src" title="PhD/hram/meetings/2026-10-07 steering minutes.docx"><svg><use href="#i-doc"/></svg><span>2026-10-07 steering minutes.docx</span></span>
+                  <span class="src" title="PhD/hram/planning/field phase plan.xlsx"><svg><use href="#i-doc"/></svg><span>field phase plan.xlsx</span></span>
+                </div>
+                <div class="turn-meta">Opus 5.5 · High</div>
+              </div>
+              <div class="switch-mark">Sonnet 5.5 · Anthropic API · Medium</div>
+              <div class="msg-user">Shorter please, three bullets.</div>
+              <div class="msg-ai">
+                <div class="typing" aria-label="Answer is being written"><i></i><i></i><i></i></div>
+              </div>
+            </div>
+          </div>
+          <div class="composer">
+            <div class="col">
+              <div class="input">Message</div>
+              <div class="actions">
+                <span class="btn outlined"><svg style="width:16px;height:16px;fill:currentColor"><use href="#i-stop"/></svg>Stop</span>
+                <span class="btn contained disabled send">Send<svg style="width:16px;height:16px"><use href="#i-send"/></svg></span>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== 375 · chat list drawer ===================== -->
+  <div class="frame">
+    <div class="frame-label">375 px · chat list as drawer</div>
+    <div class="vp vp-375">
+      <div class="ws">
+        <section class="main"><div class="bar"><span class="icon-btn"><svg><use href="#i-menu"/></svg></span><span class="bar-title">Steering meeting follow-ups</span></div><div class="thread"></div></section>
+      </div>
+      <div class="scrim"></div>
+      <div class="drawer">
+        <aside class="list" aria-label="Chats">
+          <div class="list-head">
+            <span class="list-title">Chats</span>
+            <span class="icon-btn" role="button" aria-label="New chat" title="New chat"><svg><use href="#i-new"/></svg></span>
+          </div>
+          <div class="items">
+            <div class="item active"><div><div class="item-title">Steering meeting follow-ups</div><div class="item-meta">Today 09:42</div></div><span class="icon-btn" aria-label="Chat actions"><svg><use href="#i-more"/></svg></span></div>
+            <div class="item"><div><div class="item-title">Funding call deadlines Q1 2027</div><div class="item-meta">Yesterday</div></div><span class="icon-btn" aria-label="Chat actions" style="opacity:1"><svg><use href="#i-more"/></svg></span></div>
+            <div class="item"><div><div class="item-title">Calibration targets for the Kigoma run</div><div class="item-meta">13 Oct</div></div><span class="icon-btn" aria-label="Chat actions" style="opacity:1"><svg><use href="#i-more"/></svg></span></div>
+            <div class="item"><div><div class="item-title">What the backup runbook says about restic</div><div class="item-meta">9 Oct</div></div><span class="icon-btn" aria-label="Chat actions" style="opacity:1"><svg><use href="#i-more"/></svg></span></div>
+            <div class="item"><div><div class="item-title">Ethics amendment wording</div><div class="item-meta">2 Oct</div></div><span class="icon-btn" aria-label="Chat actions" style="opacity:1"><svg><use href="#i-more"/></svg></span></div>
+          </div>
+          <div class="list-foot">
+            <div class="archived-toggle" role="button"><span>Archived</span><span class="count">7 <svg style="vertical-align:-4px"><use href="#i-right"/></svg></span></div>
+          </div>
+        </aside>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== 375 · model picker sheet ===================== -->
+  <div class="frame">
+    <div class="frame-label">375 px · model and effort picker as bottom sheet</div>
+    <div class="vp vp-375">
+      <div class="ws">
+        <section class="main"><div class="bar"><span class="icon-btn"><svg><use href="#i-menu"/></svg></span><span class="bar-title">Steering meeting follow-ups</span><span class="picker-btn">Opus 5.5 <span class="sep">·</span> <span class="effort">High</span></span></div><div class="thread"></div></section>
+      </div>
+      <div class="scrim"></div>
+      <div class="sheet" role="listbox" aria-label="Model">
+        <div class="grabber"></div>
+        <div class="grp">Claude Code subscription</div>
+        <div class="opt sel"><span class="check"><svg><use href="#i-check"/></svg></span><span class="name">Opus 5.5</span><span></span></div>
+        <div class="opt"><span></span><span class="name">Sonnet 5.5</span><span></span></div>
+        <div class="grp">Anthropic API</div>
+        <div class="opt"><span></span><span class="name">Sonnet 5.5</span><span class="cost">pay per use</span></div>
+        <div class="opt"><span></span><span class="name">Haiku 5.5</span><span class="cost">pay per use</span></div>
+        <div class="grp">OpenAI API</div>
+        <div class="opt"><span></span><span class="name">GPT-6 Luna</span><span class="cost">pay per use</span></div>
+        <div class="effort-row">
+          <span class="effort-label">Effort</span>
+          <div class="seg" role="radiogroup" aria-label="Effort"><span>Low</span><span>Medium</span><span class="on">High</span><span class="off" aria-disabled="true">Max</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== 1280 · edge states ===================== -->
+  <div class="frame">
+    <div class="frame-label">1280 px · edge states (each shown inside the thread column)</div>
+    <div class="vp vp-1280">
+      <div class="states">
+        <div class="state">
+          <div class="state-label">New chat, no messages yet</div>
+          <div class="state-body">
+            <div class="empty"><h3>New chat</h3><span>Opus 5.5 · High</span></div>
+            <div class="input focus">Message</div>
+            <div class="actions"><span class="btn contained disabled send">Send<svg style="width:16px;height:16px"><use href="#i-send"/></svg></span></div>
+          </div>
+        </div>
+        <div class="state">
+          <div class="state-label">Usage limit of the selected model reached</div>
+          <div class="state-body">
+            <div class="msg-user" style="max-width:90%">Summarise the restic section.</div>
+            <div class="notice warn"><span class="grow">Usage limit reached for Opus 5.5. Choose another model or try again later.</span><span class="btn text">Change model</span></div>
+          </div>
+        </div>
+        <div class="state">
+          <div class="state-label">Answer interrupted (provider error, timeout or stop)</div>
+          <div class="state-body">
+            <div class="msg-user" style="max-width:90%">List the deadlines in November.</div>
+            <div class="msg-ai"><div class="md"><p>There are two deadlines in November: the data-sharing agreement</p></div><span class="chip stale"><span class="dot"></span>Interrupted</span></div>
+            <div class="notice err"><span class="grow">The answer could not be completed.</span><span class="btn text">Retry</span></div>
+          </div>
+        </div>
+        <div class="state">
+          <div class="state-label">Connection lost</div>
+          <div class="state-body">
+            <span class="chip warn"><span class="dot"></span>Reconnecting</span>
+            <div class="input filled">Which items are due before the field phase?</div>
+            <div class="actions"><span class="btn contained disabled send">Send<svg style="width:16px;height:16px"><use href="#i-send"/></svg></span></div>
+          </div>
+        </div>
+        <div class="state">
+          <div class="state-label">No model configured on this server</div>
+          <div class="state-body">
+            <div class="empty"><h3>Chat is not available</h3><span>No language model is configured on this server.</span></div>
+          </div>
+        </div>
+        <div class="state">
+          <div class="state-label">Archived chat opened</div>
+          <div class="state-body">
+            <span class="chip stale">Archived</span>
+            <div class="msg-user" style="max-width:90%">What the backup runbook says about restic</div>
+            <div class="actions"><span class="btn outlined">Restore</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
