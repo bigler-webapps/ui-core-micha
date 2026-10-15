@@ -87,20 +87,45 @@ describe('ChatWorkspace host input controls', () => {
     await waitFor(() => expect(screen.getByRole('textbox', { name: 'Chat.message' }).value).toBe('For the other chat'));
   });
 
+  it('ignores a prefill that comes with activeChatId null and does not leave it in the chat being left', async () => {
+    const api = makeApi();
+    const view = render(<ChatWorkspace api={api} wsUrl={(id) => `ws://test/${id}`} activeChatId={7} />);
+    await screen.findByRole('textbox', { name: 'Chat.message' });
+    view.rerender(<ChatWorkspace api={api} wsUrl={(id) => `ws://test/${id}`} activeChatId={null} composerPrefill={{ id: 1, text: 'No chat wanted' }} />);
+    await screen.findByText('Chat.selectChat');
+    view.rerender(<ChatWorkspace api={api} wsUrl={(id) => `ws://test/${id}`} activeChatId={7} composerPrefill={{ id: 1, text: 'No chat wanted' }} />);
+    expect((await screen.findByRole('textbox', { name: 'Chat.message' })).value).toBe('');
+  });
+
+  it('does not let a slot reuse an old send after a turn started', async () => {
+    let slotSend;
+    const socket = await showChat(makeApi(), { renderAnswerExtra: ({ send }) => { slotSend = send; return null; } });
+    act(() => socket.open());
+    await waitFor(() => expect(typeof slotSend).toBe('function'));
+    const staleSend = slotSend;
+    expect(staleSend('First')).toBe(true);
+    expect(staleSend('Second, from the same stale callback')).toBe(false);
+    expect(socket.sent).toEqual([{ type: 'send', message: 'First' }]);
+  });
+
   it('drops a prefill that waits for a chat which cannot be found', async () => {
     const api = makeApi({ listChats: vi.fn().mockImplementation(async ({ archived } = {}) => ({ results: archived ? [] : [chat], next: null })) });
     const view = render(<ChatWorkspace api={api} wsUrl={(id) => `ws://test/${id}`} activeChatId={7} />);
     const input = await screen.findByRole('textbox', { name: 'Chat.message' });
     view.rerender(<ChatWorkspace api={api} wsUrl={(id) => `ws://test/${id}`} activeChatId={404} composerPrefill={{ id: 1, text: 'Never shown' }} />);
     await screen.findByText('Chat.selectChat');
-    view.rerender(<ChatWorkspace api={api} wsUrl={(id) => `ws://test/${id}`} activeChatId={7} />);
+    // The request stays on the prop: it was dropped when 404 proved unloadable, so going back must not apply it.
+    view.rerender(<ChatWorkspace api={api} wsUrl={(id) => `ws://test/${id}`} activeChatId={7} composerPrefill={{ id: 1, text: 'Never shown' }} />);
     expect((await screen.findByRole('textbox', { name: 'Chat.message' })).value).toBe('');
     expect(input).toBeTruthy();
   });
 
   it('marks answer-slot sending unavailable while the connection is down', async () => {
-    render(<ChatWorkspace api={makeApi()} wsUrl={(id) => `ws://test/${id}`} activeChatId={7} renderAnswerExtra={({ canSend, turn }) => <span data-testid={`offline-${turn.id}`}>{String(canSend)}</span>} />);
+    let slotSend;
+    render(<ChatWorkspace api={makeApi()} wsUrl={(id) => `ws://test/${id}`} activeChatId={7} renderAnswerExtra={({ canSend, send, turn }) => { slotSend = send; return <span data-testid={`offline-${turn.id}`}>{String(canSend)}</span>; }} />);
     expect((await screen.findByTestId('offline-21')).textContent).toBe('false');
+    expect(slotSend('While offline')).toBe(false);
+    expect(FakeSocket.instances.at(-1).sent).toEqual([]);
     act(() => FakeSocket.instances.at(-1).open());
     await waitFor(() => expect(screen.getByTestId('offline-21').textContent).toBe('true'));
   });
@@ -177,7 +202,10 @@ describe('ChatWorkspace host input controls', () => {
     const api = makeApi({
       listChats: vi.fn().mockImplementation(async ({ archived } = {}) => ({ results: archived ? [{ ...chat, archived_at: '2026-01-01' }] : [], next: null })),
     });
-    await showChat(api, { renderAnswerExtra: ({ canSend, turn }) => <span data-testid={`availability-${turn.id}`}>{String(canSend)}</span> });
+    let slotSend;
+    const socket = await showChat(api, { renderAnswerExtra: ({ canSend, send, turn }) => { slotSend = send; return <span data-testid={`availability-${turn.id}`}>{String(canSend)}</span>; } });
     expect(screen.getByTestId('availability-21').textContent).toBe('false');
+    expect(slotSend('Hello')).toBe(false);
+    expect(socket.sent).toEqual([]);
   });
 });

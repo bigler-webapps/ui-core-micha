@@ -203,6 +203,8 @@ export function ChatWorkspace({ apiBase, wsUrl, api: apiOverrides, scope, sx, un
 
   useEffect(() => {
     if (composerPrefill == null || composerPrefill.id === lastPrefillId.current) return;
+    // `null` means the host wants no chat shown: nothing to fill, and the chat being left must not receive the text.
+    if (activeChatId === null) { lastPrefillId.current = composerPrefill.id; return; }
     // The host switches chats and prefills in one go: wait for the requested chat instead of filling the one being left.
     const wanted = activeChatId == null ? null : String(activeChatId);
     if (wanted !== null && String(chat?.id) !== wanted && !unloadableIds.current.has(wanted)) return;
@@ -269,10 +271,15 @@ export function ChatWorkspace({ apiBase, wsUrl, api: apiOverrides, scope, sx, un
     return true;
   };
   const canSendFromSlot = Boolean(chat && !isArchived && socket.connected && !running);
+  // A slot may keep an old `send` around: read the latest availability, and close it right away after a send.
+  const canSendRef = useRef(false);
+  canSendRef.current = canSendFromSlot;
   const sendFromSlot = (text) => {
     const message = typeof text === 'string' ? text : '';
-    if (!canSendFromSlot || !message.trim()) return false;
-    return startTurn(message);
+    if (!canSendRef.current || !message.trim()) return false;
+    const started = startTurn(message);
+    if (started) canSendRef.current = false;
+    return started;
   };
   const answerExtra = renderAnswerExtra
     ? (args) => renderAnswerExtra({ ...args, send: sendFromSlot, canSend: canSendFromSlot })

@@ -121,6 +121,8 @@ describe('ChatWorkspace activeChatId', () => {
     view.rerender(<ChatWorkspace api={api} activeChatId={9} onActiveChatChange={onActiveChatChange} />);
     await waitFor(() => expect(onActiveChatChange).toHaveBeenLastCalledWith(9));
     expect(onActiveChatChange.mock.calls).toEqual([[7], [9]]);
+    // The requested chat is the one displayed: its turns were loaded.
+    await waitFor(() => expect(api.listTurns).toHaveBeenLastCalledWith(9));
   });
 
   it('causes no extra requests when the host echoes a real user selection into the prop', async () => {
