@@ -79,3 +79,37 @@ bumps to these releases (`<TOKEN>-DEP(S)-<n>` in each app repo).
 - Theme graph: the module graph of `createAppTheme` contains no module from `./charts`, `./qr` or
   `./markdown`.
 - Titles: for each of the seven pages, the rendered document title equals today's title text.
+
+# B. Implementation map — addressed to the implementer
+
+## Orchestrator decisions taken while mapping (Part A stays as written)
+
+- `qrcode.react` stays a REQUIRED peer: `AccountPage` (main entry) renders `QrSignupManager`, which renders a `qrcode.react` component. No `./qr` sub-path (QR rule, point 4).
+- All of `src/components/charts/*` that needs `@mui/x-charts` (directly or through `ChartFrame` -> `exportChart`, `BarChart`, `LineChart`, `TimeSeriesChart`, `ScatterChart`, `chartDefaults`) goes to `./charts`. The pure helpers `palette`, `chartLabels`, `formatters`, `yearTickInterval` import no optional peer and stay exported from `.`.
+- The chat surface imports `MarkdownReply`, so it cannot stay in `.` while `react-markdown` is optional. Working decision (option A, pending the Expertenchat's answer): a `./chat` sub-path holds the whole chat surface; `./markdown` holds `MarkdownReply` alone; `chatTranslations` stays in `.`.
+- The Orchestrator owns `package.json` (the `exports` map, peers, `files`, version) and the lockfile. The implementer does not touch them.
+
+## Context package
+
+Work from this package; do not explore broadly. Target working directory: `C:/Users/Micha Bigler/Documents/webapps/ui-core-micha` (never the workspace root). The WO is delivered in chunks; each chunk below is a separate dispatch, and only the chunk named in your dispatch is yours.
+
+### Chunk 1 — replace `react-helmet` with native React 19 `<title>`
+
+Files: `src/pages/AccountPage.jsx:238`, `LoginPage.jsx:285`, `PasswordChangePage.jsx:38`, `PasswordInvitePage.jsx:140`, `PasswordResetRequestPage.jsx:44`, `SignUpPage.jsx:161`, `SignupConfirmPage.jsx:83`. Each has `<Helmet><title>…</title></Helmet>` and `import { Helmet } from 'react-helmet';`.
+
+- Remove the import and the `<Helmet>` wrapper; render the `<title>` element in the same place.
+- React warns when a `<title>` has several children (`{t('App.NAME')} – {t(...)}` is three). Build ONE string child per page with a template literal, keeping the exact text of today, for example `<title>{`${t('App.NAME')} – ${t('Auth.PAGE_LOGIN_TITLE')}`}</title>`. The separator is the en dash with a space on each side, as in the source. Keep the same translation keys and default texts (AccountPage: `${t('Account.PAGE_TITLE', 'Account')} – ${user.email}`; SignupConfirmPage keeps its `'Confirm your registration'` default; PasswordInvitePage uses `t(pageTitleKey)`).
+- Tests: `tests/loginPageErrorResolution.test.jsx:20`, `tests/PasswordInvitePage.test.jsx:13`, `tests/SignUpPage.test.jsx:15` mock `react-helmet`; delete those mocks. Add `tests/pageTitles.test.jsx`: for each of the seven pages, render it the way the neighbouring tests do (reuse their providers/mocks; `react-i18next` is mocked with `t: (key, fallback) => fallback ?? key` style or the real keys as the neighbour does) and assert the rendered document title equals today's text for that page (`document.title`, since React 19 hoists `<title>` into the document head; query `document.querySelector('title')` if `document.title` is not updated in jsdom). If a page needs heavy context to render, assert on the `<title>` element's text found in `document.head` after render. Titles must be byte-identical to the previous Helmet output.
+- Do not change anything else in these pages. No other file imports `react-helmet` (verify with a search of `src` and `tests`).
+
+## Preamble
+
+> The text above is the COMPLETE spec — the committed WO file's content, not a plan to refine; there is no separate plan file. Read the nearest `AGENTS.md`, the relevant `.codex/skills/<role>/SKILL.md`, and the app `MEMORY.md` ONLY for conventions. Stay in scope; do not touch auth/permissions/deps/schema/CI unless the spec says so; do not update `MEMORY.md`. **Do NOT edit `WORK_ORDERS.md` — the register row and the review verdicts are the orchestrator's alone.** **Your tools are for editing source and test files and for running the tests you wrote — nothing else.** Do NOT install dependencies, touch a lockfile, run a package manager, or tidy up stray files; if something in the repo state blocks you, stop and report it as `RESULT: BLOCKED <reason>` instead of fixing it. Do NOT `git add`/`commit`/`push` — leave every change uncommitted in the working tree for the orchestrator's independent review. WRITE the tests the `Required tests` section calls for AND **RUN the tests you just wrote** to confirm they execute and pass — that is the ONLY test run you do (NOT the app's affected/full suite, NOT any review). The orchestrator re-runs the authoritative set + does the independent review after you finish — those are the gate; your own run does not count as the gate.
+>
+> Narrate continuously: a `PLAN: <step1> | <step2> | …` line up front, then a single-line `PROGRESS: [<n>/<total>] <present-tense action>` before every relevant action (and `… done` on completion), spaced so no gap exceeds ~2 min, stdout unbuffered, plus exactly one final `RESULT: DONE|BLOCKED <reason>`.
+
+# C. Orchestrator only — not addressed to the implementer
+
+> **If this WO was dispatched to you as an implementer: STOP here.**
+
+Gate #1 recorded at ui-core-micha@b5389c3. Delivered in chunks: chunk 1 helmet -> native title; chunk 2 (written after chunk 1) the decoupling and sub-path entries. Orchestrator owns `package.json`, the lockfile, the version and the release. Verification: scoped tests, then a dispatched `ci.yml` run on `ci-test/UCM-DEP-2`.
