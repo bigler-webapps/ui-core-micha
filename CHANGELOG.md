@@ -8,6 +8,11 @@ triggers one reload of the lists, and an id that still cannot be found leaves th
 only when the prop value changes, so a host that echoes `onActiveChatChange` back causes no extra requests.
 `onActiveChatChange(chatId)` is called when the id of the shown chat changes (selection, creation, deletion as `null`,
 a change driven by `activeChatId`), not on mount and not when the shown chat is only archived, renamed or updated.
+`composerPrefill` (`{ id, text }`) puts the text into the composer of the shown chat and focuses it; each new `id` is
+applied (the same text twice, if asked twice), and a request with no chat shown or for an archived chat is ignored.
+`renderAnswerExtra` additionally receives `send(text)`, which sends the text as the next message exactly like a typed
+send, and `canSend` (false while a turn runs, for an archived chat and while disconnected). `ChatComposer` takes an
+optional `inputRef`. Switching chats now clears the previous chat's content before paint.
 Without the new props nothing changes.
 
 ## 4.1.0 - UCM-CHAT-3

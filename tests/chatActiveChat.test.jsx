@@ -50,6 +50,8 @@ describe('ChatWorkspace activeChatId', () => {
     render(<ChatWorkspace api={api} activeChatId={8} />);
     await waitFor(() => expect(screen.getAllByText('Created elsewhere').length).toBeGreaterThanOrEqual(2));
     await waitFor(() => expect(screen.getByRole('textbox', { name: 'Chat.message' })).toBeTruthy());
+    await waitFor(() => expect(api.listTurns).toHaveBeenCalledWith(8));
+    expect(api.listTurns).not.toHaveBeenCalledWith(7);
     await waitFor(() => expect(api.listChats).toHaveBeenCalledTimes(4));
   });
 

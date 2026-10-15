@@ -49,6 +49,8 @@ describe('ChatWorkspace extension arguments and placement', () => {
       turn: expect.objectContaining({ id: 21 }),
       chat: expect.objectContaining({ id: 7 }),
       appFrames: [{ name: 'plan', payload: { step: 1 } }],
+      send: expect.any(Function),
+      canSend: expect.any(Boolean),
     });
   });
 

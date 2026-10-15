@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Alert, Box, Button, Chip, Drawer, Stack, Typography, useMediaQuery, useTheme } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import { createChatApi } from './api';
@@ -42,7 +42,7 @@ const appendDelta = (turns, text) => {
  * Props: `apiBase` and `wsUrl` (where the app mounted the chat routes), `api` (partial overrides of the REST
  * calls; every function not given keeps its default), `scope` (passed when creating a chat), `sx`.
  */
-export function ChatWorkspace({ apiBase, wsUrl, api: apiOverrides, scope, sx, unavailableReasonText, sidePanel, sidePanelLabel, renderAnswerExtra, renderComposerExtra, onAppFrame, activeChatId, onActiveChatChange, layout = 'viewport', compactBelow = 720 }) {
+export function ChatWorkspace({ apiBase, wsUrl, api: apiOverrides, scope, sx, unavailableReasonText, sidePanel, sidePanelLabel, renderAnswerExtra, renderComposerExtra, onAppFrame, activeChatId, onActiveChatChange, composerPrefill, layout = 'viewport', compactBelow = 720 }) {
   const { t } = useTranslation();
   const theme = useTheme();
   const viewportNarrow = useMediaQuery(theme.breakpoints.down('md'));
@@ -71,6 +71,9 @@ export function ChatWorkspace({ apiBase, wsUrl, api: apiOverrides, scope, sx, un
   const [olderBusy, setOlderBusy] = useState(false);
   const [tool, setTool] = useState(null);
   const [draft, setDraft] = useState('');
+  const composerInputRef = useRef(null);
+  const lastPrefillId = useRef(undefined);
+  const [focusRequest, setFocusRequest] = useState(0);
   const [problem, setProblem] = useState(null);
   const [unavailableReason, setUnavailableReason] = useState(null);
   const [trimmedCount, setTrimmedCount] = useState(null);
@@ -153,8 +156,12 @@ export function ChatWorkspace({ apiBase, wsUrl, api: apiOverrides, scope, sx, un
     return () => { live = false; };
   }, [activeChatId, status, listsLoaded]);
 
-  useEffect(() => {
+  // Clear the previous chat's content before the browser paints, so a host-driven switch never flashes it under the new title.
+  useLayoutEffect(() => {
     setTurns([]); setOlderCursor(null); setTool(null); setProblem(null); setTrimmedCount(null); setSidePanelOpen(false); setDraft(''); setOpenedOnce(false);
+  }, [chat?.id]);
+
+  useEffect(() => {
     if (!chat?.id) return undefined;
     let live = true;
     api.listTurns(chat.id)
@@ -186,6 +193,23 @@ export function ChatWorkspace({ apiBase, wsUrl, api: apiOverrides, scope, sx, un
   const onOpen = useCallback(() => { setOpenedOnce(true); setProblem((current) => (current === 'connection_lost' ? null : current)); }, []);
   const onClose = useCallback(({ reason, retrying }) => { if (!retrying) setProblem(reason); }, []);
   const socket = useChatSocket(chat?.id, { wsUrl, onFrame, onOpen, onClose });
+
+  useEffect(() => {
+    if (composerPrefill == null || composerPrefill.id === lastPrefillId.current) return;
+    lastPrefillId.current = composerPrefill.id;
+    if (!chat || isArchived) return;
+    setDraft(composerPrefill.text);
+    setFocusRequest((count) => count + 1);
+  }, [composerPrefill, chat, isArchived]);
+
+  // Runs after the render that carries the prefilled draft; a counter, so the same text requested twice focuses twice.
+  useEffect(() => {
+    const input = composerInputRef.current;
+    if (focusRequest === 0 || !input) return;
+    input.focus();
+    const end = input.value.length;
+    input.setSelectionRange?.(end, end);
+  }, [focusRequest]);
 
   const guarded = (action) => async (...args) => {
     try { return await action(...args); } catch { setProblem('action_error'); return null; }
@@ -231,6 +255,15 @@ export function ChatWorkspace({ apiBase, wsUrl, api: apiOverrides, scope, sx, un
     }]);
     return true;
   };
+  const canSendFromSlot = Boolean(chat && !isArchived && socket.connected && !running);
+  const sendFromSlot = (text) => {
+    const message = typeof text === 'string' ? text : '';
+    if (!canSendFromSlot || !message.trim()) return false;
+    return startTurn(message);
+  };
+  const answerExtra = renderAnswerExtra
+    ? (args) => renderAnswerExtra({ ...args, send: sendFromSlot, canSend: canSendFromSlot })
+    : undefined;
   const send = () => { if (startTurn(draft)) setDraft(''); };
   const retry = (turn) => {
     if (!socket.connected) return;
@@ -314,10 +347,10 @@ export function ChatWorkspace({ apiBase, wsUrl, api: apiOverrides, scope, sx, un
         </Stack>
         {chat ? (
           <>
-            <ChatThread turns={turns} chat={chat} renderAnswerExtra={renderAnswerExtra} trimmedCount={trimmedCount} tool={tool} notice={noticeFor()} hasOlder={Boolean(olderCursor)} olderBusy={olderBusy} onLoadOlder={loadOlder} onRetry={retry} readOnly={isArchived} />
+            <ChatThread turns={turns} chat={chat} renderAnswerExtra={answerExtra} trimmedCount={trimmedCount} tool={tool} notice={noticeFor()} hasOlder={Boolean(olderCursor)} olderBusy={olderBusy} onLoadOlder={loadOlder} onRetry={retry} readOnly={isArchived} />
             {isArchived ? <Typography variant="caption" color="text.secondary" sx={{ px: 2, pb: 1 }}>{t('Chat.archivedReadOnly')}</Typography> : null}
             {renderComposerExtra ? <Box key={chat.id}>{renderComposerExtra({ chat })}</Box> : null}
-            <ChatComposer value={draft} onChange={setDraft} onSend={send} onStop={() => socket.send({ type: 'stop' })} running={running} archived={isArchived} connected={socket.connected} />
+            <ChatComposer value={draft} onChange={setDraft} onSend={send} onStop={() => socket.send({ type: 'stop' })} running={running} archived={isArchived} connected={socket.connected} inputRef={composerInputRef} />
           </>
         ) : (
           <Stack alignItems="center" justifyContent="center" spacing={2} sx={{ flex: 1, p: 3 }}>

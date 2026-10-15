@@ -6,7 +6,7 @@ import { useTranslation } from 'react-i18next';
  * Message input. Send is disabled while a turn runs, for an archived chat and while the connection is down;
  * Stop replaces it during a turn. Enter sends, Shift+Enter inserts a line break.
  */
-export function ChatComposer({ value = '', onChange, onSend, onStop, running = false, archived = false, connected = true, sx }) {
+export function ChatComposer({ value = '', onChange, onSend, onStop, running = false, archived = false, connected = true, inputRef, sx }) {
   const { t } = useTranslation();
   const blocked = archived || !connected;
   const canSend = !running && !blocked && value.trim().length > 0;
@@ -19,6 +19,7 @@ export function ChatComposer({ value = '', onChange, onSend, onStop, running = f
         fullWidth
         size="small"
         value={value}
+        inputRef={inputRef}
         disabled={blocked}
         placeholder={t('Chat.message')}
         slotProps={{ htmlInput: { 'aria-label': t('Chat.message') } }}
