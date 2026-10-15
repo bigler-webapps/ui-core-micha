@@ -242,11 +242,16 @@ export function ChatWorkspace({ apiBase, wsUrl, api: apiOverrides, scope, sx, un
   // ends the wait. Every other request is decided at once. Decided = sent if the surface can send right now, otherwise
   // reported as not sent.
   useEffect(() => {
-    if (sendRequest == null || sendRequest.id === lastSendRequestId.current) return;
-    const answer = (sent) => {
-      lastSendRequestId.current = sendRequest.id;
-      sendRequestHandledRef.current?.({ id: sendRequest.id, sent });
+    const answerFor = (id, sent) => {
+      lastSendRequestId.current = id;
+      if (deferredSendRequest.current?.id === id) deferredSendRequest.current = null;
+      sendRequestHandledRef.current?.({ id, sent });
     };
+    // A waiting request that the host replaced or withdrew is answered as not sent, exactly once.
+    const waiting = deferredSendRequest.current;
+    if (waiting && waiting.id !== sendRequest?.id) answerFor(waiting.id, false);
+    if (sendRequest == null || sendRequest.id === lastSendRequestId.current) return;
+    const answer = (sent) => answerFor(sendRequest.id, sent);
     const blank = typeof sendRequest.text !== 'string' || !sendRequest.text.trim();
     if (activeChatId === null || blank) { answer(false); return; }
     const wanted = activeChatId === undefined ? null : String(activeChatId);

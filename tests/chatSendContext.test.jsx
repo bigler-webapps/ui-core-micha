@@ -176,8 +176,44 @@ describe('ChatWorkspace send context and host requests', () => {
     expect(getSendContext).toHaveBeenCalledTimes(3);
   });
 
+  it('reads the latest host state for a host request and for a retry', async () => {
+    let hostState = { revision: 1 };
+    const getSendContext = vi.fn(() => hostState);
+    const api = makeApi({ listTurns: vi.fn().mockResolvedValue({ results: [interrupted], next: null }) });
+    const { view, socket } = await mount(api, { getSendContext });
+    hostState = { revision: 2 };
+    view.rerender(<ChatWorkspace api={api} wsUrl={(id) => `ws://test/${id}`} activeChatId={7} getSendContext={getSendContext} sendRequest={{ id: 'latest', text: 'Newest state' }} />);
+    await waitFor(() => expect(socket.sent).toHaveLength(1));
+    expect(socket.sent[0]).toEqual({ type: 'send', message: 'Newest state', context: { revision: 2 } });
+    act(() => socket.push({ type: 'turn', turn: { id: 31, seq: 3, user_text: 'Newest state', assistant_text: 'Done', state: 'completed' } }));
+    hostState = { revision: 3 };
+    fireEvent.click(await screen.findByRole('button', { name: 'Chat.retry' }));
+    expect(socket.sent[1]).toEqual({ type: 'send', message: 'Retry this', context: { revision: 3 } });
+  });
+
+  it('answers a waiting request as not sent, exactly once, when the host replaces or withdraws it', async () => {
+    const api = makeApi();
+    const handled = vi.fn();
+    const { view } = await mount(api);
+    const render9 = (request) => view.rerender(<ChatWorkspace api={api} wsUrl={(id) => `ws://test/${id}`} activeChatId={9} sendRequest={request} onSendRequestHandled={handled} />);
+    render9({ id: 'A', text: 'First' });
+    await waitFor(() => expect(FakeSocket.instances.some((item) => item.url === 'ws://test/9')).toBe(true));
+    expect(handled).not.toHaveBeenCalled();
+    render9({ id: 'B', text: 'Second' });
+    await waitFor(() => expect(handled).toHaveBeenCalledWith({ id: 'A', sent: false }));
+    expect(handled.mock.calls.filter(([result]) => result.id === 'A')).toHaveLength(1);
+    // Withdrawn while waiting: B is answered too, and returning to the chat does not send it after all.
+    render9(undefined);
+    await waitFor(() => expect(handled).toHaveBeenCalledWith({ id: 'B', sent: false }));
+    act(() => FakeSocket.instances.find((item) => item.url === 'ws://test/9').open());
+    render9({ id: 'B', text: 'Second' });
+    await act(async () => { await new Promise((resolve) => setTimeout(resolve, 50)); });
+    expect(FakeSocket.instances.flatMap((item) => item.sent)).toEqual([]);
+  });
+
   it.each([
     ['array', () => []], ['string', () => 'bad'], ['number', () => 4],
+    ['function', () => () => ({})], ['Date', () => new Date()],
     ['circular', () => { const value = {}; value.self = value; return value; }],
     ['throw', () => { throw new Error('host failed'); }],
   ])('keeps the draft and shows the action error when context is invalid (%s)', async (_name, getSendContext) => {
