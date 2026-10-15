@@ -25,15 +25,22 @@ bumps to these releases (`<TOKEN>-DEP(S)-<n>` in each app repo).
    - `.` — everything that stays in the main entry;
    - `./charts` — every export that imports `@mui/x-charts` (`BarChart`, `LineChart`,
      `ScatterChart`, `TimeSeriesChart` and their chart-only helpers);
-   - `./markdown` — every export that imports `react-markdown`/`remark-gfm` (`MarkdownReply`);
+   - `./markdown` — `MarkdownReply` alone;
+   - `./chat` — the whole chat surface, because `ChatThread` (and so `ChatWorkspace`) renders
+     `MarkdownReply`: `ChatWorkspace`, `ChatList`, `ChatThread`, `ChatComposer`, `ModelPicker`,
+     `useChatSocket`, `createChatApi`, `defaultChatApi`. `chatTranslations` stays in `.`.
+     (Operator decision 2026-10-15, after the Orchestrator found the `ChatThread` import.)
    - `./qr` — every export that imports `qrcode.react`, subject to the QR rule in point 4.
+     (Mapping found `AccountPage` in `.` renders `QrSignupManager`, so under that rule there is no
+     `./qr` and `qrcode.react` stays required.)
 3. **Decouple the theme.** `createAppTheme` / `theme/index.js` must not reach any module of the
-   three sub-paths. Today `theme/kitSxRegistry.js` imports SX constants from about 20 component
+   sub-paths. Today `theme/kitSxRegistry.js` imports SX constants from about 20 component
    modules (including `MFAComponent` and `charts/ChartFrame`); move those constants so the theme's
-   import graph contains no charts, QR or markdown module.
+   import graph contains no charts, chat, QR or markdown module.
 4. **Peers.**
    - `@mui/x-charts`, `react-markdown`, `remark-gfm` become optional peers
-     (`peerDependenciesMeta`); `react-markdown` and `remark-gfm` leave `dependencies`.
+     (`peerDependenciesMeta`); `react-markdown` and `remark-gfm` leave `dependencies` and serve both
+     `./markdown` and `./chat`.
    - `qrcode.react` becomes optional **only if** no export that remains in the main entry renders a
      `qrcode.react` component (e.g. MFA setup reached from `AccountPage`). If one does, it stays a
      required peer, the MFA parts stay in `.`, and the CHANGELOG says so. Account/auth pages are not
