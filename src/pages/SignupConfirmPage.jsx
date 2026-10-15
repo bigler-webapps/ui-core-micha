@@ -15,7 +15,6 @@ import {
   TextField,
   Typography,
 } from '@mui/material';
-import { Helmet } from 'react-helmet';
 import { useTranslation } from 'react-i18next';
 import { NarrowPage } from '../layout/PageLayout';
 import { confirmRegistration } from '../auth/authApi';
@@ -80,11 +79,7 @@ export function SignupConfirmPage() {
         'Choose a password to finish creating your account.',
       )}
     >
-      <Helmet>
-        <title>
-          {t('App.NAME')} – {t('Auth.SIGNUP_CONFIRM_TITLE', 'Confirm your registration')}
-        </title>
-      </Helmet>
+      <title>{`${t('App.NAME')} – ${t('Auth.SIGNUP_CONFIRM_TITLE', 'Confirm your registration')}`}</title>
 
       {tokenMissing ? (
         <>

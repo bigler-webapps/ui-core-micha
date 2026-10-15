@@ -37,3 +37,10 @@ it('kit integration is sound', async () => {
 `StatTile` (a bordered KPI tile) and `SoftChip` (a soft tinted annotation/status chip, tones derived from `theme.palette[tone]`) live under `src/components/` and are exported from the package root.
 
 `EmptyState` (an icon/title/description/action empty-section placeholder, built from theme tokens) lives under `src/components/` and is exported from the package root.
+
+## Sub-path imports and optional peers
+
+The main entry needs only the required peers. Charts, the chat surface and `MarkdownReply` live on sub-paths whose
+extra peers are optional: `@micha.bigler/ui-core-micha/charts` (`@mui/x-charts`), `/chat` and `/markdown`
+(`react-markdown`, `remark-gfm`). Install those peers only in apps that import the sub-path. The 4.0.0 entry in
+`CHANGELOG.md` has the migration table.

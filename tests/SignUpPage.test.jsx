@@ -12,7 +12,6 @@ vi.mock('react-router-dom', () => ({
   useNavigate: () => vi.fn(),
   useLocation: () => ({ search: '' }),
 }));
-vi.mock('react-helmet', () => ({ Helmet: ({ children }) => <>{children}</> }));
 vi.mock('react-i18next', () => {
   const t = (key, fallback) => (typeof fallback === 'string' ? fallback : key);
   return {

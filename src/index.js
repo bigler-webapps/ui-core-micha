@@ -69,16 +69,6 @@ export { default as SoftChip } from './components/SoftChip';
 export { default as EmptyState } from './components/EmptyState';
 
 // --- 6. Charts ---
-export { ChartFrame } from './components/charts/ChartFrame';
-export { BarChart } from './components/charts/BarChart';
-export { LineChart } from './components/charts/LineChart';
-export { TimeSeriesChart } from './components/charts/TimeSeriesChart';
-export {
-  ScatterChart,
-  ScatterReferenceCurve,
-  ScatterReferenceLine,
-  scaleBubbleRadius,
-} from './components/charts/ScatterChart';
 export { getNeutralChartPalette, useNeutralChartPalette } from './components/charts/palette';
 export {
   formatShortTime,
@@ -123,16 +113,6 @@ export { AttachmentList } from './messaging/AttachmentList';
 export { ReactionBar } from './messaging/ReactionBar';
 export { PollCard } from './messaging/PollCard';
 export { MessagingScopeConfig } from './messaging/MessagingScopeConfig';
-
-// --- Shared AI chat ---
-export { ChatWorkspace } from './chat/ChatWorkspace';
-export { ChatList } from './chat/ChatList';
-export { ChatThread } from './chat/ChatThread';
-export { ChatComposer } from './chat/ChatComposer';
-export { ModelPicker } from './chat/ModelPicker';
-export { default as MarkdownReply } from './chat/MarkdownReply';
-export { useChatSocket } from './chat/useChatSocket';
-export { createChatApi, defaultChatApi } from './chat/api';
 
 // --- 9. Onboarding ---
 export * from './onboarding/api';

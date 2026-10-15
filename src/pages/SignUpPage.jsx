@@ -14,7 +14,6 @@ import {
   TextField,
   Typography,
 } from '@mui/material';
-import { Helmet } from 'react-helmet';
 import { useTranslation } from 'react-i18next';
 import { NarrowPage } from '../layout/PageLayout';
 import { AuthContext } from '../auth/AuthContext';
@@ -158,11 +157,7 @@ export function SignUpPage() {
       title={t('Auth.LOGIN_SIGNUP_BUTTON')}
       subtitle={pageSubtitle}
     >
-      <Helmet>
-        <title>
-          {t('App.NAME')} – {t('Auth.LOGIN_SIGNUP_BUTTON')}
-        </title>
-      </Helmet>
+      <title>{`${t('App.NAME')} – ${t('Auth.LOGIN_SIGNUP_BUTTON')}`}</title>
 
       {signupModes.length === 0 ? (
         <Alert severity="info" sx={SIGN_UP_PAGE_ALERT_SX}>

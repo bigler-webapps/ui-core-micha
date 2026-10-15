@@ -59,7 +59,6 @@ import {
   USER_LIST_EMPTY_CELL_SX,
   USER_LIST_HEADER_CELL_SX,
 } from '../components/UserListComponent';
-import { CHART_FRAME_ALERT_SX, CHART_FRAME_ROOT_SX } from '../components/charts/ChartFrame';
 import { PAGE_LAYOUT_CONTAINER_SX } from '../layout/PageLayout';
 import {
   SECTION_NAV_DRAWER_PAPER_SX,
@@ -97,8 +96,7 @@ import { LOGIN_PAGE_ALERT_SX } from '../pages/LoginPage';
 import { SIGN_UP_PAGE_ALERT_SX } from '../pages/SignUpPage';
 import { SIGNUP_CONFIRM_PAGE_ALERT_SX } from '../pages/SignupConfirmPage';
 import { REAUTH_MODAL_ALERT_SX, REAUTH_MODAL_TEXT_FIELD_SX } from '../auth/ReauthModal';
-import { CHAT_LIST_ARCHIVED_ACTION_SX, CHAT_LIST_ROW_ACTION_SX } from '../chat/ChatList';
-import { CHAT_THREAD_NOTICE_SX, CHAT_THREAD_TOOL_CHIP_SX } from '../chat/ChatThread';
+import { createKitSxEntry } from './kitSxEntry';
 
 const SX_EXPORTS = {
   ACCESS_CODE_ACTION_SX,
@@ -115,8 +113,6 @@ const SX_EXPORTS = {
   BROWSER_PUSH_FORM_CONTROL_LABEL_SX,
   BULK_INVITE_ACTION_SX,
   BULK_INVITE_ALERT_SX,
-  CHART_FRAME_ALERT_SX,
-  CHART_FRAME_ROOT_SX,
   COMPOSER_EMOJI_BUTTON_SX,
   COMPOSER_MESSAGE_FIELD_SX,
   COMPOSER_SEND_BUTTON_SX,
@@ -170,10 +166,6 @@ const SX_EXPORTS = {
   SUPPORT_RECOVERY_AGENT_PAPER_SX,
   SUPPORT_RECOVERY_ALERT_SX,
   THREAD_DAY_SEPARATOR_SX,
-  CHAT_LIST_ARCHIVED_ACTION_SX,
-  CHAT_LIST_ROW_ACTION_SX,
-  CHAT_THREAD_NOTICE_SX,
-  CHAT_THREAD_TOOL_CHIP_SX,
   USER_INVITE_ACTION_SX,
   USER_INVITE_ALERT_SX,
   USER_LIST_ACTION_SX,
@@ -194,6 +186,8 @@ const entry = (component, muiComponent, sx, slots) => ({
   slots,
   exportName: SX_EXPORT_NAMES.get(sx),
 });
+
+export { createKitSxEntry };
 
 /**
  * Kit-owned, top-level sx objects paired with the baseline-styled MUI key they
@@ -246,8 +240,6 @@ export const KIT_COMPONENT_SX_REGISTRY = [
   entry('UserListComponent.headerCell', 'MuiTableCell', USER_LIST_HEADER_CELL_SX),
   entry('UserListComponent.emptyCell', 'MuiTableCell', USER_LIST_EMPTY_CELL_SX),
   entry('UserListComponent.bodyCell', 'MuiTableCell', USER_LIST_BODY_CELL_SX),
-  entry('ChartFrame.root', 'MuiPaper', CHART_FRAME_ROOT_SX),
-  entry('ChartFrame.alert', 'MuiAlert', CHART_FRAME_ALERT_SX),
   entry('PageLayout.container', 'MuiContainer', PAGE_LAYOUT_CONTAINER_SX),
   entry('SectionNav.drawerPaper', 'MuiDrawer', SECTION_NAV_DRAWER_PAPER_SX, ['paper']),
   entry('SectionNav.drawerPaperBase', 'MuiPaper', SECTION_NAV_DRAWER_PAPER_SX),
@@ -278,8 +270,4 @@ export const KIT_COMPONENT_SX_REGISTRY = [
   entry('SignupConfirmPage.alert', 'MuiAlert', SIGNUP_CONFIRM_PAGE_ALERT_SX),
   entry('ReauthModal.alert', 'MuiAlert', REAUTH_MODAL_ALERT_SX),
   entry('ReauthModal.field', 'MuiTextField', REAUTH_MODAL_TEXT_FIELD_SX),
-  entry('ChatList.rowAction', 'MuiIconButton', CHAT_LIST_ROW_ACTION_SX),
-  entry('ChatList.archivedAction', 'MuiButton', CHAT_LIST_ARCHIVED_ACTION_SX),
-  entry('ChatThread.toolChip', 'MuiChip', CHAT_THREAD_TOOL_CHIP_SX),
-  entry('ChatThread.notice', 'MuiAlert', CHAT_THREAD_NOTICE_SX),
 ];

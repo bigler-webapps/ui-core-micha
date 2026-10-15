@@ -1,5 +1,30 @@
 # Changelog
 
+## 4.0.0 - UCM-DEP-2
+
+Breaking: a consumer installs only the peers of the features it imports. The package gets an `exports` map, so deep
+imports such as `.../dist/...` no longer resolve. Only `dist`, `README.md` and `CHANGELOG.md` are published.
+
+Peers: `react-helmet` is gone (the seven auth/account pages render a native React 19 `<title>`, text unchanged).
+`@mui/icons-material` is now a required peer (it was used at runtime but only a devDependency), same range as
+`@mui/material`. `i18next` is `>= 26.2.0`. `@mui/x-charts`, `react-markdown` and `remark-gfm` are optional peers,
+needed only for the sub-paths below. `react-markdown` and `remark-gfm` are no longer dependencies.
+`qrcode.react` stays a required peer: `AccountPage` renders `QrSignupManager`, so QR stays in the main entry.
+
+| Old import (main entry) | New import | Optional peers needed |
+|---|---|---|
+| `ChartFrame`, `BarChart`, `LineChart`, `TimeSeriesChart`, `ScatterChart`, `ScatterReferenceCurve`, `ScatterReferenceLine`, `scaleBubbleRadius` | `@micha.bigler/ui-core-micha/charts` | `@mui/x-charts` |
+| `ChatWorkspace`, `ChatList`, `ChatThread`, `ChatComposer`, `ModelPicker`, `useChatSocket`, `createChatApi`, `defaultChatApi` | `@micha.bigler/ui-core-micha/chat` | `react-markdown`, `remark-gfm` |
+| `MarkdownReply` | `@micha.bigler/ui-core-micha/markdown` | `react-markdown`, `remark-gfm` |
+
+Unchanged in the main entry: `getNeutralChartPalette`, `useNeutralChartPalette`, the `formatShort*` and chart
+formatter helpers, `yearTickInterval`, `chartsTranslations`, `chatTranslations`, auth, messaging, notifications,
+onboarding, layout and theme exports.
+
+`KIT_COMPONENT_SX_REGISTRY` now lists only components of the main entry. The sx registry entries of the moved
+components are `CHARTS_KIT_SX_REGISTRY` (from `/charts`) and `CHAT_KIT_SX_REGISTRY` (from `/chat`); concatenate them
+where a check needs the full set. The theme (`createAppTheme`) no longer reaches charts, chat or markdown modules.
+
 ## 3.14.4 - UCM-DEP-1
 
 Dependency updates. The runtime dependency `@fontsource/dm-sans` moves to ^5.3.0; the peer dependency ranges are

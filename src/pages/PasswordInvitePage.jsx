@@ -1,7 +1,6 @@
 // src/auth/pages/PasswordInvitePage.jsx
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
-import { Helmet } from 'react-helmet';
 import { Button, Typography } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import { NarrowPage } from '../layout/PageLayout';
@@ -137,11 +136,7 @@ export function PasswordInvitePage() {
       title={t(pageTitleKey)}
       subtitle={t(pageSubtitleKey)}
     >
-      <Helmet>
-        <title>
-          {t('App.NAME')} – {t(pageTitleKey)}
-        </title>
-      </Helmet>
+      <title>{`${t('App.NAME')} – ${t(pageTitleKey)}`}</title>
 
       {errorKey && (
         <Typography color="error" gutterBottom>

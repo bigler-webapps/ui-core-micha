@@ -17,7 +17,6 @@ vi.mock('../src/utils/authService', () => ({
   loginWithPasskey: vi.fn(),
   startSocialLogin: vi.fn(),
 }));
-vi.mock('react-helmet', () => ({ Helmet: ({ children }) => <>{children}</> }));
 
 import { authTranslations } from '../src/i18n/authTranslations';
 import { AuthContext } from '../src/auth/AuthContext';

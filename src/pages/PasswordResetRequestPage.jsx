@@ -1,6 +1,5 @@
 // src/auth/pages/PasswordResetRequestPage.jsx
 import React, { useState } from 'react';
-import { Helmet } from 'react-helmet';
 import { Typography } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import { NarrowPage } from '../layout/PageLayout';
@@ -41,11 +40,7 @@ export function PasswordResetRequestPage() {
       title={t('Auth.PAGE_RESET_PASSWORD_TITLE')}
       subtitle={t('Auth.PAGE_RESET_REQUEST_SUBTITLE')}
     >
-      <Helmet>
-        <title>
-          {t('App.NAME')} – {t('Auth.PAGE_RESET_PASSWORD_TITLE')}
-        </title>
-      </Helmet>
+      <title>{`${t('App.NAME')} – ${t('Auth.PAGE_RESET_PASSWORD_TITLE')}`}</title>
 
       {successKey && (
         <Typography color="primary" gutterBottom>

@@ -1,6 +1,5 @@
 import React, { useState, useContext, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Helmet } from 'react-helmet';
 import { Box, Alert } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 
@@ -282,9 +281,7 @@ export function LoginPage() {
       title={t('Auth.PAGE_LOGIN_TITLE')}
       subtitle={t('Auth.PAGE_LOGIN_SUBTITLE')}
     >
-      <Helmet>
-        <title>{t('App.NAME')} – {t('Auth.PAGE_LOGIN_TITLE')}</title>
-      </Helmet>
+      <title>{`${t('App.NAME')} – ${t('Auth.PAGE_LOGIN_TITLE')}`}</title>
 
       {errorKey && (
         <Alert severity="error" sx={LOGIN_PAGE_ALERT_SX}>

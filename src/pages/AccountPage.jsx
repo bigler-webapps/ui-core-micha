@@ -1,5 +1,4 @@
 import React, { useContext, useEffect, useMemo, useState } from 'react';
-import { Helmet } from 'react-helmet';
 import { useSearchParams } from 'react-router-dom';
 import { 
   Box, 
@@ -235,9 +234,7 @@ export function AccountPage({
 
   return (
     <WidePage title={t('Account.TITLE', 'Account & Administration')}>
-      <Helmet>
-        <title>{t('Account.PAGE_TITLE', 'Account')} – {user.email}</title>
-      </Helmet>
+      <title>{`${t('Account.PAGE_TITLE', 'Account')} – ${user.email}`}</title>
 
       <SectionNav
         mode={isMobile ? 'mobile' : 'desktop'}

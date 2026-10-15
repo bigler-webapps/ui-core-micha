@@ -16,6 +16,14 @@ import {
   THEME_COMPLETENESS_SURFACES,
 } from '../src/theme';
 import { BASELINE_PALETTE } from '../src/theme/tokens';
+import { CHARTS_KIT_SX_REGISTRY } from '../src/components/charts/kitSxRegistry';
+import { CHAT_KIT_SX_REGISTRY } from '../src/chat/kitSxRegistry';
+
+const FULL_KIT_COMPONENT_SX_REGISTRY = [
+  ...KIT_COMPONENT_SX_REGISTRY,
+  ...CHARTS_KIT_SX_REGISTRY,
+  ...CHAT_KIT_SX_REGISTRY,
+];
 
 function sourceFiles(directory) {
   return fs.readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
@@ -249,8 +257,9 @@ describe('kit sx disjointness', () => {
   });
 
   it('keeps every registered kit sx object disjoint from the baseline', () => {
-    expect(KIT_COMPONENT_SX_REGISTRY.length).toBeGreaterThan(2);
+    expect(FULL_KIT_COMPONENT_SX_REGISTRY.length).toBeGreaterThan(2);
     expect(assertKitSxDisjoint(theme, {
+      registry: FULL_KIT_COMPONENT_SX_REGISTRY,
       exemptions: [
         {
           surface: 'UserListComponent.bodyCell.MuiTableCell.py',
@@ -346,7 +355,7 @@ describe('kit sx disjointness', () => {
   it('does not let current kit source bypass the exported-object convention', () => {
     expect(reportKitSxBypasses(
       sourceFiles(path.resolve('src')),
-      { registry: KIT_COMPONENT_SX_REGISTRY },
+      { registry: FULL_KIT_COMPONENT_SX_REGISTRY },
     ).findings).toEqual([]);
   });
 

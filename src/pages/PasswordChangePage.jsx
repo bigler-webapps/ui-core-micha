@@ -1,6 +1,5 @@
 // src/auth/pages/PasswordChangePage.jsx
 import React, { useState } from 'react';
-import { Helmet } from 'react-helmet';
 import { Typography } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import { NarrowPage } from '../layout/PageLayout';
@@ -35,11 +34,7 @@ export function PasswordChangePage() {
       title={t('Auth.CHANGE_PASSWORD_BUTTON')}
       subtitle={t('Auth.PAGE_CHANGE_PASSWORD_SUBTITLE')}
     >
-      <Helmet>
-        <title>
-          {t('App.NAME')} – {t('Auth.CHANGE_PASSWORD_BUTTON')}
-        </title>
-      </Helmet>
+      <title>{`${t('App.NAME')} – ${t('Auth.CHANGE_PASSWORD_BUTTON')}`}</title>
 
       {successKey && (
         <Typography color="primary" gutterBottom>

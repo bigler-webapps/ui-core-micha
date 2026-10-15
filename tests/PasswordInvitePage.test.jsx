@@ -10,7 +10,6 @@ const authApi = vi.hoisted(() => ({
 }));
 
 vi.mock('../src/auth/authApi', () => authApi);
-vi.mock('react-helmet', () => ({ Helmet: ({ children }) => <>{children}</> }));
 vi.mock('react-i18next', () => {
   const KEYS = {
     'Auth.PAGE_INVITE_TITLE': 'Set password',
