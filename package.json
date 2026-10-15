@@ -1,6 +1,6 @@
 {
   "name": "@micha.bigler/ui-core-micha",
-  "version": "3.13.2",
+  "version": "3.14.0",
   "main": "dist/index.js",
   "module": "dist/index.js",
   "sideEffects": [
@@ -21,7 +21,9 @@
   },
   "private": false,
   "dependencies": {
-    "@fontsource/dm-sans": "^5.2.8"
+    "@fontsource/dm-sans": "^5.2.8",
+    "react-markdown": "^10.1.0",
+    "remark-gfm": "^4.0.1"
   },
   "peerDependencies": {
     "@emotion/react": "^11.14.0",

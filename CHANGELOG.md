@@ -1,5 +1,16 @@
 # Changelog
 
+## 3.14.0 - UCM-CHAT-1
+
+New shared AI chat surface. `ChatWorkspace` shows the user's chats (rename, archive, restore, delete), streams
+answers into a thread, renders them as Markdown (no raw HTML, no images, links as text), shows the sources of each
+answer as chips and lets the user pick model and effort per chat. The parts are exported on their own:
+`ChatList`, `ChatThread`, `ChatComposer`, `ModelPicker`, `MarkdownReply`, `useChatSocket`.
+`createChatApi(overrides, { apiBase })` returns the full default REST client; overriding one function keeps the
+others. Strings are in `chatTranslations` (de, en, fr, sw), included in `uiCoreTranslations`. Adds the dependencies
+`react-markdown` and `remark-gfm`. The wire shape (URLs, frame and field names) is isolated in `src/chat/wire.js`
+and follows `django-core-micha/DCM-CHAT-1`.
+
 ## 3.13.2 - UCM-AUTH-13
 
 `ProfileComponent` preserves edited names and consent values when the same person's

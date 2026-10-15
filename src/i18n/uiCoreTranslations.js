@@ -1,5 +1,6 @@
 import { authTranslations } from './authTranslations';
 import { chartsTranslations } from './chartsTranslations';
+import { chatTranslations } from './chatTranslations';
 import { messagingTranslations } from './messagingTranslations';
 import { notificationsTranslations } from './notificationsTranslations';
 import { onboardingTranslations } from './onboardingTranslations';
@@ -9,6 +10,7 @@ import { userMenuTranslations } from './userMenuTranslations';
 export const uiCoreTranslations = {
   ...authTranslations,
   ...chartsTranslations,
+  ...chatTranslations,
   ...messagingTranslations,
   ...notificationsTranslations,
   ...onboardingTranslations,

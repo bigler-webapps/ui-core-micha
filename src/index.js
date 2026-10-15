@@ -124,6 +124,16 @@ export { ReactionBar } from './messaging/ReactionBar';
 export { PollCard } from './messaging/PollCard';
 export { MessagingScopeConfig } from './messaging/MessagingScopeConfig';
 
+// --- Shared AI chat ---
+export { ChatWorkspace } from './chat/ChatWorkspace';
+export { ChatList } from './chat/ChatList';
+export { ChatThread } from './chat/ChatThread';
+export { ChatComposer } from './chat/ChatComposer';
+export { ModelPicker } from './chat/ModelPicker';
+export { default as MarkdownReply } from './chat/MarkdownReply';
+export { useChatSocket } from './chat/useChatSocket';
+export { createChatApi, defaultChatApi } from './chat/api';
+
 // --- 9. Onboarding ---
 export * from './onboarding/api';
 export { selectActiveSteps } from './onboarding/stepSelection';
@@ -144,4 +154,5 @@ export { notificationsTranslations } from './i18n/notificationsTranslations';
 export { onboardingTranslations } from './i18n/onboardingTranslations';
 export { chartsTranslations } from './i18n/chartsTranslations';
 export { messagingTranslations } from './i18n/messagingTranslations';
+export { chatTranslations } from './i18n/chatTranslations';
 export { createUiCoreTranslations, uiCoreTranslations } from './i18n/uiCoreTranslations';

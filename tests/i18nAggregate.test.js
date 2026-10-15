@@ -15,6 +15,7 @@ vi.mock('@mui/icons-material', () => ({
 import {
   authTranslations as publicAuthTranslations,
   chartsTranslations as publicChartsTranslations,
+  chatTranslations as publicChatTranslations,
   messagingTranslations as publicMessagingTranslations,
   notificationsTranslations as publicNotificationsTranslations,
   onboardingTranslations as publicOnboardingTranslations,
@@ -29,6 +30,7 @@ const bundleImporters = import.meta.glob('../src/i18n/*.ts');
 const PUBLIC_BUNDLES = {
   authTranslations: publicAuthTranslations,
   chartsTranslations: publicChartsTranslations,
+  chatTranslations: publicChatTranslations,
   messagingTranslations: publicMessagingTranslations,
   notificationsTranslations: publicNotificationsTranslations,
   onboardingTranslations: publicOnboardingTranslations,
