@@ -1,4 +1,4 @@
-# UCM-CHAT-4 — The host app can choose which chat the shared surface shows
+# UCM-CHAT-4 — The host app can choose which chat the shared surface shows, prefill its input, and send from an answer
 
 Prepared: 2026-10-15. Target repository: `ui-core-micha` (`main`). Correction to `UCM-CHAT-3`, found while implementing `maana/MAANA-CHAT-11`. It is also used by `survey_app/SVA-AIB-45`.
 
@@ -10,9 +10,16 @@ The shared `ChatWorkspace` (ui-core-micha 4.1.0, `src/chat/ChatWorkspace.jsx`) d
 
 Expected outcome: a host can tell the surface which chat to show, and learns when the user switches chats. Without the new props, the surface behaves exactly as in 4.1.x.
 
+**Added 2026-10-15 (operator decision, scope change during implementation):** survey_app's AI builder (`survey_app/SVA-AIB-45`) needs two more things from the host side.
+- Its live preview, outside the surface, puts text into the chat's input and focuses it ("edit this question with AI", "hand this comment to the chat").
+- A suggestion chip under an answer sends the suggestion as the next message with one click.
+
+Expected outcome for this part: a host can prefill and focus the input, and content in the per-answer slot can send a message.
+
 ## Operator decisions this Envelope records (2026-10-15)
 
 - Controlled selection through props, not an imperative ref handle.
+- Input control and sending from the per-answer slot are part of this order, not a separate one. maana's frontend chunk waits correspondingly longer.
 
 ## Scope
 
@@ -21,11 +28,17 @@ Expected outcome: a host can tell the surface which chat to show, and learns whe
   - A chat that cannot be loaded (missing or foreign) leaves the surface in its normal no-chat state. It is not an error page.
 - **`onActiveChatChange(chatId)` (optional):** called whenever the shown chat changes, whether the user selected it, created it, archived it or deleted it.
 - Without `activeChatId`, selection stays internal, as in 4.1.x. The callback may be used on its own.
+- **Input prefill (optional):** the host can put a text into the composer of the shown chat and focus it.
+  - The text replaces the current input. The user still sends it.
+  - The same text requested twice is applied twice; a request carries its own identity, for example a counter.
+  - With no chat shown or an archived chat, the request is ignored.
+- **Sending from the per-answer slot:** `renderAnswerExtra` additionally receives `send(text)`, which sends the text as the next message of that chat, exactly as if the user had typed and sent it. While a turn is running, or for an archived chat, `send` does nothing; its availability is visible to the slot, so it can disable its controls.
 
 ## Non-goals
 
 - A single-chat mode without a list.
-- Any change to the API client, the socket or the slots from `UCM-CHAT-3`.
+- Any change to the API client or the socket.
+- Changes to the `UCM-CHAT-3` slots other than the added `send`.
 - Mounting changes in maana or survey_app.
 
 ## Tier
@@ -44,6 +57,13 @@ Tier 3: a change inside shared-core.
 - An unloadable id leaves the no-chat state, without an error page.
 - `onActiveChatChange` fires once per change, for user selection, creation, archive and delete.
 - A host that echoes the callback into the prop causes no repeated requests.
+- Prefill:
+  - a prefill request fills the composer and focuses it;
+  - the same text requested twice applies twice;
+  - a request without a shown chat or on an archived chat is ignored.
+- `send` from the per-answer slot:
+  - it sends exactly one message;
+  - it is unavailable while a turn runs and on an archived chat.
 - Without the new props, the existing chat surface tests pass unchanged.
 
 # B. Implementation map — addressed to the implementer
