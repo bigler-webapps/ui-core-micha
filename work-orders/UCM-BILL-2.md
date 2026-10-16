@@ -72,5 +72,5 @@ Placeholder — dispatch-blocking.
 
 STOP — this part is not an instruction to the implementer.
 
-Gate #1 pending. After DCM-BILL-5. Seams: `src/billing/*` (SubscriptionSection, api, wire, useBilling),
+Gate #1 approved by the operator 2026-10-17 (in the Maana Expertenchat, session local_cbfc9d51-5217-42a4-99ba-27a315c854ce). After DCM-BILL-5. Seams: `src/billing/*` (SubscriptionSection, api, wire, useBilling),
 the shared Users tab components. Tier 3: all lenses, `sec_reviewer`, `ui_reviewer`.
