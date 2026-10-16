@@ -21,7 +21,8 @@ Expected outcome: a compact, self-explanatory picker; a visible summary; a quiet
 7. **Balance** at the bottom of the picker when the app has tokens.
 8. „Zusammenfassung bis hier" as a collapsed block at the point of the summary, expandable to its text.
 9. Each reply shows its cost quietly (e.g. „6 Token") when the app supplies a token conversion; otherwise nothing.
-10. DE, EN, FR.
+10. A new chat starts on the level „Ausgewogen" (default from the server).
+11. DE, EN, FR.
 
 ### Scope and acceptance
 
@@ -63,4 +64,4 @@ Placeholder — dispatch-blocking.
 
 STOP — this part is not an instruction to the implementer.
 
-Gate #1 pending. After DCM-CHAT-13. Seams: `src/chat/ModelPicker.jsx`, `ChatThread.jsx`, `ChatWorkspace.jsx`, the `Chat.*` strings. Tier 2: `reviewer` lenses and `ui_reviewer`. Prototype in scope: rendered 375/1280 side-by-side is a commit gate.
+Gate #1 approved by the operator 2026-10-16 (in the Maana Expertenchat, session local_cbfc9d51-5217-42a4-99ba-27a315c854ce). After DCM-CHAT-13. Seams: `src/chat/ModelPicker.jsx`, `ChatThread.jsx`, `ChatWorkspace.jsx`, the `Chat.*` strings. Tier 2: `reviewer` lenses and `ui_reviewer`. Prototype in scope: rendered 375/1280 side-by-side is a commit gate.

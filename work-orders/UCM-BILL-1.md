@@ -15,7 +15,7 @@ Expected outcome: reusable components an app places in its onboarding, account p
 1. **Plan picker:** plans from the app's catalogue (DCM-BILL-1), monthly/yearly switch where both exist, team packages with seats and term, what is included in plain words (for tokens also in hours of transcription where the app provides the conversion); continues to Stripe Checkout.
 2. **Account section „Abo":** current plan, term end, seats (team payer: who holds a seat), token balance with grant and expiry, „Paket kaufen", link to the Stripe customer portal (cancel, payment method, receipts).
 3. **Token display:** a balance badge, and a cost preview for an action („47 Token, mit Übersetzung 71 · Guthaben 1'153") the app fills in.
-4. **Access ended:** a persistent banner „Abo beendet – Projekte sind schreibgeschützt. Export bleibt möglich." with the deletion date and „Abo erneuern".
+4. **Access ended:** a persistent banner „Abo beendet – Projekte sind schreibgeschützt. Export und Download bleiben möglich." and „Abo erneuern" (no deletion date: nothing is deleted automatically).
 5. **Operator:** a read-only overview per app (subscribers, plans, tokens used, AI cost) and the switch „Ohne Abo freigeschaltet" per account in the shared Users tab.
 6. DE, EN and FR strings registered through the i18n contract.
 
@@ -47,4 +47,4 @@ Placeholder — dispatch-blocking.
 
 STOP — this part is not an instruction to the implementer.
 
-Gate #1 pending. After the DCM-BILL-1 contract. Tier 3: all lenses, `sec_reviewer`, `ui_reviewer`. Release and consumer pin bumps per the ucm publish flow.
+Gate #1 approved by the operator 2026-10-16 (in the Maana Expertenchat, session local_cbfc9d51-5217-42a4-99ba-27a315c854ce); no own prototype (operator chose a prototype for bigler-consult instead; surfaces follow the plan steps of the MAANA-APP-1 prototype and existing account-page patterns). After the DCM-BILL-1 contract. Tier 3: all lenses, `sec_reviewer`, `ui_reviewer`. Release and consumer pin bumps per the ucm publish flow.
