@@ -88,6 +88,7 @@ export function SubscriptionSection({ api = defaultBillingApi, redirect = (url) 
         <Button disabled={busy} onClick={() => safeRedirect(() => api.openPortal(), 'Billing.ERROR_PORTAL')}>{t('Billing.MANAGE')}</Button>
         <Typography>{t('Billing.MANAGE_DETAILS')}</Typography>
       </Stack>}
+      {access.source === 'team' && seatError && !seats && <Alert severity="error" sx={SUBSCRIPTION_SECTION_ALERT_SX}>{t('Billing.ERROR_LOAD')}</Alert>}
       {access.source === 'team' && seats && <Stack spacing={1}>
         <Typography>{t('Billing.TEAM_SEATS')}</Typography>
         {seats.map((seat) => <Stack key={seat.user_id} direction="row" spacing={1} alignItems="center">

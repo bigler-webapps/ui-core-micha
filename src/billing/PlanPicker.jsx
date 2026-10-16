@@ -38,11 +38,11 @@ export function PlanPicker({ plans = [], kinds = ['subscription', 'team_package'
   };
 
   return <Stack spacing={2}>
-    {intervals.length > 1 && <ToggleButtonGroup exclusive value={interval} onChange={(_, value) => { if (value) setInterval(value); }} aria-label={t('Billing.PLAN_INTERVAL')}>
+    {intervals.length > 1 && <ToggleButtonGroup exclusive value={interval} onChange={(_, value) => { if (value) { setInterval(value); setSelected(null); } }} aria-label={t('Billing.PLAN_INTERVAL')}>
       <ToggleButton value="month">{t('Billing.MONTHLY')}</ToggleButton>
       <ToggleButton value="year">{t('Billing.YEARLY')}</ToggleButton>
     </ToggleButtonGroup>}
-    <RadioGroup value={effectiveSelected ?? ''} onChange={(event) => setSelected(event.target.value)} aria-label={t('Billing.PLANS')}>
+    <RadioGroup row value={effectiveSelected ?? ''} onChange={(event) => setSelected(event.target.value)} aria-label={t('Billing.PLANS')}>
     <Stack direction="row" useFlexGap flexWrap="wrap" spacing={2}>
       {filteredPlans.map((plan) => {
         const active = effectiveSelected === plan.key;

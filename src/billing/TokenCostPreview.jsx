@@ -6,7 +6,7 @@ import { formatTokens } from './format';
 export function TokenCostPreview({ cost, alternatives = [], balance }) {
   const { t, i18n } = useTranslation();
   if (!Number.isInteger(cost) || cost < 0 || !Number.isInteger(balance) || balance < 0 || !Array.isArray(alternatives)
-    || alternatives.some((item) => !item || typeof item.label !== 'string' || !Number.isFinite(item.cost))) return null;
+    || alternatives.some((item) => !item || typeof item.label !== 'string' || !Number.isInteger(item.cost) || item.cost < 0)) return null;
   const insufficient = balance < cost;
   // "47 Token, mit Übersetzung 71 · Guthaben 1'153": the cost and its alternatives, then the balance.
   const costs = [t('Billing.COST', { tokens: formatTokens(cost, i18n.language) })];

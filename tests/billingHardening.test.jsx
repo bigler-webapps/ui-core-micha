@@ -96,6 +96,24 @@ describe('PlanPicker hardening', () => {
     expect(api.startCheckout).not.toHaveBeenCalled();
   });
 
+  it('forgets the choice for good when the interval is switched away and back', () => {
+    render(<PlanPicker plans={plans} api={{ startCheckout: vi.fn() }} />);
+    fireEvent.click(screen.getByRole('radio', { name: /Monthly plan/ }));
+    fireEvent.click(screen.getByRole('button', { name: 'Billing.YEARLY' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Billing.MONTHLY' }));
+    expect(screen.getByRole('radio', { name: /Monthly plan/ }).checked).toBe(false);
+    expect(screen.getByRole('button', { name: 'Billing.CONTINUE_TO_PAYMENT' }).disabled).toBe(true);
+  });
+
+  it('keeps exactly one plan checked', () => {
+    const teamPlan = { key: 'team', kind: 'team_package', name: 'Team plan', amount_cents: 5000, seats: 5, term_months: 3, token_allowance: 0 };
+    render(<PlanPicker plans={[plans[0], teamPlan]} api={{ startCheckout: vi.fn() }} />);
+    fireEvent.click(screen.getByRole('radio', { name: /Monthly plan/ }));
+    fireEvent.click(screen.getByRole('radio', { name: /Team plan/ }));
+    expect(screen.getByRole('radio', { name: /Monthly plan/ }).checked).toBe(false);
+    expect(screen.getByRole('radio', { name: /Team plan/ }).checked).toBe(true);
+  });
+
   it('is a labelled radio group', () => {
     render(<PlanPicker plans={plans} api={{ startCheckout: vi.fn() }} />);
     expect(screen.getByRole('radiogroup', { name: 'Billing.PLANS' })).toBeTruthy();
@@ -134,9 +152,29 @@ describe('SubscriptionSection hardening', () => {
   });
 });
 
+describe('seat loading', () => {
+  it('explains a failed seat load for a team payer instead of showing nothing', async () => {
+    const api = {
+      getMe: vi.fn().mockResolvedValue(goodMe({ access: { status: 'active', source: 'team', ends_at: '2026-12-15T00:00:00Z' } })),
+      listSeats: vi.fn().mockRejectedValue({ response: { status: 500 } }),
+    };
+    render(<SubscriptionSection api={api} />);
+    expect(await screen.findByText('Billing.SOURCE_TEAM')).toBeTruthy();
+    expect(await screen.findByText('Billing.ERROR_LOAD')).toBeTruthy();
+  });
+});
+
 describe('token numbers', () => {
   it('shows no badge for a negative or fractional balance', () => {
     const { container } = render(<><TokenBalanceBadge balance={-5} /><TokenBalanceBadge balance={2.5} /></>);
+    expect(container.textContent).toBe('');
+  });
+
+  it('shows no cost preview for a negative or fractional alternative', () => {
+    const { container } = render(<>
+      <TokenCostPreview cost={3} balance={10} alternatives={[{ label: 'with translation', cost: -2 }]} />
+      <TokenCostPreview cost={3} balance={10} alternatives={[{ label: 'with translation', cost: 2.5 }]} />
+    </>);
     expect(container.textContent).toBe('');
   });
 
