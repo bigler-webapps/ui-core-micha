@@ -49,7 +49,7 @@ describe('operator billing surfaces', () => {
   it('requires a grant reason and never flips state until a confirmed response', async () => {
     const onChanged=vi.fn(); const api={grantFreeAccess:vi.fn().mockResolvedValue({free_access:{reason:'ok'},access:{status:'active',source:'free'}})};
     render(<FreeAccessSwitch account={account()} api={api} onChanged={onChanged}/>);
-    fireEvent.click(screen.getByRole('switch',{name:'Free access'}));
+    fireEvent.click(screen.getByRole('switch',{name:/Free access/}));
     const confirm=screen.getByRole('button',{name:'Grant'}); expect(confirm.disabled).toBe(true);
     fireEvent.change(screen.getByRole('textbox',{name:'Reason'}),{target:{value:'  '} }); expect(confirm.disabled).toBe(true);
     fireEvent.change(screen.getByRole('textbox',{name:'Reason'}),{target:{value:'x'.repeat(1001)} }); expect(confirm.disabled).toBe(true);
@@ -60,19 +60,19 @@ describe('operator billing surfaces', () => {
   it('confirms revocation and keeps errors in the dialog with a forbidden message', async () => {
     const current=account({free_access:{reason:'first'}}); const api={revokeFreeAccess:vi.fn().mockRejectedValue({response:{status:403}})};
     render(<FreeAccessSwitch account={current} api={api}/>);
-    fireEvent.click(screen.getByRole('switch',{name:'Free access'})); expect(screen.getByText('Data stays; access becomes read-only.')).toBeTruthy();
+    fireEvent.click(screen.getByRole('switch',{name:/Free access/})); expect(screen.getByText('Data stays; access becomes read-only.')).toBeTruthy();
     expect(api.revokeFreeAccess).not.toHaveBeenCalled(); fireEvent.click(screen.getByRole('button',{name:'Revoke'}));
     expect(await screen.findByText('Forbidden')).toBeTruthy(); expect(screen.getByRole('dialog')).toBeTruthy();
   });
   it('allows cancellation of a revocation without calling the API', async () => {
     const api={revokeFreeAccess:vi.fn()}; render(<FreeAccessSwitch account={account({free_access:{reason:'old'}})} api={api}/>);
-    fireEvent.click(screen.getByRole('switch',{name:'Free access'})); fireEvent.click(screen.getByRole('button',{name:'Cancel'}));
+    fireEvent.click(screen.getByRole('switch',{name:/Free access/})); fireEvent.click(screen.getByRole('button',{name:'Cancel'}));
     expect(api.revokeFreeAccess).not.toHaveBeenCalled(); expect(document.body.querySelector('[role="switch"]').checked).toBe(true);
   });
   it('shows the save error and leaves a failed grant open', async () => {
     const api={grantFreeAccess:vi.fn().mockRejectedValue(new Error('offline'))};
     render(<FreeAccessSwitch account={account()} api={api}/>);
-    fireEvent.click(screen.getByRole('switch',{name:'Free access'}));
+    fireEvent.click(screen.getByRole('switch',{name:/Free access/}));
     fireEvent.change(screen.getByRole('textbox',{name:'Reason'}),{target:{value:'reason'}});
     fireEvent.click(screen.getByRole('button',{name:'Grant'}));
     expect(await screen.findByText('Save error')).toBeTruthy(); expect(screen.getByRole('dialog')).toBeTruthy();

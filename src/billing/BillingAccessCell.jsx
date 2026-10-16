@@ -1,5 +1,5 @@
 import React from 'react';
-import { Stack, Typography } from '@mui/material';
+import { Button, Stack, Typography } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import { formatDate } from './format';
 import { FreeAccessSwitch } from './FreeAccessSwitch';
@@ -23,6 +23,11 @@ export function accountAccessText(account, t, language) {
 export function BillingAccessCell({ account, api, onChanged }) {
   const { t, i18n } = useTranslation();
   return <Stack spacing={0.5}><Typography>{accountAccessText(account, t, i18n.language)}</Typography>{account && <FreeAccessSwitch account={account} api={api} onChanged={onChanged} />}</Stack>;
+}
+
+export function BillingAccessError({ onRetry }) {
+  const { t } = useTranslation();
+  return <Stack direction="row" spacing={1} alignItems="center"><Typography color="error">{t('Billing.OP_LOAD_ERROR')}</Typography>{onRetry && <Button size="small" onClick={onRetry}>{t('Billing.RETRY')}</Button>}</Stack>;
 }
 
 export default BillingAccessCell;

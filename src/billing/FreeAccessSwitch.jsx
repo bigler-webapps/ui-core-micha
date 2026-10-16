@@ -28,7 +28,7 @@ export function FreeAccessSwitch({ account, api, onChanged, sx }) {
   };
   const validReason = reason.trim().length > 0 && reason.trim().length <= 1000;
   return <>
-    <Box sx={sx}><FormControlLabel control={<Switch checked={active} disabled={busy} onChange={openDialog} />} label={t('Billing.OP_FREE_ACCESS')} /></Box>
+    <Box sx={sx}><FormControlLabel control={<Switch checked={active} disabled={busy} onChange={openDialog} slotProps={{ input: { 'aria-label': `${t('Billing.OP_FREE_ACCESS')} – ${account?.name || account?.email || account?.user_id}` } }} />} label={t('Billing.OP_FREE_ACCESS')} /></Box>
     <Dialog open={open} onClose={close} aria-labelledby={titleId}>
       <DialogTitle id={titleId}>{active ? t('Billing.OP_REVOKE_TITLE') : t('Billing.OP_FREE_ACCESS')}</DialogTitle>
       <DialogContent>
