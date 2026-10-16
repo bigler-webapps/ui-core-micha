@@ -77,3 +77,26 @@ describe('overview model table', () => {
     expect(rows).toEqual(['openaigpt-61,200$15.00', 'anthropicsonnet630$6.45']);
   });
 });
+
+describe('Abo values', () => {
+  const base = { tokens: { balance: 20 }, plans: [] };
+
+  it('pins plan, period and the grant amounts, remaining tokens and expiry as rendered text', async () => {
+    const me = { ...base, access: { status: 'active', source: 'subscription', ends_at: '2027-04-01T00:00:00Z' }, subscription: { plan_key: 'pro', plan_name: 'Professional', current_period_start: '2026-01-01T00:00:00Z', current_period_end: '2026-12-15T00:00:00Z', renews: true }, tokens: { balance: 20, grants: [{ source: 'plan', amount: 100, remaining: 40, expires_at: '2026-11-01T00:00:00Z' }, { source: 'package', amount: 50, remaining: 10, expires_at: null }] } };
+    const { container } = render(<SubscriptionSection api={{ getMe: vi.fn().mockResolvedValue(me), listSeats: vi.fn() }} withdrawal={false} />);
+    await screen.findByText('Billing.OP_PLAN Professional');
+    const text = container.textContent;
+    expect(text).toContain('January 1, 2026 – December 15, 2026');
+    expect(text).toContain('Billing.OP_GRANT_PLAN: 100');
+    expect(text).toContain('Billing.OP_REMAINING');
+    expect(text).toContain('Billing.OP_VALID_UNTIL November 1, 2026');
+    expect(text).toContain('Billing.OP_GRANT_PACKAGE: 50');
+    expect(text.split('Billing.OP_VALID_UNTIL').length).toBe(2);
+  });
+
+  it('pins the end date of a seat holder', async () => {
+    const me = { ...base, access: { status: 'active', source: 'team', ends_at: null }, seat: { plan_key: 'team', plan_name: '', ends_at: '2026-11-01T00:00:00Z' } };
+    render(<SubscriptionSection api={{ getMe: vi.fn().mockResolvedValue(me), listSeats: vi.fn() }} withdrawal={false} />);
+    expect(await screen.findByText('Billing.OP_SEAT_UNTIL November 1, 2026')).toBeTruthy();
+  });
+});
