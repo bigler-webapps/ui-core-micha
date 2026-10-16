@@ -10,6 +10,7 @@ import { notificationsTranslations } from '../src/i18n/notificationsTranslations
 import { messagingTranslations } from '../src/i18n/messagingTranslations';
 import { sectionNavTranslations } from '../src/i18n/sectionNavTranslations';
 import { chatTranslations } from '../src/i18n/chatTranslations';
+import { receiptsTranslations } from '../src/i18n/receiptsTranslations';
 import { createAppTheme } from '../src/theme/createAppTheme';
 import { entries } from './entries';
 import { MockTransportProvider } from './mockTransport';
@@ -21,6 +22,7 @@ const translations = Object.fromEntries(
     ...messagingTranslations,
     ...sectionNavTranslations,
     ...chatTranslations,
+    ...receiptsTranslations,
   }).map(([key, value]) => [key, value.en]),
 );
 Object.assign(translations, {

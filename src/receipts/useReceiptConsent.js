@@ -16,6 +16,7 @@ export function useReceiptConsent(api) {
   }, [api, reloadCount]);
   const set = useCallback(async (next) => {
     setBusy(true); setError(false);
+    if (!next) setGranted(false); // fail closed: a revocation takes effect at once, whatever the server answers
     try { const answer = await api.setConsent(Boolean(next)); if (!liveRef.current) return false; setGranted(Boolean(answer?.granted)); setStatus('ready'); return Boolean(answer?.granted); }
     catch { if (liveRef.current) setError(true); return false; }
     finally { if (liveRef.current) setBusy(false); }

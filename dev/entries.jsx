@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { ChatComposer } from '../src/chat/ChatComposer';
 import { ModelPicker } from '../src/chat/ModelPicker';
+import { ReceiptCaptureCard } from '../src/receipts/ReceiptCaptureCard';
 import ChatBubbleOutlineIcon from '@mui/icons-material/ChatBubbleOutline';
 import InboxIcon from '@mui/icons-material/Inbox';
 import MoreHorizIcon from '@mui/icons-material/MoreHoriz';
@@ -713,6 +714,38 @@ function ChatPickerEntry() {
   </Stack>;
 }
 
+
+const receiptA = { merchant: 'Coop Pronto Bern', date: '2026-10-14', total: '14.60', currency: 'CHF', payment_method: 'card', confidence: 'high', items: [{ description: 'Sandwich', amount: '7.90', box: { x: 0.1, y: 0.3, w: 0.8, h: 0.05 } }, { description: 'Mineralwasser', amount: '2.50', box: null }, { description: 'Kaffee', amount: '4.20', box: null }], vat: [], box: { x: 0.05, y: 0.05, w: 0.9, h: 0.9 }, account_suggestions: [{ account_id: '6640', confidence: 'low' }] };
+const receiptB = { ...receiptA, merchant: 'SBB Billett', total: '23.40', confidence: 'high', items: [], box: { x: 0, y: 0, w: 0.5, h: 0.5 }, account_suggestions: [] };
+const receiptC = { ...receiptA, merchant: '', total: '', confidence: 'low', items: [], box: null, account_suggestions: [] };
+const receiptsHarnessApi = (mode) => {
+  let granted = mode !== 'noconsent';
+  return {
+    getConsent: async () => ({ granted }),
+    setConsent: async (value) => { granted = value; return { granted }; },
+    readReceipts: async () => {
+      await new Promise((resolve) => setTimeout(resolve, 600));
+      if (mode === 'several') return [receiptA, receiptB, receiptC];
+      if (mode === 'nothing') return [];
+      if (mode === 'unavailable') { const error = new Error('x'); error.response = { data: { code: 'provider_unavailable' } }; throw error; }
+      return [receiptA];
+    },
+  };
+};
+
+function ReceiptsEntry() {
+  const [mode, setMode] = useState('one');
+  const [values, setValues] = useState({ merchant: 'Coop Pronto Bern', date: '', total: '', currency: 'CHF', payment_method: 'cash', account: '', items: [] });
+  const [last, setLast] = useState('');
+  const api = useMemo(() => receiptsHarnessApi(mode), [mode]);
+  return <Stack spacing={2}>
+    <Stack direction="row" spacing={1} flexWrap="wrap">{['one', 'several', 'nothing', 'unavailable', 'noconsent'].map((item) => <Button key={item} size="small" variant={mode === item ? 'contained' : 'outlined'} onClick={() => setMode(item)}>{item}</Button>)}</Stack>
+    <ReceiptCaptureCard key={mode} api={api} values={values} accountLabel={(id) => id + ' Verpflegung'} onApply={(next, meta) => { setValues((current) => ({ ...current, ...next })); setLast(meta.mode + ': ' + Object.keys(next).join(', ')); }} onSelectReceipts={(list) => setLast(list.length + ' selected')} onUploadOnly={() => setLast('upload only')} />
+    <Typography variant="caption" data-testid="receipts-last">{last}</Typography>
+    <Typography variant="caption">{JSON.stringify(values)}</Typography>
+  </Stack>;
+}
+
 export const entries = [
   { id: 'theme-baseline', label: 'Theme / Shared baseline', Component: ThemeBaselineEntry },
   { id: 'mobile-bottom-nav', label: 'Navigation / Mobile bottom nav', Component: MobileBottomNavEntry },
@@ -738,4 +771,5 @@ export const entries = [
   { id: 'messaging-poll-card', label: 'Messaging / Poll card', Component: PollCardEntry },
   { id: 'messaging-scope-config', label: 'Messaging / Scope config', Component: MessagingScopeConfigEntry },
   { id: 'chat-model-picker', label: 'Chat / Model picker', Component: ChatPickerEntry },
+  { id: 'receipts-capture', label: 'Receipts / Capture card', Component: ReceiptsEntry },
 ];

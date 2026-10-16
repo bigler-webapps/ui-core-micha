@@ -1,11 +1,12 @@
 import { RECEIPT_MAX_BYTES } from './wire';
 
 const extOf = (file) => String(file?.name || '').split('.').pop().toLowerCase();
-export function receiptFileProblem(file) {
+// `checkSize: false` is for files that are scaled down before upload; the bound is checked again on the prepared file.
+export function receiptFileProblem(file, { checkSize = true } = {}) {
   const ext = extOf(file);
   const supported = ['image/jpeg', 'image/png', 'image/heic', 'image/heif', 'application/pdf'].includes(String(file?.type || '').toLowerCase()) || ['jpg', 'jpeg', 'png', 'heic', 'heif', 'pdf'].includes(ext);
   if (!supported) return 'unsupported_file_type';
-  if (!Number.isFinite(file?.size) || file.size > RECEIPT_MAX_BYTES) return 'file_too_large';
+  if (!Number.isFinite(file?.size) || (checkSize && file.size > RECEIPT_MAX_BYTES)) return 'file_too_large';
   return null;
 }
 function decode(file) { return new Promise((resolve, reject) => { const url = URL.createObjectURL(file); const image = new Image(); image.onload = () => { URL.revokeObjectURL(url); resolve(image); }; image.onerror = () => { URL.revokeObjectURL(url); reject(new Error('decode')); }; image.src = url; }); }
