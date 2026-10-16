@@ -68,6 +68,15 @@ export { default as StatTile } from './components/StatTile';
 export { default as SoftChip } from './components/SoftChip';
 export { default as EmptyState } from './components/EmptyState';
 
+// --- 5.1 Billing ---
+export { TokenBalanceBadge } from './billing/TokenBalanceBadge';
+export { TokenCostPreview } from './billing/TokenCostPreview';
+export { AccessEndedBanner } from './billing/AccessEndedBanner';
+export { PlanPicker } from './billing/PlanPicker';
+export { SubscriptionSection } from './billing/SubscriptionSection';
+export { useBilling } from './billing/useBilling';
+export { createBillingApi, defaultBillingApi } from './billing/api';
+
 // --- 6. Charts ---
 export { getNeutralChartPalette, useNeutralChartPalette } from './components/charts/palette';
 export {
@@ -135,4 +144,5 @@ export { onboardingTranslations } from './i18n/onboardingTranslations';
 export { chartsTranslations } from './i18n/chartsTranslations';
 export { messagingTranslations } from './i18n/messagingTranslations';
 export { chatTranslations } from './i18n/chatTranslations';
+export { billingTranslations } from './i18n/billingTranslations';
 export { createUiCoreTranslations, uiCoreTranslations } from './i18n/uiCoreTranslations';

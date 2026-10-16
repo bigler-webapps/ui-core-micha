@@ -1,5 +1,19 @@
 # Changelog
 
+## 4.4.0 - UCM-BILL-1
+
+Subscription and token surfaces in the main entry, against the `django-core-micha` billing API (DCM-BILL-1, `me/`,
+`checkout/`, `portal/`, `team/seats/`; base path `apiBase`, default `/api/billing/`). `PlanPicker` (monthly/yearly
+switch when both exist, team packages with seats and term, token packages with `kinds`) continues to Stripe Checkout:
+the checkout and portal links are followed only when the server returns an `https://` URL, through an injectable
+`redirect`. `SubscriptionSection` is the account section "Abo": the state comes only from the server (active
+subscription with end date and customer portal, team payer with seat management, team member, free access, ended
+access with `AccessEndedBanner` and renewal, token balance and "buy a package"). Also `TokenBalanceBadge`,
+`TokenCostPreview` (the cost, alternatives and balance the app passes in), `useBilling`, `createBillingApi` /
+`defaultBillingApi` and `billingTranslations` (de/en/fr/sw, part of `uiCoreTranslations`). The operator overview and the
+"free access" switch are not part of this release (UCM-BILL-2, no API yet). The server does not send the plan name,
+token expiry or seat-holder names, so none are shown.
+
 ## 4.3.0 - UCM-CHAT-5
 
 `ChatWorkspace` gets three optional props; without them it behaves as in 4.2.x. `getSendContext()` (synchronous, no

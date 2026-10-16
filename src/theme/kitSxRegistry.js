@@ -97,9 +97,14 @@ import { SIGN_UP_PAGE_ALERT_SX } from '../pages/SignUpPage';
 import { SIGNUP_CONFIRM_PAGE_ALERT_SX } from '../pages/SignupConfirmPage';
 import { REAUTH_MODAL_ALERT_SX, REAUTH_MODAL_TEXT_FIELD_SX } from '../auth/ReauthModal';
 import { createKitSxEntry } from './kitSxEntry';
+import { ACCESS_ENDED_BANNER_ALERT_SX } from '../billing/AccessEndedBanner';
+import { TOKEN_BALANCE_BADGE_SX } from '../billing/TokenBalanceBadge';
+import { PLAN_PICKER_ALERT_SX, PLAN_PICKER_CARD_ACTION_SX, PLAN_PICKER_CARD_SX, PLAN_PICKER_SELECTED_CARD_SX } from '../billing/PlanPicker';
+import { SUBSCRIPTION_SECTION_ALERT_SX } from '../billing/SubscriptionSection';
 
 const SX_EXPORTS = {
   ACCESS_CODE_ACTION_SX,
+  ACCESS_ENDED_BANNER_ALERT_SX,
   ACCESS_CODE_ALERT_SX,
   ACCESS_CODE_PRIMARY_ACTION_SX,
   ACCESS_CODE_SINGLE_USE_ALERT_SX,
@@ -166,6 +171,12 @@ const SX_EXPORTS = {
   SUPPORT_RECOVERY_AGENT_PAPER_SX,
   SUPPORT_RECOVERY_ALERT_SX,
   THREAD_DAY_SEPARATOR_SX,
+  TOKEN_BALANCE_BADGE_SX,
+  PLAN_PICKER_ALERT_SX,
+  PLAN_PICKER_CARD_ACTION_SX,
+  PLAN_PICKER_CARD_SX,
+  PLAN_PICKER_SELECTED_CARD_SX,
+  SUBSCRIPTION_SECTION_ALERT_SX,
   USER_INVITE_ACTION_SX,
   USER_INVITE_ALERT_SX,
   USER_LIST_ACTION_SX,
@@ -270,4 +281,11 @@ export const KIT_COMPONENT_SX_REGISTRY = [
   entry('SignupConfirmPage.alert', 'MuiAlert', SIGNUP_CONFIRM_PAGE_ALERT_SX),
   entry('ReauthModal.alert', 'MuiAlert', REAUTH_MODAL_ALERT_SX),
   entry('ReauthModal.field', 'MuiTextField', REAUTH_MODAL_TEXT_FIELD_SX),
+  entry('AccessEndedBanner.alert', 'MuiAlert', ACCESS_ENDED_BANNER_ALERT_SX),
+  entry('TokenBalanceBadge.root', 'MuiChip', TOKEN_BALANCE_BADGE_SX),
+  entry('PlanPicker.card', 'MuiCard', PLAN_PICKER_CARD_SX),
+  entry('PlanPicker.selectedCard', 'MuiCard', PLAN_PICKER_SELECTED_CARD_SX),
+  entry('PlanPicker.cardAction', 'MuiButtonBase', PLAN_PICKER_CARD_ACTION_SX),
+  entry('PlanPicker.alert', 'MuiAlert', PLAN_PICKER_ALERT_SX),
+  entry('SubscriptionSection.alert', 'MuiAlert', SUBSCRIPTION_SECTION_ALERT_SX),
 ];
