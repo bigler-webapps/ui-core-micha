@@ -86,15 +86,26 @@ export function SubscriptionSection({ api = defaultBillingApi, redirect = (url) 
       <Typography variant="h5">{t('Billing.HEADING')}</Typography>
       <Typography>{sourceLine}</Typography>
       {access.source !== 'free' && dateLine && <Typography>{dateLine}</Typography>}
+      {me.subscription && typeof me.subscription === 'object' && typeof me.subscription.plan_key === 'string' && typeof me.subscription.renews === 'boolean' && formatDate(me.subscription.current_period_end, i18n.language) && <Stack spacing={0.5}>
+        <Typography>{t('Billing.OP_PLAN', { plan: me.subscription.plan_name || me.subscription.plan_key })}</Typography>
+        {formatDate(me.subscription.current_period_end, i18n.language) && <Typography>{t('Billing.OP_UNTIL', { date: formatDate(me.subscription.current_period_end, i18n.language) })}</Typography>}
+        {typeof me.subscription.renews === 'boolean' && <Typography>{t(me.subscription.renews ? 'Billing.OP_RENEWS' : 'Billing.OP_ENDS')}</Typography>}
+      </Stack>}
       {access.source === 'subscription' && <Stack direction="row" spacing={1} alignItems="center">
         <Button disabled={busy} onClick={() => safeRedirect(() => api.openPortal(), 'Billing.ERROR_PORTAL')}>{t('Billing.MANAGE')}</Button>
         <Typography>{t('Billing.MANAGE_DETAILS')}</Typography>
       </Stack>}
       {access.source === 'team' && seatError && !seats && <Alert severity="error" sx={SUBSCRIPTION_SECTION_ALERT_SX}>{t('Billing.ERROR_LOAD')}</Alert>}
+      {me.team && Number.isInteger(me.team.seats_used) && Number.isInteger(me.team.seats_total) && <Stack spacing={0.5}>
+        <Typography>{t('Billing.OP_SEATS_USED', { n: formatTokens(me.team.seats_used, i18n.language), m: formatTokens(me.team.seats_total, i18n.language) })}</Typography>
+        {(Array.isArray(me.team.seat_holders) ? me.team.seat_holders : []).map((holder) => <Stack key={holder.user_id}>
+          <Typography>{holder.name || holder.email}</Typography>{holder.name && <Typography color="text.secondary">{holder.email}</Typography>}
+        </Stack>)}
+      </Stack>}
       {access.source === 'team' && seats && <Stack spacing={1}>
         <Typography>{t('Billing.TEAM_SEATS')}</Typography>
         {seats.map((seat) => <Stack key={seat.user_id} direction="row" spacing={1} alignItems="center">
-          <Typography>{String(seat.user_id)}</Typography>
+          {(() => { const holder = (me.team?.seat_holders || []).find((entry) => String(entry.user_id) === String(seat.user_id)); return <Stack><Typography>{holder?.name || holder?.email || String(seat.user_id)}</Typography>{holder?.name && <Typography color="text.secondary">{holder.email}</Typography>}</Stack>; })()}
           <Button disabled={busy} onClick={() => updateSeat(() => api.removeSeat({ userId: seat.user_id }))}>{t('Billing.SEAT_REMOVE')}</Button>
         </Stack>)}
         <Stack direction="row" spacing={1}>
@@ -104,10 +115,19 @@ export function SubscriptionSection({ api = defaultBillingApi, redirect = (url) 
         {seatError && <Alert severity="error" sx={SUBSCRIPTION_SECTION_ALERT_SX}>{typeof seatError === 'string' ? t(seatError) : t('Billing.ERROR_LOAD')}</Alert>}
       </Stack>}
       {actionError && <Alert severity="error" sx={SUBSCRIPTION_SECTION_ALERT_SX}>{t(actionError)}</Alert>}
+      {me.seat && typeof me.seat === 'object' && formatDate(me.seat.ends_at, i18n.language) && <Typography>{t('Billing.OP_SEAT_UNTIL', { date: formatDate(me.seat.ends_at, i18n.language) })}</Typography>}
     </>}
 
     <Stack direction="row" spacing={1} alignItems="center"><Typography>{t('Billing.BALANCE_LABEL')}</Typography><TokenBalanceBadge balance={tokens.balance} /></Stack>
     <Typography>{t('Billing.BALANCE', { tokens: formatTokens(tokens.balance, i18n.language) })}</Typography>
+    {Array.isArray(tokens.grants) && tokens.grants.length > 0 && <Stack spacing={0.5}>{tokens.grants.map((grant, index) => {
+      if (!['plan', 'package'].includes(grant?.source) || !Number.isInteger(grant.amount) || !Number.isInteger(grant.remaining)) return null;
+      return <Stack key={`${grant.source}-${grant.expires_at || 'never'}-${index}`} spacing={0.25}>
+        <Typography>{t(grant.source === 'plan' ? 'Billing.OP_GRANT_PLAN' : 'Billing.OP_GRANT_PACKAGE')}: {formatTokens(grant.amount, i18n.language)}</Typography>
+        <Typography>{formatTokens(grant.remaining, i18n.language)} {t('Billing.OP_REMAINING')}</Typography>
+        {formatDate(grant.expires_at, i18n.language) && <Typography>{t('Billing.OP_VALID_UNTIL', { date: formatDate(grant.expires_at, i18n.language) })}</Typography>}
+      </Stack>;
+    })}</Stack>}
     {packagePlans.length > 0 && <Stack spacing={1}>
       <Typography variant="h6">{t('Billing.BUY_PACKAGE')}</Typography>
       {packagePlans.map((plan) => <Stack key={plan.key} direction="row" spacing={1} alignItems="center">

@@ -1,5 +1,20 @@
 # Changelog
 
+## 4.8.0 - UCM-BILL-2
+
+Operator surfaces for billing and a fuller "Abo" section, against the `django-core-micha` operator endpoints
+(DCM-BILL-5, dcm >= 3.7.0). `OperatorOverview` (month selector; active accounts by source, new and ended subscriptions,
+packages sold, tokens granted, used and expired, AI cost and cost per token, AI cost by model) is read-only and renders
+nothing without the operator right or without billing. `useBillingUsersColumn` gives the shared Users tab the column
+"Zugang" (plan and end date, team seat, free access, read-only) with the switch "Ohne Abo freigeschaltet" per account
+(`FreeAccessSwitch`: a mandatory reason when switching on, a confirmation when switching off; the switch only shows what
+the server confirmed); `AccountPage` takes the new optional prop `billingUsers` (`true` or a billing api) and adds the
+column, without it nothing changes and no request is made. `SubscriptionSection` shows plan name and period with
+"renews" or "ends", the token grants with remaining amount and expiry, for a team payer "n of m seats used" with the
+holders' names, and for a seat holder "team seat until"; a `me/` without the new keys renders as before.
+`createBillingApi` gets `getOperatorOverview`, `listOperatorAccounts`, `grantFreeAccess`, `revokeFreeAccess`; new keys
+`Billing.OP_*`.
+
 ## 4.7.1 - UCM-BILL-4
 
 The withdrawal dialog no longer says the subscription will not renew for a token package: for `kind: token_package` it says that the unused tokens of the purchase are removed (`Billing.WITHDRAWAL_EFFECT_TOKENS`, de, de_informal, en, fr, sw).

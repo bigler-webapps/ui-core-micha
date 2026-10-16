@@ -35,6 +35,8 @@ import { QrSignupValidityManager } from '../components/QrSignupValidityManager';
 import { SupportRecoveryRequestsTab } from '../components/SupportRecoveryRequestsTab';
 import { BulkInviteCsvTab } from '../components/BulkInviteCsvTab';
 import { fetchAuthPolicy, updateUserProfile } from '../auth/authApi'; // Ggf. Pfad anpassen
+import { defaultBillingApi } from '../billing/api';
+import { useBillingUsersColumn } from '../billing/useBillingUsersColumn';
 
 export function AccountPage({
   userListExtraColumns = [],
@@ -53,6 +55,7 @@ export function AccountPage({
   bulkInviteCsvProps = {},
   extraTabs = [],
   showProfileStatements = true,
+  billingUsers = false,
 }) {
   const { t, i18n } = useTranslation();
   const { user, login, loading } = useContext(AuthContext);
@@ -61,6 +64,8 @@ export function AccountPage({
   const [authPolicyError, setAuthPolicyError] = useState('');
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const billingApi = billingUsers && typeof billingUsers === 'object' ? billingUsers : defaultBillingApi;
+  const billing = useBillingUsersColumn({ api: billingApi, enabled: Boolean(billingUsers) });
 
   // 1. URL State Management
   const currentTabRaw = searchParams.get('tab') || 'profile';
@@ -270,7 +275,7 @@ export function AccountPage({
           <UserListComponent
             roles={activeRoles} 
             currentUser={user}
-            extraColumns={userListExtraColumns}
+            extraColumns={[...userListExtraColumns, ...billing.extraColumns]}
             extraRowActions={userListExtraRowActions}
             extraContext={userListExtraContext}
             refreshTrigger={userListRefreshTrigger}

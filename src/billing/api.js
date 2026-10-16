@@ -14,6 +14,16 @@ export function createBillingApi(overrides = {}, { apiBase = '/api/billing/' } =
     listWithdrawals: () => data(apiClient.get(urls.withdrawals)),
     previewWithdrawal: (id) => data(apiClient.get(urls.withdrawalPreview(id))),
     confirmWithdrawal: (id) => data(apiClient.post(urls.withdrawalConfirm(id), { confirm: true })),
+    getOperatorOverview: ({ month } = {}) => data(month === undefined ? apiClient.get(urls.operatorOverview) : apiClient.get(urls.operatorOverview, { params: { month } })),
+    listOperatorAccounts: ({ q, page, pageSize } = {}) => {
+      const params = {};
+      if (q !== undefined) params.q = q;
+      if (page !== undefined) params.page = page;
+      if (pageSize !== undefined) params.page_size = pageSize;
+      return data(apiClient.get(urls.operatorAccounts, { params }));
+    },
+    grantFreeAccess: (userId, reason) => data(apiClient.post(urls.operatorFreeAccess(userId), { reason })),
+    revokeFreeAccess: (userId) => data(apiClient.delete(urls.operatorFreeAccess(userId))),
   };
   return { ...defaults, ...overrides };
 }

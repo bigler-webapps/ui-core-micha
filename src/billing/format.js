@@ -22,6 +22,14 @@ export function formatTokens(count, language) {
   return new Intl.NumberFormat(intlLocale(language), { maximumFractionDigits: 0 }).format(count);
 }
 
+export function formatUsdMicros(micros, language, { fractionDigits = 2 } = {}) {
+  if (!Number.isFinite(micros)) return '';
+  return new Intl.NumberFormat(intlLocale(language), {
+    style: 'currency', currency: 'USD', minimumFractionDigits: fractionDigits === 2 ? 2 : 0,
+    maximumFractionDigits: fractionDigits,
+  }).format(micros / 1_000_000);
+}
+
 export function formatDate(iso, language) {
   if (typeof iso !== 'string' || !iso) return '';
   const date = new Date(iso);

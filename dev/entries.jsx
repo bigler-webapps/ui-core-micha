@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from 'react';
 import { ChatComposer } from '../src/chat/ChatComposer';
 import { ModelPicker } from '../src/chat/ModelPicker';
 import { ReceiptCaptureCard } from '../src/receipts/ReceiptCaptureCard';
+import { OperatorOverview } from '../src/billing/OperatorOverview';
+import { BillingAccessCell } from '../src/billing/BillingAccessCell';
 import ChatBubbleOutlineIcon from '@mui/icons-material/ChatBubbleOutline';
 import InboxIcon from '@mui/icons-material/Inbox';
 import MoreHorizIcon from '@mui/icons-material/MoreHoriz';
@@ -746,6 +748,20 @@ function ReceiptsEntry() {
   </Stack>;
 }
 
+const operatorOverviewData = { app: 'demo', month: '2026-10', accounts: { active: 42, by_source: { subscription: { monthly: 20, yearly: 9 }, team_seat: 8, free_access: 5 } }, subscriptions: { new: 6, ended: 2 }, team: { packages_active: 2, packages_sold: 1, seats_total: 12, seats_used: 8 }, token_packages: { sold: 4, tokens: 400000 }, tokens: { granted: 1200000, used: 830000, expired: 40000 }, ai_cost: { calls: 1830, usd_micros: 21450000, by_model: [{ provider: 'openai', model: 'gpt-6', calls: 1200, usd_micros: 15000000, input_tokens: 900000, output_tokens: 300000, cache_tokens: 0 }, { provider: 'anthropic', model: 'sonnet-5-5', calls: 630, usd_micros: 6450000, input_tokens: 500000, output_tokens: 120000, cache_tokens: 10000 }], usd_micros_per_used_token: 25843 } };
+const operatorHarnessApi = { getOperatorOverview: async () => operatorOverviewData };
+const operatorAccounts = [
+  { user_id: 1, email: 'anna@example.test', name: 'Anna', access: { status: 'active', source: 'subscription', ends_at: '2026-12-01T00:00:00Z' }, plan_key: 'yearly', term_ends_at: '2026-12-01T00:00:00Z', token_balance: 1200, free_access: null },
+  { user_id: 2, email: 'ben@example.test', name: 'Ben', access: { status: 'active', source: 'free', ends_at: null }, plan_key: null, term_ends_at: null, token_balance: 0, free_access: { reason: 'Pilot', granted_by: 'op@example.test', granted_at: '2026-10-01T00:00:00Z' } },
+  { user_id: 3, email: 'cara@example.test', name: 'Cara', access: { status: 'read_only', source: null, ends_at: '2026-09-01T00:00:00Z' }, plan_key: null, term_ends_at: null, token_balance: 0, free_access: null },
+];
+function OperatorBillingEntry() {
+  return <Stack spacing={3}>
+    <OperatorOverview api={operatorHarnessApi} />
+    <Stack spacing={1}>{operatorAccounts.map((account) => <BillingAccessCell key={account.user_id} account={account} api={{ grantFreeAccess: async () => ({ user_id: account.user_id, free_access: { reason: 'x', granted_by: 'op', granted_at: '2026-10-17T00:00:00Z' }, access: { status: 'active', source: 'free', ends_at: null } }), revokeFreeAccess: async () => ({ user_id: account.user_id, free_access: null, access: { status: 'read_only', source: null, ends_at: null } }) }} onChanged={() => {}} />)}</Stack>
+  </Stack>;
+}
+
 export const entries = [
   { id: 'theme-baseline', label: 'Theme / Shared baseline', Component: ThemeBaselineEntry },
   { id: 'mobile-bottom-nav', label: 'Navigation / Mobile bottom nav', Component: MobileBottomNavEntry },
@@ -772,4 +788,5 @@ export const entries = [
   { id: 'messaging-scope-config', label: 'Messaging / Scope config', Component: MessagingScopeConfigEntry },
   { id: 'chat-model-picker', label: 'Chat / Model picker', Component: ChatPickerEntry },
   { id: 'receipts-capture', label: 'Receipts / Capture card', Component: ReceiptsEntry },
+  { id: 'billing-operator', label: 'Billing / Operator overview and access', Component: OperatorBillingEntry },
 ];

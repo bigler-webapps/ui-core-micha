@@ -103,6 +103,8 @@ import { PLAN_PICKER_ALERT_SX, PLAN_PICKER_CARD_SX, PLAN_PICKER_LABEL_SX, PLAN_P
 import { SUBSCRIPTION_SECTION_ALERT_SX } from '../billing/SubscriptionSection';
 import { WITHDRAWAL_DIALOG_ALERT_SX } from '../billing/WithdrawalDialog';
 import { WITHDRAWAL_SECTION_ALERT_SX } from '../billing/WithdrawalSection';
+import { FREE_ACCESS_SWITCH_ALERT_SX } from '../billing/FreeAccessSwitch';
+import { OPERATOR_OVERVIEW_ALERT_SX } from '../billing/OperatorOverview';
 import { RECEIPT_CONSENT_ALERT_SX, RECEIPT_CONSENT_CONTROL_SX } from '../receipts/ReceiptConsentSwitch';
 import { RECEIPT_CAPTURE_ACTION_SX, RECEIPT_CAPTURE_ALERT_SX, RECEIPT_CAPTURE_CARD_SX, RECEIPT_CAPTURE_PROGRESS_SX } from '../receipts/ReceiptCaptureCard';
 import { RECEIPT_PICKER_ACTION_SX, RECEIPT_PICKER_CARD_SX } from '../receipts/ReceiptPicker';
@@ -111,6 +113,8 @@ import { RECEIPT_REVIEW_ACTIONS_SX, RECEIPT_REVIEW_ACTION_BUTTON_SX, RECEIPT_REV
 const SX_EXPORTS = {
   ACCESS_CODE_ACTION_SX,
   ACCESS_ENDED_BANNER_ALERT_SX,
+  FREE_ACCESS_SWITCH_ALERT_SX,
+  OPERATOR_OVERVIEW_ALERT_SX,
   ACCESS_CODE_ALERT_SX,
   ACCESS_CODE_PRIMARY_ACTION_SX,
   ACCESS_CODE_SINGLE_USE_ALERT_SX,
@@ -307,6 +311,8 @@ export const KIT_COMPONENT_SX_REGISTRY = [
   entry('PlanPicker.label', 'MuiFormControlLabel', PLAN_PICKER_LABEL_SX),
   entry('PlanPicker.alert', 'MuiAlert', PLAN_PICKER_ALERT_SX),
   entry('SubscriptionSection.alert', 'MuiAlert', SUBSCRIPTION_SECTION_ALERT_SX),
+  entry('FreeAccessSwitch.alert', 'MuiAlert', FREE_ACCESS_SWITCH_ALERT_SX),
+  entry('OperatorOverview.alert', 'MuiAlert', OPERATOR_OVERVIEW_ALERT_SX),
   entry('WithdrawalDialog.alert', 'MuiAlert', WITHDRAWAL_DIALOG_ALERT_SX),
   entry('WithdrawalSection.alert', 'MuiAlert', WITHDRAWAL_SECTION_ALERT_SX),
   entry('ReceiptConsentSwitch.alert', 'MuiAlert', RECEIPT_CONSENT_ALERT_SX),
