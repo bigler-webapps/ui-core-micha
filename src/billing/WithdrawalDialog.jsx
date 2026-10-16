@@ -13,7 +13,8 @@ export function describeCalculation(preview, t, language) {
   const token = Number(preview?.token_share_cents) || 0;
   if (time !== 0 || (preview?.kind !== 'token_package' && token === 0)) items.push(t('Billing.WITHDRAWAL_TIME_SHARE', { amount: price(time) }));
   if (token !== 0 || preview?.kind === 'token_package') items.push(t('Billing.WITHDRAWAL_TOKEN_SHARE', { amount: price(token) }));
-  items.push(t('Billing.WITHDRAWAL_USED', { amount: price(Math.max(time, token)) }));
+  const used = Number.isFinite(preview?.used_cents) ? preview.used_cents : Math.max(time, token);
+  items.push(t('Billing.WITHDRAWAL_USED', { amount: price(used) }));
   items.push(t('Billing.WITHDRAWAL_REFUND', { amount: price(preview?.refund_cents) }));
   return items.join(' · ');
 }
@@ -46,7 +47,7 @@ export function WithdrawalDialog({ open, purchase, api, onClose, onWithdrawn }) 
     }
     request.then((data) => {
       if (!live) return;
-      setPreview(data); setState(data?.eligible ? 'ready' : 'not_possible');
+      setPreview(data); setState(data?.eligible === true ? 'ready' : 'not_possible');
     }).catch((error) => {
       if (!live) return;
       setErrorStatus(error?.response?.status); setState('preview_error');
