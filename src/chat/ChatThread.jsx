@@ -28,13 +28,20 @@ function Answer({ turn, tool, onRetry, chat, renderAnswerExtra, usageToTokens })
   const { t, i18n } = useTranslation();
   const generating = turn.state === 'generating';
   const failed = ['failed', 'cancelled'].includes(turn.state) && turn.error_code;
+  const replyCaption = (turn) => {
+    const tokens = turn.usage && usageToTokens?.(turn.usage);
+    if (Number.isInteger(tokens) && tokens >= 0) {
+      return t('Chat.replyTokens', { model: turn.model || '', effort: turn.effort ? t(`Chat.effort.${turn.effort}`) : '', n: new Intl.NumberFormat(typeof i18n?.language === 'string' ? i18n.language.split('_')[0] || undefined : undefined).format(tokens) });
+    }
+    return selectionLine(turn, t);
+  };
   return (
     <Stack spacing={1} aria-busy={generating}>
       {turn.assistant_text ? <MarkdownReply text={turn.assistant_text} /> : null}
       {generating && !turn.assistant_text && !tool ? <Typography variant="body2" color="text.secondary">{t('Chat.typing')}</Typography> : null}
       {generating && tool ? <Chip size="small" color="primary" variant="outlined" label={tool.label} sx={CHAT_THREAD_TOOL_CHIP_SX} /> : null}
       <SourceChips sources={turn.sources} />
-      {!generating && selectionLine(turn, t) ? <Typography variant="caption" color="text.secondary">{(() => { const n = turn.usage && usageToTokens?.(turn.usage); return Number.isInteger(n) && n >= 0 ? t('Chat.replyTokens', { model: turn.model || '', effort: turn.effort ? t(`Chat.effort.${turn.effort}`) : '', n: new Intl.NumberFormat(typeof i18n?.language === "string" ? i18n.language.split("_")[0] || undefined : undefined).format(n) }) : selectionLine(turn, t); })()}</Typography> : null}
+      {!generating && replyCaption(turn) ? <Typography variant="caption" color="text.secondary">{replyCaption(turn)}</Typography> : null}
       {renderAnswerExtra ? <React.Fragment key={chat?.id}>{renderAnswerExtra({ turn, chat, appFrames: turn.appFrames ?? [] })}</React.Fragment> : null}
       {turn.state === 'interrupted' ? (
         <Stack direction="row" alignItems="center" gap={1}>

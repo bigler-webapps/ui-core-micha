@@ -53,6 +53,28 @@ export function ModelPicker({ entries = [], selection, onChange, disabled = fals
   const grouped = LEVELS.map((level) => [level, entries.filter((entry) => entry.level === level)]).filter(([, items]) => items.length);
   const unknown = entries.filter((entry) => !LEVELS.includes(entry.level));
   const selectEntry = (entry) => onChange?.({ entry: entry.id, effort: supported(entry, effort) ? effort : entry.efforts?.[0] });
+  const providerName = (entry) => ({ anthropic: 'Anthropic', claude_code: 'Anthropic', openai: 'OpenAI' })[entry.provider];
+  const entryRow = (entry) => {
+    const shown = supported(entry, effort) ? effort : entry.efforts?.[0];
+    const estimate = estimateText(entry, shown, t, language);
+    const provider = providerName(entry);
+    const checked = entry.id === active?.id;
+    return <ListItemButton key={entry.id} role="radio" aria-checked={checked} tabIndex={checked ? 0 : -1} data-model-entry={entry.id} selected={checked} sx={CHAT_MODEL_ENTRY_SX} onClick={() => selectEntry(entry)}>
+      <ListItemText primary={<Typography variant="body2" sx={{ fontWeight: 600 }}>{entry.label || entry.model}</Typography>} secondary={<>{provider ? t('Chat.by', { provider }) : null}{estimate ? <Box component="span" sx={{ display: 'block' }}>{estimate}</Box> : null}</>} />
+    </ListItemButton>;
+  };
+  // Radio-group keyboard behaviour: arrows move the focus and the choice, only the checked row is a tab stop.
+  const moveSelection = (event) => {
+    const keys = { ArrowDown: 1, ArrowRight: 1, ArrowUp: -1, ArrowLeft: -1 };
+    if (!(event.key in keys)) return;
+    const order = [...grouped.flatMap(([, items]) => items), ...unknown];
+    const at = order.findIndex((entry) => entry.id === active?.id);
+    const next = order[(at + keys[event.key] + order.length) % order.length];
+    if (!next) return;
+    event.preventDefault();
+    selectEntry(next);
+    [...event.currentTarget.querySelectorAll('[data-model-entry]')].find((node) => node.dataset.modelEntry === next.id)?.focus();
+  };
   const content = (
     <Box role="dialog" aria-labelledby="chat-model-picker-title" sx={{ p: 2, width: narrow ? 'auto' : 360, maxWidth: '100%', maxHeight: narrow ? '82vh' : 'min(640px, 80vh)', overflowY: 'auto' }}>
       <Stack spacing={1.25}>
@@ -60,15 +82,13 @@ export function ModelPicker({ entries = [], selection, onChange, disabled = fals
           <Typography id="chat-model-picker-title" variant="subtitle1" sx={{ fontWeight: 600 }}>{t('Chat.pickerTitle')}</Typography>
           <IconButton aria-label={t('Chat.close')} size="small" sx={CHAT_MODEL_CLOSE_SX} onClick={() => setOpen(false)}><CloseIcon fontSize="small" /></IconButton>
         </Stack>
-        <Box role="radiogroup" aria-labelledby="chat-model-picker-title">
+        <Box role="radiogroup" aria-labelledby="chat-model-picker-title" onKeyDown={moveSelection}>
           {grouped.map(([level, items]) => <Box key={level}>
             <Typography variant="subtitle2">{t(`Chat.level.${level}`)}</Typography>
             <Typography variant="caption" color="text.secondary">{t(`Chat.levelHint.${level}`)}</Typography>
-            <List dense disablePadding>{items.map((entry) => <ListItemButton key={entry.id} role="radio" aria-checked={entry.id === active?.id} selected={entry.id === active?.id} sx={CHAT_MODEL_ENTRY_SX} onClick={() => selectEntry(entry)}>
-              <ListItemText primary={<Typography variant="body2" sx={{ fontWeight: 600 }}>{entry.label || entry.model}</Typography>} secondary={<>{t('Chat.by', { provider: entry.provider === 'openai' ? 'OpenAI' : 'Anthropic' })}{estimateText(entry, supported(entry, effort) ? effort : entry.efforts?.[0], t, language) ? <Box component="span" sx={{ display: 'block' }}>{estimateText(entry, supported(entry, effort) ? effort : entry.efforts?.[0], t, language)}</Box> : null}</>} />
-            </ListItemButton>)}</List>
+            <List dense disablePadding>{items.map(entryRow)}</List>
           </Box>)}
-          {unknown.length ? <List dense disablePadding>{unknown.map((entry) => <ListItemButton key={entry.id} role="radio" aria-checked={entry.id === active?.id} selected={entry.id === active?.id} sx={CHAT_MODEL_ENTRY_SX} onClick={() => selectEntry(entry)}><ListItemText primary={<Typography variant="body2" sx={{ fontWeight: 600 }}>{entry.label || entry.model}</Typography>} secondary={<>{t('Chat.by', { provider: entry.provider === 'openai' ? 'OpenAI' : 'Anthropic' })}{estimateText(entry, supported(entry, effort) ? effort : entry.efforts?.[0], t, language) ? <Box component="span" sx={{ display: 'block' }}>{estimateText(entry, supported(entry, effort) ? effort : entry.efforts?.[0], t, language)}</Box> : null}</>} /></ListItemButton>)}</List> : null}
+          {unknown.length ? <List dense disablePadding>{unknown.map(entryRow)}</List> : null}
         </Box>
         {active ? <Box>
           <Typography variant="subtitle2" sx={{ mb: 0.75 }}>{t('Chat.effortQuestion')}</Typography>

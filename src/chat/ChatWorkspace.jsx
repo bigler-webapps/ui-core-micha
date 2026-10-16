@@ -76,6 +76,8 @@ export function ChatWorkspace({ apiBase, wsUrl, api: apiOverrides, scope, sx, un
 
   const [catalogue, setCatalogue] = useState({ entries: [], default: null });
   const [summary, setSummary] = useState(null);
+  // The chat the current catalogue was requested for: a general catalogue must never drive the stored selection of a chat.
+  const [catalogueChatId, setCatalogueChatId] = useState(null);
   const [chats, setChats] = useState([]);
   const [archived, setArchived] = useState([]);
   const [nextChats, setNextChats] = useState(null);
@@ -121,7 +123,7 @@ export function ChatWorkspace({ apiBase, wsUrl, api: apiOverrides, scope, sx, un
   const latestUsageTurn = [...turns].reverse().find((turn) => turn.usage);
   const longChat = longChatTokens > 0 && Number.isFinite(latestUsageTurn?.usage?.context_tokens) && latestUsageTurn.usage.context_tokens >= longChatTokens;
   const refreshCatalogue = useCallback(async (chatId) => {
-    try { const next = await api.getCatalogue(chatId !== undefined ? { chat: chatId } : {}); setCatalogue(next); return next; } catch { return null; }
+    try { const next = await api.getCatalogue(chatId !== undefined ? { chat: chatId } : {}); setCatalogue(next); setCatalogueChatId(chatId ?? null); return next; } catch { return null; }
   }, [api]);
 
   // Bumped on every scope change so that a list response of the previous scope is dropped.
@@ -308,14 +310,14 @@ export function ChatWorkspace({ apiBase, wsUrl, api: apiOverrides, scope, sx, un
   });
   const fallbackApplied = useRef(new Set());
   useEffect(() => {
-    if (!chat || !catalogue.entries.length || fallbackApplied.current.has(chat.id)) return;
+    if (!chat || catalogueChatId !== chat.id || !catalogue.entries.length || fallbackApplied.current.has(chat.id)) return;
     const valid = catalogue.entries.some((entry) => entry.id === chat.selection?.entry && entry.efforts?.includes(chat.selection?.effort));
     if (valid) return;
     const entry = catalogue.entries.find((item) => item.default) || catalogue.entries[0];
     if (!entry) return;
     fallbackApplied.current.add(chat.id);
     updateChat(chat, { selection: { entry: entry.id, effort: entry.efforts?.[0] } });
-  }, [chat, catalogue, updateChat]);
+  }, [chat, catalogue, catalogueChatId, updateChat]);
   const deleteChat = guarded(async (target) => {
     await api.deleteChat(target.id);
     setChats((current) => current.filter((item) => item.id !== target.id));
