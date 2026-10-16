@@ -179,3 +179,45 @@ describe('workspace wiring of long chat and summary', () => {
     expect(screen.getByText('Earlier talk')).toBeTruthy();
   });
 });
+
+describe('adapter, keyboard and served default', () => {
+  it('sends the chat id to the catalogue endpoint and the plain call without one', async () => {
+    const { default: apiClient } = await import('../src/auth/apiClient');
+    const get = vi.spyOn(apiClient, 'get').mockResolvedValue({ data: { entries: [] } });
+    const { createChatApi } = await import('../src/chat/api');
+    const api = createChatApi({}, { apiBase: '/api/assistant/' });
+    await api.getCatalogue({ chat: 7 });
+    expect(get).toHaveBeenLastCalledWith('/api/assistant/catalogue/', { params: { chat: 7 } });
+    await api.getCatalogue();
+    expect(get).toHaveBeenLastCalledWith('/api/assistant/catalogue/');
+    get.mockRestore();
+  });
+
+  it('selects the focused model with Space or Enter', () => {
+    const onChange = vi.fn();
+    render(<ModelPicker entries={entries} selection={{ entry: 'top', effort: 'low' }} onChange={onChange} open onOpenChange={() => {}} />);
+    const row = screen.getAllByRole('radio')[1];
+    row.focus();
+    fireEvent.keyDown(row, { key: 'Enter' });
+    expect(onChange).toHaveBeenLastCalledWith({ entry: 'bal', effort: 'low' });
+    fireEvent.keyDown(row, { key: ' ' });
+    fireEvent.keyUp(row, { key: ' ' });
+    expect(onChange).toHaveBeenCalledTimes(2);
+  });
+
+  it('uses the default the server names, with its effort, when a chat has no valid selection', async () => {
+    const chat = { id: 7, title: 'Budget', archived_at: null, selection: null };
+    const served = { entries: [{ id: 'first', label: 'First', provider: 'openai', efforts: ['low'] }, { id: 'served', label: 'Served', provider: 'openai', efforts: ['low', 'high'] }], default: { entry: 'served', effort: 'high' } };
+    const api = {
+      getStatus: vi.fn().mockResolvedValue({ status: 'available' }),
+      getCatalogue: vi.fn().mockResolvedValue(served),
+      listChats: vi.fn().mockImplementation(async ({ archived } = {}) => ({ results: archived ? [] : [chat], next: null })),
+      createChat: vi.fn(), deleteChat: vi.fn(),
+      updateChat: vi.fn().mockImplementation(async (id, patch) => ({ ...chat, id, ...patch })),
+      listTurns: vi.fn().mockResolvedValue({ results: [], next: null }),
+    };
+    render(<ChatWorkspace api={api} wsUrl={(id) => `ws://test/${id}`} />);
+    fireEvent.click(await screen.findByText('Budget'));
+    await waitFor(() => expect(api.updateChat).toHaveBeenCalledWith(7, { selection: { entry: 'served', effort: 'high' } }));
+  });
+});

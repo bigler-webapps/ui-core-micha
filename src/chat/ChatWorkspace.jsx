@@ -124,15 +124,18 @@ export function ChatWorkspace({ apiBase, wsUrl, api: apiOverrides, scope, sx, un
   const longChat = longChatTokens > 0 && Number.isFinite(latestUsageTurn?.usage?.context_tokens) && latestUsageTurn.usage.context_tokens >= longChatTokens;
   // Only the newest catalogue request may update the state, so a slow answer for a chat that was left cannot overwrite the active one.
   const catalogueRequest = useRef(0);
+  const [catalogueLoading, setCatalogueLoading] = useState(false);
   const refreshCatalogue = useCallback(async (chatId) => {
     const request = ++catalogueRequest.current;
+    setCatalogueLoading(true);
     try {
       const next = await api.getCatalogue(chatId !== undefined ? { chat: chatId } : {});
       if (request !== catalogueRequest.current) return null;
       setCatalogue(next); setCatalogueChatId(chatId ?? null);
       return next;
-    } catch { return null; }
+    } catch { return null; } finally { if (request === catalogueRequest.current) setCatalogueLoading(false); }
   }, [api]);
+  const shownChatId = useRef(null);
 
   // Bumped on every scope change so that a list response of the previous scope is dropped.
   const scopeVersion = useRef(0);
@@ -206,6 +209,7 @@ export function ChatWorkspace({ apiBase, wsUrl, api: apiOverrides, scope, sx, un
   // Clear the previous chat's content before the browser paints, so a host-driven switch never flashes it under the new title.
   useLayoutEffect(() => {
     connectedChatId.current = null; // the socket of the new chat has not opened yet
+    shownChatId.current = chat?.id ?? null;
     setTurns([]); setOlderCursor(null); setTool(null); setProblem(null); setTrimmedCount(null); setSidePanelOpen(false); setDraft(''); setOpenedOnce(false); setSummary(null);
   }, [chat?.id]);
 
@@ -227,7 +231,7 @@ export function ChatWorkspace({ apiBase, wsUrl, api: apiOverrides, scope, sx, un
       const running = turnsRef.current.findLast(isGenerating);
       appFrameCallback.current?.({ name: frame.name, payload: frame.payload, chatId, turnId: running?.id });
     } else if (frame.type === 'notice' && frame.code === 'history_trimmed') setTrimmedCount(frame.left_out || 0);
-    else if (frame.type === 'notice' && frame.code === 'summarised') { api.listTurns(chatId).then((page) => setSummary(page.summary || null)).catch(() => {}); }
+    else if (frame.type === 'notice' && frame.code === 'summarised') { api.listTurns(chatId).then((page) => { if (shownChatId.current === chatId) setSummary(page.summary || null); }).catch(() => {}); }
     else if (frame.type === 'tool') setTool(frame.phase === 'start' ? { label: frame.label, name: frame.name } : null);
     else if (frame.type === 'turn' && frame.turn) {
       setTool(null);
@@ -321,10 +325,11 @@ export function ChatWorkspace({ apiBase, wsUrl, api: apiOverrides, scope, sx, un
     if (!chat || catalogueChatId !== chat.id || !catalogue.entries.length || fallbackApplied.current.has(chat.id)) return;
     const valid = catalogue.entries.some((entry) => entry.id === chat.selection?.entry && entry.efforts?.includes(chat.selection?.effort));
     if (valid) return;
-    const entry = catalogue.entries.find((item) => item.default) || catalogue.entries[0];
+    const served = catalogue.entries.find((item) => item.id === catalogue.default?.entry && item.efforts?.includes(catalogue.default?.effort));
+    const entry = served || catalogue.entries.find((item) => item.default) || catalogue.entries[0];
     if (!entry) return;
     fallbackApplied.current.add(chat.id);
-    updateChat(chat, { selection: { entry: entry.id, effort: entry.efforts?.[0] } });
+    updateChat(chat, { selection: { entry: entry.id, effort: served ? catalogue.default.effort : entry.efforts?.[0] } });
   }, [chat, catalogue, catalogueChatId, updateChat]);
   const deleteChat = guarded(async (target) => {
     await api.deleteChat(target.id);
@@ -447,7 +452,7 @@ export function ChatWorkspace({ apiBase, wsUrl, api: apiOverrides, scope, sx, un
             {renderComposerExtra ? <Box key={chat.id}>{renderComposerExtra({ chat })}</Box> : null}
             {longChat ? <Alert severity="info" action={<Button color="inherit" size="small" onClick={createChat}>{t('Chat.newConversation')}</Button>}>{t('Chat.longChat')}</Alert> : null}
             <ChatComposer value={draft} onChange={setDraft} onSend={send} onStop={() => socket.send({ type: 'stop' })} running={running} archived={isArchived} connected={socket.connected} inputRef={composerInputRef}
-              actions={<ModelPicker entries={catalogue.entries} selection={selection} disabled={isArchived || running} open={pickerOpen} onOpenChange={setPickerOpen} onChange={(next) => updateChat(chat, { selection: next })} sheet={narrow} balance={tokenBalance} longChat={longChat} onNewChat={createChat} />} />
+              actions={<ModelPicker entries={catalogue.entries} selection={selection} disabled={isArchived || running || (catalogueLoading && catalogueChatId !== chat.id)} open={pickerOpen} onOpenChange={setPickerOpen} onChange={(next) => updateChat(chat, { selection: next })} sheet={narrow} balance={tokenBalance} longChat={longChat} onNewChat={createChat} />} />
           </>
         ) : (
           <Stack alignItems="center" justifyContent="center" spacing={2} sx={{ flex: 1, p: 3 }}>
