@@ -26,7 +26,7 @@ export function ReceiptCaptureCard({ api = defaultReceiptsApi, provider = 'OpenA
   useEffect(() => { if (consent.status === 'ready' && !consent.granted && phase === 'reading') { abortRef.current?.abort(); setPhase('idle'); } }, [consent.status, consent.granted, phase]);
   const choose = async (raw, uploadOnly = false) => {
     const incoming = raw?.target?.files?.[0] || raw; if (raw?.target) raw.target.value = ''; if (!incoming) return;
-    abortRef.current?.abort(); clearUrl(); setError(null);
+    abortRef.current?.abort(); clearUrl(); setError(null); setReceipt(null); setReceipts([]); setReviewOpen(false);
     let issue = receiptFileProblem(incoming, { checkSize: uploadOnly }); if (issue) { setError(issue); setPhase('error'); return; }
     if (uploadOnly) { onUploadOnly?.(incoming); return; }
     const controller = new AbortController(); abortRef.current = controller; setPhase('reading'); setProgress(null);

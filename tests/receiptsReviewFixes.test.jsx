@@ -176,3 +176,23 @@ describe('round two fixes', () => {
     expect(await screen.findByText('ready:yes')).toBeTruthy();
   });
 });
+
+describe('stale consent answers', () => {
+  it('ignores the answer of an old api after the api changed', async () => {
+    let resolveOld;
+    const oldApi = { getConsent: vi.fn().mockResolvedValue({ granted: false }), setConsent: vi.fn(() => new Promise((resolve) => { resolveOld = resolve; })) };
+    const newApi = { getConsent: vi.fn(() => new Promise(() => {})) };
+    function Probe({ api }) {
+      const state = useReceiptConsent(api);
+      return <><output>{state.status + ':' + (state.granted ? 'yes' : 'no')}</output><Button onClick={() => state.set(true)}>grant</Button></>;
+    }
+    const { rerender } = render(<Probe api={oldApi} />);
+    await screen.findByText('ready:no');
+    fireEvent.click(screen.getByRole('button', { name: 'grant' }));
+    rerender(<Probe api={newApi} />);
+    await screen.findByText('loading:no');
+    resolveOld({ granted: true });
+    await new Promise((resolve) => setTimeout(resolve, 30));
+    expect(screen.getByText('loading:no')).toBeTruthy();
+  });
+});
