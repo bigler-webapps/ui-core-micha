@@ -1,5 +1,21 @@
 # Changelog
 
+## 4.6.0 - UCM-CHAT-6
+
+Plain model choice, summary and cost on the shared chat surface, against `django-core-micha` 3.5.0 (DCM-CHAT-13).
+`ModelPicker` moves next to "Send" (new `ChatComposer` prop `actions`) and shows only the models the server offers,
+grouped by quality level (`level`), with the known name, "by <provider>", an estimate "about x-y tokens per reply" (a
+relative three-step scale when the server sends no tokens, "no tokens, Claude subscription" for subscription entries)
+and the effort in words (Quick, Thorough, Very thorough, Maximum); the groups by driver, the "pay per use" chip and
+the old effort labels are removed (keys `Chat.driver.*`, `Chat.payPerUse` gone). The catalogue is requested with the
+chat (`getCatalogue({ chat })`, `?chat=<id>`) so the estimate follows the chat's length; a stored selection the
+catalogue no longer offers is replaced once by the default. New optional `ChatWorkspace` props: `tokenBalance`
+(footer "Balance"), `usageToTokens(usage)` (per-reply cost "<model> - <effort> - n tokens" under a reply) and
+`longChatTokens` (default 40000, 0 turns it off; a notice above the composer and in the picker with "New
+conversation"). `ChatThread` shows the server's summary collapsed as "Summary up to here" before the first newer turn
+(plain text), from the turns page, the `history` frame and the `summarised` notice. Without the new props behaviour as
+in 4.5.x apart from the picker's new look.
+
 ## 4.5.0 - UCM-BILL-3
 
 "Withdraw contract here" for EU/EEA consumers, against the `django-core-micha` 3.5.0 withdrawal API

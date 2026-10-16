@@ -14,14 +14,10 @@ describe('chatTranslations', () => {
   });
 
   it('uses the Envelope copy verbatim in English', () => {
-    expect(chatTranslations['Chat.driver.claude_cli'].en).toBe('Claude Code subscription');
-    expect(chatTranslations['Chat.driver.anthropic_api'].en).toBe('Anthropic API');
-    expect(chatTranslations['Chat.driver.openai_api'].en).toBe('OpenAI API');
     expect(chatTranslations['Chat.usageLimit'].en).toBe('Usage limit reached for {{model}}. Choose another model or try again later.');
     expect(chatTranslations['Chat.answerIncomplete'].en).toBe('The answer could not be completed.');
     expect(chatTranslations['Chat.unavailable'].en).toBe('Chat is not available');
     expect(chatTranslations['Chat.noModel'].en).toBe('No language model is configured on this server.');
-    expect(chatTranslations['Chat.payPerUse'].en).toBe('pay per use');
     expect(chatTranslations['Chat.interrupted'].en).toBe('Interrupted');
     expect(chatTranslations['Chat.reconnecting'].en).toBe('Reconnecting');
     expect(chatTranslations['Chat.archived'].en).toBe('Archived');
@@ -31,11 +27,9 @@ describe('chatTranslations', () => {
     expect(chatTranslations['Chat.sidePanel'].en).toBe('Details');
   });
 
-  it('includes non-empty driver names in every locale', () => {
-    for (const id of ['claude_cli', 'anthropic_api', 'openai_api']) {
-      const value = chatTranslations[`Chat.driver.${id}`];
-      expect(value).toBeTruthy();
-      for (const locale of LOCALES) expect(value[locale].trim(), `${id}.${locale}`).not.toBe('');
+  it('includes the redesigned picker copy in all locales', () => {
+    for (const key of ['Chat.pickerTitle', 'Chat.level.top', 'Chat.level.best', 'Chat.level.balanced', 'Chat.level.fast', 'Chat.longChat', 'Chat.summaryUntilHere', 'Chat.replyTokens']) {
+      for (const locale of LOCALES) expect(chatTranslations[key][locale].trim(), `${key}.${locale}`).not.toBe('');
     }
   });
 

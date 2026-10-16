@@ -56,7 +56,7 @@ const appendDelta = (turns, text) => {
  * Props: `apiBase` and `wsUrl` (where the app mounted the chat routes), `api` (partial overrides of the REST
  * calls; every function not given keeps its default), `scope` (passed when creating a chat), `sx`.
  */
-export function ChatWorkspace({ apiBase, wsUrl, api: apiOverrides, scope, sx, unavailableReasonText, sidePanel, sidePanelLabel, renderAnswerExtra, renderComposerExtra, onAppFrame, activeChatId, onActiveChatChange, composerPrefill, getSendContext, sendRequest, onSendRequestHandled, layout = 'viewport', compactBelow = 720 }) {
+export function ChatWorkspace({ apiBase, wsUrl, api: apiOverrides, scope, sx, unavailableReasonText, sidePanel, sidePanelLabel, renderAnswerExtra, renderComposerExtra, onAppFrame, activeChatId, onActiveChatChange, composerPrefill, getSendContext, sendRequest, onSendRequestHandled, layout = 'viewport', compactBelow = 720, tokenBalance = null, usageToTokens, longChatTokens = 40000 }) {
   const { t } = useTranslation();
   const theme = useTheme();
   const viewportNarrow = useMediaQuery(theme.breakpoints.down('md'));
@@ -75,6 +75,7 @@ export function ChatWorkspace({ apiBase, wsUrl, api: apiOverrides, scope, sx, un
   const api = useMemo(() => createChatApi(apiOverrides, { apiBase }), [apiOverrides, apiBase]);
 
   const [catalogue, setCatalogue] = useState({ entries: [], default: null });
+  const [summary, setSummary] = useState(null);
   const [chats, setChats] = useState([]);
   const [archived, setArchived] = useState([]);
   const [nextChats, setNextChats] = useState(null);
@@ -117,6 +118,11 @@ export function ChatWorkspace({ apiBase, wsUrl, api: apiOverrides, scope, sx, un
   const isArchived = Boolean(chat?.archived_at);
   const selection = chat?.selection || catalogue.default;
   const activeEntry = catalogue.entries.find((entry) => entry.id === selection?.entry);
+  const latestUsageTurn = [...turns].reverse().find((turn) => turn.usage);
+  const longChat = longChatTokens > 0 && Number.isFinite(latestUsageTurn?.usage?.context_tokens) && latestUsageTurn.usage.context_tokens >= longChatTokens;
+  const refreshCatalogue = useCallback(async (chatId) => {
+    try { const next = await api.getCatalogue(chatId !== undefined ? { chat: chatId } : {}); setCatalogue(next); return next; } catch { return null; }
+  }, [api]);
 
   // Bumped on every scope change so that a list response of the previous scope is dropped.
   const scopeVersion = useRef(0);
@@ -147,6 +153,9 @@ export function ChatWorkspace({ apiBase, wsUrl, api: apiOverrides, scope, sx, un
       .catch(() => { if (live) setStatus('error'); });
     return () => { live = false; };
   }, [api, loadLists, scope]);
+
+  useEffect(() => { if (chat?.id !== undefined) refreshCatalogue(chat.id); }, [chat?.id, refreshCatalogue]);
+  useEffect(() => { if (pickerOpen) refreshCatalogue(chat?.id); }, [pickerOpen]);
 
   useEffect(() => {
     const id = chat?.id ?? null;
@@ -187,38 +196,40 @@ export function ChatWorkspace({ apiBase, wsUrl, api: apiOverrides, scope, sx, un
   // Clear the previous chat's content before the browser paints, so a host-driven switch never flashes it under the new title.
   useLayoutEffect(() => {
     connectedChatId.current = null; // the socket of the new chat has not opened yet
-    setTurns([]); setOlderCursor(null); setTool(null); setProblem(null); setTrimmedCount(null); setSidePanelOpen(false); setDraft(''); setOpenedOnce(false);
+    setTurns([]); setOlderCursor(null); setTool(null); setProblem(null); setTrimmedCount(null); setSidePanelOpen(false); setDraft(''); setOpenedOnce(false); setSummary(null);
   }, [chat?.id]);
 
   useEffect(() => {
     if (!chat?.id) return undefined;
     let live = true;
     api.listTurns(chat.id)
-      .then((page) => { if (live) { setTurns(chronological((page.results || []).map((turn) => ({ ...turn, appFrames: [] })))); setOlderCursor(page.next || null); } })
+      .then((page) => { if (live) { setTurns(chronological((page.results || []).map((turn) => ({ ...turn, appFrames: [] })))); setOlderCursor(page.next || null); setSummary(page.summary || null); } })
       .catch(() => { if (live) setProblem('load_error'); });
     return () => { live = false; };
   }, [api, chat?.id]);
 
   const onFrame = useCallback((frame, chatId) => {
     if (chatId !== chat?.id) return;
-    if (frame.type === 'history') setTurns(chronological((frame.turns || []).map((turn) => ({ ...turn, appFrames: [] }))));
+    if (frame.type === 'history') { setTurns(chronological((frame.turns || []).map((turn) => ({ ...turn, appFrames: [] })))); setSummary(frame.summary || null); }
     else if (frame.type === 'delta') setTurns((current) => appendDelta(current, frame.text || ''));
     else if (frame.type === 'app') {
       setTurns((current) => attachAppFrame(current, frame));
       const running = turnsRef.current.findLast(isGenerating);
       appFrameCallback.current?.({ name: frame.name, payload: frame.payload, chatId, turnId: running?.id });
     } else if (frame.type === 'notice' && frame.code === 'history_trimmed') setTrimmedCount(frame.left_out || 0);
+    else if (frame.type === 'notice' && frame.code === 'summarised') { api.listTurns(chatId).then((page) => setSummary(page.summary || null)).catch(() => {}); }
     else if (frame.type === 'tool') setTool(frame.phase === 'start' ? { label: frame.label, name: frame.name } : null);
     else if (frame.type === 'turn' && frame.turn) {
       setTool(null);
       setTurns((current) => { const pending = current.findLast(isGenerating); return settleTurn(current, { ...frame.turn, appFrames: pending?.appFrames || [] }); });
+      refreshCatalogue(chatId);
       if (frame.turn.error_code === 'quota_exceeded') setProblem('quota_exceeded');
     } else if (frame.type === 'error') {
       setTool(null);
       setTurns((current) => failGenerating(current, frame.code));
       setProblem(frame.code); if (frame.code === 'unavailable') setUnavailableReason(frame.reason || unavailableReason);
     }
-  }, [chat?.id]);
+  }, [chat?.id, api, refreshCatalogue]);
   const onOpen = useCallback((chatId) => { connectedChatId.current = String(chatId); setOpenedOnce(true); setProblem((current) => (current === 'connection_lost' ? null : current)); }, []);
   const onClose = useCallback(({ reason, retrying }) => { connectedChatId.current = null; if (!retrying) setProblem(reason); }, []);
   const socket = useChatSocket(chat?.id, { wsUrl, onFrame, onOpen, onClose });
@@ -295,6 +306,16 @@ export function ChatWorkspace({ apiBase, wsUrl, api: apiOverrides, scope, sx, un
     if (chat?.id === target.id) setChat(updated);
     await loadLists();
   });
+  const fallbackApplied = useRef(new Set());
+  useEffect(() => {
+    if (!chat || !catalogue.entries.length || fallbackApplied.current.has(chat.id)) return;
+    const valid = catalogue.entries.some((entry) => entry.id === chat.selection?.entry && entry.efforts?.includes(chat.selection?.effort));
+    if (valid) return;
+    const entry = catalogue.entries.find((item) => item.default) || catalogue.entries[0];
+    if (!entry) return;
+    fallbackApplied.current.add(chat.id);
+    updateChat(chat, { selection: { entry: entry.id, effort: entry.efforts?.[0] } });
+  }, [chat, catalogue, updateChat]);
   const deleteChat = guarded(async (target) => {
     await api.deleteChat(target.id);
     setChats((current) => current.filter((item) => item.id !== target.id));
@@ -407,25 +428,16 @@ export function ChatWorkspace({ apiBase, wsUrl, api: apiOverrides, scope, sx, un
           {socket.status === 'connecting' && openedOnce ? <Chip size="small" color="warning" variant="outlined" label={t('Chat.reconnecting')} /> : null}
           {isArchived ? <Chip size="small" label={t('Chat.archived')} /> : null}
           {isArchived ? <Button size="small" onClick={() => updateChat(chat, { archived: false })}>{t('Chat.restore')}</Button> : null}
-          {chat ? (
-            <ModelPicker
-              entries={catalogue.entries}
-              selection={selection}
-              disabled={isArchived || running}
-              open={pickerOpen}
-              onOpenChange={setPickerOpen}
-              onChange={(next) => updateChat(chat, { selection: next })}
-              sheet={narrow}
-            />
-          ) : null}
           {chat && sidePanel && narrow ? <Button color="inherit" onClick={() => setSidePanelOpen(true)}>{sidePanelLabel || t('Chat.sidePanel')}</Button> : null}
         </Stack>
         {chat ? (
           <>
-            <ChatThread turns={turns} chat={chat} renderAnswerExtra={answerExtra} trimmedCount={trimmedCount} tool={tool} notice={noticeFor()} hasOlder={Boolean(olderCursor)} olderBusy={olderBusy} onLoadOlder={loadOlder} onRetry={retry} readOnly={isArchived} />
+            <ChatThread turns={turns} chat={chat} renderAnswerExtra={answerExtra} trimmedCount={trimmedCount} tool={tool} notice={noticeFor()} hasOlder={Boolean(olderCursor)} olderBusy={olderBusy} onLoadOlder={loadOlder} onRetry={retry} readOnly={isArchived} summary={summary} usageToTokens={usageToTokens} />
             {isArchived ? <Typography variant="caption" color="text.secondary" sx={{ px: 2, pb: 1 }}>{t('Chat.archivedReadOnly')}</Typography> : null}
             {renderComposerExtra ? <Box key={chat.id}>{renderComposerExtra({ chat })}</Box> : null}
-            <ChatComposer value={draft} onChange={setDraft} onSend={send} onStop={() => socket.send({ type: 'stop' })} running={running} archived={isArchived} connected={socket.connected} inputRef={composerInputRef} />
+            {longChat ? <Alert severity="info" action={<Button color="inherit" size="small" onClick={createChat}>{t('Chat.newConversation')}</Button>}>{t('Chat.longChat')}</Alert> : null}
+            <ChatComposer value={draft} onChange={setDraft} onSend={send} onStop={() => socket.send({ type: 'stop' })} running={running} archived={isArchived} connected={socket.connected} inputRef={composerInputRef}
+              actions={<ModelPicker entries={catalogue.entries} selection={selection} disabled={isArchived || running} open={pickerOpen} onOpenChange={setPickerOpen} onChange={(next) => updateChat(chat, { selection: next })} sheet={narrow} balance={tokenBalance} longChat={longChat} onNewChat={createChat} />} />
           </>
         ) : (
           <Stack alignItems="center" justifyContent="center" spacing={2} sx={{ flex: 1, p: 3 }}>

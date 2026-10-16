@@ -5,7 +5,7 @@ export function createChatApi(overrides = {}, { apiBase = '/api/assistant/' } = 
   const urls = chatApiUrls(apiBase);
   const data = (request) => request.then((response) => response.data);
   const defaults = {
-    getCatalogue: () => data(apiClient.get(urls.catalogue)),
+    getCatalogue: ({ chat } = {}) => data(chat !== undefined ? apiClient.get(urls.catalogue, { params: { chat } }) : apiClient.get(urls.catalogue)),
     listChats: ({ archived = false, cursor, scope } = {}) => data(apiClient.get(urls.chats, { params: { archived, ...(cursor ? { cursor } : {}), ...(scope !== undefined ? { scope } : {}) } })),
     createChat: (payload = {}) => data(apiClient.post(urls.chats, payload)),
     updateChat: (id, patch) => data(apiClient.patch(urls.chat(id), patch)),

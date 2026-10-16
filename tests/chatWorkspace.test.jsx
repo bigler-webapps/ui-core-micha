@@ -106,7 +106,7 @@ describe('ChatWorkspace edge states', () => {
     act(() => socket.push({ type: 'error', code: 'quota_exceeded' }));
     expect(screen.getByText('Chat.usageLimit:Sonnet')).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Chat.changeModel' }));
-    expect(screen.getByRole('group', { name: 'Chat.driver.openai_api' })).toBeTruthy();
+    expect(screen.getByRole('radio', { name: /GPT/ })).toBeTruthy();
   });
 
   it('shows an interrupted turn from history with Retry, which sends its text again only on click', async () => {
@@ -184,7 +184,7 @@ describe('ChatWorkspace wiring', () => {
   it('calls the update endpoint when the picker selection changes', async () => {
     const api = makeApi();
     await openChat(api);
-    fireEvent.click(screen.getByRole('button', { name: 'Sonnet · Chat.effort.high' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Sonnet · Chat.effort.high ▾' }));
     fireEvent.click(screen.getByRole('button', { name: 'Chat.effort.low' }));
     await waitFor(() => expect(api.updateChat).toHaveBeenCalledWith(7, { selection: { entry: 'cli-sonnet', effort: 'low' } }));
   });

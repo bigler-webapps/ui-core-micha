@@ -1,4 +1,4 @@
-import React, { useEffect, useLayoutEffect, useRef } from 'react';
+import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Alert, Box, Button, Chip, Stack, Tooltip, Typography } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import MarkdownReply from './MarkdownReply';
@@ -24,8 +24,8 @@ function SourceChips({ sources }) {
   );
 }
 
-function Answer({ turn, tool, onRetry, chat, renderAnswerExtra }) {
-  const { t } = useTranslation();
+function Answer({ turn, tool, onRetry, chat, renderAnswerExtra, usageToTokens }) {
+  const { t, i18n } = useTranslation();
   const generating = turn.state === 'generating';
   const failed = ['failed', 'cancelled'].includes(turn.state) && turn.error_code;
   return (
@@ -34,7 +34,7 @@ function Answer({ turn, tool, onRetry, chat, renderAnswerExtra }) {
       {generating && !turn.assistant_text && !tool ? <Typography variant="body2" color="text.secondary">{t('Chat.typing')}</Typography> : null}
       {generating && tool ? <Chip size="small" color="primary" variant="outlined" label={tool.label} sx={CHAT_THREAD_TOOL_CHIP_SX} /> : null}
       <SourceChips sources={turn.sources} />
-      {!generating && selectionLine(turn, t) ? <Typography variant="caption" color="text.secondary">{selectionLine(turn, t)}</Typography> : null}
+      {!generating && selectionLine(turn, t) ? <Typography variant="caption" color="text.secondary">{(() => { const n = turn.usage && usageToTokens?.(turn.usage); return Number.isInteger(n) && n >= 0 ? t('Chat.replyTokens', { model: turn.model || '', effort: turn.effort ? t(`Chat.effort.${turn.effort}`) : '', n: new Intl.NumberFormat(typeof i18n?.language === "string" ? i18n.language.split("_")[0] || undefined : undefined).format(n) }) : selectionLine(turn, t); })()}</Typography> : null}
       {renderAnswerExtra ? <React.Fragment key={chat?.id}>{renderAnswerExtra({ turn, chat, appFrames: turn.appFrames ?? [] })}</React.Fragment> : null}
       {turn.state === 'interrupted' ? (
         <Stack direction="row" alignItems="center" gap={1}>
@@ -55,7 +55,7 @@ function Answer({ turn, tool, onRetry, chat, renderAnswerExtra }) {
  * The turns of one chat. The streaming answer is simply the last turn in state `generating`; the caller keeps its text
  * up to date. `notice` is a connection or limit message shown under the last turn. `readOnly` (an archived chat) hides Retry.
  */
-export function ChatThread({ turns = [], tool = null, notice = null, hasOlder = false, olderBusy = false, onLoadOlder, onRetry, readOnly = false, sx, chat, renderAnswerExtra, trimmedCount }) {
+export function ChatThread({ turns = [], tool = null, notice = null, hasOlder = false, olderBusy = false, onLoadOlder, onRetry, readOnly = false, sx, chat, renderAnswerExtra, trimmedCount, summary = null, usageToTokens }) {
   const { t } = useTranslation();
   const end = useRef(null);
   const scroller = useRef(null);
@@ -78,6 +78,11 @@ export function ChatThread({ turns = [], tool = null, notice = null, hasOlder = 
     heightBeforeOlder.current = scroller.current?.scrollHeight ?? null;
     try { await onLoadOlder?.(); } finally { loadingOlder.current = false; }
   };
+  const [summaryOpen, setSummaryOpen] = useState(false);
+  useEffect(() => { setSummaryOpen(false); }, [chat?.id, summary?.up_to_seq]);
+  const summaryVisible = Boolean(summary?.text?.trim());
+  const renderSummary = () => summaryVisible ? <Box sx={{ mb: 2 }}><Button size="small" aria-expanded={summaryOpen} onClick={() => setSummaryOpen((value) => !value)}>{t('Chat.summaryUntilHere')} {summaryOpen ? '▾' : '▸'}</Button>{summaryOpen ? <Typography component="div" variant="body2" sx={{ whiteSpace: 'pre-wrap' }}>{summary.text}</Typography> : null}</Box> : null;
+  let summaryRendered = false;
 
   return (
     <Box ref={scroller} onScroll={(event) => {
@@ -97,6 +102,7 @@ export function ChatThread({ turns = [], tool = null, notice = null, hasOlder = 
         const previous = turns[index - 1];
         return (
           <Box key={turn.id ?? index} sx={{ mb: 3 }}>
+            {!summaryRendered && summaryVisible && turn.seq > summary.up_to_seq ? (summaryRendered = true, renderSummary()) : null}
             {previous && !sameSelection(previous, turn) ? (
               <Stack direction="row" alignItems="center" gap={1} sx={{ mb: 2, color: 'text.secondary' }} role="separator">
                 <Box sx={{ flex: 1, borderTop: 1, borderColor: 'divider' }} />
@@ -109,10 +115,11 @@ export function ChatThread({ turns = [], tool = null, notice = null, hasOlder = 
                 {turn.user_text}
               </Typography>
             </Box>
-            <Answer turn={turn} tool={index === turns.length - 1 ? tool : null} onRetry={readOnly ? undefined : onRetry} chat={chat} renderAnswerExtra={renderAnswerExtra} />
+            <Answer turn={turn} tool={index === turns.length - 1 ? tool : null} onRetry={readOnly ? undefined : onRetry} chat={chat} renderAnswerExtra={renderAnswerExtra} usageToTokens={usageToTokens} />
           </Box>
         );
       })}
+      {!summaryRendered ? renderSummary() : null}
       {trimmedCount ? <Chip size="small" variant="outlined" label={t(trimmedCount === 1 ? 'Chat.historyTrimmed_one' : 'Chat.historyTrimmed_other', { count: trimmedCount })} sx={CHAT_THREAD_TRIMMED_SX} /> : null}
       {notice ? (
         <Alert

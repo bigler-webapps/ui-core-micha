@@ -1,4 +1,6 @@
 import { useEffect, useState } from 'react';
+import { ChatComposer } from '../src/chat/ChatComposer';
+import { ModelPicker } from '../src/chat/ModelPicker';
 import ChatBubbleOutlineIcon from '@mui/icons-material/ChatBubbleOutline';
 import InboxIcon from '@mui/icons-material/Inbox';
 import MoreHorizIcon from '@mui/icons-material/MoreHoriz';
@@ -694,6 +696,23 @@ function ReactionBarEntry() { return <MessagingProvider api={messagingHarnessApi
 function PollCardEntry() { return <AuthContext.Provider value={{ user: { id: 1 } }}><MessagingProvider api={messagingHarnessApi} active={false}><PollCard message={{ id: 48, poll: { id: 8, question: 'Where should we meet?', options: [{ id: 1, text: 'Library', vote_count: 2 }, { id: 2, text: 'Café', vote_count: 3 }], allow_multiple: false, created_by: 1 }}} /></MessagingProvider></AuthContext.Provider>; }
 function MessagingScopeConfigEntry() { return <MessagingProvider api={messagingHarnessApi} active={false}><MessagingScopeConfig conversationId={12} /></MessagingProvider>; }
 
+
+const pickerEntries = [
+  { id: 'claude_code:opus-5', driver: 'claude_code', model: 'opus-5', label: 'Claude Opus 5', provider: 'claude_code', level: 'top', efforts: ['low', 'medium', 'high', 'max'], billing: 'subscription', estimate: {} },
+  { id: 'api:opus-5-5', driver: 'api', model: 'opus-5-5', label: 'Claude Opus 5.5', provider: 'anthropic', level: 'best', efforts: ['low', 'medium', 'high'], billing: 'pay_per_use', estimate: { low: { min: 8000, max: 12000, unit: 'tokens' }, medium: { min: 14000, max: 22000, unit: 'tokens' }, high: { min: 30000, max: 52000, unit: 'tokens' } } },
+  { id: 'api:sonnet-5-5', driver: 'api', model: 'sonnet-5-5', label: 'Claude Sonnet 5.5', provider: 'anthropic', level: 'balanced', default: true, efforts: ['low', 'medium', 'high'], billing: 'pay_per_use', estimate: { low: { min: 2000, max: 4000, unit: 'tokens' }, medium: { min: 4000, max: 8000, unit: 'tokens' }, high: { min: 9000, max: 16000, unit: 'tokens' } } },
+  { id: 'openai:gpt-6', driver: 'openai', model: 'gpt-6', label: 'GPT-6', provider: 'openai', level: 'balanced', efforts: ['medium', 'high'], billing: 'pay_per_use', estimate: { medium: { min: 2, max: 2, unit: 'level' }, high: { min: 3, max: 3, unit: 'level' } } },
+  { id: 'api:haiku-5-5', driver: 'api', model: 'haiku-5-5', label: 'Claude Haiku 5.5', provider: 'anthropic', level: 'fast', efforts: ['low', 'medium'], billing: 'pay_per_use', estimate: { low: { min: 600, max: 1200, unit: 'tokens' }, medium: { min: 1200, max: 2400, unit: 'tokens' } } },
+];
+
+function ChatPickerEntry() {
+  const [selection, setSelection] = useState({ entry: 'api:sonnet-5-5', effort: 'medium' });
+  const [open, setOpen] = useState(true);
+  return <Stack spacing={2} sx={{ minHeight: 560, justifyContent: 'flex-end' }}>
+    <ChatComposer value="" onChange={() => {}} onSend={() => {}} onStop={() => {}} actions={<ModelPicker entries={pickerEntries} selection={selection} onChange={setSelection} open={open} onOpenChange={setOpen} balance={1153} longChat onNewChat={() => {}} />} />
+  </Stack>;
+}
+
 export const entries = [
   { id: 'theme-baseline', label: 'Theme / Shared baseline', Component: ThemeBaselineEntry },
   { id: 'mobile-bottom-nav', label: 'Navigation / Mobile bottom nav', Component: MobileBottomNavEntry },
@@ -718,4 +737,5 @@ export const entries = [
   { id: 'messaging-reaction-bar', label: 'Messaging / Reaction bar', Component: ReactionBarEntry },
   { id: 'messaging-poll-card', label: 'Messaging / Poll card', Component: PollCardEntry },
   { id: 'messaging-scope-config', label: 'Messaging / Scope config', Component: MessagingScopeConfigEntry },
+  { id: 'chat-model-picker', label: 'Chat / Model picker', Component: ChatPickerEntry },
 ];
