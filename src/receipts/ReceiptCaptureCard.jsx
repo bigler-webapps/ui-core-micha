@@ -39,7 +39,7 @@ export function ReceiptCaptureCard({ api = defaultReceiptsApi, provider = 'OpenA
       const result = await api.readReceipts(prepared, { context, signal: controller.signal, onUploadProgress: (e) => setProgress(e?.total ? Math.round((e.loaded / e.total) * 100) : null) });
       if (controller.signal.aborted) return;
       const list = Array.isArray(result) ? result : [];
-      if (!list.length) { setError('nothing_recognised'); setPhase('error'); return; }
+      if (!list.length) { clearUrl(); setFile(null); setError('nothing_recognised'); setPhase('error'); return; }
       setReceipts(list);
       if (list.length === 1) { setReceipt(list[0]); setPhase('review'); setReviewOpen(true); }
       else setPhase('picker');

@@ -8,7 +8,7 @@ export function useReceiptConsent(api) {
   const [reloadCount, setReloadCount] = useState(0);
   const liveRef = useRef(true);
   const generation = useRef(0); // bumped when the api changes, so an answer of the old api can never count
-  const reload = useCallback(() => { setStatus('loading'); setError(false); setReloadCount((n) => n + 1); }, []);
+  const reload = useCallback(() => { setGranted(false); setStatus('loading'); setError(false); setReloadCount((n) => n + 1); }, []);
   useEffect(() => {
     liveRef.current = true;
     let requestLive = true;

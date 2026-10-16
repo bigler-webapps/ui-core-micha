@@ -196,3 +196,59 @@ describe('stale consent answers', () => {
     expect(screen.getByText('loading:no')).toBeTruthy();
   });
 });
+
+describe('round four fixes', () => {
+  it('applies the clicked row and, with Apply all, every recognised row', () => {
+    const items = [{ description: 'Tea', amount: '2.00' }];
+    const receipt = { merchant: 'Shop', date: '2026-10-14', total: '14.60', currency: 'CHF', payment_method: 'card', items, confidence: 'high', account_suggestions: [{ account_id: 'a1', confidence: 'high' }] };
+    const onApply = vi.fn();
+    render(<ReceiptReviewDialog open receipt={receipt} values={{}} onApply={onApply} onClose={vi.fn()} />);
+    const rows = screen.getAllByRole('button', { name: 'Receipts.APPLY' });
+    fireEvent.click(rows[2]);
+    expect(onApply).toHaveBeenLastCalledWith({ total: '14.60' }, { mode: 'field' });
+    fireEvent.click(screen.getByRole('button', { name: 'Receipts.APPLY_ALL' }));
+    expect(onApply).toHaveBeenLastCalledWith({ merchant: 'Shop', date: '2026-10-14', total: '14.60', currency: 'CHF', payment_method: 'card', account: 'a1', items }, { mode: 'all' });
+  });
+
+  it('reports the receipts the user chose, not the initial selection', async () => {
+    const { ReceiptPicker } = await import('../src/receipts/ReceiptPicker');
+    const a = { merchant: 'A', confidence: 'high' };
+    const b = { merchant: 'B', confidence: 'low' };
+    const onConfirm = vi.fn();
+    render(<ReceiptPicker receipts={[a, b]} onConfirm={onConfirm} onCancel={vi.fn()} />);
+    const [first, second] = screen.getAllByRole('checkbox');
+    fireEvent.click(first);
+    fireEvent.click(second);
+    fireEvent.click(screen.getByRole('button', { name: 'Receipts.APPLY_COUNT 1' }));
+    expect(onConfirm).toHaveBeenCalledWith([b]);
+  });
+
+  it('keeps recognition off while consent is checked again after consent_required', async () => {
+    const failure = Object.assign(new Error('x'), { response: { data: { code: 'consent_required' } } });
+    let answer;
+    let calls = 0;
+    const api = {
+      getConsent: vi.fn(() => { calls += 1; return calls === 1 ? Promise.resolve({ granted: true }) : new Promise((resolve) => { answer = resolve; }); }),
+      setConsent: vi.fn(),
+      readReceipts: vi.fn().mockRejectedValue(failure),
+    };
+    render(<ReceiptCaptureCard api={api} />);
+    await screen.findByRole('button', { name: 'Receipts.CAMERA' });
+    fireEvent.change(fileInput(), { target: { files: [new File(['x'], 'a.pdf', { type: 'application/pdf' })] } });
+    await waitFor(() => expect(screen.queryByRole('button', { name: 'Receipts.CAMERA' })).toBeNull());
+    answer({ granted: false });
+    expect(await screen.findByRole('switch')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Receipts.CAMERA' })).toBeNull();
+  });
+
+  it('revokes the preview when nothing was recognised', async () => {
+    const revoke = vi.fn();
+    globalThis.URL.createObjectURL = vi.fn(() => 'blob:preview');
+    globalThis.URL.revokeObjectURL = revoke;
+    render(<ReceiptCaptureCard api={consentedApi(vi.fn().mockResolvedValue([]))} />);
+    await screen.findByRole('button', { name: 'Receipts.CAMERA' });
+    fireEvent.change(fileInput(), { target: { files: [new File([new ArrayBuffer(10)], 'a.png', { type: 'image/png' })] } });
+    expect(await screen.findByText('Receipts.NOTHING_RECOGNISED')).toBeTruthy();
+    expect(revoke).toHaveBeenCalledWith('blob:preview');
+  });
+});
