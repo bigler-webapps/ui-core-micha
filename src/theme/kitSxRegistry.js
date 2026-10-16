@@ -101,6 +101,8 @@ import { ACCESS_ENDED_BANNER_ALERT_SX } from '../billing/AccessEndedBanner';
 import { TOKEN_BALANCE_BADGE_SX } from '../billing/TokenBalanceBadge';
 import { PLAN_PICKER_ALERT_SX, PLAN_PICKER_CARD_SX, PLAN_PICKER_LABEL_SX, PLAN_PICKER_SELECTED_CARD_SX } from '../billing/PlanPicker';
 import { SUBSCRIPTION_SECTION_ALERT_SX } from '../billing/SubscriptionSection';
+import { WITHDRAWAL_DIALOG_ALERT_SX } from '../billing/WithdrawalDialog';
+import { WITHDRAWAL_SECTION_ALERT_SX } from '../billing/WithdrawalSection';
 
 const SX_EXPORTS = {
   ACCESS_CODE_ACTION_SX,
@@ -177,6 +179,8 @@ const SX_EXPORTS = {
   PLAN_PICKER_LABEL_SX,
   PLAN_PICKER_SELECTED_CARD_SX,
   SUBSCRIPTION_SECTION_ALERT_SX,
+  WITHDRAWAL_DIALOG_ALERT_SX,
+  WITHDRAWAL_SECTION_ALERT_SX,
   USER_INVITE_ACTION_SX,
   USER_INVITE_ALERT_SX,
   USER_LIST_ACTION_SX,
@@ -288,4 +292,6 @@ export const KIT_COMPONENT_SX_REGISTRY = [
   entry('PlanPicker.label', 'MuiFormControlLabel', PLAN_PICKER_LABEL_SX),
   entry('PlanPicker.alert', 'MuiAlert', PLAN_PICKER_ALERT_SX),
   entry('SubscriptionSection.alert', 'MuiAlert', SUBSCRIPTION_SECTION_ALERT_SX),
+  entry('WithdrawalDialog.alert', 'MuiAlert', WITHDRAWAL_DIALOG_ALERT_SX),
+  entry('WithdrawalSection.alert', 'MuiAlert', WITHDRAWAL_SECTION_ALERT_SX),
 ];

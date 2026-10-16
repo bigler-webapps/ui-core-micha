@@ -11,6 +11,9 @@ export function createBillingApi(overrides = {}, { apiBase = '/api/billing/' } =
     listSeats: () => data(apiClient.get(urls.seats)),
     addSeat: ({ userId, email } = {}) => data(apiClient.post(urls.seats, userId !== undefined ? { user_id: userId } : { email })),
     removeSeat: ({ userId, email } = {}) => data(apiClient.delete(urls.seats, { data: userId !== undefined ? { user_id: userId } : { email } })),
+    listWithdrawals: () => data(apiClient.get(urls.withdrawals)),
+    previewWithdrawal: (id) => data(apiClient.get(urls.withdrawalPreview(id))),
+    confirmWithdrawal: (id) => data(apiClient.post(urls.withdrawalConfirm(id), { confirm: true })),
   };
   return { ...defaults, ...overrides };
 }

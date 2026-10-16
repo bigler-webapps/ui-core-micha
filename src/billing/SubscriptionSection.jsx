@@ -8,6 +8,7 @@ import { formatDate, formatPrice, formatTokens } from './format';
 import { PlanPicker } from './PlanPicker';
 import { TokenBalanceBadge } from './TokenBalanceBadge';
 import { AccessEndedBanner } from './AccessEndedBanner';
+import { WithdrawalSection } from './WithdrawalSection';
 
 export const SUBSCRIPTION_SECTION_ALERT_SX = { width: '100%' };
 
@@ -17,9 +18,10 @@ function activeUntil(access, t, language) {
   return date ? t('Billing.ACTIVE_UNTIL', { date }) : null;
 }
 
-export function SubscriptionSection({ api = defaultBillingApi, redirect = (url) => window.location.assign(url), allowedHosts = DEFAULT_PAYMENT_HOSTS, onRenew, describePlan, sx }) {
+export function SubscriptionSection({ api = defaultBillingApi, redirect = (url) => window.location.assign(url), allowedHosts = DEFAULT_PAYMENT_HOSTS, onRenew, describePlan, withdrawal = true, sx }) {
   const { t, i18n } = useTranslation();
   const { state, me, reload } = useBilling(api);
+  const [withdrawnPurchases, setWithdrawnPurchases] = useState({});
   const [seats, setSeats] = useState(null);
   const [seatError, setSeatError] = useState(null);
   const [seatInput, setSeatInput] = useState('');
@@ -113,6 +115,10 @@ export function SubscriptionSection({ api = defaultBillingApi, redirect = (url) 
         <Button disabled={busy} onClick={() => safeRedirect(() => api.startCheckout(plan.key), 'Billing.ERROR_CHECKOUT')}>{t('Billing.PACKAGE_BUY')}</Button>
       </Stack>)}
     </Stack>}
+    {withdrawal && <WithdrawalSection api={api} plans={me.plans} sessionWithdrawals={withdrawnPurchases} onWithdrawn={(result, purchase) => {
+      if (purchase?.id != null) setWithdrawnPurchases((current) => ({ ...current, [purchase.id]: { result, purchase } }));
+      reload();
+    }} />}
   </Stack>;
 }
 

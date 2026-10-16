@@ -74,6 +74,8 @@ export { TokenCostPreview } from './billing/TokenCostPreview';
 export { AccessEndedBanner } from './billing/AccessEndedBanner';
 export { PlanPicker } from './billing/PlanPicker';
 export { SubscriptionSection } from './billing/SubscriptionSection';
+export { WithdrawalSection } from './billing/WithdrawalSection';
+export { WithdrawalDialog } from './billing/WithdrawalDialog';
 export { useBilling } from './billing/useBilling';
 export { createBillingApi, defaultBillingApi } from './billing/api';
 

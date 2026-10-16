@@ -10,5 +10,8 @@ export const billingApiUrls = (base = '/api/billing/') => {
     checkout: root + 'checkout/',
     portal: root + 'portal/',
     seats: root + 'team/seats/',
+    withdrawals: root + 'withdrawal/',
+    withdrawalPreview: (id) => root + `withdrawal/${encodeURIComponent(id)}/preview/`,
+    withdrawalConfirm: (id) => root + `withdrawal/${encodeURIComponent(id)}/`,
   };
 };

@@ -12,7 +12,10 @@ beforeEach(() => {
 
 describe('billing API client', () => {
   it('builds URLs and unwraps each contract response', async () => {
-    expect(billingApiUrls('/v2/billing')).toEqual({ me: '/v2/billing/me/', checkout: '/v2/billing/checkout/', portal: '/v2/billing/portal/', seats: '/v2/billing/team/seats/' });
+    const urls = billingApiUrls('/v2/billing');
+    expect(urls).toMatchObject({ me: '/v2/billing/me/', checkout: '/v2/billing/checkout/', portal: '/v2/billing/portal/', seats: '/v2/billing/team/seats/', withdrawals: '/v2/billing/withdrawal/' });
+    expect(urls.withdrawalPreview(7)).toBe('/v2/billing/withdrawal/7/preview/');
+    expect(urls.withdrawalConfirm(7)).toBe('/v2/billing/withdrawal/7/');
     const api = createBillingApi();
     expect(await api.getMe()).toEqual({ method: 'get' });
     expect(apiClient.get).toHaveBeenLastCalledWith('/api/billing/me/');

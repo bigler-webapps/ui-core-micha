@@ -1,5 +1,16 @@
 # Changelog
 
+## 4.5.0 - UCM-BILL-3
+
+"Withdraw contract here" for EU/EEA consumers, against the `django-core-micha` 3.5.0 withdrawal API
+(`withdrawal/`, `withdrawal/<id>/preview/`, `POST withdrawal/<id>/`). `WithdrawalSection` lists only the purchases the
+server calls eligible, with the 14-day deadline (purchase date plus 14 days) and a button; `WithdrawalDialog` shows the
+server's refund amount and a calculation composed from the server's numbers (`describeCalculation`), confirms exactly
+once and shows the result. The kit never decides eligibility or the amount itself; a 409 shows "not possible". The
+section is part of `SubscriptionSection` (prop `withdrawal`, default `true`, `false` hides it). `createBillingApi`
+gets `listWithdrawals`, `previewWithdrawal`, `confirmWithdrawal`; `formatPrice` takes an optional currency and
+`formatDateTime` is new. New keys `Billing.WITHDRAWAL_*` (de formal, de_informal, en, fr, sw).
+
 ## 4.4.0 - UCM-BILL-1
 
 Subscription and token surfaces in the main entry, against the `django-core-micha` billing API (DCM-BILL-1, `me/`,
