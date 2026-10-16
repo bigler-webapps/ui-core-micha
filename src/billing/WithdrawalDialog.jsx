@@ -79,7 +79,7 @@ export function WithdrawalDialog({ open, purchase, api, onClose, onWithdrawn }) 
       {state === 'preview_error' && <Alert severity="error" sx={WITHDRAWAL_DIALOG_ALERT_SX}>{t('Billing.WITHDRAWAL_PREVIEW_ERROR')}</Alert>}
       {(state === 'not_possible') && <Alert severity="info">{t('Billing.WITHDRAWAL_NOT_POSSIBLE')}</Alert>}
       {(state === 'ready' || state === 'submitting' || state === 'confirm_error') && <Stack spacing={1}>
-        <Typography>{t('Billing.WITHDRAWAL_EFFECT')}</Typography>
+        <Typography>{t(purchase?.kind === 'token_package' ? 'Billing.WITHDRAWAL_EFFECT_TOKENS' : 'Billing.WITHDRAWAL_EFFECT')}</Typography>
         <Typography>{none ? t('Billing.WITHDRAWAL_REFUND_NONE') : t('Billing.WITHDRAWAL_REFUND', { amount })}</Typography>
         <Typography>{t('Billing.WITHDRAWAL_CALCULATION', { explanation: describeCalculation({ ...preview, kind: purchase?.kind }, t, i18n.language) })}</Typography>
         {state === 'confirm_error' && <Alert severity="error" sx={WITHDRAWAL_DIALOG_ALERT_SX}>{t('Billing.WITHDRAWAL_ERROR')}</Alert>}

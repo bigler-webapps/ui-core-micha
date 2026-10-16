@@ -65,3 +65,14 @@ describe('withdrawal review fixes', () => {
     expect(await screen.findByRole('button', { name: 'Billing.WITHDRAWAL_BUTTON' })).toBeTruthy();
   });
 });
+
+describe('token package wording', () => {
+  it('says the unused tokens are removed for a token package and keeps the renewal sentence otherwise', async () => {
+    const api = { previewWithdrawal: vi.fn().mockResolvedValue({ eligible: true, amount_paid_cents: 1000, currency: 'usd', time_share_cents: 0, token_share_cents: 200, used_cents: 200, refund_cents: 800 }), confirmWithdrawal: vi.fn() };
+    const { rerender } = render(<WithdrawalDialog open purchase={{ id: 1, kind: 'token_package' }} api={api} onClose={() => {}} />);
+    expect(await screen.findByText('Billing.WITHDRAWAL_EFFECT_TOKENS')).toBeTruthy();
+    expect(screen.queryByText('Billing.WITHDRAWAL_EFFECT')).toBeNull();
+    rerender(<WithdrawalDialog open purchase={{ id: 2, kind: 'subscription' }} api={api} onClose={() => {}} />);
+    expect(await screen.findByText('Billing.WITHDRAWAL_EFFECT')).toBeTruthy();
+  });
+});

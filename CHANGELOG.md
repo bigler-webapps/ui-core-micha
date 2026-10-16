@@ -1,5 +1,9 @@
 # Changelog
 
+## 4.7.1 - UCM-BILL-4
+
+The withdrawal dialog no longer says the subscription will not renew for a token package: for `kind: token_package` it says that the unused tokens of the purchase are removed (`Billing.WITHDRAWAL_EFFECT_TOKENS`, de, de_informal, en, fr, sw).
+
 ## 4.7.0 - UCM-RCPT-1
 
 Shared receipt capture and review, against the `django-core-micha` receipts module (DCM-RCPT-1; `consent/` and `read/`
