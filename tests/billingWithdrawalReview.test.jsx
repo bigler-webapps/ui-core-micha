@@ -76,3 +76,16 @@ describe('token package wording', () => {
     expect(await screen.findByText('Billing.WITHDRAWAL_EFFECT')).toBeTruthy();
   });
 });
+
+describe('token package copy', () => {
+  it('pins the sentence in every language and keeps the renewal sentence for other purchases', () => {
+    const row = billingTranslations['Billing.WITHDRAWAL_EFFECT_TOKENS'];
+    expect(row.de).toBe('Mit dem Widerruf werden die noch nicht verbrauchten Token aus diesem Kauf entfernt.');
+    expect(row.de_informal).toBe(row.de);
+    expect(row.en).toBe('Withdrawing removes the unused tokens from this purchase.');
+    expect(row.fr).toBeTruthy();
+    expect(row.sw).toBeTruthy();
+    for (const language of ['de', 'en', 'fr', 'sw']) expect(row[language]).not.toMatch(/renew|verläng|renouvel|sasish/i);
+    expect(billingTranslations['Billing.WITHDRAWAL_EFFECT'].en).toMatch(/not renew/);
+  });
+});
