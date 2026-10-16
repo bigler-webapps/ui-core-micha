@@ -47,7 +47,7 @@ export const chatTranslations = {
   'Chat.newConversation': { de: 'Neue Unterhaltung', en: 'New conversation', fr: 'Nouvelle conversation', sw: 'Mazungumzo mapya' },
   'Chat.balanceLabel': { de: 'Guthaben {{n}} Token', en: 'Balance: {{n}} tokens', fr: 'Solde : {{n}} jetons', sw: 'Salio: tokeni {{n}}' },
   'Chat.summaryUntilHere': { de: 'Zusammenfassung bis hier', en: 'Summary so far', fr: 'Résumé jusqu’ici', sw: 'Muhtasari hadi hapa' },
-  'Chat.replyTokens': { de: '{{model}} · {{effort}} · {{n}} Token', en: '{{model}} · {{effort}} · {{n}} tokens', fr: '{{model}} · {{effort}} · {{n}} jetons', sw: '{{model}} · {{effort}} · tokeni {{n}}' },
+  'Chat.replyTokens': { de: '{{n}} Token', en: '{{n}} tokens', fr: '{{n}} jetons', sw: 'tokeni {{n}}' },
   'Chat.markdownTable': { de: 'Tabelleninhalt', en: 'Table content', fr: 'Contenu du tableau', sw: 'Yaliyomo kwenye jedwali' },
   'Chat.markdownCode': { de: 'Codeblock', en: 'Code block', fr: 'Bloc de code', sw: 'Kizuizi cha msimbo' },
   'Chat.changeModel': { de: 'Modell ändern', en: 'Change model', fr: 'Changer de modèle', sw: 'Badilisha modeli' },

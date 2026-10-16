@@ -71,14 +71,12 @@ describe('reply cost', () => {
     render(<ChatThread turns={[turn({ model: 'Sonnet', effort: 'high', usage })]} usageToTokens={convert} />);
     expect(convert).toHaveBeenCalledWith(usage);
     const caption = screen.getByText(/Chat.replyTokens/).textContent;
-    expect(caption).toContain('Sonnet');
-    expect(caption).toContain('Chat.effort.high');
-    expect(digits(caption)).toContain('12345');
+    expect(caption).toBe('Sonnet · Chat.effort.high · Chat.replyTokens ' + new Intl.NumberFormat('de').format(12345));
   });
 
   it('shows the cost even when the turn carries no model or effort', () => {
     render(<ChatThread turns={[turn({ usage: { input_tokens: 2 } })]} usageToTokens={() => 7} />);
-    expect(screen.getByText(/Chat.replyTokens/).textContent).toContain('7');
+    expect(screen.getByText(/Chat.replyTokens/).textContent).toBe('Chat.replyTokens 7');
   });
 
   it('shows no cost caption without a conversion', () => {
@@ -119,5 +117,65 @@ describe('stored selection fallback', () => {
     await waitFor(() => expect(api.updateChat).toHaveBeenCalledWith(7, { selection: { entry: 'general', effort: 'low' } }));
     await settle();
     expect(api.updateChat).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('picker effort options and level purposes', () => {
+  it('offers only the efforts of the selected model and follows a change of model', () => {
+    const { rerender } = render(<ModelPicker entries={entries} selection={{ entry: 'top', effort: 'low' }} open onOpenChange={() => {}} />);
+    expect(screen.getByRole('button', { name: 'Chat.effort.high' })).toBeTruthy();
+    rerender(<ModelPicker entries={entries} selection={{ entry: 'cli', effort: 'low' }} open onOpenChange={() => {}} />);
+    expect(screen.queryByRole('button', { name: 'Chat.effort.high' })).toBeNull();
+    expect(screen.getByRole('button', { name: 'Chat.effort.low' })).toBeTruthy();
+  });
+
+  it('shows the purpose of every level that has models', () => {
+    const all = ['top', 'best', 'balanced', 'fast'].map((level) => ({ id: level, label: level, provider: 'openai', level, efforts: ['low'] }));
+    render(<ModelPicker entries={all} selection={{ entry: 'top', effort: 'low' }} open onOpenChange={() => {}} />);
+    for (const level of ['top', 'best', 'balanced', 'fast']) {
+      expect(screen.getByText('Chat.level.' + level)).toBeTruthy();
+      expect(screen.getByText('Chat.levelHint.' + level)).toBeTruthy();
+    }
+  });
+});
+
+describe('workspace wiring of long chat and summary', () => {
+  const chat = { id: 7, title: 'Budget', archived_at: null, selection: { entry: 'a', effort: 'low' } };
+  const catalogue = { entries: [{ id: 'a', label: 'A', provider: 'openai', efforts: ['low'], default: true }], default: { entry: 'a', effort: 'low' } };
+  const makeApi = (turnsPage) => ({
+    getStatus: vi.fn().mockResolvedValue({ status: 'available' }),
+    getCatalogue: vi.fn().mockResolvedValue(catalogue),
+    listChats: vi.fn().mockImplementation(async ({ archived } = {}) => ({ results: archived ? [] : [chat], next: null })),
+    createChat: vi.fn().mockResolvedValue({ ...chat, id: 8 }),
+    deleteChat: vi.fn(),
+    updateChat: vi.fn().mockImplementation(async (id, patch) => ({ ...chat, id, ...patch })),
+    listTurns: vi.fn().mockResolvedValue(turnsPage),
+  });
+  const turn = (usage) => ({ id: 1, seq: 4, user_text: 'Q', assistant_text: 'A', state: 'completed', sources: [], usage });
+
+  it('shows the long-chat notice above the composer from the latest context size and creates a chat from it', async () => {
+    const api = makeApi({ results: [turn({ context_tokens: 50000 })], next: null });
+    render(<ChatWorkspace api={api} wsUrl={(id) => `ws://test/${id}`} longChatTokens={40000} />);
+    fireEvent.click(await screen.findByText('Budget'));
+    const notice = await screen.findByText('Chat.longChat');
+    fireEvent.click(notice.closest('[role="alert"]').querySelector('button'));
+    await waitFor(() => expect(api.createChat).toHaveBeenCalled());
+  });
+
+  it('shows no long-chat notice below the limit or when the limit is switched off', async () => {
+    const api = makeApi({ results: [turn({ context_tokens: 50000 })], next: null });
+    render(<ChatWorkspace api={api} wsUrl={(id) => `ws://test/${id}`} longChatTokens={0} />);
+    fireEvent.click(await screen.findByText('Budget'));
+    await screen.findByText('Q');
+    expect(screen.queryByText('Chat.longChat')).toBeNull();
+  });
+
+  it('passes the summary of the first turns page to the thread', async () => {
+    const api = makeApi({ results: [turn(null)], next: null, summary: { up_to_seq: 3, text: 'Earlier talk' } });
+    render(<ChatWorkspace api={api} wsUrl={(id) => `ws://test/${id}`} />);
+    fireEvent.click(await screen.findByText('Budget'));
+    const toggle = await screen.findByRole('button', { name: /Chat.summaryUntilHere/ });
+    fireEvent.click(toggle);
+    expect(screen.getByText('Earlier talk')).toBeTruthy();
   });
 });

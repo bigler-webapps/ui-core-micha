@@ -31,7 +31,8 @@ function Answer({ turn, tool, onRetry, chat, renderAnswerExtra, usageToTokens })
   const replyCaption = (turn) => {
     const tokens = turn.usage && usageToTokens?.(turn.usage);
     if (Number.isInteger(tokens) && tokens >= 0) {
-      return t('Chat.replyTokens', { model: turn.model || '', effort: turn.effort ? t(`Chat.effort.${turn.effort}`) : '', n: new Intl.NumberFormat(typeof i18n?.language === 'string' ? i18n.language.split('_')[0] || undefined : undefined).format(tokens) });
+      const count = new Intl.NumberFormat(typeof i18n?.language === 'string' ? i18n.language.split('_')[0] || undefined : undefined).format(tokens);
+      return [turn.model, turn.effort && t(`Chat.effort.${turn.effort}`), t('Chat.replyTokens', { n: count })].filter(Boolean).join(' · ');
     }
     return selectionLine(turn, t);
   };

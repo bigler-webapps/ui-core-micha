@@ -8,7 +8,7 @@ const turn = (usage) => ({ id: 1, seq: 1, user_text: 'Q', assistant_text: 'A', s
 it('shows converted cost for a finished reply and falls back for invalid or absent conversions', () => {
   const convert = vi.fn(() => 6);
   const { rerender } = render(<ChatThread turns={[turn({ input_tokens: 2 })]} usageToTokens={convert} />);
-  expect(screen.getByText('Chat.replyTokens')).toBeTruthy();
+  expect(screen.getByText('Sonnet · Chat.effort.high · Chat.replyTokens')).toBeTruthy();
   rerender(<ChatThread turns={[turn({ input_tokens: 2 })]} usageToTokens={() => NaN} />);
   expect(screen.getByText('Sonnet · Chat.effort.high')).toBeTruthy();
   rerender(<ChatThread turns={[turn(null)]} usageToTokens={convert} />);

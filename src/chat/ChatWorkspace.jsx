@@ -122,8 +122,16 @@ export function ChatWorkspace({ apiBase, wsUrl, api: apiOverrides, scope, sx, un
   const activeEntry = catalogue.entries.find((entry) => entry.id === selection?.entry);
   const latestUsageTurn = [...turns].reverse().find((turn) => turn.usage);
   const longChat = longChatTokens > 0 && Number.isFinite(latestUsageTurn?.usage?.context_tokens) && latestUsageTurn.usage.context_tokens >= longChatTokens;
+  // Only the newest catalogue request may update the state, so a slow answer for a chat that was left cannot overwrite the active one.
+  const catalogueRequest = useRef(0);
   const refreshCatalogue = useCallback(async (chatId) => {
-    try { const next = await api.getCatalogue(chatId !== undefined ? { chat: chatId } : {}); setCatalogue(next); setCatalogueChatId(chatId ?? null); return next; } catch { return null; }
+    const request = ++catalogueRequest.current;
+    try {
+      const next = await api.getCatalogue(chatId !== undefined ? { chat: chatId } : {});
+      if (request !== catalogueRequest.current) return null;
+      setCatalogue(next); setCatalogueChatId(chatId ?? null);
+      return next;
+    } catch { return null; }
   }, [api]);
 
   // Bumped on every scope change so that a list response of the previous scope is dropped.
