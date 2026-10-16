@@ -88,7 +88,7 @@ export function SubscriptionSection({ api = defaultBillingApi, redirect = (url) 
       {access.source !== 'free' && dateLine && <Typography>{dateLine}</Typography>}
       {me.subscription && typeof me.subscription === 'object' && typeof me.subscription.plan_key === 'string' && typeof me.subscription.renews === 'boolean' && formatDate(me.subscription.current_period_end, i18n.language) && <Stack spacing={0.5}>
         <Typography>{t('Billing.OP_PLAN', { plan: me.subscription.plan_name || me.subscription.plan_key })}</Typography>
-        {formatDate(me.subscription.current_period_end, i18n.language) && <Typography>{t('Billing.OP_UNTIL', { date: formatDate(me.subscription.current_period_end, i18n.language) })}</Typography>}
+        {formatDate(me.subscription.current_period_end, i18n.language) && <Typography>{formatDate(me.subscription.current_period_start, i18n.language) ? `${formatDate(me.subscription.current_period_start, i18n.language)} – ${formatDate(me.subscription.current_period_end, i18n.language)}` : t('Billing.OP_UNTIL', { date: formatDate(me.subscription.current_period_end, i18n.language) })}</Typography>}
         {typeof me.subscription.renews === 'boolean' && <Typography>{t(me.subscription.renews ? 'Billing.OP_RENEWS' : 'Billing.OP_ENDS')}</Typography>}
       </Stack>}
       {access.source === 'subscription' && <Stack direction="row" spacing={1} alignItems="center">

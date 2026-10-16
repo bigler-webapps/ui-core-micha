@@ -83,7 +83,7 @@ describe('operator billing surfaces', () => {
     const hook=renderHook(()=>useOperatorAccounts(api)); await waitFor(()=>expect(hook.result.current.status).toBe('ready')); expect(api.listOperatorAccounts).toHaveBeenCalledTimes(2); expect(hook.result.current.accounts.size).toBe(101);
     const t=(key,v={})=>Object.entries(v).reduce((s,[k,x])=>s.replace(`{{${k}}}`,x),key);
     expect(accountAccessText(account({access:{source:'subscription',status:'active',ends_at:null},plan_key:'pro'}),t,'en')).toBe('Billing.OP_PLAN');
-    expect(accountAccessText(null,t,'en')).toBe('Billing.OP_READ_ONLY');
+    expect(accountAccessText(null,t,'en')).toBe('–');
     render(<BillingAccessCell account={account({access:{source:'team',status:'active',ends_at:null}})}/>);
     expect(screen.getByText('Team seat')).toBeTruthy();
     const hiddenApi={listOperatorAccounts:vi.fn().mockRejectedValue({response:{status:404}})};

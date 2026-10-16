@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Alert, Button, Card, CardContent, Stack, Table, TableBody, TableCell, TableHead, TableRow, TextField, Typography } from '@mui/material';
+import { Alert, Button, Card, CardContent, Stack, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, Typography } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import StatTile from '../components/StatTile';
 import { defaultBillingApi } from './api';
@@ -59,7 +59,7 @@ export function OperatorOverview({ api = defaultBillingApi, sx }) {
     <TextField type="month" label={t('Billing.OP_MONTH')} value={month} onChange={(event) => setMonth(event.target.value)} />
     <Stack direction="row" useFlexGap flexWrap="wrap" gap={1}>{tiles.map(([label, value, lines, caption]) => <StatTile key={label} label={label} value={value} caption={caption} minWidth={170}>{lines?.map((line) => <Typography key={line} variant="body2">{line}</Typography>)}</StatTile>)}</Stack>
     <Card><CardContent><Typography variant="h6">{t('Billing.OP_AI_COST')}</Typography>
-      {models.length ? <Table size="small"><TableHead><TableRow><TableCell>{t('Billing.OP_PROVIDER')}</TableCell><TableCell>{t('Billing.OP_MODEL')}</TableCell><TableCell>{t('Billing.OP_CALLS')}</TableCell><TableCell>{t('Billing.OP_COST_USD')}</TableCell></TableRow></TableHead><TableBody>{models.map((model, index) => <TableRow key={`${model.provider}-${model.model}-${index}`}><TableCell>{model.provider}</TableCell><TableCell>{model.model}</TableCell><TableCell>{n(model.calls)}</TableCell><TableCell>{formatUsdMicros(model.usd_micros, i18n.language)}</TableCell></TableRow>)}</TableBody></Table> : <Typography color="text.secondary">{t('Billing.OP_NO_AI_COST')}</Typography>}
+      {models.length ? <TableContainer><Table size="small"><TableHead><TableRow><TableCell>{t('Billing.OP_PROVIDER')}</TableCell><TableCell>{t('Billing.OP_MODEL')}</TableCell><TableCell>{t('Billing.OP_CALLS')}</TableCell><TableCell>{t('Billing.OP_COST_USD')}</TableCell></TableRow></TableHead><TableBody>{models.map((model, index) => <TableRow key={`${model.provider}-${model.model}-${index}`}><TableCell>{model.provider}</TableCell><TableCell>{model.model}</TableCell><TableCell>{n(model.calls)}</TableCell><TableCell>{formatUsdMicros(model.usd_micros, i18n.language)}</TableCell></TableRow>)}</TableBody></Table></TableContainer> : <Typography color="text.secondary">{t('Billing.OP_NO_AI_COST')}</Typography>}
     </CardContent></Card>
   </Stack>;
 }

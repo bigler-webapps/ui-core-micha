@@ -5,7 +5,7 @@ import { formatDate } from './format';
 import { FreeAccessSwitch } from './FreeAccessSwitch';
 
 export function accountAccessText(account, t, language) {
-  if (!account) return t('Billing.OP_READ_ONLY');
+  if (!account) return '–'; // no row for this person (not loaded): say nothing rather than claim read-only
   const access = account.access || {};
   if (access.source === 'subscription') {
     const date = formatDate(account.term_ends_at || access.ends_at, language);

@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useId, useRef, useState } from 'react';
 import { Alert, Button, Dialog, DialogActions, DialogContent, DialogTitle, FormControlLabel, Switch, TextField, Box } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 
@@ -12,6 +12,7 @@ export function FreeAccessSwitch({ account, api, onChanged, sx }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
   const inFlight = useRef(false);
+  const titleId = useId();
   const active = Boolean(account?.free_access);
   const openDialog = () => { setReason(''); setError(null); setOpen(true); };
   const close = () => { if (!busy) setOpen(false); };
@@ -28,8 +29,8 @@ export function FreeAccessSwitch({ account, api, onChanged, sx }) {
   const validReason = reason.trim().length > 0 && reason.trim().length <= 1000;
   return <>
     <Box sx={sx}><FormControlLabel control={<Switch checked={active} disabled={busy} onChange={openDialog} />} label={t('Billing.OP_FREE_ACCESS')} /></Box>
-    <Dialog open={open} onClose={close}>
-      <DialogTitle>{active ? t('Billing.OP_REVOKE_TITLE') : t('Billing.OP_FREE_ACCESS')}</DialogTitle>
+    <Dialog open={open} onClose={close} aria-labelledby={titleId}>
+      <DialogTitle id={titleId}>{active ? t('Billing.OP_REVOKE_TITLE') : t('Billing.OP_FREE_ACCESS')}</DialogTitle>
       <DialogContent>
         {active ? <p>{t('Billing.OP_REVOKE_BODY')}</p> : <TextField label={t('Billing.OP_REASON')} multiline required fullWidth disabled={busy} value={reason} onChange={(event) => setReason(event.target.value)} inputProps={{ maxLength: 1001 }} />}
         {error && <Alert severity="error" sx={FREE_ACCESS_SWITCH_ALERT_SX}>{t(error)}</Alert>}
