@@ -81,7 +81,7 @@ describe('withdrawal dialog', () => {
     await waitFor(() => expect(finish).toBeTypeOf('function'));
     finish(result);
     expect(await screen.findByText('Billing.WITHDRAWAL_DONE')).toBeTruthy();
-    expect(screen.getByText(/Billing.WITHDRAWAL_DONE_DETAIL February 1, 2026/)).toBeTruthy();
+    expect(screen.getByText(/Billing.WITHDRAWAL_DONE_DETAIL February 1, 2026.*\d{1,2}:\d{2}/)).toBeTruthy();
     expect(onWithdrawn).toHaveBeenCalledOnce();
   });
   it('preview-ineligible purchases cannot be confirmed', async () => {
