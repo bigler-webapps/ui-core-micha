@@ -33,7 +33,7 @@ describe('PlanPicker catalogue variants', () => {
     expect(screen.getByText('Yearly plan')).toBeTruthy();
     expect(screen.queryByText('Monthly plan')).toBeNull();
     fireEvent.click(screen.getByRole('radio', { name: /Yearly plan/ }));
-    expect(screen.getByRole('radio', { name: /Yearly plan/ }).getAttribute('aria-checked')).toBe('true');
+    expect(screen.getByRole('radio', { name: /Yearly plan/ }).checked).toBe(true);
     expect(screen.getByRole('button', { name: 'Continue' }).disabled).toBe(false);
   });
   it('shows team seats and term and includes token packages only when requested', () => {
@@ -45,12 +45,12 @@ describe('PlanPicker catalogue variants', () => {
 
 describe('PlanPicker checkout', () => {
   it('starts checkout once and redirects only to a secure URL', async () => {
-    const api = { startCheckout: vi.fn().mockResolvedValue({ url: 'https://checkout.example/session' }) };
+    const api = { startCheckout: vi.fn().mockResolvedValue({ url: 'https://checkout.stripe.com/session' }) };
     const redirect = vi.fn();
     render(<PlanPicker plans={[plans[0]]} api={api} redirect={redirect} />);
     fireEvent.click(screen.getByRole('radio', { name: /Monthly plan/ }));
     fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
-    await waitFor(() => expect(redirect).toHaveBeenCalledWith('https://checkout.example/session'));
+    await waitFor(() => expect(redirect).toHaveBeenCalledWith('https://checkout.stripe.com/session'));
     expect(api.startCheckout).toHaveBeenCalledOnce();
     expect(api.startCheckout).toHaveBeenCalledWith('monthly');
   });
@@ -62,7 +62,7 @@ describe('PlanPicker checkout', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
     expect(await screen.findByText('Checkout error')).toBeTruthy();
     expect(redirect).not.toHaveBeenCalled();
-    expect(screen.getByRole('radio', { name: /Monthly plan/ }).getAttribute('aria-checked')).toBe('true');
+    expect(screen.getByRole('radio', { name: /Monthly plan/ }).checked).toBe(true);
   });
   it('shows failures and prevents a second click while checkout is pending', async () => {
     let finish;
@@ -75,13 +75,13 @@ describe('PlanPicker checkout', () => {
     expect(button.disabled).toBe(true);
     finish({ url: 'http://unsafe.test' });
     expect(await screen.findByText('Checkout error')).toBeTruthy();
-    expect(screen.getByRole('radio', { name: /Monthly plan/ }).getAttribute('aria-checked')).toBe('true');
+    expect(screen.getByRole('radio', { name: /Monthly plan/ }).checked).toBe(true);
   });
   it('shows rejected checkout errors without clearing the choice', async () => {
     render(<PlanPicker plans={[plans[0]]} api={{ startCheckout: vi.fn().mockRejectedValue(new Error('no')) }} />);
     fireEvent.click(screen.getByRole('radio', { name: /Monthly plan/ }));
     fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
     expect(await screen.findByText('Checkout error')).toBeTruthy();
-    expect(screen.getByRole('radio', { name: /Monthly plan/ }).getAttribute('aria-checked')).toBe('true');
+    expect(screen.getByRole('radio', { name: /Monthly plan/ }).checked).toBe(true);
   });
 });

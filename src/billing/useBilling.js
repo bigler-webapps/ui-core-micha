@@ -6,7 +6,8 @@ const validMe = (me) => {
   return Boolean(access && typeof access === 'object' && !Array.isArray(access)
     && [BILLING_STATUSES.ACTIVE, BILLING_STATUSES.READ_ONLY].includes(access.status)
     && [BILLING_SOURCES.SUBSCRIPTION, BILLING_SOURCES.TEAM, BILLING_SOURCES.FREE, BILLING_SOURCES.NONE].includes(access.source)
-    && (access.ends_at === null || typeof access.ends_at === 'string'));
+    && (access.ends_at === null || (typeof access.ends_at === 'string' && Number.isFinite(new Date(access.ends_at).getTime())))
+    && Number.isInteger(me.tokens?.balance) && me.tokens.balance >= 0);
 };
 
 export function useBilling(api) {

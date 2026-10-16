@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Alert, Button, CircularProgress, Stack, TextField, Typography } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import { defaultBillingApi } from './api';
+import { DEFAULT_PAYMENT_HOSTS, isTrustedPaymentUrl } from './safeUrl';
 import { useBilling } from './useBilling';
 import { formatDate, formatPrice, formatTokens } from './format';
 import { PlanPicker } from './PlanPicker';
@@ -16,7 +17,7 @@ function activeUntil(access, t, language) {
   return date ? t('Billing.ACTIVE_UNTIL', { date }) : null;
 }
 
-export function SubscriptionSection({ api = defaultBillingApi, redirect = (url) => window.location.assign(url), onRenew, describePlan, sx }) {
+export function SubscriptionSection({ api = defaultBillingApi, redirect = (url) => window.location.assign(url), allowedHosts = DEFAULT_PAYMENT_HOSTS, onRenew, describePlan, sx }) {
   const { t, i18n } = useTranslation();
   const { state, me, reload } = useBilling(api);
   const [seats, setSeats] = useState(null);
@@ -44,7 +45,7 @@ export function SubscriptionSection({ api = defaultBillingApi, redirect = (url) 
     setBusy(true); setActionError(null);
     try {
       const result = await operation();
-      if (typeof result?.url !== 'string' || !result.url.startsWith('https://')) throw new Error('invalid_billing_url');
+      if (!isTrustedPaymentUrl(result?.url, allowedHosts)) throw new Error('invalid_billing_url');
       redirect(result.url);
     } catch (error) { setActionError(errorKey); }
     finally { setBusy(false); }
@@ -76,9 +77,9 @@ export function SubscriptionSection({ api = defaultBillingApi, redirect = (url) 
     {access.status === 'read_only' ? <>
       <AccessEndedBanner endedAt={access.ends_at} onRenew={onRenew || (() => {
         renewalPickerRef.current?.scrollIntoView?.({ behavior: 'smooth', block: 'start' });
-        renewalPickerRef.current?.querySelector('button[role="radio"]')?.focus();
+        renewalPickerRef.current?.querySelector('input[type="radio"]')?.focus();
       })} />
-      <div ref={renewalPickerRef}><PlanPicker plans={me.plans || []} api={api} redirect={redirect} describePlan={describePlan} /></div>
+      <div ref={renewalPickerRef}><PlanPicker plans={me.plans || []} api={api} redirect={redirect} allowedHosts={allowedHosts} describePlan={describePlan} /></div>
     </> : <>
       <Typography variant="h5">{t('Billing.HEADING')}</Typography>
       <Typography>{sourceLine}</Typography>

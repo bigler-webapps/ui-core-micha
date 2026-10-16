@@ -39,4 +39,5 @@ export const billingTranslations = {
   'Billing.HEADING': { de: 'Abo', en: 'Subscription', fr: 'Abonnement', sw: 'Usajili' },
   'Billing.TEAM_SEATS': { de: 'Sitzplätze im Team-Paket', en: 'Seats in the team package', fr: 'Places dans le forfait d’équipe', sw: 'Nafasi katika kifurushi cha timu' },
   'Billing.PACKAGE_TOKENS': { de: '{{tokens}} Token', en: '{{tokens}} tokens', fr: '{{tokens}} jetons', sw: 'Tokeni {{tokens}}' },
+  'Billing.PLANS': { de: 'Pläne', en: 'Plans', fr: 'Offres', sw: 'Mipango' },
 };

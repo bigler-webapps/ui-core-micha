@@ -7,7 +7,7 @@ export const TOKEN_BALANCE_BADGE_SX = { fontVariantNumeric: 'tabular-nums' };
 
 export function TokenBalanceBadge({ balance, lowBelow, sx }) {
   const { t, i18n } = useTranslation();
-  if (!Number.isFinite(balance)) return null;
+  if (!Number.isInteger(balance) || balance < 0) return null;
   const label = t('Billing.BALANCE', { tokens: formatTokens(balance, i18n.language) });
   return <Chip label={label} aria-label={label} color={Number.isFinite(lowBelow) && balance < lowBelow ? 'warning' : 'default'} sx={[TOKEN_BALANCE_BADGE_SX, ...(Array.isArray(sx) ? sx : sx ? [sx] : [])]} />;
 }

@@ -5,7 +5,7 @@ import { formatTokens } from './format';
 
 export function TokenCostPreview({ cost, alternatives = [], balance }) {
   const { t, i18n } = useTranslation();
-  if (!Number.isFinite(cost) || !Number.isFinite(balance) || !Array.isArray(alternatives)
+  if (!Number.isInteger(cost) || cost < 0 || !Number.isInteger(balance) || balance < 0 || !Array.isArray(alternatives)
     || alternatives.some((item) => !item || typeof item.label !== 'string' || !Number.isFinite(item.cost))) return null;
   const insufficient = balance < cost;
   // "47 Token, mit Übersetzung 71 · Guthaben 1'153": the cost and its alternatives, then the balance.

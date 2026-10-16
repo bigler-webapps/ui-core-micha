@@ -99,7 +99,7 @@ import { REAUTH_MODAL_ALERT_SX, REAUTH_MODAL_TEXT_FIELD_SX } from '../auth/Reaut
 import { createKitSxEntry } from './kitSxEntry';
 import { ACCESS_ENDED_BANNER_ALERT_SX } from '../billing/AccessEndedBanner';
 import { TOKEN_BALANCE_BADGE_SX } from '../billing/TokenBalanceBadge';
-import { PLAN_PICKER_ALERT_SX, PLAN_PICKER_CARD_ACTION_SX, PLAN_PICKER_CARD_SX, PLAN_PICKER_SELECTED_CARD_SX } from '../billing/PlanPicker';
+import { PLAN_PICKER_ALERT_SX, PLAN_PICKER_CARD_SX, PLAN_PICKER_LABEL_SX, PLAN_PICKER_SELECTED_CARD_SX } from '../billing/PlanPicker';
 import { SUBSCRIPTION_SECTION_ALERT_SX } from '../billing/SubscriptionSection';
 
 const SX_EXPORTS = {
@@ -173,8 +173,8 @@ const SX_EXPORTS = {
   THREAD_DAY_SEPARATOR_SX,
   TOKEN_BALANCE_BADGE_SX,
   PLAN_PICKER_ALERT_SX,
-  PLAN_PICKER_CARD_ACTION_SX,
   PLAN_PICKER_CARD_SX,
+  PLAN_PICKER_LABEL_SX,
   PLAN_PICKER_SELECTED_CARD_SX,
   SUBSCRIPTION_SECTION_ALERT_SX,
   USER_INVITE_ACTION_SX,
@@ -285,7 +285,7 @@ export const KIT_COMPONENT_SX_REGISTRY = [
   entry('TokenBalanceBadge.root', 'MuiChip', TOKEN_BALANCE_BADGE_SX),
   entry('PlanPicker.card', 'MuiCard', PLAN_PICKER_CARD_SX),
   entry('PlanPicker.selectedCard', 'MuiCard', PLAN_PICKER_SELECTED_CARD_SX),
-  entry('PlanPicker.cardAction', 'MuiButtonBase', PLAN_PICKER_CARD_ACTION_SX),
+  entry('PlanPicker.label', 'MuiFormControlLabel', PLAN_PICKER_LABEL_SX),
   entry('PlanPicker.alert', 'MuiAlert', PLAN_PICKER_ALERT_SX),
   entry('SubscriptionSection.alert', 'MuiAlert', SUBSCRIPTION_SECTION_ALERT_SX),
 ];

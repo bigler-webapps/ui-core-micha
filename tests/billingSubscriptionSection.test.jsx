@@ -12,7 +12,7 @@ import { SubscriptionSection } from '../src/billing/SubscriptionSection';
 
 afterEach(cleanup);
 const me = (status = 'active', source = 'subscription', extra = {}) => ({ access: { status, source, ends_at: '2026-12-15T00:00:00Z' }, tokens: { balance: 1153 }, plans: [], ...extra });
-const apiFor = (result, extra = {}) => ({ getMe: vi.fn().mockResolvedValue(result), openPortal: vi.fn().mockResolvedValue({ url: 'https://portal.example/session' }), listSeats: vi.fn().mockRejectedValue({ response: { status: 404 } }), addSeat: vi.fn(), removeSeat: vi.fn(), startCheckout: vi.fn().mockResolvedValue({ url: 'https://checkout.example/session' }), ...extra });
+const apiFor = (result, extra = {}) => ({ getMe: vi.fn().mockResolvedValue(result), openPortal: vi.fn().mockResolvedValue({ url: 'https://billing.stripe.com/session' }), listSeats: vi.fn().mockRejectedValue({ response: { status: 404 } }), addSeat: vi.fn(), removeSeat: vi.fn(), startCheckout: vi.fn().mockResolvedValue({ url: 'https://checkout.stripe.com/session' }), ...extra });
 
 describe('SubscriptionSection state rendering', () => {
   it('shows loading then a retryable error and retries getMe', async () => {
@@ -33,7 +33,7 @@ describe('SubscriptionSection state rendering', () => {
     expect(await screen.findByText('Personal plan')).toBeTruthy();
     expect(screen.getByText(/Active until/)).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Manage' }));
-    await waitFor(() => expect(redirect).toHaveBeenCalledWith('https://portal.example/session'));
+    await waitFor(() => expect(redirect).toHaveBeenCalledWith('https://billing.stripe.com/session'));
     expect(api.openPortal).toHaveBeenCalledOnce();
   });
   it('shows portal failure when the account has no Stripe customer', async () => {
@@ -88,7 +88,7 @@ describe('SubscriptionSection state rendering', () => {
     const redirect = vi.fn();
     render(<SubscriptionSection api={api} redirect={redirect} />);
     fireEvent.click(await screen.findByRole('button', { name: 'Buy package' }));
-    await waitFor(() => expect(redirect).toHaveBeenCalledWith('https://checkout.example/session'));
+    await waitFor(() => expect(redirect).toHaveBeenCalledWith('https://checkout.stripe.com/session'));
     expect(api.startCheckout).toHaveBeenCalledWith('pack');
   });
 });
