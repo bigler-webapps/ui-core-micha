@@ -96,7 +96,7 @@ describe('Abo values', () => {
 
   it('pins the end date of a seat holder', async () => {
     const me = { ...base, access: { status: 'active', source: 'team', ends_at: null }, seat: { plan_key: 'team', plan_name: '', ends_at: '2026-11-01T00:00:00Z' } };
-    render(<SubscriptionSection api={{ getMe: vi.fn().mockResolvedValue(me), listSeats: vi.fn() }} withdrawal={false} />);
+    render(<SubscriptionSection api={{ getMe: vi.fn().mockResolvedValue(me), listSeats: vi.fn().mockResolvedValue({ seats: [] }) }} withdrawal={false} />);
     expect(await screen.findByText('Billing.OP_SEAT_UNTIL November 1, 2026')).toBeTruthy();
   });
 });
