@@ -221,3 +221,29 @@ describe('adapter, keyboard and served default', () => {
     await waitFor(() => expect(api.updateChat).toHaveBeenCalledWith(7, { selection: { entry: 'served', effort: 'high' } }));
   });
 });
+
+describe('failed catalogue load and top effort', () => {
+  it('offers Max when the model supports it', () => {
+    const maxEntries = [{ id: 'm', label: 'Max model', provider: 'openai', efforts: ['low', 'max'] }];
+    render(<ModelPicker entries={maxEntries} selection={{ entry: 'm', effort: 'low' }} open onOpenChange={() => {}} />);
+    expect(screen.getByRole('button', { name: 'Chat.effort.max' })).toBeTruthy();
+  });
+
+  it('does not keep the previous catalogue on offer when the new chat catalogue fails to load', async () => {
+    const chat = { id: 7, title: 'Budget', archived_at: null, selection: { entry: 'a', effort: 'low' } };
+    const general = { entries: [{ id: 'a', label: 'Alpha', provider: 'openai', efforts: ['low'], default: true }], default: { entry: 'a', effort: 'low' } };
+    const api = {
+      getStatus: vi.fn().mockResolvedValue({ status: 'available' }),
+      getCatalogue: vi.fn().mockImplementation(async (arg = {}) => { if (arg.chat !== undefined) throw new Error('down'); return general; }),
+      listChats: vi.fn().mockImplementation(async ({ archived } = {}) => ({ results: archived ? [] : [chat], next: null })),
+      createChat: vi.fn(), deleteChat: vi.fn(), updateChat: vi.fn(),
+      listTurns: vi.fn().mockResolvedValue({ results: [], next: null }),
+    };
+    render(<ChatWorkspace api={api} wsUrl={(id) => `ws://test/${id}`} />);
+    fireEvent.click(await screen.findByText('Budget'));
+    await waitFor(() => expect(api.getCatalogue).toHaveBeenCalledWith({ chat: 7 }));
+    await act(async () => { await new Promise((resolve) => setTimeout(resolve, 60)); });
+    expect(screen.queryByText('Alpha · Chat.effort.low ▾')).toBeNull();
+    expect(api.updateChat).not.toHaveBeenCalled();
+  });
+});

@@ -124,6 +124,7 @@ export function ChatWorkspace({ apiBase, wsUrl, api: apiOverrides, scope, sx, un
   const longChat = longChatTokens > 0 && Number.isFinite(latestUsageTurn?.usage?.context_tokens) && latestUsageTurn.usage.context_tokens >= longChatTokens;
   // Only the newest catalogue request may update the state, so a slow answer for a chat that was left cannot overwrite the active one.
   const catalogueRequest = useRef(0);
+  const catalogueFor = useRef(null);
   const [catalogueLoading, setCatalogueLoading] = useState(false);
   const refreshCatalogue = useCallback(async (chatId) => {
     const request = ++catalogueRequest.current;
@@ -131,9 +132,14 @@ export function ChatWorkspace({ apiBase, wsUrl, api: apiOverrides, scope, sx, un
     try {
       const next = await api.getCatalogue(chatId !== undefined ? { chat: chatId } : {});
       if (request !== catalogueRequest.current) return null;
+      catalogueFor.current = chatId ?? null;
       setCatalogue(next); setCatalogueChatId(chatId ?? null);
       return next;
-    } catch { return null; } finally { if (request === catalogueRequest.current) setCatalogueLoading(false); }
+    } catch {
+      // A failed load for another chat must not leave the previous chat's models on offer.
+      if (request === catalogueRequest.current && chatId !== undefined && catalogueFor.current !== chatId) setCatalogue({ entries: [], default: null });
+      return null;
+    } finally { if (request === catalogueRequest.current) setCatalogueLoading(false); }
   }, [api]);
   const shownChatId = useRef(null);
 
