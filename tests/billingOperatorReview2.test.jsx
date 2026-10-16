@@ -92,6 +92,23 @@ describe('Abo values', () => {
     expect(text).toContain('Billing.OP_VALID_UNTIL November 1, 2026');
     expect(text).toContain('Billing.OP_GRANT_PACKAGE: 50');
     expect(text.split('Billing.OP_VALID_UNTIL').length).toBe(2);
+    expect(text).toContain('40 Billing.OP_REMAINING');
+    expect(text).toContain('10 Billing.OP_REMAINING');
+    expect(text).toContain('Billing.OP_RENEWS');
+    expect(text).not.toContain('Billing.OP_ENDS');
+  });
+
+  it('shows "ends" and other grant numbers when the data says so', async () => {
+    const me = { ...base, access: { status: 'active', source: 'subscription', ends_at: '2027-04-01T00:00:00Z' }, subscription: { plan_key: 'pro', plan_name: 'Plus', current_period_start: '2026-02-01T00:00:00Z', current_period_end: '2026-03-01T00:00:00Z', renews: false }, tokens: { balance: 7, grants: [{ source: 'package', amount: 70, remaining: 7, expires_at: null }] } };
+    const { container } = render(<SubscriptionSection api={{ getMe: vi.fn().mockResolvedValue(me), listSeats: vi.fn() }} withdrawal={false} />);
+    await screen.findByText('Billing.OP_PLAN Plus');
+    const text = container.textContent;
+    expect(text).toContain('February 1, 2026 – March 1, 2026');
+    expect(text).toContain('Billing.OP_ENDS');
+    expect(text).not.toContain('Billing.OP_RENEWS');
+    expect(text).toContain('Billing.OP_GRANT_PACKAGE: 70');
+    expect(text).toContain('7 Billing.OP_REMAINING');
+    expect(text).not.toContain('Billing.OP_VALID_UNTIL');
   });
 
   it('pins the end date of a seat holder', async () => {
