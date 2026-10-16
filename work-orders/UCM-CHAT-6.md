@@ -14,7 +14,7 @@ Expected outcome: a compact, self-explanatory picker; a visible summary; a quiet
 
 1. **Compact entry:** a small button next to „Senden" showing model and effort in words („Claude Sonnet · Gründlich ▾"); it opens a compact window (popover, about 360 px wide; bottom sheet on narrow screens).
 2. **Only usable models:** the picker lists exactly the entries the server offers for this account and app; nothing greyed out, no provider or interface groups, no „pay per use" chips.
-3. **Plain names and purpose:** each entry shows the known model name („Claude Opus 5.5", „Claude Sonnet 5.5", „GPT-6 Luna", „Claude Haiku 5.5") and one sentence what it is good for (from the server catalogue).
+3. **Plain names in three levels:** the entries are ordered under three levels in words, each with a short purpose: „Am gründlichsten · für schwierige Abgrenzungs- und Codierfragen" (Claude Opus), „Ausgewogen · für die meisten Fragen" (Claude Sonnet, GPT-6.1 Sol), „Schnell und günstig · für kurze Nachfragen" (Claude Haiku, GPT-6 Luna). Each entry shows the known model name and „von Anthropic" / „von OpenAI". The level of each model comes from the server catalogue; an empty level is not shown.
 4. **Estimate per entry:** „≈ x–y Token pro Antwort" for the chosen effort and the current length of the chat, in the app's token unit (Maana tokens); in apps without tokens a relative cost scale (●○○ to ●●●); for the operator's subscription driver „ohne Token · Claude-Abo".
 5. **Effort in words:** „Wie gründlich soll die Antwort sein?" with Schnell, Gründlich, Sehr gründlich, and Maximal only where the model supports it; one line explains that more thoroughness means better answers, longer waiting and (with tokens) more tokens.
 6. **Long chat:** a notice in the picker and before sending that older parts will be summarised and a new chat is cheaper, with „Neue Unterhaltung".
@@ -41,7 +41,7 @@ The redesigned `ModelPicker`, summary block, per-reply cost and notices in all c
 
 ### Copy list (DE source; EN and FR required)
 
-„Modell für diese Unterhaltung" · „≈ {lo}–{hi} Token pro Antwort" · „ohne Token · Claude-Abo" · „Wie gründlich soll die Antwort sein?" · Schnell · Gründlich · „Sehr gründlich" · Maximal · „Gründlicher heisst bessere Antworten, aber längere Wartezeit und mehr Token." · „Diese Unterhaltung ist lang. Ältere Teile werden zusammengefasst; eine neue Unterhaltung ist günstiger." · „Neue Unterhaltung" · „Guthaben {n} Token" · „Zusammenfassung bis hier" · „{n} Token".
+„Modell für diese Unterhaltung" · „Am gründlichsten" · „für schwierige Abgrenzungs- und Codierfragen" · Ausgewogen · „für die meisten Fragen" · „Schnell und günstig" · „für kurze Nachfragen" · „von {Anbieter}" · „≈ {lo}–{hi} Token pro Antwort" · „ohne Token · Claude-Abo" · „Wie gründlich soll die Antwort sein?" · Schnell · Gründlich · „Sehr gründlich" · Maximal · „Gründlicher heisst bessere Antworten, aber längere Wartezeit und mehr Token." · „Diese Unterhaltung ist lang. Ältere Teile werden zusammengefasst; eine neue Unterhaltung ist günstiger." · „Neue Unterhaltung" · „Guthaben {n} Token" · „Zusammenfassung bis hier" · „{n} Token".
 
 ### Non-goals and do-not-touch
 
