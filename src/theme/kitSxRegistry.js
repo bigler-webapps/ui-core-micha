@@ -103,6 +103,10 @@ import { PLAN_PICKER_ALERT_SX, PLAN_PICKER_CARD_SX, PLAN_PICKER_LABEL_SX, PLAN_P
 import { SUBSCRIPTION_SECTION_ALERT_SX } from '../billing/SubscriptionSection';
 import { WITHDRAWAL_DIALOG_ALERT_SX } from '../billing/WithdrawalDialog';
 import { WITHDRAWAL_SECTION_ALERT_SX } from '../billing/WithdrawalSection';
+import { RECEIPT_CONSENT_ALERT_SX, RECEIPT_CONSENT_CONTROL_SX } from '../receipts/ReceiptConsentSwitch';
+import { RECEIPT_CAPTURE_ACTION_SX, RECEIPT_CAPTURE_ALERT_SX, RECEIPT_CAPTURE_CARD_SX, RECEIPT_CAPTURE_PROGRESS_SX } from '../receipts/ReceiptCaptureCard';
+import { RECEIPT_PICKER_ACTION_SX, RECEIPT_PICKER_CARD_SX } from '../receipts/ReceiptPicker';
+import { RECEIPT_REVIEW_ACTIONS_SX, RECEIPT_REVIEW_ACTION_BUTTON_SX, RECEIPT_REVIEW_SHEET_PAPER_SX } from '../receipts/ReceiptReviewDialog';
 
 const SX_EXPORTS = {
   ACCESS_CODE_ACTION_SX,
@@ -181,6 +185,17 @@ const SX_EXPORTS = {
   SUBSCRIPTION_SECTION_ALERT_SX,
   WITHDRAWAL_DIALOG_ALERT_SX,
   WITHDRAWAL_SECTION_ALERT_SX,
+  RECEIPT_CONSENT_ALERT_SX,
+  RECEIPT_CONSENT_CONTROL_SX,
+  RECEIPT_CAPTURE_ACTION_SX,
+  RECEIPT_CAPTURE_ALERT_SX,
+  RECEIPT_CAPTURE_CARD_SX,
+  RECEIPT_CAPTURE_PROGRESS_SX,
+  RECEIPT_PICKER_ACTION_SX,
+  RECEIPT_PICKER_CARD_SX,
+  RECEIPT_REVIEW_ACTIONS_SX,
+  RECEIPT_REVIEW_ACTION_BUTTON_SX,
+  RECEIPT_REVIEW_SHEET_PAPER_SX,
   USER_INVITE_ACTION_SX,
   USER_INVITE_ALERT_SX,
   USER_LIST_ACTION_SX,
@@ -294,4 +309,15 @@ export const KIT_COMPONENT_SX_REGISTRY = [
   entry('SubscriptionSection.alert', 'MuiAlert', SUBSCRIPTION_SECTION_ALERT_SX),
   entry('WithdrawalDialog.alert', 'MuiAlert', WITHDRAWAL_DIALOG_ALERT_SX),
   entry('WithdrawalSection.alert', 'MuiAlert', WITHDRAWAL_SECTION_ALERT_SX),
+  entry('ReceiptConsentSwitch.alert', 'MuiAlert', RECEIPT_CONSENT_ALERT_SX),
+  entry('ReceiptConsentSwitch.control', 'MuiFormControlLabel', RECEIPT_CONSENT_CONTROL_SX),
+  entry('ReceiptCaptureCard.card', 'MuiPaper', RECEIPT_CAPTURE_CARD_SX),
+  entry('ReceiptCaptureCard.alert', 'MuiAlert', RECEIPT_CAPTURE_ALERT_SX),
+  entry('ReceiptCaptureCard.action', 'MuiButton', RECEIPT_CAPTURE_ACTION_SX),
+  entry('ReceiptCaptureCard.progress', 'MuiLinearProgress', RECEIPT_CAPTURE_PROGRESS_SX),
+  entry('ReceiptPicker.card', 'MuiCard', RECEIPT_PICKER_CARD_SX),
+  entry('ReceiptPicker.actions', 'MuiDialogActions', RECEIPT_PICKER_ACTION_SX),
+  entry('ReceiptReviewDialog.actions', 'MuiDialogActions', RECEIPT_REVIEW_ACTIONS_SX),
+  entry('ReceiptReviewDialog.sheetPaper', 'MuiPaper', RECEIPT_REVIEW_SHEET_PAPER_SX),
+  entry('ReceiptReviewDialog.action', 'MuiButton', RECEIPT_REVIEW_ACTION_BUTTON_SX),
 ];

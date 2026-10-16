@@ -4,6 +4,7 @@ import { chartsTranslations } from './chartsTranslations';
 import { chatTranslations } from './chatTranslations';
 import { messagingTranslations } from './messagingTranslations';
 import { notificationsTranslations } from './notificationsTranslations';
+import { receiptsTranslations } from './receiptsTranslations';
 import { onboardingTranslations } from './onboardingTranslations';
 import { sectionNavTranslations } from './sectionNavTranslations';
 import { userMenuTranslations } from './userMenuTranslations';
@@ -15,6 +16,7 @@ export const uiCoreTranslations = {
   ...chatTranslations,
   ...messagingTranslations,
   ...notificationsTranslations,
+  ...receiptsTranslations,
   ...onboardingTranslations,
   ...sectionNavTranslations,
   ...userMenuTranslations,

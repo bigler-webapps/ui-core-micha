@@ -1,5 +1,21 @@
 # Changelog
 
+## 4.7.0 - UCM-RCPT-1
+
+Shared receipt capture and review, against the `django-core-micha` receipts module (DCM-RCPT-1; `consent/` and `read/`
+under `apiBase`, default `/api/receipts/`). `ReceiptCaptureCard` offers the camera (`capture="environment"`) and a file
+button for JPG, PNG, HEIC and PDF, scales large JPEG and PNG files on the device (HEIC and PDF pass through; at most
+10 MB), shows the progress while the receipt is read and the recognised boxes on the image, and the edge states (no
+consent, nothing recognised, recognition unavailable, file not readable). Without consent it shows the consent switch
+and, when the host gives `onUploadOnly`, an upload-only path. `ReceiptReviewDialog` (a sheet on phones) lists each
+recognised value next to the form's current one with "Apply", "Only empty fields" and "Apply all"; the host passes its
+form values, field labels and extra fields and receives only the chosen values (`onApply(values, { mode })`).
+`ReceiptPicker` selects among several receipts in one photo (low confidence starts unselected). `ReceiptConsentSwitch`
+reads and writes the user's own consent and works on a profile page too; the text names the `provider` the host passes.
+Also `useReceiptConsent`, `createReceiptsApi` / `defaultReceiptsApi` (every function overridable), `receiptFileProblem`,
+`prepareReceiptFile` and `receiptsTranslations` (de/en/fr/sw, part of `uiCoreTranslations`). The kit stores nothing; the
+app keeps its form and its files.
+
 ## 4.6.0 - UCM-CHAT-6
 
 Plain model choice, summary and cost on the shared chat surface, against `django-core-micha` 3.5.0 (DCM-CHAT-13).
