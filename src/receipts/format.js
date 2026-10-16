@@ -15,7 +15,7 @@ export function formatReceiptDate(iso, language) {
 }
 export function isEmptyValue(value) { return value === '' || value === null || value === undefined || (Array.isArray(value) && value.length === 0); }
 export function receiptValueEqual(key, a, b) {
-  if (key === 'items') return Array.isArray(a) && Array.isArray(b) && a.length === b.length && a.every((item, i) => Object.keys(item || {}).every((k) => String(item[k] ?? '').trim().toLowerCase() === String(b[i]?.[k] ?? '').trim().toLowerCase()));
+  if (key === 'items') return Array.isArray(a) && Array.isArray(b) && a.length === b.length && a.every((item, i) => ['description', 'amount'].every((k) => String(item?.[k] ?? '').trim().toLowerCase() === String(b[i]?.[k] ?? '').trim().toLowerCase()));
   if (key === 'total' && a !== '' && b !== '' && Number.isFinite(Number(a)) && Number.isFinite(Number(b))) return Number(a) === Number(b);
   return String(a ?? '').trim().toLowerCase() === String(b ?? '').trim().toLowerCase();
 }

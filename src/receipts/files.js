@@ -4,7 +4,11 @@ const extOf = (file) => String(file?.name || '').split('.').pop().toLowerCase();
 // `checkSize: false` is for files that are scaled down before upload; the bound is checked again on the prepared file.
 export function receiptFileProblem(file, { checkSize = true } = {}) {
   const ext = extOf(file);
-  const supported = ['image/jpeg', 'image/png', 'image/heic', 'image/heif', 'application/pdf'].includes(String(file?.type || '').toLowerCase()) || ['jpg', 'jpeg', 'png', 'heic', 'heif', 'pdf'].includes(ext);
+  const type = String(file?.type || '').toLowerCase();
+  // A declared type decides; the extension only decides when the browser gave none (phones often send an empty type for HEIC).
+  const supported = type && type !== 'application/octet-stream'
+    ? ['image/jpeg', 'image/png', 'image/heic', 'image/heif', 'application/pdf'].includes(type)
+    : ['jpg', 'jpeg', 'png', 'heic', 'heif', 'pdf'].includes(ext);
   if (!supported) return 'unsupported_file_type';
   if (!Number.isFinite(file?.size) || (checkSize && file.size > RECEIPT_MAX_BYTES)) return 'file_too_large';
   return null;

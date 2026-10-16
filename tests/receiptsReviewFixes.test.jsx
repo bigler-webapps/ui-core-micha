@@ -124,3 +124,55 @@ describe('consent and api client', () => {
     expect(apiClient.post).toHaveBeenCalledWith('/x/consent/');
   });
 });
+
+describe('round two fixes', () => {
+  it('hands over exactly the empty fields with "Only empty fields"', () => {
+    const items = [{ description: 'Tea', amount: '2.00' }];
+    const receipt = { merchant: 'Shop', date: '2026-10-14', total: '14.60', currency: 'CHF', payment_method: 'card', items, confidence: 'high', account_suggestions: [{ account_id: 'a1', confidence: 'high' }], project_code: 'P1' };
+    const onApply = vi.fn();
+    render(<ReceiptReviewDialog open receipt={receipt} values={{ merchant: 'Shop', date: 'typed', total: '4', currency: '', payment_method: '', account: '', items: [], project_code: '' }} extraFields={[{ key: 'project_code', label: 'Project' }]} onApply={onApply} onClose={vi.fn()} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Receipts.ONLY_EMPTY' }));
+    expect(onApply).toHaveBeenCalledWith({ currency: 'CHF', payment_method: 'card', account: 'a1', items, project_code: 'P1' }, { mode: 'empty' });
+  });
+
+  it('still offers Apply when the form has the same descriptions but not the amounts', () => {
+    const receipt = { items: [{ description: 'Tea', amount: '2.00' }], confidence: 'high' };
+    render(<ReceiptReviewDialog open receipt={receipt} values={{ items: [{ description: 'Tea' }] }} onApply={vi.fn()} onClose={vi.fn()} />);
+    expect(screen.getByRole('button', { name: 'Receipts.APPLY' })).toBeTruthy();
+    expect(screen.queryByText('Receipts.SAME_AS_FORM')).toBeNull();
+  });
+
+  it('lets a declared type decide over the extension', async () => {
+    const { receiptFileProblem } = await import('../src/receipts/files');
+    expect(receiptFileProblem(new File(['x'], 'receipt.jpg', { type: 'image/gif' }))).toBe('unsupported_file_type');
+    expect(receiptFileProblem(new File(['x'], 'receipt.heic', { type: '' }))).toBeNull();
+    expect(receiptFileProblem(new File(['x'], 'receipt.pdf', { type: 'application/pdf' }))).toBeNull();
+  });
+
+  it('accepts exactly the specified type list in the file input', async () => {
+    const { RECEIPT_ACCEPT } = await import('../src/receipts/wire');
+    render(<ReceiptCaptureCard api={consentedApi(vi.fn())} />);
+    await screen.findByRole('button', { name: 'Receipts.CAMERA' });
+    expect(fileInput().getAttribute('accept')).toBe(RECEIPT_ACCEPT);
+    expect(RECEIPT_ACCEPT.split(',')).toEqual(['image/jpeg', 'image/png', 'image/heic', 'image/heif', 'application/pdf', '.jpg', '.jpeg', '.png', '.heic', '.heif', '.pdf']);
+  });
+
+  it('has every key of the released copy list', async () => {
+    const { receiptsTranslations } = await import('../src/i18n/receiptsTranslations');
+    const required = ['CAMERA', 'PICK_FILE', 'ACCEPTED_TYPES', 'READING', 'ANOTHER', 'REVIEW_TITLE', 'SAME_AS_FORM', 'APPLY', 'ONLY_EMPTY', 'APPLY_ALL', 'CLOSE', 'CERTAIN', 'UNCERTAIN', 'RECOGNISED_COUNT', 'APPLY_COUNT', 'UNREADABLE', 'AMOUNT_UNKNOWN', 'CONSENT', 'UPLOAD_ONLY', 'NOTHING_RECOGNISED', 'UNAVAILABLE', 'FILE_PROBLEM', 'FIELD_merchant', 'FIELD_date', 'FIELD_total', 'FIELD_currency', 'FIELD_payment_method', 'FIELD_account', 'FIELD_items', 'CARD_LABEL', 'CANCEL', 'PAYMENT_cash', 'PAYMENT_card', 'PAYMENT_other', 'CONSENT_ERROR', 'RETRY'];
+    for (const name of required) expect(receiptsTranslations[`Receipts.${name}`], name).toBeTruthy();
+  });
+
+  it('forgets a grant when the api changes and until the new api has answered', async () => {
+    function Probe({ api }) { const state = useReceiptConsent(api); return <output>{state.status + ':' + (state.granted ? 'yes' : 'no')}</output>; }
+    const first = { getConsent: vi.fn().mockResolvedValue({ granted: true }) };
+    let release;
+    const second = { getConsent: vi.fn(() => new Promise((resolve) => { release = resolve; })) };
+    const { rerender } = render(<Probe api={first} />);
+    await screen.findByText('ready:yes');
+    rerender(<Probe api={second} />);
+    expect(await screen.findByText('loading:no')).toBeTruthy();
+    release({ granted: true });
+    expect(await screen.findByText('ready:yes')).toBeTruthy();
+  });
+});

@@ -11,6 +11,7 @@ export function useReceiptConsent(api) {
   useEffect(() => {
     liveRef.current = true;
     let requestLive = true;
+    setGranted(false); setStatus('loading'); // consent known for another api never carries over
     Promise.resolve().then(() => api.getConsent()).then((answer) => { if (requestLive) { setGranted(Boolean(answer?.granted)); setStatus('ready'); setError(false); } }).catch(() => { if (requestLive) { setStatus('error'); setError(true); } });
     return () => { requestLive = false; liveRef.current = false; };
   }, [api, reloadCount]);
