@@ -16,6 +16,13 @@ Spread `uiCoreTranslations` into the default i18n namespace as the supported agg
 offer privacy/cookie statement text endpoints; this hides their panels and prevents their requests.
 The privacy and cookie consent controls and their submitted values remain available.
 
+## Account page: extra tabs in a navigation group
+
+An entry of `AccountPage`'s `extraTabs` (`{ value, label, content, visible? }`) may carry an optional `group` naming one of
+the kit's navigation groups: `my-account` (Profile, Security), `management` (Users, Invite) or `help` (Support). The tab
+then appears in that group after the kit's own tabs, in the order of `extraTabs`, in the desktop sidebar and in the
+phone navigation. Without `group`, or with `more` or an unknown value, it stays in "More" as before.
+
 ## Consumer integration check
 
 ```js
