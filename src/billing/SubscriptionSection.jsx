@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Alert, Button, CircularProgress, Stack, TextField, Typography } from '@mui/material';
+import { Alert, Button, CircularProgress, MenuItem, Stack, TextField, Typography } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import { defaultBillingApi } from './api';
 import { DEFAULT_PAYMENT_HOSTS, isTrustedPaymentUrl } from './safeUrl';
@@ -11,6 +11,7 @@ import { AccessEndedBanner } from './AccessEndedBanner';
 import { WithdrawalSection } from './WithdrawalSection';
 
 export const SUBSCRIPTION_SECTION_ALERT_SX = { width: '100%' };
+export const SUBSCRIPTION_SECTION_SEAT_SELECT_SX = { flex: '1 1 auto', minWidth: 0 };
 
 function isStatus(error, status) { return error?.response?.status === status; }
 function activeUntil(access, t, language) {
@@ -18,7 +19,7 @@ function activeUntil(access, t, language) {
   return date ? t('Billing.ACTIVE_UNTIL', { date }) : null;
 }
 
-export function SubscriptionSection({ api = defaultBillingApi, redirect = (url) => window.location.assign(url), allowedHosts = DEFAULT_PAYMENT_HOSTS, onRenew, describePlan, withdrawal = true, sx }) {
+export function SubscriptionSection({ api = defaultBillingApi, redirect = (url) => window.location.assign(url), allowedHosts = DEFAULT_PAYMENT_HOSTS, onRenew, describePlan, withdrawal = true, seatCandidates, sx }) {
   const { t, i18n } = useTranslation();
   const { state, me, reload } = useBilling(api);
   const [withdrawnPurchases, setWithdrawnPurchases] = useState({});
@@ -73,6 +74,15 @@ export function SubscriptionSection({ api = defaultBillingApi, redirect = (url) 
   const dateLine = activeUntil(access, t, i18n.language);
   const packagePlans = (Array.isArray(me.plans) ? me.plans : []).filter((plan) => plan?.kind === 'token_package');
   const sourceLine = access.source === 'subscription' ? t('Billing.SOURCE_SUBSCRIPTION') : access.source === 'team' ? t('Billing.SOURCE_TEAM') : access.source === 'free' ? t('Billing.SOURCE_FREE') : null;
+  const hasSeatLimit = Number.isInteger(me.team?.seats_used) && Number.isInteger(me.team?.seats_total) && me.team.seats_used >= me.team.seats_total;
+  const occupiedIds = new Set([
+    ...(Array.isArray(seats) ? seats.map((seat) => seat?.user_id) : []),
+    ...(Array.isArray(me.team?.seat_holders) ? me.team.seat_holders.map((holder) => holder?.user_id) : []),
+  ].filter((id) => id != null).map(String));
+  const eligibleSeatCandidates = Array.isArray(seatCandidates)
+    ? seatCandidates.filter((candidate) => candidate?.id != null && !occupiedIds.has(String(candidate.id)))
+    : [];
+  const selectedSeatCandidate = eligibleSeatCandidates.find((candidate) => String(candidate.id) === seatInput);
   if (!sourceLine && access.status === 'active') return <Alert severity="error" sx={SUBSCRIPTION_SECTION_ALERT_SX}>{t('Billing.ERROR_LOAD')}</Alert>;
 
   return <Stack sx={sx} spacing={2}>
@@ -108,10 +118,18 @@ export function SubscriptionSection({ api = defaultBillingApi, redirect = (url) 
           {(() => { const holder = (me.team?.seat_holders || []).find((entry) => String(entry.user_id) === String(seat.user_id)); return <Stack><Typography>{holder?.name || holder?.email || String(seat.user_id)}</Typography>{holder?.name && <Typography color="text.secondary">{holder.email}</Typography>}</Stack>; })()}
           <Button disabled={busy} onClick={() => updateSeat(() => api.removeSeat({ userId: seat.user_id }))}>{t('Billing.SEAT_REMOVE')}</Button>
         </Stack>)}
-        <Stack direction="row" spacing={1}>
-          <TextField size="small" label={t('Billing.SEAT_USER')} value={seatInput} onChange={(event) => setSeatInput(event.target.value)} />
-          <Button disabled={busy || !seatInput.trim()} onClick={() => updateSeat(() => seatInput.includes('@') ? api.addSeat({ email: seatInput.trim() }) : api.addSeat({ userId: seatInput.trim() }))}>{t('Billing.SEATS_ADD')}</Button>
-        </Stack>
+        {hasSeatLimit ? <Typography color="text.secondary">{t('Billing.ERROR_SEAT_LIMIT')}</Typography> : <Stack direction="row" spacing={1}>
+          {Array.isArray(seatCandidates) ? <TextField select SelectProps={{ displayEmpty: true }} size="small" label={t('Billing.SEAT_PICK')} value={seatInput} onChange={(event) => setSeatInput(event.target.value)} sx={SUBSCRIPTION_SECTION_SEAT_SELECT_SX}>
+            <MenuItem value="">{t('Billing.SEAT_PICK')}</MenuItem>
+            {eligibleSeatCandidates.map((candidate) => <MenuItem key={String(candidate.id)} value={String(candidate.id)}><Stack><Typography>{candidate.name}</Typography>{candidate.email && <Typography variant="body2" color="text.secondary">{candidate.email}</Typography>}</Stack></MenuItem>)}
+          </TextField> : <TextField size="small" label={t('Billing.SEAT_USER')} value={seatInput} onChange={(event) => setSeatInput(event.target.value)} />}
+          <Button disabled={busy || (Array.isArray(seatCandidates) ? !selectedSeatCandidate : !seatInput.trim())} onClick={() => updateSeat(() => {
+            if (Array.isArray(seatCandidates)) {
+              return selectedSeatCandidate ? api.addSeat({ userId: selectedSeatCandidate.id }) : undefined;
+            }
+            return seatInput.includes('@') ? api.addSeat({ email: seatInput.trim() }) : api.addSeat({ userId: seatInput.trim() });
+          })}>{t('Billing.SEATS_ADD')}</Button>
+        </Stack>}
         {seatError && <Alert severity="error" sx={SUBSCRIPTION_SECTION_ALERT_SX}>{typeof seatError === 'string' ? t(seatError) : t('Billing.ERROR_LOAD')}</Alert>}
       </Stack>}
       {actionError && <Alert severity="error" sx={SUBSCRIPTION_SECTION_ALERT_SX}>{t(actionError)}</Alert>}
