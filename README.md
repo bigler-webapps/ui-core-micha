@@ -23,6 +23,13 @@ the kit's navigation groups: `my-account` (Profile, Security), `management` (Use
 then appears in that group after the kit's own tabs, in the order of `extraTabs`, in the desktop sidebar and in the
 phone navigation. Without `group`, or with `more` or an unknown value, it stays in "More" as before.
 
+## Account section: plan choice on the app's own page
+
+`SubscriptionSection` shows an inline plan picker for an account without access. An app with its own plan page passes
+`onChoosePlan`: the section then shows the "access ended" banner and one button "Abo waehlen" that calls
+`onChoosePlan()` (the banner's renew action calls it too, and wins over `onRenew`), and no inline picker. Without the
+prop the section behaves as before.
+
 ## Consumer integration check
 
 ```js

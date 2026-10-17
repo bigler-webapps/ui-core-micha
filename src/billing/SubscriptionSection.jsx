@@ -22,7 +22,8 @@ function activeUntil(access, t, language) {
   return date ? t('Billing.ACTIVE_UNTIL', { date }) : null;
 }
 
-export function SubscriptionSection({ api = defaultBillingApi, redirect = (url) => window.location.assign(url), allowedHosts = DEFAULT_PAYMENT_HOSTS, onRenew, describePlan, withdrawal = true, seatCandidates, sx }) {
+export function SubscriptionSection({ api = defaultBillingApi, redirect = (url) => window.location.assign(url), allowedHosts = DEFAULT_PAYMENT_HOSTS, onRenew, onChoosePlan, describePlan, withdrawal = true, seatCandidates, sx }) {
+  // Apps can hand read-only accounts off to their own plan page.
   const { t, i18n } = useTranslation();
   const { state, me, reload } = useBilling(api);
   const [withdrawnPurchases, setWithdrawnPurchases] = useState({});
@@ -91,11 +92,14 @@ export function SubscriptionSection({ api = defaultBillingApi, redirect = (url) 
 
   return <Stack sx={sx} spacing={2}>
     {access.status === 'read_only' ? <>
-      <AccessEndedBanner endedAt={access.ends_at} onRenew={onRenew || (() => {
+      {/* The app's plan-page callback takes precedence over the legacy banner override. */}
+      <AccessEndedBanner endedAt={access.ends_at} onRenew={typeof onChoosePlan === 'function' ? () => onChoosePlan() : onRenew || (() => {
         renewalPickerRef.current?.scrollIntoView?.({ behavior: 'smooth', block: 'start' });
         renewalPickerRef.current?.querySelector('input[type="radio"]')?.focus();
       })} />
-      <div ref={renewalPickerRef}><PlanPicker plans={me.plans || []} api={api} redirect={redirect} allowedHosts={allowedHosts} describePlan={describePlan} /></div>
+      {typeof onChoosePlan === 'function'
+        ? <Button variant="contained" onClick={() => onChoosePlan()}>{t('Billing.CHOOSE_PLAN')}</Button>
+        : <div ref={renewalPickerRef}><PlanPicker plans={me.plans || []} api={api} redirect={redirect} allowedHosts={allowedHosts} describePlan={describePlan} /></div>}
     </> : <>
       <Typography variant="h5">{t('Billing.HEADING')}</Typography>
       <Typography>{sourceLine}</Typography>

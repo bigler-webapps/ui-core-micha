@@ -1,5 +1,13 @@
 # Changelog
 
+## 4.12.0 - UCM-BILL-8
+
+`SubscriptionSection` accepts an optional `onChoosePlan` callback for apps that have their own plan page. With it, the
+read-only state (no access) shows the "access ended" banner and one button "Abo waehlen" (`Billing.CHOOSE_PLAN`) that
+calls `onChoosePlan()`, instead of the inline plan picker; the banner's "Abo erneuern" action calls it too (when an app
+passes both `onRenew` and `onChoosePlan`, `onChoosePlan` wins for the banner action). Without the prop nothing
+changes: the inline picker and the existing `onRenew` behaviour stay. The active-subscription view is untouched.
+
 ## 4.11.0 - UCM-BILL-7
 
 An entry of `AccountPage`'s `extraTabs` accepts an optional `group` naming one of the kit's navigation groups:

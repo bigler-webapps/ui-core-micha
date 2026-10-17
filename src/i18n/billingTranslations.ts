@@ -18,6 +18,7 @@ export const billingTranslations = {
   'Billing.ENDED_ON': { de: 'Beendet am {{date}}', de_informal: 'Beendet am {{date}}', en: 'Ended on {{date}}', fr: 'Terminé le {{date}}', sw: 'Uliisha tarehe {{date}}' },
   'Billing.DELETION_ON': { de: 'Löschung am {{date}}', de_informal: 'Löschung am {{date}}', en: 'Deletion on {{date}}', fr: 'Suppression le {{date}}', sw: 'Kufutwa tarehe {{date}}' },
   'Billing.RENEW': { de: 'Abo erneuern', de_informal: 'Abo erneuern', en: 'Renew subscription', fr: 'Renouveler l’abonnement', sw: 'Fanya upya usajili' },
+  'Billing.CHOOSE_PLAN': { de: 'Abo wählen', de_informal: 'Abo wählen', en: 'Choose a plan', fr: 'Choisir un abonnement', sw: 'Chagua usajili' },
   'Billing.MONTHLY': { de: 'Monatlich', de_informal: 'Monatlich', en: 'Monthly', fr: 'Mensuel', sw: 'Kila mwezi' },
   'Billing.YEARLY': { de: 'Jährlich', de_informal: 'Jährlich', en: 'Yearly', fr: 'Annuel', sw: 'Kila mwaka' },
   'Billing.PER_MONTH': { de: '/ Monat', de_informal: '/ Monat', en: '/ month', fr: '/ mois', sw: '/ mwezi' },
