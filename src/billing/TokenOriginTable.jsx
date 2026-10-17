@@ -21,23 +21,25 @@ function validPool(pool) {
 }
 
 function OriginGrid({ rows, t, language }) {
-  return <Box sx={{ display: 'grid', gridTemplateColumns: { xs: 'minmax(0, 1fr) auto', sm: 'minmax(0, 1fr) auto auto' }, columnGap: 2, rowGap: 0.5, alignItems: 'baseline', fontSize: '0.8125rem' }}>
-    <Typography variant="caption">{t('Billing.ORIGIN_HEADER')}</Typography>
-    <Box component="span" sx={{ textAlign: 'right', color: 'text.secondary', fontSize: '0.75rem' }}>{t('Billing.OP_REMAINING')}</Box>
-    <Box component="span" sx={{ display: { xs: 'none', sm: 'block' }, textAlign: 'right', color: 'text.secondary', fontSize: '0.75rem' }}>{t('Billing.VALID_HEADER')}</Box>
+  return <Box role="table" aria-label={t('Billing.ORIGIN_HEADER')} sx={{ display: 'grid', gridTemplateColumns: { xs: 'minmax(0, 1fr) auto', sm: 'minmax(0, 1fr) auto auto' }, columnGap: 2, rowGap: 0.5, alignItems: 'baseline', fontSize: '0.8125rem' }}>
+    <Box role="row" sx={{ display: 'contents' }}>
+      <Typography role="columnheader" variant="caption">{t('Billing.ORIGIN_HEADER')}</Typography>
+      <Box role="columnheader" component="span" sx={{ textAlign: 'right', color: 'text.secondary', fontSize: '0.75rem' }}>{t('Billing.OP_REMAINING')}</Box>
+      <Box role="columnheader" component="span" sx={{ display: { xs: 'none', sm: 'block' }, textAlign: 'right', color: 'text.secondary', fontSize: '0.75rem' }}>{t('Billing.VALID_HEADER')}</Box>
+    </Box>
     {rows.map((row) => {
       const share = row.amount === 0 ? 0 : Math.max(0, Math.min(1, row.remaining / row.amount));
       const expiry = formatDate(row.expires_at, language);
-      return <React.Fragment key={row.key}>
-        <Typography>{t(row.nameKey, row.nameValues)}</Typography>
-        <Box component="span" sx={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{formatTokens(row.remaining, language)}</Box>
-        <Box component="span" sx={{ gridColumn: { xs: '1 / -1', sm: 'auto' }, color: 'text.secondary', textAlign: { xs: 'left', sm: 'right' }, mt: { xs: -0.5, sm: 0 } }}>
+      return <Box role="row" key={row.key} sx={{ display: 'contents' }}>
+        <Typography role="cell">{t(row.nameKey, row.nameValues)}</Typography>
+        <Box role="cell" component="span" sx={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{formatTokens(row.remaining, language)}</Box>
+        <Box role="cell" component="span" sx={{ gridColumn: { xs: '1 / -1', sm: 'auto' }, color: 'text.secondary', textAlign: { xs: 'left', sm: 'right' }, mt: { xs: -0.5, sm: 0 } }}>
           {row.expires_at == null ? t('Billing.NEVER_EXPIRES') : expiry ? t('Billing.EXPIRES_ON', { date: expiry }) : ''}
         </Box>
-        {row.amount > 0 && <Box aria-label={`${formatTokens(row.remaining, language)} / ${formatTokens(row.amount, language)}`} sx={{ gridColumn: '1 / -1', height: 6, borderRadius: 3, bgcolor: (theme) => theme.palette.action.hover, overflow: 'hidden', mb: 0.75 }}>
+        {row.amount > 0 && <Box role="cell" sx={{ gridColumn: '1 / -1' }}><Box role="img" aria-label={`${formatTokens(row.remaining, language)} / ${formatTokens(row.amount, language)}`} sx={{ gridColumn: '1 / -1', height: 6, borderRadius: 3, bgcolor: (theme) => theme.palette.action.hover, overflow: 'hidden', mb: 0.75 }}>
           <Box style={{ width: `${share * 100}%`, height: '100%' }} sx={{ bgcolor: 'primary.main' }} />
-        </Box>}
-      </React.Fragment>;
+        </Box></Box>}
+      </Box>;
     })}
   </Box>;
 }
