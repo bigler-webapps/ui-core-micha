@@ -33,7 +33,7 @@ function setViewport(narrow) {
 }
 function renderReview(receipt, values = {}, onApply = vi.fn(), narrow = false) {
   setViewport(narrow);
-  render(<ReceiptReviewDialog open receipt={receipt} values={values} onApply={onApply} onClose={vi.fn()} />);
+  render(<ReceiptReviewDialog open receipt={receipt} values={values} extraFields={[{ key: 'project', label: 'Project' }]} onApply={onApply} onClose={vi.fn()} />);
   return onApply;
 }
 
@@ -153,5 +153,29 @@ describe('receipt review parity', () => {
     });
     expect(RECEIPT_REVIEW_ROW_SX['&:last-of-type'].borderBottom).toBe(0);
     expect(RECEIPT_REVIEW_ROW_SX.gridTemplateColumns.sm).toBe('120px minmax(0, 1fr) auto');
+  });
+});
+
+describe('review fixes of round one', () => {
+  const base = { merchant: 'Shop', total: '14.60', currency: 'CHF', confidence: 'high' };
+
+  it('shows the amount and the currency together in the total row', () => {
+    renderReview(base);
+    const totalRow = document.querySelector('[data-receipt-review-row="total"]');
+    expect(totalRow.children[1].textContent).toMatch(/CHF\s?14\.60/);
+  });
+
+  it('never hands over the currency with an empty amount when the form already has a currency', () => {
+    const onApply = renderReview(base, { total: '', currency: 'EUR' });
+    fireEvent.click(screen.getByRole('button', { name: 'Receipts.ONLY_EMPTY' }));
+    expect(onApply).toHaveBeenCalledWith({ merchant: 'Shop', total: '14.60' }, { mode: 'empty' });
+  });
+
+  it('still shows an object-valued extra field without a formatter, as JSON text, and lets the host apply it', () => {
+    const onApply = renderReview({ ...base, project: { code: 'P1' } }, {});
+    const row = document.querySelector('[data-receipt-review-row="project"]');
+    expect(row.textContent).toContain('{"code":"P1"}');
+    fireEvent.click(within(row).getByRole('button', { name: 'Receipts.APPLY' }));
+    expect(onApply).toHaveBeenCalledWith({ project: { code: 'P1' } }, { mode: 'field' });
   });
 });

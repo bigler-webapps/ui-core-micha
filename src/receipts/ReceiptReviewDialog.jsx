@@ -53,7 +53,11 @@ function rowApplyValues(row, receipt, values) {
 function emptyApplyRows(rows, receipt, values) {
   const result = {};
   rows.forEach((row) => {
-    if (isRowEmpty(row, values)) Object.assign(result, rowApplyValues(row, receipt, values));
+    if (!isRowEmpty(row, values)) return;
+    const handed = rowApplyValues(row, receipt, values);
+    // "Only empty fields" never overwrites a filled currency that sits next to an empty amount.
+    if (row.key === 'total' && !isEmptyValue(values.currency)) delete handed.currency;
+    Object.assign(result, handed);
   });
   const hasTotalRow = rows.some((row) => row.key === 'total');
   if (hasTotalRow && !isEmptyValue(values.total) && isEmptyValue(values.currency) && receipt?.currency) {
@@ -97,7 +101,7 @@ export function ReceiptReviewDialog({ open, receipt, values = {}, fieldLabels = 
   const add = (key, value, recognized = value !== '' && value != null, format = (v) => normaliseScalar(v)) => {
     if (recognized) {
       const formatted = format(value);
-      rows.push({ key, value, text: typeof formatted === 'string' || typeof formatted === 'number' ? String(formatted) : '', confidence: receipt?.confidence });
+      rows.push({ key, value, text: formatted ?? '', confidence: receipt?.confidence });
     }
   };
 
@@ -115,8 +119,8 @@ export function ReceiptReviewDialog({ open, receipt, values = {}, fieldLabels = 
   (extraFields || []).forEach(({ key, format }) => {
     if (['merchant', 'date', 'total', 'currency', 'payment_method', 'account', 'items'].includes(key)) return;
     const value = receipt?.[key];
-    if (value == null || value === '' || (!format && typeof value !== 'string' && typeof value !== 'number')) return;
-    add(key, value, true, format || ((item) => normaliseScalar(item)));
+    if (value == null || value === '') return;
+    add(key, value, true, format || ((item) => (typeof item === 'string' || typeof item === 'number' ? String(item).trim() : JSON.stringify(item))));
   });
 
   const label = (key) => fieldLabels[key] || extraFields.find((field) => field.key === key)?.label || t(`Receipts.FIELD_${key}`);
