@@ -98,3 +98,20 @@ describe('seat payer', () => {
     await waitFor(() => expect(screen.queryByText('Billing.SEAT_PAYER')).toBeNull());
   });
 });
+
+describe('pure legacy payload', () => {
+  it('keeps every value of an older dcm payload (no origin, no pool) in today\'s list', () => {
+    const { container } = render(<TokenOriginTable tokens={{ grants: [
+      { source: 'plan', amount: 120, remaining: 73, expires_at: '2026-11-17T00:00:00Z' },
+      { source: 'package', amount: 500, remaining: 480, expires_at: null },
+    ] }} />);
+    expect(screen.queryByRole('table')).toBeNull();
+    const text = container.textContent;
+    expect(text).toContain('Billing.OP_GRANT_PLAN: 120');
+    expect(text).toContain('73 Billing.OP_REMAINING');
+    expect(text).toContain('Billing.OP_VALID_UNTIL November 17, 2026');
+    expect(text).toContain('Billing.OP_GRANT_PACKAGE: 500');
+    expect(text).toContain('480 Billing.OP_REMAINING');
+    expect(text).not.toMatch(/undefined|NaN/);
+  });
+});
