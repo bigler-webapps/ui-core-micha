@@ -1,5 +1,13 @@
 # Changelog
 
+## 4.11.0 - UCM-BILL-7
+
+An entry of `AccountPage`'s `extraTabs` accepts an optional `group` naming one of the kit's navigation groups:
+`my-account` (Profil, Sicherheit), `management` (Benutzer, Einladen) or `help` (Support). With it the tab appears in
+that group after the kit's own tabs (in the order of `extraTabs`), in the desktop sidebar and in the phone navigation;
+without `group`, or with `more` or an unknown value, it stays in "Weitere" as before. The kit's own tabs, their order
+and labels are unchanged.
+
 ## 4.10.0 - UCM-BILL-6
 
 The account section matches the Maana prototype in three places, against `django-core-micha` >= 3.13.0 (DCM-BILL-6).

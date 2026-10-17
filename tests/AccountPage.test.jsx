@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import React from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 
@@ -125,6 +125,24 @@ function renderAccount({ user = superuser, route = '/account', extraTabs = [noti
   );
 }
 
+function openNavigation(isMobile) {
+  if (isMobile) {
+    fireEvent.click(screen.getByRole('button', { name: /Section /i }));
+    return screen.getByRole('dialog');
+  }
+  return screen.getByRole('navigation', { name: 'Switch section' });
+}
+
+function groupTabLabels(navRoot, groupLabel) {
+  const heading = within(navRoot).getByText(groupLabel);
+  const groupCard = heading.closest('.MuiPaper-root');
+  return within(groupCard).getAllByRole('button').map((button) => button.textContent);
+}
+
+function allNavigationTabLabels(navRoot) {
+  return within(navRoot).getAllByRole('button').map((button) => button.textContent);
+}
+
 describe('AccountPage section navigation', () => {
   beforeEach(() => setViewportWidth(375));
 
@@ -196,5 +214,107 @@ describe('AccountPage section navigation', () => {
     expect(getComputedStyle(grid).gridTemplateColumns).toBe('280px minmax(0, 1fr)');
     expect(container.querySelector('.MuiTabs-root')).toBeNull();
     expect(container.querySelector('nav')).toBeTruthy();
+  });
+
+  it('appends my-account extras after Profile and Security on desktop', () => {
+    setViewportWidth(1280);
+    renderAccount({ extraTabs: [{ value: 'subscription', label: 'Subscription', group: 'my-account' }] });
+
+    const nav = openNavigation(false);
+    expect(groupTabLabels(nav, 'My account')).toEqual(['Profile', 'Security', 'Subscription']);
+    expect(within(nav).queryByText('More')).toBeNull();
+  });
+
+  it('places management and help extras after their visible built-in tabs', () => {
+    setViewportWidth(1280);
+    const { unmount } = renderAccount({
+      extraTabs: [
+        { value: 'audit', label: 'Audit', group: 'management' },
+        { value: 'contact', label: 'Contact', group: 'help' },
+      ],
+    });
+    let nav = openNavigation(false);
+    expect(groupTabLabels(nav, 'Management')).toEqual(['Users', 'Invite', 'Audit']);
+    expect(groupTabLabels(nav, 'Help')).toEqual(['Support', 'Contact']);
+    unmount();
+
+    renderAccount({
+      user: { email: 'person@example.com', is_superuser: false, ui_permissions: {}, available_roles: [] },
+      extraTabs: [{ value: 'audit', label: 'Audit', group: 'management' }],
+    });
+    nav = openNavigation(false);
+    expect(groupTabLabels(nav, 'Management')).toEqual(['Audit']);
+  });
+
+  it('preserves extra-tab order and falls back to More for missing or invalid groups', () => {
+    setViewportWidth(1280);
+    renderAccount({
+      extraTabs: [
+        { value: 'first', label: 'First', group: 'my-account' },
+        { value: 'second', label: 'Second', group: 'my-account' },
+        { value: 'ungrouped', label: 'Ungrouped' },
+        { value: 'more-key', label: 'More key', group: 'more' },
+        { value: 'unknown', label: 'Unknown', group: 'nonsense' },
+        { value: 'number', label: 'Number', group: 42 },
+        { value: 'object', label: 'Object', group: {} },
+      ],
+    });
+
+    const nav = openNavigation(false);
+    expect(groupTabLabels(nav, 'My account')).toEqual(['Profile', 'Security', 'First', 'Second']);
+    expect(groupTabLabels(nav, 'More')).toEqual([
+      'Ungrouped', 'More key', 'Unknown', 'Number', 'Object',
+    ]);
+  });
+
+  it('places grouped and ungrouped extras in the same locations in phone navigation', () => {
+    renderAccount({
+      extraTabs: [
+        { value: 'subscription', label: 'Subscription', group: 'my-account' },
+        { value: 'notifications', label: 'Notifications' },
+      ],
+    });
+
+    const nav = openNavigation(true);
+    expect(groupTabLabels(nav, 'My account')).toEqual(['Profile', 'Security', 'Subscription']);
+    expect(groupTabLabels(nav, 'More')).toEqual(['Notifications']);
+  });
+
+  it('keeps the built-in ordered labels unchanged and grouped extras render their content', () => {
+    setViewportWidth(1280);
+    const { unmount } = renderAccount({ extraTabs: [] });
+    expect(allNavigationTabLabels(openNavigation(false))).toEqual([
+      'Profile', 'Security', 'Users', 'Invite', 'Support',
+    ]);
+    unmount();
+
+    renderAccount({
+      route: '/account?tab=subscription',
+      extraTabs: [{
+        value: 'subscription',
+        label: 'Subscription',
+        group: 'my-account',
+        render: () => <div>Subscription content</div>,
+      }],
+    });
+    expect(screen.getByText('Subscription content')).toBeTruthy();
+    expect(allNavigationTabLabels(openNavigation(false))).toEqual([
+      'Profile', 'Security', 'Subscription', 'Users', 'Invite', 'Support',
+    ]);
+  });
+
+  it('continues to skip hidden extra tabs and values that collide with built-in tabs', () => {
+    setViewportWidth(1280);
+    renderAccount({
+      extraTabs: [
+        { value: 'hidden', label: 'Hidden', group: 'my-account', visible: () => false },
+        { value: 'profile', label: 'Duplicate profile', group: 'help' },
+      ],
+    });
+
+    const nav = openNavigation(false);
+    expect(groupTabLabels(nav, 'My account')).toEqual(['Profile', 'Security']);
+    expect(within(nav).queryByText('Hidden')).toBeNull();
+    expect(within(nav).queryByText('Duplicate profile')).toBeNull();
   });
 });

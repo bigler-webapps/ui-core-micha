@@ -156,9 +156,12 @@ export function AccountPage({
       if (!tab?.value || !tab?.label) return;
       const isVisible = typeof tab.visible === 'function' ? tab.visible(extensionContext) : true;
       if (isVisible && !list.some((entry) => entry.value === tab.value)) {
+        // Extra tabs may join my-account, management, or help.
+        const group = ['my-account', 'management', 'help'].includes(tab.group) ? tab.group : undefined;
         list.push({
           value: tab.value,
           label: typeof tab.label === 'function' ? tab.label(extensionContext) : tab.label,
+          ...(group ? { group } : {}),
         });
       }
     });
@@ -185,13 +188,16 @@ export function AccountPage({
       },
     ];
     const assignedValues = new Set(
-      groupDefinitions.flatMap((group) => [...group.values]),
+      groupDefinitions.flatMap((group) => [
+        ...group.values,
+        ...tabs.filter((tab) => tab.group === group.key).map((tab) => tab.value),
+      ]),
     );
     const mappedGroups = groupDefinitions.map((group) => ({
       key: group.key,
       label: group.label,
       items: tabs
-        .filter((tab) => group.values.has(tab.value))
+        .filter((tab) => group.values.has(tab.value) || tab.group === group.key)
         .map((tab) => ({ key: tab.value, label: tab.label })),
     }));
     const extraItems = tabs
