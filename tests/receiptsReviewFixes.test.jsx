@@ -91,8 +91,8 @@ describe('review rows', () => {
   it('shows line items as a list', () => {
     const items = [{ description: 'Tea', amount: '2.00' }, { description: 'Cake', amount: '3.50' }, { description: 'Milk', amount: '1.20' }];
     render(<ReceiptReviewDialog open receipt={{ items, confidence: 'high' }} values={{}} onApply={vi.fn()} onClose={vi.fn()} />);
-    const entries = screen.getAllByRole('listitem').map((node) => node.textContent);
-    expect(entries).toEqual(['Tea · 2.00', 'Cake · 3.50', 'Milk · 1.20']);
+    const entries = screen.getAllByRole('listitem').map((node) => [...node.children].map((part) => part.textContent).join(' | '));
+    expect(entries).toEqual(['Tea | 2.00', 'Cake | 3.50', 'Milk | 1.20']);
   });
 
   it('names the dialog by its title', () => {
@@ -205,7 +205,7 @@ describe('round four fixes', () => {
     render(<ReceiptReviewDialog open receipt={receipt} values={{}} onApply={onApply} onClose={vi.fn()} />);
     const rows = screen.getAllByRole('button', { name: 'Receipts.APPLY' });
     fireEvent.click(rows[2]);
-    expect(onApply).toHaveBeenLastCalledWith({ total: '14.60' }, { mode: 'field' });
+    expect(onApply).toHaveBeenLastCalledWith({ total: '14.60', currency: 'CHF' }, { mode: 'field' });
     fireEvent.click(screen.getByRole('button', { name: 'Receipts.APPLY_ALL' }));
     expect(onApply).toHaveBeenLastCalledWith({ merchant: 'Shop', date: '2026-10-14', total: '14.60', currency: 'CHF', payment_method: 'card', account: 'a1', items }, { mode: 'all' });
   });

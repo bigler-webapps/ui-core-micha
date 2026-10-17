@@ -11,11 +11,26 @@ export function formatReceiptAmount(total, currency, language) {
 export function formatReceiptDate(iso, language) {
   if (typeof iso !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(iso)) return iso || '';
   const date = new Date(`${iso}T00:00:00Z`); if (!Number.isFinite(date.getTime()) || date.toISOString().slice(0, 10) !== iso) return iso;
-  return new Intl.DateTimeFormat(intlLocale(language), { dateStyle: 'short', timeZone: 'UTC' }).format(date);
+  return new Intl.DateTimeFormat(intlLocale(language), { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'UTC' }).format(date);
 }
 export function isEmptyValue(value) { return value === '' || value === null || value === undefined || (Array.isArray(value) && value.length === 0); }
+export function normaliseItems(value) {
+  if (!Array.isArray(value)) return [];
+  return value.map((item) => {
+    if (typeof item === 'string') return { description: item.trim(), amount: '' };
+    if (item === null || typeof item !== 'object' || Array.isArray(item)) return { description: '', amount: '' };
+    return { description: normaliseItemPart(item.description), amount: normaliseItemPart(item.amount) };
+  }).filter((item) => item.description || item.amount);
+}
+function normaliseItemPart(value) {
+  return typeof value === 'string' || typeof value === 'number' ? String(value).trim() : '';
+}
 export function receiptValueEqual(key, a, b) {
-  if (key === 'items') return Array.isArray(a) && Array.isArray(b) && a.length === b.length && a.every((item, i) => ['description', 'amount'].every((k) => String(item?.[k] ?? '').trim().toLowerCase() === String(b[i]?.[k] ?? '').trim().toLowerCase()));
+  if (key === 'items') {
+    const first = normaliseItems(a);
+    const second = normaliseItems(b);
+    return first.length === second.length && first.every((item, index) => ['description', 'amount'].every((keyPart) => item[keyPart].toLowerCase() === second[index][keyPart].toLowerCase()));
+  }
   if (key === 'total' && a !== '' && b !== '' && Number.isFinite(Number(a)) && Number.isFinite(Number(b))) return Number(a) === Number(b);
   return String(a ?? '').trim().toLowerCase() === String(b ?? '').trim().toLowerCase();
 }
