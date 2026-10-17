@@ -203,3 +203,20 @@ describe('review fixes of round two', () => {
     expect(paper.getAttribute('role')).toBe('dialog');
   });
 });
+
+describe('review fixes of round three', () => {
+  it('gives the wide dialog the prototype width and keeps the chip text warning-coloured', async () => {
+    const { RECEIPT_REVIEW_DIALOG_PAPER_SX } = await import('../src/receipts/ReceiptReviewDialog');
+    expect(RECEIPT_REVIEW_DIALOG_PAPER_SX.width).toBe(640);
+    expect(RECEIPT_REVIEW_CHIP_SX.color).toBe('warning.dark');
+    renderReview({ merchant: 'Shop', confidence: 'low' });
+    const paper = document.querySelector('.MuiDialog-paper');
+    expect(window.getComputedStyle(paper).width).toBe('640px');
+  });
+
+  it('puts the label above the value on narrow rows and in its own column on wide rows', () => {
+    expect(RECEIPT_REVIEW_ROW_SX.gridTemplateColumns.xs).toBe('minmax(0, 1fr) auto');
+    expect(RECEIPT_REVIEW_ROW_SX.gridTemplateColumns.sm).toBe('120px minmax(0, 1fr) auto');
+    expect(RECEIPT_REVIEW_ROW_SX['& > :first-of-type'].gridColumn).toEqual({ xs: '1 / -1', sm: 'auto' });
+  });
+});

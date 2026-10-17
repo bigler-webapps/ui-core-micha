@@ -108,7 +108,7 @@ import { OPERATOR_OVERVIEW_ALERT_SX } from '../billing/OperatorOverview';
 import { RECEIPT_CONSENT_ALERT_SX, RECEIPT_CONSENT_CONTROL_SX } from '../receipts/ReceiptConsentSwitch';
 import { RECEIPT_CAPTURE_ACTION_SX, RECEIPT_CAPTURE_ALERT_SX, RECEIPT_CAPTURE_CARD_SX, RECEIPT_CAPTURE_PROGRESS_SX } from '../receipts/ReceiptCaptureCard';
 import { RECEIPT_PICKER_ACTION_SX, RECEIPT_PICKER_CARD_SX } from '../receipts/ReceiptPicker';
-import { RECEIPT_REVIEW_ACTIONS_SX, RECEIPT_REVIEW_ACTION_BUTTON_SX, RECEIPT_REVIEW_CHIP_SX, RECEIPT_REVIEW_SHEET_PAPER_SX } from '../receipts/ReceiptReviewDialog';
+import { RECEIPT_REVIEW_ACTIONS_SX, RECEIPT_REVIEW_ACTION_BUTTON_SX, RECEIPT_REVIEW_CHIP_SX, RECEIPT_REVIEW_DIALOG_PAPER_SX, RECEIPT_REVIEW_SHEET_PAPER_SX } from '../receipts/ReceiptReviewDialog';
 
 const SX_EXPORTS = {
   ACCESS_CODE_ACTION_SX,
@@ -200,6 +200,7 @@ const SX_EXPORTS = {
   RECEIPT_REVIEW_ACTIONS_SX,
   RECEIPT_REVIEW_ACTION_BUTTON_SX,
   RECEIPT_REVIEW_CHIP_SX,
+  RECEIPT_REVIEW_DIALOG_PAPER_SX,
   RECEIPT_REVIEW_SHEET_PAPER_SX,
   USER_INVITE_ACTION_SX,
   USER_INVITE_ALERT_SX,
@@ -325,6 +326,7 @@ export const KIT_COMPONENT_SX_REGISTRY = [
   entry('ReceiptPicker.card', 'MuiCard', RECEIPT_PICKER_CARD_SX),
   entry('ReceiptPicker.actions', 'MuiDialogActions', RECEIPT_PICKER_ACTION_SX),
   entry('ReceiptReviewDialog.actions', 'MuiDialogActions', RECEIPT_REVIEW_ACTIONS_SX),
+  entry('ReceiptReviewDialog.dialogPaper', 'MuiPaper', RECEIPT_REVIEW_DIALOG_PAPER_SX),
   entry('ReceiptReviewDialog.sheetPaper', 'MuiPaper', RECEIPT_REVIEW_SHEET_PAPER_SX),
   entry('ReceiptReviewDialog.action', 'MuiButton', RECEIPT_REVIEW_ACTION_BUTTON_SX),
   entry('ReceiptReviewDialog.uncertainChip', 'MuiChip', RECEIPT_REVIEW_CHIP_SX),

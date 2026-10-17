@@ -17,6 +17,8 @@ export const RECEIPT_REVIEW_ROW_SX = {
   '&:last-of-type': { borderBottom: 0 },
   '& > :first-of-type': { gridColumn: { xs: '1 / -1', sm: 'auto' } },
 };
+// The prototype's dialog is 640 px wide; on narrower windows it keeps the usual margin.
+export const RECEIPT_REVIEW_DIALOG_PAPER_SX = { width: 640, maxWidth: 'calc(100% - 64px)' };
 export const RECEIPT_REVIEW_SHEET_PAPER_SX = (theme) => ({
   maxHeight: 'calc(100% - 56px)',
   display: 'flex',
@@ -145,7 +147,7 @@ export function ReceiptReviewDialog({ open, receipt, values = {}, fieldLabels = 
     const showCurrent = !equal && !isRowEmpty(row, values) && displayCurrent;
     return (
       <Box key={row.key} data-receipt-review-row={row.key} sx={RECEIPT_REVIEW_ROW_SX}>
-        <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8125rem' }}>{label(row.key)}</Typography>
+        <Typography variant="caption" color="text.secondary">{label(row.key)}</Typography>
         <Stack spacing={0.25} sx={{ minWidth: 0 }}>
           {row.key === 'items'
             ? <ItemLines items={row.value} />
@@ -189,7 +191,7 @@ export function ReceiptReviewDialog({ open, receipt, values = {}, fieldLabels = 
 
   return mobile
     ? <Drawer anchor="bottom" open={open} onClose={onClose} PaperProps={{ sx: RECEIPT_REVIEW_SHEET_PAPER_SX, role: 'dialog', 'aria-labelledby': 'receipt-review-title' }}>{content}</Drawer>
-    : <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth aria-labelledby="receipt-review-title">{content}</Dialog>;
+    : <Dialog open={open} onClose={onClose} maxWidth={false} PaperProps={{ sx: RECEIPT_REVIEW_DIALOG_PAPER_SX }} aria-labelledby="receipt-review-title">{content}</Dialog>;
 }
 
 export default ReceiptReviewDialog;
