@@ -236,6 +236,7 @@ describe('round four fixes', () => {
     await screen.findByRole('button', { name: 'Receipts.CAMERA' });
     fireEvent.change(fileInput(), { target: { files: [new File(['x'], 'a.pdf', { type: 'application/pdf' })] } });
     await waitFor(() => expect(screen.queryByRole('button', { name: 'Receipts.CAMERA' })).toBeNull());
+    await waitFor(() => expect(api.getConsent).toHaveBeenCalledTimes(2));
     answer({ granted: false });
     expect(await screen.findByRole('switch')).toBeTruthy();
     expect(screen.queryByRole('button', { name: 'Receipts.CAMERA' })).toBeNull();
