@@ -74,7 +74,8 @@ export function SubscriptionSection({ api = defaultBillingApi, redirect = (url) 
   const dateLine = activeUntil(access, t, i18n.language);
   const packagePlans = (Array.isArray(me.plans) ? me.plans : []).filter((plan) => plan?.kind === 'token_package');
   const sourceLine = access.source === 'subscription' ? t('Billing.SOURCE_SUBSCRIPTION') : access.source === 'team' ? t('Billing.SOURCE_TEAM') : access.source === 'free' ? t('Billing.SOURCE_FREE') : null;
-  const hasSeatLimit = Number.isInteger(me.team?.seats_used) && Number.isInteger(me.team?.seats_total) && me.team.seats_used >= me.team.seats_total;
+  // With a candidate list the app has a team concept, so a full team shows only the message; without one the free text path stays as it always was (the server answers 409 for a full team).
+  const hasSeatLimit = Array.isArray(seatCandidates) && Number.isInteger(me.team?.seats_used) && Number.isInteger(me.team?.seats_total) && me.team.seats_used >= me.team.seats_total;
   const occupiedIds = new Set([
     ...(Array.isArray(seats) ? seats.map((seat) => seat?.user_id) : []),
     ...(Array.isArray(me.team?.seat_holders) ? me.team.seat_holders.map((holder) => holder?.user_id) : []),
@@ -119,7 +120,7 @@ export function SubscriptionSection({ api = defaultBillingApi, redirect = (url) 
           <Button disabled={busy} onClick={() => updateSeat(() => api.removeSeat({ userId: seat.user_id }))}>{t('Billing.SEAT_REMOVE')}</Button>
         </Stack>)}
         {hasSeatLimit ? <Typography color="text.secondary">{t('Billing.ERROR_SEAT_LIMIT')}</Typography> : <Stack direction="row" spacing={1}>
-          {Array.isArray(seatCandidates) ? <TextField select SelectProps={{ displayEmpty: true }} size="small" label={t('Billing.SEAT_PICK')} value={seatInput} onChange={(event) => setSeatInput(event.target.value)} sx={SUBSCRIPTION_SECTION_SEAT_SELECT_SX}>
+          {Array.isArray(seatCandidates) ? <TextField select SelectProps={{ displayEmpty: true, SelectDisplayProps: { 'aria-label': t('Billing.SEAT_PICK'), 'aria-labelledby': undefined } }} size="small" value={seatInput} onChange={(event) => setSeatInput(event.target.value)} sx={SUBSCRIPTION_SECTION_SEAT_SELECT_SX}>
             <MenuItem value="">{t('Billing.SEAT_PICK')}</MenuItem>
             {eligibleSeatCandidates.map((candidate) => <MenuItem key={String(candidate.id)} value={String(candidate.id)}><Stack><Typography>{candidate.name}</Typography>{candidate.email && <Typography variant="body2" color="text.secondary">{candidate.email}</Typography>}</Stack></MenuItem>)}
           </TextField> : <TextField size="small" label={t('Billing.SEAT_USER')} value={seatInput} onChange={(event) => setSeatInput(event.target.value)} />}

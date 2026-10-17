@@ -1,5 +1,16 @@
 # Changelog
 
+## 4.9.0 - UCM-BILL-5
+
+Informal German for the whole billing surface: every `Billing.*` key now has a `de_informal` value (the "du" form where
+the text addresses the person, identical to `de` otherwise), selected through the kit's existing German variant
+mechanism. In German the seat is a "Platz" everywhere ("Sitzplatz" is gone: `Billing.SEATS_ADD` "Platz vergeben",
+`Billing.TEAM_SEATS` "Plaetze im Team-Paket", `Billing.ERROR_SEAT_LIMIT` "Alle Plaetze sind belegt.", the seat counts).
+New optional prop `seatCandidates` on `SubscriptionSection`: an array of `{ id, name, email? }` from the app. With it the
+seat assignment is a select "Teammitglied waehlen" plus the button "Platz vergeben" (people who already hold a seat are
+not offered; the chosen id goes to the existing `api.addSeat({ userId })`), and a team without a free seat shows only
+"Alle Plaetze sind belegt." Without the prop the free text field stays exactly as before. New key `Billing.SEAT_PICK`.
+
 ## 4.8.1 - UCM-RCPT-2
 
 `ReceiptReviewDialog` matches its prototype again. Each recognised field is one row with the columns label, value and action and a divider between rows (the label above the value on phones); the "uncertain" chip is a soft warning tint beside the action (under the value on phones); the sheet on phones is as high as its content up to the available height, with full-width actions stacked as "Alle uebernehmen", "Nur leere Felder", "Schliessen"; the wide dialog is 640 px wide with a 640 px maximum height; the currency is shown with the amount (a receipt that has a currency but no amount keeps a currency row) and applying the amount hands over amount and currency; the date has a four-digit year in the active language (the picker follows). The review no longer prints line items of the form through string conversion: both the recognised and the current items are lists, blank rows count as empty. "Only empty fields" never overwrites a filled currency. Props and the `onApply` contract are unchanged.

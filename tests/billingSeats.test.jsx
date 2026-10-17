@@ -76,15 +76,32 @@ describe('SubscriptionSection seat candidates', () => {
     await waitFor(() => expect(api.addSeat).toHaveBeenCalledWith({ email: 'person@example.test' }));
   });
 
-  it.each([
-    { description: 'omitted', candidates: undefined },
-    { description: 'empty', candidates: [] },
-  ])('hides both assignment forms when the team has no free seats (candidates $description)', async ({ candidates }) => {
+  it('hides the assignment form and says so when the team has no free seats and candidates are supplied', async () => {
     const api = apiFor(account({ seats_used: 3, seats_total: 3 }));
-    render(<SubscriptionSection api={api} seatCandidates={candidates} withdrawal={false} />);
+    render(<SubscriptionSection api={api} seatCandidates={[]} withdrawal={false} />);
     expect(await screen.findByText('Billing.ERROR_SEAT_LIMIT')).toBeTruthy();
     expect(screen.queryByRole('combobox', { name: 'Billing.SEAT_PICK' })).toBeNull();
     expect(screen.queryByRole('textbox', { name: 'Billing.SEAT_USER' })).toBeNull();
+  });
+
+  it('keeps the free text path as before when no candidates are supplied, also for a full team', async () => {
+    const api = apiFor(account({ seats_used: 3, seats_total: 3 }));
+    render(<SubscriptionSection api={api} withdrawal={false} />);
+    expect(await screen.findByRole('textbox', { name: 'Billing.SEAT_USER' })).toBeTruthy();
+    expect(screen.queryByText('Billing.ERROR_SEAT_LIMIT')).toBeNull();
+  });
+
+  it('shows the select instead of the text field and submits the id of the chosen one of several eligible people', async () => {
+    const api = apiFor(account(), []);
+    render(<SubscriptionSection api={api} seatCandidates={[{ id: 31, name: 'Ada' }, { id: 32, name: 'Ben' }, { id: 33, name: 'Cleo' }]} withdrawal={false} />);
+    await screen.findByRole('combobox', { name: 'Billing.SEAT_PICK' });
+    expect(screen.queryByRole('textbox', { name: 'Billing.SEAT_USER' })).toBeNull();
+    openCandidates();
+    expect(screen.getAllByRole('option').map((node) => node.textContent)).toEqual(['Billing.SEAT_PICK', 'Ada', 'Ben', 'Cleo']);
+    fireEvent.click(screen.getByRole('option', { name: 'Ben' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Billing.SEATS_ADD' }));
+    await waitFor(() => expect(api.addSeat).toHaveBeenCalledWith({ userId: 32 }));
+    expect(api.addSeat).toHaveBeenCalledTimes(1);
   });
 
   it.each([[409, 'Billing.ERROR_SEAT_LIMIT'], [400, 'Billing.ERROR_SEAT_USER']])('maps add-seat HTTP %i to %s', async (status, errorKey) => {
