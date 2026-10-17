@@ -108,6 +108,8 @@ export function ReceiptReviewDialog({ open, receipt, values = {}, fieldLabels = 
   add('merchant', receipt?.merchant);
   add('date', receipt?.date, Boolean(receipt?.date), (value) => formatReceiptDate(value, i18n.language));
   add('total', receipt?.total, Boolean(receipt?.total), (value) => formatReceiptAmount(value, receipt?.currency, i18n.language));
+  // A receipt with a currency but no amount keeps its own currency row, so the currency can still be shown and applied.
+  if (receipt?.currency && !receipt?.total) add('currency', receipt.currency);
   if (receipt?.payment_method && receipt.payment_method !== 'unknown') {
     add('payment_method', receipt.payment_method, true, (value) => t(`Receipts.PAYMENT_${value}`));
   }

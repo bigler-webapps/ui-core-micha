@@ -179,3 +179,27 @@ describe('review fixes of round one', () => {
     expect(onApply).toHaveBeenCalledWith({ project: { code: 'P1' } }, { mode: 'field' });
   });
 });
+
+describe('review fixes of round two', () => {
+  it('keeps a currency row for a receipt with a currency and no amount, and applies it', () => {
+    const onApply = renderReview({ merchant: 'Shop', currency: 'CHF', confidence: 'high' });
+    const row = document.querySelector('[data-receipt-review-row="currency"]');
+    expect(row).toBeTruthy();
+    expect(row.children[0].textContent).toBe('Receipts.FIELD_currency');
+    expect(row.children[1].textContent).toBe('CHF');
+    expect(document.querySelector('[data-receipt-review-row="total"]')).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Receipts.APPLY_ALL' }));
+    expect(onApply).toHaveBeenCalledWith({ merchant: 'Shop', currency: 'CHF' }, { mode: 'all' });
+  });
+
+  it('renders rows as grids and the sheet paper with a max height and no fixed height', () => {
+    renderReview({ merchant: 'Shop', total: '1.00', currency: 'CHF', confidence: 'high' }, {}, vi.fn(), true);
+    const row = document.querySelector('[data-receipt-review-row="merchant"]');
+    expect(window.getComputedStyle(row).display).toBe('grid');
+    const paper = document.querySelector('.MuiDrawer-paper');
+    const style = window.getComputedStyle(paper);
+    expect(style.maxHeight).toContain('calc(100% - 56px)');
+    expect(style.height).not.toBe('92%');
+    expect(paper.getAttribute('role')).toBe('dialog');
+  });
+});
