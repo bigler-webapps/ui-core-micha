@@ -1,5 +1,9 @@
 # Changelog
 
+## 4.8.1 - UCM-RCPT-2
+
+`ReceiptReviewDialog` matches its prototype again. Each recognised field is one row with the columns label, value and action and a divider between rows (the label above the value on phones); the "uncertain" chip is a soft warning tint beside the action (under the value on phones); the sheet on phones is as high as its content up to the available height, with full-width actions stacked as "Alle uebernehmen", "Nur leere Felder", "Schliessen"; the wide dialog is 640 px wide with a 640 px maximum height; the currency is shown with the amount (a receipt that has a currency but no amount keeps a currency row) and applying the amount hands over amount and currency; the date has a four-digit year in the active language (the picker follows). The review no longer prints line items of the form through string conversion: both the recognised and the current items are lists, blank rows count as empty. "Only empty fields" never overwrites a filled currency. Props and the `onApply` contract are unchanged.
+
 ## 4.8.0 - UCM-BILL-2
 
 Operator surfaces for billing and a fuller "Abo" section, against the `django-core-micha` operator endpoints

@@ -208,6 +208,7 @@ describe('review fixes of round three', () => {
   it('gives the wide dialog the prototype width and keeps the chip text warning-coloured', async () => {
     const { RECEIPT_REVIEW_DIALOG_PAPER_SX } = await import('../src/receipts/ReceiptReviewDialog');
     expect(RECEIPT_REVIEW_DIALOG_PAPER_SX.width).toBe(640);
+    expect(RECEIPT_REVIEW_DIALOG_PAPER_SX.maxHeight).toContain('640px');
     expect(RECEIPT_REVIEW_CHIP_SX.color).toBe('warning.dark');
     renderReview({ merchant: 'Shop', confidence: 'low' });
     const paper = document.querySelector('.MuiDialog-paper');

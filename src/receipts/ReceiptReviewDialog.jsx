@@ -19,7 +19,7 @@ export const RECEIPT_REVIEW_ROW_SX = {
   '& > :first-child': { gridColumn: { xs: '1 / -1', sm: 'auto' } },
 };
 // The prototype's dialog is 640 px wide; on narrower windows it keeps the usual margin.
-export const RECEIPT_REVIEW_DIALOG_PAPER_SX = { width: 640, maxWidth: 'calc(100% - 64px)' };
+export const RECEIPT_REVIEW_DIALOG_PAPER_SX = { width: 640, maxWidth: 'calc(100% - 64px)', maxHeight: 'min(640px, calc(100% - 64px))' };
 export const RECEIPT_REVIEW_SHEET_PAPER_SX = (theme) => ({
   height: 'auto',
   maxHeight: 'calc(100% - 56px)',
