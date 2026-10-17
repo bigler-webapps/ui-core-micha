@@ -217,7 +217,7 @@ describe('review fixes of round three', () => {
   it('puts the label above the value on narrow rows and in its own column on wide rows', () => {
     expect(RECEIPT_REVIEW_ROW_SX.gridTemplateColumns.xs).toBe('minmax(0, 1fr) auto');
     expect(RECEIPT_REVIEW_ROW_SX.gridTemplateColumns.sm).toBe('120px minmax(0, 1fr) auto');
-    expect(RECEIPT_REVIEW_ROW_SX['& > :first-of-type'].gridColumn).toEqual({ xs: '1 / -1', sm: 'auto' });
+    expect(RECEIPT_REVIEW_ROW_SX['& > :first-child'].gridColumn).toEqual({ xs: '1 / -1', sm: 'auto' });
   });
 });
 
@@ -235,5 +235,14 @@ describe('review fixes of round four', () => {
     const style = window.getComputedStyle(document.querySelector('.MuiDrawer-paper'));
     expect(style.height).toBe('auto');
     expect(style.maxHeight).toContain('calc(100% - 56px)');
+  });
+});
+
+describe('review fixes found in the rendered comparison', () => {
+  it('keeps value and action on the same grid line and the stacked actions flush', async () => {
+    const { RECEIPT_REVIEW_ACTIONS_SX } = await import('../src/receipts/ReceiptReviewDialog');
+    expect(RECEIPT_REVIEW_ROW_SX['& > :first-of-type']).toBeUndefined();
+    expect(RECEIPT_REVIEW_ROW_SX['& > :first-child'].gridColumn.xs).toBe('1 / -1');
+    expect(RECEIPT_REVIEW_ACTIONS_SX['& > :not(style):not(:first-of-type)'].marginLeft).toBe(0);
   });
 });

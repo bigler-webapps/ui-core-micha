@@ -5,7 +5,8 @@ import { useTheme } from '@mui/material/styles';
 import { useTranslation } from 'react-i18next';
 import { formatReceiptAmount, formatReceiptDate, isEmptyValue, normaliseItems, receiptValueEqual } from './format';
 
-export const RECEIPT_REVIEW_ACTIONS_SX = { gap: 1, flexWrap: { xs: 'nowrap', sm: 'wrap' }, flexDirection: { xs: 'column', sm: 'row' }, alignItems: { xs: 'stretch', sm: 'center' } };
+// The gap spaces the buttons; MUI's own left margin between DialogActions children would shift the stacked buttons.
+export const RECEIPT_REVIEW_ACTIONS_SX = { gap: 1, flexWrap: { xs: 'nowrap', sm: 'wrap' }, flexDirection: { xs: 'column', sm: 'row' }, alignItems: { xs: 'stretch', sm: 'center' }, '& > :not(style):not(:first-of-type)': { marginLeft: 0 } };
 export const RECEIPT_REVIEW_ROW_SX = {
   display: 'grid',
   gridTemplateColumns: { xs: 'minmax(0, 1fr) auto', sm: '120px minmax(0, 1fr) auto' },
@@ -15,7 +16,7 @@ export const RECEIPT_REVIEW_ROW_SX = {
   borderBottom: '1px solid',
   borderColor: 'divider',
   '&:last-of-type': { borderBottom: 0 },
-  '& > :first-of-type': { gridColumn: { xs: '1 / -1', sm: 'auto' } },
+  '& > :first-child': { gridColumn: { xs: '1 / -1', sm: 'auto' } },
 };
 // The prototype's dialog is 640 px wide; on narrower windows it keeps the usual margin.
 export const RECEIPT_REVIEW_DIALOG_PAPER_SX = { width: 640, maxWidth: 'calc(100% - 64px)' };
