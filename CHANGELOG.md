@@ -1,5 +1,18 @@
 # Changelog
 
+## 4.10.0 - UCM-BILL-6
+
+The account section matches the Maana prototype in three places, against `django-core-micha` >= 3.13.0 (DCM-BILL-6).
+The token balance is broken down by origin in a small table "Herkunft / verbleibend / gültig": one row per grant
+(Kontingent, Paket, Gutschrift, Test-Guthaben, by `tokens.grants[].origin`) and the team pool (`tokens.pool`, "Team-Pool"),
+each with the remaining amount, "verfällt am {Datum}" or "verfällt nicht" and a thin bar of the remaining share (on a
+phone the validity moves under the row). A seat holder sees "Platz im Team-Paket von {Name}" (`seat.payer_name`) under
+"Team-Platz bis {Datum}". The section "Käufe" lists every purchase of the withdrawal list: eligible ones with "Vertrag
+hier widerrufen" and "bis {Datum}", withdrawn ones with "Widerrufen am {Datum}", ones past the period with
+"Widerrufsfrist abgelaufen", other reasons without an action. With an older dcm (no `origin`, `pool` or `payer_name`)
+the section shows today's display. New keys `Billing.ORIGIN_*`, `EXPIRES_ON`, `NEVER_EXPIRES`, `ORIGIN_LINE`,
+`SEAT_PAYER`, `PURCHASES`, `WITHDRAWN_ON`, `WITHDRAWAL_PERIOD_OVER` (de, de_informal, en, fr, sw).
+
 ## 4.9.0 - UCM-BILL-5
 
 Informal German for the whole billing surface: every `Billing.*` key now has a `de_informal` value (the "du" form where

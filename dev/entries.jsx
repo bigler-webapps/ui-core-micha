@@ -772,6 +772,26 @@ function BillingSeatsEntry() {
   </Stack>;
 }
 
+const originPurchases = { purchases: [
+  { id: 'p1', kind: 'subscription', plan_key: 'solo-month', purchased_at: new Date(Date.now() - 6 * 86400000).toISOString(), amount_paid_cents: 600, currency: 'usd', eligible: true, reason: '', withdrawn_at: null },
+  { id: 'p2', kind: 'token_package', plan_key: 'pack-500', purchased_at: new Date(Date.now() - 4 * 86400000).toISOString(), amount_paid_cents: 1000, currency: 'usd', eligible: true, reason: '', withdrawn_at: null },
+  { id: 'p3', kind: 'team_package', plan_key: 'team5', purchased_at: '2026-10-02T10:00:00Z', amount_paid_cents: 10000, currency: 'usd', eligible: false, reason: 'period_over', withdrawn_at: null },
+  { id: 'p4', kind: 'subscription', plan_key: 'solo-year', purchased_at: '2026-09-20T10:00:00Z', amount_paid_cents: 5000, currency: 'usd', eligible: false, reason: 'business_purchase', withdrawn_at: null },
+  { id: 'p5', kind: 'subscription', plan_key: 'solo-month', purchased_at: '2026-09-01T10:00:00Z', amount_paid_cents: 600, currency: 'usd', eligible: false, reason: 'period_over', withdrawn_at: '2026-09-03T10:00:00Z' },
+] };
+const originMe = (extra) => ({ access: { status: 'active', source: 'subscription', ends_at: '2026-11-17T00:00:00Z' }, plans: [{ key: 'solo-month', name: 'Einzel monatlich' }, { key: 'pack-500', name: 'Paket 500 Token' }, { key: 'team5', name: 'Team bis 5 Personen' }, { key: 'solo-year', name: 'Einzel jaehrlich' }], ...extra });
+const originSolo = originMe({ tokens: { balance: 553, grants: [{ source: 'plan', origin: 'plan', amount: 120, remaining: 73, expires_at: '2026-11-17T00:00:00Z' }, { source: 'purchase', origin: 'package', amount: 500, remaining: 480, expires_at: null }], pool: null } });
+const originSeat = originMe({ access: { status: 'active', source: 'team', ends_at: '2027-04-17T00:00:00Z' }, tokens: { balance: 0, grants: [], pool: { plan_key: 'team5', plan_name: 'Team', amount: 1500, remaining: 1214, expires_at: '2027-04-17T00:00:00Z' } }, seat: { plan_key: 'team5', plan_name: 'Team', ends_at: '2027-04-17T00:00:00Z', payer_name: 'Micha Bigler' } });
+const originOld = originMe({ tokens: { balance: 553, grants: [{ source: 'plan', amount: 120, remaining: 73, expires_at: '2026-11-17T00:00:00Z' }] } });
+const originApi = (me, purchases) => ({ getMe: async () => me, listSeats: async () => ({ seats: [] }), listWithdrawals: async () => purchases });
+function BillingOriginsEntry() {
+  return <Stack spacing={5}>
+    <SubscriptionSection api={originApi(originSolo, originPurchases)} />
+    <SubscriptionSection api={originApi(originSeat, { purchases: [] })} />
+    <SubscriptionSection api={originApi(originOld, { purchases: [] })} />
+  </Stack>;
+}
+
 export const entries = [
   { id: 'theme-baseline', label: 'Theme / Shared baseline', Component: ThemeBaselineEntry },
   { id: 'mobile-bottom-nav', label: 'Navigation / Mobile bottom nav', Component: MobileBottomNavEntry },
@@ -800,4 +820,5 @@ export const entries = [
   { id: 'receipts-capture', label: 'Receipts / Capture card', Component: ReceiptsEntry },
   { id: 'billing-operator', label: 'Billing / Operator overview and access', Component: OperatorBillingEntry },
   { id: 'billing-seats', label: 'Billing / Seats with candidates', Component: BillingSeatsEntry },
+  { id: 'billing-origins', label: 'Billing / Balance by origin and purchases', Component: BillingOriginsEntry },
 ];

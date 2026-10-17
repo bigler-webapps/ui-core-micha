@@ -22,17 +22,18 @@ const preview = (extra = {}) => ({ eligible: true, amount_paid_cents: 1200, curr
 const labels = (amount = 1200) => ({ purchases: [purchase('p1', { amount_paid_cents: amount })] });
 
 describe('withdrawal section', () => {
-  it('shows only eligible active purchases with plan, purchase date, deadline and one button each', async () => {
-    const api = { listWithdrawals: vi.fn().mockResolvedValue({ purchases: [purchase('one'), purchase('two', { plan_key: 'team' }), purchase('no', { eligible: false }), purchase('done', { withdrawn_at: '2026-01-02T00:00:00Z' })] }) };
+  it('shows all purchases with their applicable withdrawal state', async () => {
+    const api = { listWithdrawals: vi.fn().mockResolvedValue({ purchases: [purchase('one'), purchase('two', { plan_key: 'team' }), purchase('no', { plan_key: 'no', eligible: false, reason: 'not_active' }), purchase('done', { withdrawn_at: '2026-01-02T00:00:00Z' })] }) };
     render(<WithdrawalSection api={api} plans={[{ key: 'month', name: 'Monthly' }, { key: 'team', name: 'Team package' }]} />);
     expect(await screen.findAllByRole('button', { name: 'Billing.WITHDRAWAL_BUTTON' })).toHaveLength(2);
-    expect(screen.getByText('Monthly')).toBeTruthy(); expect(screen.getByText('Team package')).toBeTruthy();
+    expect(screen.getAllByText('Monthly')).toHaveLength(2); expect(screen.getByText('Team package')).toBeTruthy();
     expect(screen.getAllByText('Billing.WITHDRAWAL_UNTIL January 15, 2026')).toHaveLength(2);
-    expect(screen.getAllByText('January 1, 2026')).toHaveLength(2);
-    expect(screen.queryByText('no')).toBeNull(); expect(screen.queryByText('done')).toBeNull();
+    expect(screen.getAllByText(/January 1, 2026/)).toHaveLength(4);
+    expect(screen.getByText('no')).toBeTruthy();
+    expect(screen.getByText('Billing.WITHDRAWN_ON January 2, 2026')).toBeTruthy();
   });
-  it('renders nothing without eligible purchases, for a legacy 404, or without the feature method', async () => {
-    const { container, rerender } = render(<WithdrawalSection api={{ listWithdrawals: vi.fn().mockResolvedValue({ purchases: [purchase('x', { eligible: false })] }) }} />);
+  it('renders nothing without purchases, for a legacy 404, or without the feature method', async () => {
+    const { container, rerender } = render(<WithdrawalSection api={{ listWithdrawals: vi.fn().mockResolvedValue({ purchases: [] }) }} />);
     await waitFor(() => expect(container.textContent).toBe(''));
     rerender(<WithdrawalSection api={{ listWithdrawals: vi.fn().mockRejectedValue({ response: { status: 404 } }) }} />);
     await waitFor(() => expect(container.textContent).toBe(''));

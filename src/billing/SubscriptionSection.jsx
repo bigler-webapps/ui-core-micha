@@ -9,6 +9,7 @@ import { PlanPicker } from './PlanPicker';
 import { TokenBalanceBadge } from './TokenBalanceBadge';
 import { AccessEndedBanner } from './AccessEndedBanner';
 import { WithdrawalSection } from './WithdrawalSection';
+import { TokenOriginTable } from './TokenOriginTable';
 
 export const SUBSCRIPTION_SECTION_ALERT_SX = { width: '100%' };
 export const SUBSCRIPTION_SECTION_SEAT_SELECT_SX = { flex: '1 1 auto', minWidth: 0 };
@@ -136,19 +137,15 @@ export function SubscriptionSection({ api = defaultBillingApi, redirect = (url) 
         {seatError && <Alert severity="error" sx={SUBSCRIPTION_SECTION_ALERT_SX}>{typeof seatError === 'string' ? t(seatError) : t('Billing.ERROR_LOAD')}</Alert>}
       </Stack>}
       {actionError && <Alert severity="error" sx={SUBSCRIPTION_SECTION_ALERT_SX}>{t(actionError)}</Alert>}
-      {me.seat && typeof me.seat === 'object' && formatDate(me.seat.ends_at, i18n.language) && <Typography>{t('Billing.OP_SEAT_UNTIL', { date: formatDate(me.seat.ends_at, i18n.language) })}</Typography>}
+      {me.seat && typeof me.seat === 'object' && formatDate(me.seat.ends_at, i18n.language) && <Stack spacing={0.25}>
+        <Typography>{t('Billing.OP_SEAT_UNTIL', { date: formatDate(me.seat.ends_at, i18n.language) })}</Typography>
+        {typeof me.seat.payer_name === 'string' && me.seat.payer_name.trim() && <Typography color="text.secondary">{t('Billing.SEAT_PAYER', { name: me.seat.payer_name })}</Typography>}
+      </Stack>}
     </>}
 
     <Stack direction="row" spacing={1} alignItems="center"><Typography>{t('Billing.BALANCE_LABEL')}</Typography><TokenBalanceBadge balance={tokens.balance} /></Stack>
     <Typography>{t('Billing.BALANCE', { tokens: formatTokens(tokens.balance, i18n.language) })}</Typography>
-    {Array.isArray(tokens.grants) && tokens.grants.length > 0 && <Stack spacing={0.5}>{tokens.grants.map((grant, index) => {
-      if (!['plan', 'package'].includes(grant?.source) || !Number.isInteger(grant.amount) || !Number.isInteger(grant.remaining)) return null;
-      return <Stack key={`${grant.source}-${grant.expires_at || 'never'}-${index}`} spacing={0.25}>
-        <Typography>{t(grant.source === 'plan' ? 'Billing.OP_GRANT_PLAN' : 'Billing.OP_GRANT_PACKAGE')}: {formatTokens(grant.amount, i18n.language)}</Typography>
-        <Typography>{formatTokens(grant.remaining, i18n.language)} {t('Billing.OP_REMAINING')}</Typography>
-        {formatDate(grant.expires_at, i18n.language) && <Typography>{t('Billing.OP_VALID_UNTIL', { date: formatDate(grant.expires_at, i18n.language) })}</Typography>}
-      </Stack>;
-    })}</Stack>}
+    <TokenOriginTable tokens={tokens} />
     {packagePlans.length > 0 && <Stack spacing={1}>
       <Typography variant="h6">{t('Billing.BUY_PACKAGE')}</Typography>
       {packagePlans.map((plan) => <Stack key={plan.key} direction="row" spacing={1} alignItems="center">
