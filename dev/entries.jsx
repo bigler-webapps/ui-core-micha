@@ -4,6 +4,7 @@ import { ModelPicker } from '../src/chat/ModelPicker';
 import { ReceiptCaptureCard } from '../src/receipts/ReceiptCaptureCard';
 import { OperatorOverview } from '../src/billing/OperatorOverview';
 import { BillingAccessCell } from '../src/billing/BillingAccessCell';
+import { SubscriptionSection } from '../src/billing/SubscriptionSection';
 import ChatBubbleOutlineIcon from '@mui/icons-material/ChatBubbleOutline';
 import InboxIcon from '@mui/icons-material/Inbox';
 import MoreHorizIcon from '@mui/icons-material/MoreHoriz';
@@ -762,6 +763,15 @@ function OperatorBillingEntry() {
   </Stack>;
 }
 
+const seatsHarnessMe = { access: { status: 'active', source: 'team', ends_at: '2027-04-01T00:00:00Z' }, tokens: { balance: 1214, grants: [] }, plans: [], team: { plan_key: 'team5', plan_name: 'Team', ends_at: '2027-04-01T00:00:00Z', seats_total: 5, seats_used: 3, seat_holders: [{ user_id: 1, name: 'Team-Zahlerin', email: 'zahlerin@example.test' }, { user_id: 2, name: 'Amina Juma', email: 'amina@example.test' }, { user_id: 3, name: 'Joseph Mwita', email: 'joseph@example.test' }] } };
+const seatsHarnessApi = { getMe: async () => seatsHarnessMe, listSeats: async () => ({ seats: [{ user_id: 1 }, { user_id: 2 }, { user_id: 3 }] }), addSeat: async () => ({}), removeSeat: async () => ({}) };
+function BillingSeatsEntry() {
+  return <Stack spacing={4}>
+    <SubscriptionSection api={seatsHarnessApi} withdrawal={false} seatCandidates={[{ id: 2, name: 'Amina Juma' }, { id: 4, name: 'Fatma Said' }, { id: 5, name: 'Peter Kibona' }]} />
+    <SubscriptionSection api={seatsHarnessApi} withdrawal={false} />
+  </Stack>;
+}
+
 export const entries = [
   { id: 'theme-baseline', label: 'Theme / Shared baseline', Component: ThemeBaselineEntry },
   { id: 'mobile-bottom-nav', label: 'Navigation / Mobile bottom nav', Component: MobileBottomNavEntry },
@@ -789,4 +799,5 @@ export const entries = [
   { id: 'chat-model-picker', label: 'Chat / Model picker', Component: ChatPickerEntry },
   { id: 'receipts-capture', label: 'Receipts / Capture card', Component: ReceiptsEntry },
   { id: 'billing-operator', label: 'Billing / Operator overview and access', Component: OperatorBillingEntry },
+  { id: 'billing-seats', label: 'Billing / Seats with candidates', Component: BillingSeatsEntry },
 ];

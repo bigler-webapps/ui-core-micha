@@ -12,6 +12,8 @@ import { WithdrawalSection } from './WithdrawalSection';
 
 export const SUBSCRIPTION_SECTION_ALERT_SX = { width: '100%' };
 export const SUBSCRIPTION_SECTION_SEAT_SELECT_SX = { flex: '1 1 auto', minWidth: 0 };
+// The seat button keeps its width and its single line next to a shrinking select (375 px).
+export const SUBSCRIPTION_SECTION_SEAT_ADD_SX = { flexShrink: 0, whiteSpace: 'nowrap' };
 
 function isStatus(error, status) { return error?.response?.status === status; }
 function activeUntil(access, t, language) {
@@ -124,7 +126,7 @@ export function SubscriptionSection({ api = defaultBillingApi, redirect = (url) 
             <MenuItem value="">{t('Billing.SEAT_PICK')}</MenuItem>
             {eligibleSeatCandidates.map((candidate) => <MenuItem key={String(candidate.id)} value={String(candidate.id)}><Stack><Typography>{candidate.name}</Typography>{candidate.email && <Typography variant="body2" color="text.secondary">{candidate.email}</Typography>}</Stack></MenuItem>)}
           </TextField> : <TextField size="small" label={t('Billing.SEAT_USER')} value={seatInput} onChange={(event) => setSeatInput(event.target.value)} />}
-          <Button disabled={busy || (Array.isArray(seatCandidates) ? !selectedSeatCandidate : !seatInput.trim())} onClick={() => updateSeat(() => {
+          <Button sx={SUBSCRIPTION_SECTION_SEAT_ADD_SX} disabled={busy || (Array.isArray(seatCandidates) ? !selectedSeatCandidate : !seatInput.trim())} onClick={() => updateSeat(() => {
             if (Array.isArray(seatCandidates)) {
               return selectedSeatCandidate ? api.addSeat({ userId: selectedSeatCandidate.id }) : undefined;
             }

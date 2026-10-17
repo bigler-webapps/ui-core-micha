@@ -114,3 +114,16 @@ describe('SubscriptionSection seat candidates', () => {
     expect(await screen.findByText(errorKey)).toBeTruthy();
   });
 });
+
+describe('seat button layout', () => {
+  it('keeps the add button on one line and at its width next to the select', async () => {
+    const { SUBSCRIPTION_SECTION_SEAT_ADD_SX } = await import('../src/billing/SubscriptionSection');
+    expect(SUBSCRIPTION_SECTION_SEAT_ADD_SX).toEqual({ flexShrink: 0, whiteSpace: 'nowrap' });
+    const api = apiFor(account(), []);
+    render(<SubscriptionSection api={api} seatCandidates={[{ id: 31, name: 'Ada' }]} withdrawal={false} />);
+    const button = await screen.findByRole('button', { name: 'Billing.SEATS_ADD' });
+    const style = window.getComputedStyle(button);
+    expect(style.whiteSpace).toBe('nowrap');
+    expect(style.flexShrink).toBe('0');
+  });
+});
