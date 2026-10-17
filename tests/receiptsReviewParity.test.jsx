@@ -127,7 +127,7 @@ describe('receipt review parity', () => {
     expect(mobileActions.every((button) => button.classList.contains('MuiButton-fullWidth'))).toBe(true);
     const theme = createTheme();
     const paperSx = RECEIPT_REVIEW_SHEET_PAPER_SX(theme);
-    expect(paperSx.height).toBeUndefined();
+    expect(paperSx.height).toBe('auto');
     expect(paperSx.maxHeight).toBe('calc(100% - 56px)');
 
     cleanup();
@@ -218,5 +218,22 @@ describe('review fixes of round three', () => {
     expect(RECEIPT_REVIEW_ROW_SX.gridTemplateColumns.xs).toBe('minmax(0, 1fr) auto');
     expect(RECEIPT_REVIEW_ROW_SX.gridTemplateColumns.sm).toBe('120px minmax(0, 1fr) auto');
     expect(RECEIPT_REVIEW_ROW_SX['& > :first-of-type'].gridColumn).toEqual({ xs: '1 / -1', sm: 'auto' });
+  });
+});
+
+describe('review fixes of round four', () => {
+  it('formats the date in the dialog with the active language and uses the caption token for labels', () => {
+    translationState.language = 'en';
+    renderReview({ merchant: 'Shop', date: '2026-10-14', confidence: 'high' });
+    const row = document.querySelector('[data-receipt-review-row="date"]');
+    expect(row.children[1].textContent).toContain('10/14/2026');
+    expect(row.children[0].firstElementChild === null ? row.children[0].className : row.children[0].className).toContain('MuiTypography-caption');
+  });
+
+  it('lets the sheet follow its content: automatic height with a maximum', () => {
+    renderReview({ merchant: 'Shop', confidence: 'high' }, {}, vi.fn(), true);
+    const style = window.getComputedStyle(document.querySelector('.MuiDrawer-paper'));
+    expect(style.height).toBe('auto');
+    expect(style.maxHeight).toContain('calc(100% - 56px)');
   });
 });
