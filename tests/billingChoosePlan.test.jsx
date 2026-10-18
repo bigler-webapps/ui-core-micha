@@ -36,9 +36,9 @@ const renderSection = (me, props = {}) => {
 };
 
 describe('SubscriptionSection choose plan handoff', () => {
-  it('replaces the inline picker regardless of plans and routes both actions to the callback', async () => {
+  it('replaces the inline picker even when plans are available and routes both actions to the callback', async () => {
     const onChoosePlan = vi.fn();
-    const api = renderSection(makeMe('read_only', { plans: [] }), { onChoosePlan });
+    const api = renderSection(makeMe('read_only', { plans }), { onChoosePlan }); // plans are available: the picker must still be hidden
 
     expect(await screen.findByText('Billing.ENDED_TITLE')).toBeTruthy();
     const chooseButton = screen.getByRole('button', { name: 'Billing.CHOOSE_PLAN' });
