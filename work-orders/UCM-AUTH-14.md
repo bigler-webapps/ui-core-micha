@@ -157,7 +157,9 @@ Inspection starting points:
 
 STOP — this part is not an instruction to an application implementer.
 
-Status: planned; Gate #1 pending. Creating the WO does not authorize implementation.
+Status: planned; Gate #1 approved by the operator on 2026-10-21 in the Maana
+Expertenchat (session local_cbfc9d51-5217-42a4-99ba-27a315c854ce). Dispatch waits for
+the published DCM-AUTH-12 release and contract.
 Follow `orchestrate-codex` after approval. DCM-AUTH-12 is the upstream release gate;
 record the actual DCM version and contract before dispatch. Complete required
 independent Tier-3 review, security and frontend review under current governance.
