@@ -55,6 +55,10 @@ export { AccountPage } from './pages/AccountPage';
 
 // --- 5. Components (Wiederverwendbare UI-Teile) ---
 export { ProfileComponent } from './components/ProfileComponent';
+export { SignUpContent } from './components/SignUpContent';
+export { SignupConfirmContent } from './components/SignupConfirmContent';
+export { LoginContent } from './components/LoginContent';
+export { ProfileStepContent } from './components/ProfileStepContent';
 export { AccessCodeManager } from './components/AccessCodeManager';
 export { UserListComponent } from './components/UserListComponent';
 export { UserInviteComponent } from './components/UserInviteComponent';
@@ -82,7 +86,8 @@ export { useBillingUsersColumn } from './billing/useBillingUsersColumn';
 export { useOperatorAccounts } from './billing/useOperatorAccounts';
 export { WithdrawalDialog } from './billing/WithdrawalDialog';
 export { useBilling } from './billing/useBilling';
-export { createBillingApi, defaultBillingApi } from './billing/api';
+export { createBillingApi, createCheckoutIdempotencyKey, defaultBillingApi } from './billing/api';
+export { createTermsApi, defaultTermsApi } from './auth/termsApi';
 
 // --- 6. Charts ---
 export { getNeutralChartPalette, useNeutralChartPalette } from './components/charts/palette';
@@ -140,6 +145,7 @@ export {
   useOnboarding,
 } from './onboarding/OnboardingProvider';
 export { OnboardingWizard } from './onboarding/OnboardingWizard';
+export { SetupWizardShell } from './onboarding/SetupWizardShell';
 export { CookieConsentStep } from './onboarding/steps/CookieConsentStep';
 export { CompleteNameStep } from './onboarding/steps/CompleteNameStep';
 export { BrowserPushStep } from './onboarding/steps/BrowserPushStep';

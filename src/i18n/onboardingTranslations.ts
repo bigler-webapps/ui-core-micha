@@ -1,6 +1,8 @@
 export const onboardingTranslations = {
   'Onboarding.SETUP': { de: 'Einrichtung', fr: 'Configuration', en: 'Setup', sw: 'Usanidi' },
   'Onboarding.STEP_COUNTER': { de: 'Schritt {{current}} von {{total}}', fr: 'Étape {{current}} sur {{total}}', en: 'Step {{current}} of {{total}}', sw: 'Hatua ya {{current}} kati ya {{total}}' },
+  'Onboarding.COMPLETED': { de: 'abgeschlossen', fr: 'terminé', en: 'completed', sw: 'imekamilika' },
+  'Onboarding.BACK': { de: 'Zurück', fr: 'Retour', en: 'Back', sw: 'Rudi' },
   'Onboarding.PRIVACY_COOKIES_TITLE': { de: 'Datenschutz & Cookies', fr: 'Confidentialité et cookies', en: 'Privacy & cookies', sw: 'Faragha na vidakuzi' },
   'Onboarding.PRIVACY_COOKIES_BODY': { de: 'Bitte lies unsere Datenschutzerklärung und stimme ihr zu, um fortzufahren. Optionale Cookies helfen uns, deine Einstellungen und Präferenzen zu speichern.', fr: 'Veuillez lire et accepter notre politique de confidentialité pour continuer. Les cookies facultatifs nous aident à enregistrer vos réglages et préférences.', en: 'Please read and agree to our privacy statement to continue. Optional cookies help us save your settings and preferences.', sw: 'Tafadhali soma na ukubali taarifa yetu ya faragha ili kuendelea. Vidakuzi vya hiari hutusaidia kuhifadhi mipangilio na mapendeleo yako.' },
   'Onboarding.PRIVACY_AGREEMENT_LABEL': { de: 'Ich habe die Datenschutzerklärung gelesen und stimme ihr zu.', fr: 'J’ai lu et j’accepte la politique de confidentialité.', en: 'I have read and agree to the privacy statement.', sw: 'Nimesoma na ninakubali taarifa ya faragha.' },

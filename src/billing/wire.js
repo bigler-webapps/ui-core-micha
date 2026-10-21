@@ -10,6 +10,7 @@ export const billingApiUrls = (base = '/api/billing/') => {
   return {
     me: root + 'me/',
     checkout: root + 'checkout/',
+    checkoutAttempt: (reference) => root + `checkout/attempts/${encodeURIComponent(reference)}/`,
     portal: root + 'portal/',
     seats: root + 'team/seats/',
     withdrawals: root + 'withdrawal/',

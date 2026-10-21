@@ -494,7 +494,46 @@ Configured `implementation`: codex/gpt-6-luna. Claude parent, CLI route, cwd
 back. Codex status: newest record 2026-10-15 available, none today, so this dispatch is the
 day's probe. One dispatch; review findings are fixed by the Orchestrator.
 
-Launch evidence: (filled at dispatch).
+Launch evidence: one CLI dispatch on 2026-10-21, `codex exec -m gpt-6-luna -c model_reasoning_effort=high
+-C <ucm> - < work-orders/UCM-AUTH-14.md`; banner read back: model gpt-6-luna, provider openai, workdir ui-core-micha,
+reasoning high, session 01a15f95-efcf-7813-8881-e5e15b323794. It did not commit, stage or touch the register,
+package files, CHANGELOG or README. It ended `RESULT: BLOCKED` only because its single allowed test run preceded a
+syntax fix of its own; the implementation was complete. It could not find the root `AGENTS.md` and frontend skill at
+the relative paths (cwd ui-core-micha), conventions only.
+
+### Execution record (Orchestrator)
+
+Integration found defects the Orchestrator fixed before review (author of these changes: Orchestrator, Claude):
+`LoginContent` called `login()` in the signed-in-arrival effect (re-render loop risk) and accepted injectable
+`authApi`/`authService` props that broke `tests/pageTitles.test.jsx`; injectable API props on the other contents were
+removed as unrequested public surface (tests use module mocks, the harness the mock transport); missing keys
+(`Auth.OR`, `Common.BACK`); no native form submit through the shell; shell visuals rebuilt to the APP-18 structure
+with theme tokens only; continuation without a valid value no longer forced `/` as provider callback; compressed code
+reformatted and the S164 rationale comments restored; Luna's tests rewritten to assert behaviour (several asserted
+props or the arrival `login()` bug). `LoginFlow` (internal, not re-exported) is the shared controller of `LoginPage`
+and `LoginContent`.
+
+Deviations from Part B, recorded: the terms client is a factory `createTermsApi` in `src/auth/termsApi.js` (the DCM
+prefix is app-chosen) instead of functions in `authApi.jsx`, as Part B §6 already specified; the embedded contents keep
+the existing kit labels ("Mit Google fortfahren", "Einladung anfordern", divider "oder") rather than prototype copy, per
+the copy rule that existing auth labels are retained.
+
+Review rounds (codex/gpt-6-luna, `--sandbox read-only`; reviewers' own shell reads were rejected by the Windows
+sandbox, so all reviewed the inline diff): round 1 all six (envelope, regression, duplication, tests, ui, sec); round 2
+tests + envelope after fixes; round 3 envelope + ui after the focus fix; round 4 envelope after the submit-guard fix.
+Dispositions in the register Notiz.
+
+Verification: affected set on the final tree (32 files, 205 tests): 204 passed; `tests/packageTreeShaking.test.js`
+fails locally only on a Windows symlink permission (EPERM, environment), proven in CI below; `packageEntries` needs
+`--testTimeout=60000` on this machine. `tsc -p tsconfig.build.json` passed. Rendered comparison against
+`MAANA-APP-18-consolidated.html#setup` via the dev harness `#setup-wizard` (servers `ui-core-micha-dev-harness`,
+`maana-prototypes`): four application screenshots (account step and profile step at 375 and 1280) beside the
+prototype's same states; same structure (header row, numbered step list with completed check, 600px centred card,
+title and detail line, fields, combined statement with two links, optional cookies, stacked primary/back), no
+horizontal overflow at 375 (scrollWidth = viewport); differences are MUI floating labels, theme typography sizes and
+the retained kit labels. Coverage is sampled, not complete. DOM checks: email-sent state shows the success message and
+"Öffne den Bestätigungslink in der E-Mail."; empty profile submit focuses the error; names + statement submit through
+the shell's `primaryForm` completes after the profile PATCH and terms POST.
 
 ### Review routing (Tier 3)
 

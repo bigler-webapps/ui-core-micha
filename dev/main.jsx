@@ -37,12 +37,29 @@ Object.assign(translations, {
 const i18n = i18next.createInstance();
 i18n.init({ lng: 'en', fallbackLng: 'en', resources: { en: { translation: translations } }, interpolation: { escapeValue: false } });
 
+// `#<entry id>` opens that entry alone at the real browser viewport, without the
+// harness controls, for rendered comparisons at exact widths (e.g. #setup-wizard).
+const FULL_VIEWPORT_ENTRY = entries.find((item) => `#${item.id}` === window.location.hash && item.fullViewport);
+
+function FullViewport({ entry }) {
+  const theme = useMemo(() => createAppTheme({ palette: { mode: 'light', primary: { main: '#3D5A99' } } }), []);
+  const Entry = entry.Component;
+  return (
+    <ThemeProvider theme={theme}>
+      <CssBaseline />
+      <Box sx={{ minHeight: '100vh', bgcolor: 'background.default', px: 2 }}>
+        <Entry />
+      </Box>
+    </ThemeProvider>
+  );
+}
+
 function Harness() {
   const [entryId, setEntryId] = useState(entries[0].id);
   const [mode, setMode] = useState('light');
   const [width, setWidth] = useState('desktop');
   const entry = entries.find((item) => item.id === entryId) || entries[0];
-  const usesBaselineTheme = ['theme-baseline', 'mobile-bottom-nav'].includes(entry.id);
+  const usesBaselineTheme = ['theme-baseline', 'mobile-bottom-nav', 'setup-wizard'].includes(entry.id);
   const usesBrowserViewport = entry.id === 'mobile-bottom-nav';
   const effectiveMode = mode;
   const theme = useMemo(
@@ -77,5 +94,5 @@ function Harness() {
 }
 
 createRoot(document.getElementById('root')).render(
-  <StrictMode><I18nextProvider i18n={i18n}><MemoryRouter><MockTransportProvider><Harness /></MockTransportProvider></MemoryRouter></I18nextProvider></StrictMode>,
+  <StrictMode><I18nextProvider i18n={i18n}><MemoryRouter><MockTransportProvider>{FULL_VIEWPORT_ENTRY ? <FullViewport entry={FULL_VIEWPORT_ENTRY} /> : <Harness />}</MockTransportProvider></MemoryRouter></I18nextProvider></StrictMode>,
 );

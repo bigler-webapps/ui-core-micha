@@ -19,6 +19,7 @@ import { useTranslation } from 'react-i18next';
 import { AuthContext } from '../auth/AuthContext'; 
 import { fetchCookieStatement, fetchPrivacyStatement } from '../auth/authApi';
 import { resolveErrorText } from '../utils/resolveErrorText';
+import { refreshProfileDraft } from '../utils/profileDraft';
 
 export function ProfileComponent({
   onSubmit,
@@ -56,34 +57,17 @@ export function ProfileComponent({
 
   // Refresh server values for untouched fields, while keeping edits for this identity.
   useEffect(() => {
-    const userIdentity = user
-      ? (user.id ?? user.email ?? user.username ?? null)
-      : null;
-
-    if (previousUserIdentity.current !== userIdentity) {
-      previousUserIdentity.current = userIdentity;
-      editedFields.current = new Set();
-    }
-
-    if (user) {
-      setUsername(user.username ?? '');
-      setEmail(user.email ?? '');
-      if (!editedFields.current.has('firstName')) setFirstName(user.first_name ?? '');
-      if (!editedFields.current.has('lastName')) setLastName(user.last_name ?? '');
-      if (!editedFields.current.has('acceptedPrivacy')) {
-        setAcceptedPrivacy(Boolean(user.accepted_privacy_statement));
-      }
-      if (!editedFields.current.has('acceptedCookies')) {
-        setAcceptedCookies(Boolean(user.accepted_convenience_cookies));
-      }
-    } else {
-      setUsername('');
-      setEmail('');
-      setFirstName('');
-      setLastName('');
-      setAcceptedPrivacy(false);
-      setAcceptedCookies(false);
-    }
+    const refreshed = refreshProfileDraft(user, previousUserIdentity.current, editedFields.current, {
+      firstName, lastName, acceptedPrivacy, acceptedCookies,
+    });
+    previousUserIdentity.current = refreshed.identity;
+    editedFields.current = refreshed.editedFields;
+    setUsername(refreshed.values.username);
+    setEmail(refreshed.values.email);
+    setFirstName(refreshed.values.firstName);
+    setLastName(refreshed.values.lastName);
+    setAcceptedPrivacy(refreshed.values.acceptedPrivacy);
+    setAcceptedCookies(refreshed.values.acceptedCookies);
   }, [user]);
 
   useEffect(() => {

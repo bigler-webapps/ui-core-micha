@@ -5,6 +5,14 @@ import { ReceiptCaptureCard } from '../src/receipts/ReceiptCaptureCard';
 import { OperatorOverview } from '../src/billing/OperatorOverview';
 import { BillingAccessCell } from '../src/billing/BillingAccessCell';
 import { SubscriptionSection } from '../src/billing/SubscriptionSection';
+import i18next from 'i18next';
+import { I18nextProvider } from 'react-i18next';
+import { createUiCoreTranslations } from '../src/i18n/uiCoreTranslations';
+import { SetupWizardShell } from '../src/onboarding/SetupWizardShell';
+import { SignUpContent } from '../src/components/SignUpContent';
+import { SignupConfirmContent } from '../src/components/SignupConfirmContent';
+import { LoginContent } from '../src/components/LoginContent';
+import { ProfileStepContent } from '../src/components/ProfileStepContent';
 import ChatBubbleOutlineIcon from '@mui/icons-material/ChatBubbleOutline';
 import InboxIcon from '@mui/icons-material/Inbox';
 import MoreHorizIcon from '@mui/icons-material/MoreHoriz';
@@ -40,6 +48,108 @@ import {
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 
 import { AuthContext } from '../src/auth/AuthContext';
+
+// Setup wizard (UCM-AUTH-14): the shell with the real account and profile
+// components, in informal German, against the harness transport (see
+// mockTransport.jsx). Open `#setup-wizard` for the bare entry at the browser's
+// own viewport. Step labels and titles are host copy, as in a consuming app.
+const setupTranslations = createUiCoreTranslations({ germanVariant: 'informal' });
+const setupI18n = i18next.createInstance();
+setupI18n.init({
+  lng: 'de',
+  fallbackLng: 'de',
+  resources: { de: { translation: Object.fromEntries(Object.entries(setupTranslations).map(([key, value]) => [key, value.de])) } },
+  interpolation: { escapeValue: false },
+});
+
+const SETUP_STEPS = ['Konto', 'Profil', 'Projekt', 'Daten', 'Zugang', 'Abschluss'].map((label, index) => ({ id: `step-${index}`, label }));
+const SETUP_AUTH_METHODS = {
+  signup_modes: ['self_signup_open'],
+  social_login: true,
+  social_providers: ['google', 'microsoft'],
+  password_login: true,
+  password_reset: true,
+};
+const SETUP_STATES = [
+  ['account', 'Konto'],
+  ['confirmation', 'Passwort'],
+  ['login', 'Anmeldung'],
+  ['profile', 'Profil'],
+];
+
+function SetupWizardEntry() {
+  const [state, setState] = useState('account');
+  const [sentTo, setSentTo] = useState('');
+  const [signUpRound, setSignUpRound] = useState(0);
+  const [profileDraft, setProfileDraft] = useState(null);
+  const [profileBusy, setProfileBusy] = useState(false);
+  const [completed, setCompleted] = useState('');
+  const signedIn = state === 'profile';
+  const auth = useMemo(() => ({
+    user: signedIn ? setupHarnessUser : null,
+    loading: false,
+    login: () => {},
+    authMethods: SETUP_AUTH_METHODS,
+  }), [signedIn]);
+
+  const views = {
+    account: {
+      title: sentTo ? 'E-Mail bestätigen' : 'Konto anlegen',
+      description: sentTo || undefined,
+      content: <SignUpContent key={signUpRound} showProviders continuation="/setup" onSubmitted={setSentTo} />,
+      // Changing the email remounts the content with an empty form.
+      onBack: sentTo ? () => { setSentTo(''); setSignUpRound((round) => round + 1); } : undefined,
+      backLabel: 'E-Mail ändern',
+    },
+    confirmation: {
+      title: 'Passwort festlegen',
+      content: <SignupConfirmContent token="harness-token" onSuccess={() => setState('login')} />,
+      onBack: () => setState('account'),
+    },
+    login: {
+      title: 'Mit dem neuen Konto anmelden',
+      content: <LoginContent continuation="/setup" onSuccess={() => setState('profile')} />,
+    },
+    profile: {
+      title: 'Profil vervollständigen',
+      description: `${setupHarnessUser.email} · E-Mail`,
+      content: <ProfileStepContent formId="setup-profile" termsEnabled draft={profileDraft} onDraftChange={setProfileDraft} onBusyChange={setProfileBusy} onComplete={() => setCompleted('Profil gespeichert')} />,
+      onBack: () => setState('account'),
+      primaryForm: 'setup-profile',
+      primaryLabel: 'Weiter zum Projekt',
+    },
+  };
+  const view = views[state];
+
+  return (
+    <I18nextProvider i18n={setupI18n}>
+      <AuthContext.Provider value={auth}>
+        <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap" sx={{ pt: 2 }} aria-label="Harness state">
+          {SETUP_STATES.map(([key, label]) => (
+            <Button key={key} size="small" variant={state === key ? 'contained' : 'outlined'} onClick={() => setState(key)}>{label}</Button>
+          ))}
+          {completed && <Typography role="status" variant="body2">{completed}</Typography>}
+        </Stack>
+        <SetupWizardShell
+          steps={SETUP_STEPS}
+          currentStepId={signedIn ? 'step-1' : 'step-0'}
+          completedStepIds={signedIn ? ['step-0'] : []}
+          reachableStepIds={signedIn ? ['step-0'] : []}
+          onSelectStep={(id) => setState(id === 'step-1' ? 'profile' : 'account')}
+          title={view.title}
+          description={view.description}
+          onBack={view.onBack}
+          backLabel={view.backLabel}
+          primaryForm={view.primaryForm}
+          primaryLabel={view.primaryLabel}
+          busy={signedIn && profileBusy}
+        >
+          {view.content}
+        </SetupWizardShell>
+      </AuthContext.Provider>
+    </I18nextProvider>
+  );
+}
 import { MobileBottomNav } from '../src/components/MobileBottomNav';
 import { SectionNav } from '../src/layout/SectionNav';
 import { BarChart } from '../src/components/charts/BarChart';
@@ -67,7 +177,7 @@ import { ReactionBar } from '../src/messaging/ReactionBar';
 import { PollCard } from '../src/messaging/PollCard';
 import { MessagingScopeConfig } from '../src/messaging/MessagingScopeConfig';
 import { barChartFixture } from './fixtures';
-import { useMockTransport } from './mockTransport';
+import { setupHarnessUser, useMockTransport } from './mockTransport';
 
 function NotificationBellEntry() {
   return (
@@ -821,4 +931,5 @@ export const entries = [
   { id: 'billing-operator', label: 'Billing / Operator overview and access', Component: OperatorBillingEntry },
   { id: 'billing-seats', label: 'Billing / Seats with candidates', Component: BillingSeatsEntry },
   { id: 'billing-origins', label: 'Billing / Balance by origin and purchases', Component: BillingOriginsEntry },
+  { id: 'setup-wizard', label: 'Auth / Setup wizard', Component: SetupWizardEntry, fullViewport: true },
 ];

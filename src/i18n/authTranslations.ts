@@ -2647,5 +2647,101 @@ export const authTranslations = {
     "fr": "Le code saisi est incorrect.",
     "en": "The code you entered is incorrect.",
     "sw": "Msimbo uliouweka si sahihi."
+  },
+  "Auth.PROVIDER_TRANSITION": {
+    "de": "Die Anmeldung erfolgt bei {{provider}}. Danach geht es hier weiter.",
+    "de_informal": "Die Anmeldung erfolgt bei {{provider}}. Danach geht es hier weiter.",
+    "fr": "La connexion se poursuit auprès de {{provider}}. Vous reviendrez ici ensuite.",
+    "en": "Sign-in continues with {{provider}}. You’ll return here afterwards.",
+    "sw": "Kuingia kunaendelea kupitia {{provider}}. Utarudi hapa baadaye."
+  },
+  "Auth.CONFIRMATION_EMAIL_INSTRUCTION": {
+    "de": "Öffnen Sie den Bestätigungslink in der E-Mail.",
+    "de_informal": "Öffne den Bestätigungslink in der E-Mail.",
+    "fr": "Ouvrez le lien de confirmation reçu par e-mail.",
+    "en": "Open the confirmation link in your email.",
+    "sw": "Fungua kiungo cha uthibitisho kwenye barua pepe yako."
+  },
+  "Auth.TERMS_PRIVACY_PREFIX": {
+    "de": "Ich akzeptiere die ",
+    "fr": "J’accepte les ",
+    "en": "I accept the ",
+    "sw": "Ninakubali "
+  },
+  "Auth.TERMS_LINK_LABEL": {
+    "de": "Nutzungsbedingungen",
+    "fr": "conditions d’utilisation",
+    "en": "terms of use",
+    "sw": "masharti ya matumizi"
+  },
+  "Auth.TERMS_PRIVACY_AND": {
+    "de": " und die ",
+    "fr": " et la ",
+    "en": " and the ",
+    "sw": " na "
+  },
+  "Auth.PRIVACY_LINK_LABEL": {
+    "de": "Datenschutzerklärung",
+    "fr": "politique de confidentialité",
+    "en": "privacy statement",
+    "sw": "taarifa ya faragha"
+  },
+  "Auth.TERMS_PRIVACY_SUFFIX": {
+    "de": ".",
+    "fr": ".",
+    "en": ".",
+    "sw": "."
+  },
+  "Auth.PRIVACY_REQUIRED_LABEL": {
+    "de": "Ich akzeptiere die",
+    "fr": "J’accepte la",
+    "en": "I accept the",
+    "sw": "Ninakubali"
+  },
+  "Auth.CONVENIENCE_COOKIES_LABEL": {
+    "de": "Komfort-Cookies erlauben (optional)",
+    "fr": "Autoriser les cookies de confort (facultatif)",
+    "en": "Allow convenience cookies (optional)",
+    "sw": "Ruhusu vidakuzi vya urahisi (hiari)"
+  },
+  "Auth.PROFILE_NAME_REQUIRED": {
+    "de": "Bitte geben Sie Vor- und Nachnamen an.",
+    "de_informal": "Bitte gib deinen Vor- und Nachnamen an.",
+    "fr": "Veuillez indiquer votre prénom et votre nom.",
+    "en": "Please enter your first and last name.",
+    "sw": "Tafadhali weka jina lako la kwanza na la mwisho."
+  },
+  "Auth.TERMS_PRIVACY_REQUIRED": {
+    "de": "Bitte akzeptieren Sie die Nutzungsbedingungen und die Datenschutzerklärung.",
+    "de_informal": "Bitte akzeptiere die Nutzungsbedingungen und die Datenschutzerklärung.",
+    "fr": "Veuillez accepter les conditions d’utilisation et la politique de confidentialité.",
+    "en": "Please accept the terms of use and the privacy statement.",
+    "sw": "Tafadhali kubali masharti ya matumizi na taarifa ya faragha."
+  },
+  "Auth.PRIVACY_REQUIRED": {
+    "de": "Bitte akzeptieren Sie die Datenschutzerklärung.",
+    "de_informal": "Bitte akzeptiere die Datenschutzerklärung.",
+    "fr": "Veuillez accepter la politique de confidentialité.",
+    "en": "Please accept the privacy statement.",
+    "sw": "Tafadhali kubali taarifa ya faragha."
+  },
+  "Auth.TERMS_LOAD_FAILED": {
+    "de": "Die aktuellen Nutzungsbedingungen konnten nicht geladen werden.",
+    "fr": "Les conditions d’utilisation actuelles n’ont pas pu être chargées.",
+    "en": "The current terms of use could not be loaded.",
+    "sw": "Masharti ya sasa ya matumizi hayakuweza kupakiwa."
+  },
+  "Auth.TERMS_ACCEPTANCE_FAILED": {
+    "de": "Die Zustimmung zu den Nutzungsbedingungen konnte nicht gespeichert werden.",
+    "fr": "L’acceptation des conditions d’utilisation n’a pas pu être enregistrée.",
+    "en": "Your acceptance of the terms of use could not be saved.",
+    "sw": "Kukubali kwako masharti ya matumizi hakukuweza kuhifadhiwa."
+  },
+  "Auth.TERMS_VERSION_CHANGED": {
+    "de": "Die Nutzungsbedingungen wurden aktualisiert. Bitte akzeptieren Sie die aktuelle Fassung.",
+    "de_informal": "Die Nutzungsbedingungen wurden aktualisiert. Bitte akzeptiere die aktuelle Fassung.",
+    "fr": "Les conditions d’utilisation ont été mises à jour. Veuillez accepter la version actuelle.",
+    "en": "The terms of use have been updated. Please accept the current version.",
+    "sw": "Masharti ya matumizi yamesasishwa. Tafadhali kubali toleo la sasa."
   }
 };

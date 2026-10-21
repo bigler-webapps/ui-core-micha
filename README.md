@@ -30,6 +30,62 @@ phone navigation. Without `group`, or with `more` or an unknown value, it stays 
 `onChoosePlan()` (the banner's renew action calls it too, and wins over `onRenew`), and no inline picker. Without the
 prop the section behaves as before.
 
+## Setup wizard: account and profile steps
+
+For a page-based first-use flow (UCM-AUTH-14). The host owns the journey: which steps exist, which are completed or
+reachable, navigation, busy state, errors, every draft and any persistence. The kit stores nothing and starts no
+project, import or payment work. Existing pages and the dialog `OnboardingProvider` / `OnboardingWizard` are unchanged.
+
+- `SetupWizardShell` — one column of stable width: labelled step list, "Schritt n von N", title (`title`, default the
+  step label), optional `description`, `error` alert, the step content and one action row (`onBack` / `backLabel`,
+  `primaryLabel` with `onPrimary` or `primaryForm`). Props `steps` (`[{ id, label }]`), `currentStepId`,
+  `completedStepIds`, `reachableStepIds`, `onSelectStep`, `busy`. `onPrimary` may return a promise; the action is
+  ignored until it settles. `primaryForm` names a form in the content that the primary button submits natively.
+- `SignUpContent` — the sign-up form of `SignUpPage` (all modes, Turnstile, QR token via `registrationContextToken`).
+  `onSubmitted(email)` switches it to the confirmation instruction; remount it (new `key`) to let the person change the
+  email. `showProviders` adds Google/Microsoft above the form.
+- `SignupConfirmContent` — the password form of `SignupConfirmPage`. Pass `token` (from the emailed
+  `/signup/confirm/?token=…` link, which your app routes) and `onSuccess()`; there is no automatic sign-in, show
+  `LoginContent` next.
+- `LoginContent` — the controller of `LoginPage` without page framing, MFA inline. `onSuccess({ user, target })`; when
+  recovery or required additional security applies it navigates to the security page itself and does not call
+  `onSuccess`. `onSignUp` and `onForgotPassword` show those buttons.
+- `ProfileStepContent` — names, one required statement and optional convenience cookies; `onComplete(user)` only after
+  every required write succeeded. Host draft via `draft` / `onDraftChange` (bound to the person, never shown to another
+  account); as in `ProfileComponent`, fields the person edited win over later server values for the same person, so
+  drop the draft once the step completes. `formId` hands the submit to the shell; `onBusyChange` reports saving.
+
+**Continuation.** `LoginContent` and `SignUpContent` take a `continuation`: a same-origin path such as `/setup`. Anything
+else (absolute, protocol-relative, backslash) falls back to `/`. It is also the Google/Microsoft callback URL, so render
+`LoginContent` on that route: it shows a cancelled provider sign-in (`?error=`) with the choice again and handles a
+person who arrives signed in. The emailed confirmation link carries no continuation: render `SignupConfirmContent` on
+your app's `/signup/confirm` route inside the setup and follow it with `LoginContent` and your continuation, which also
+works when the link is opened in a fresh session. An anonymous setup route needs `addPublicPath('/setup')` before the
+`AuthProvider` mounts.
+Passwords, tokens and access codes never leave the components; host drafts contain names and choices only.
+
+**Terms of use (requires `django-core-micha` >= 3.16.0).** `ProfileStepContent` with `termsEnabled` shows the combined
+statement "Ich akzeptiere die Nutzungsbedingungen und die Datenschutzerklärung." and records the acceptance through
+`createTermsApi()` (`getAcceptance()`, `accept(version)`; default prefix `/api/terms/`, pass `{ apiBase }` for another
+mount, created once at module level and passed as `termsApi`). The statement is pre-checked only when the server reports
+the current version as accepted and privacy as accepted. A changed version (409 `version_mismatch`) keeps the step open
+with the current document. Without `termsEnabled` nothing requests the terms API.
+
+**Contextual checkout (requires `django-core-micha` >= 3.16.0).** `createBillingApi()` keeps `startCheckout(planKey)`
+unchanged. `startCheckout(planKey, { context, idempotencyKey })` sends only `plan_key`, `context` and `idempotency_key`
+(no return URL is ever sent). Create the key with `createCheckoutIdempotencyKey()` once per deliberate pay click and
+reuse it when retrying that click; a new key is a new attempt. On return, read `checkout_attempt` from the URL and call
+`resolveCheckoutAttempt(reference)` (`{ url, attempt }`, `attempt.status` `open | processing | paid | failed | expired`).
+Access still comes only from `getMe()`. Nothing retries automatically. To give `PlanPicker` a context, pass an override:
+
+```js
+const base = createBillingApi();
+const setupBillingApi = createBillingApi({
+  startCheckout: (planKey) => base.startCheckout(planKey, { context: 'setup', idempotencyKey: currentAttemptKey() }),
+});
+<PlanPicker api={setupBillingApi} plans={plans} />;
+```
+
 ## Consumer integration check
 
 ```js

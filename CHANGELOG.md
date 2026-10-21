@@ -1,5 +1,20 @@
 # Changelog
 
+## 4.13.0 - UCM-AUTH-14
+
+Composable account and profile steps for a page-based setup wizard; all additive. New exports: `SetupWizardShell`
+(host-controlled single-column frame with step list, title, error, content and one action row), `SignUpContent`,
+`SignupConfirmContent`, `LoginContent` (the existing page controllers without page framing; `LoginPage`, `SignUpPage`
+and `SignupConfirmPage` now wrap them and behave as before), `ProfileStepContent` (names, one required statement,
+optional convenience cookies, host draft bound to the person), `createTermsApi` / `defaultTermsApi`, and
+`createCheckoutIdempotencyKey`. `createBillingApi()` gains `startCheckout(planKey, { context, idempotencyKey })` and
+`resolveCheckoutAttempt(reference)`; `startCheckout(planKey)` sends exactly `{ plan_key }` as before. Terms acceptance
+and contextual checkout require `django-core-micha` >= 3.16.0; everything else works with the existing DCM versions.
+Continuations are same-origin paths only and never bypass recovery or required-security redirects. New keys
+`Auth.PROVIDER_TRANSITION`, `CONFIRMATION_EMAIL_INSTRUCTION`, `TERMS_*`, `PRIVACY_*`, `CONVENIENCE_COOKIES_LABEL`,
+`PROFILE_NAME_REQUIRED`, `Onboarding.COMPLETED`, `Onboarding.BACK` (de, de_informal where it addresses the person, en,
+fr, sw). The dev harness has a `setup-wizard` entry (`#setup-wizard` opens it alone at the browser viewport).
+
 ## 4.12.0 - UCM-BILL-8
 
 `SubscriptionSection` accepts an optional `onChoosePlan` callback for apps that have their own plan page. With it, the

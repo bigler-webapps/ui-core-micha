@@ -50,6 +50,37 @@ MockWebSocket.OPEN = 1;
 MockWebSocket.CLOSING = 2;
 MockWebSocket.CLOSED = 3;
 
+// Setup-wizard entry (UCM-AUTH-14): registration, confirmation, profile, privacy
+// statement and the DCM 3.16.0 terms API. Terms acceptance is held in memory.
+const SETUP_TERMS_DOCUMENT = { app: 'harness', version: '2026-10-21', url: 'https://example.test/terms' };
+let setupTermsAcceptedAt = null;
+const setupTermsBody = () => ({
+  document: SETUP_TERMS_DOCUMENT,
+  accepted: Boolean(setupTermsAcceptedAt),
+  accepted_at: setupTermsAcceptedAt,
+});
+const setupResponses = {
+  'post /api/users/register-request/': () => ({ code: 'Auth.INVITE_SENT' }),
+  'post /api/users/register-confirm/': () => ({}),
+  'patch /api/users/current/': (config) => ({ ...setupHarnessUser, ...JSON.parse(config.data || '{}') }),
+  'get /api/utils/privacy/': () => ({ content: 'Harness privacy statement.' }),
+  'get /api/terms/': () => setupTermsBody(),
+  'post /api/terms/': () => {
+    setupTermsAcceptedAt = setupTermsAcceptedAt || new Date().toISOString();
+    return setupTermsBody();
+  },
+};
+
+export const setupHarnessUser = {
+  id: 71,
+  username: 'mara',
+  email: 'mara@example.test',
+  first_name: '',
+  last_name: '',
+  accepted_privacy_statement: false,
+  accepted_convenience_cookies: false,
+};
+
 export function createMockTransport({ notifications = notificationFixtures } = {}) {
   let feed = [...notifications];
   const subscribers = new Map();
@@ -69,6 +100,8 @@ export function createMockTransport({ notifications = notificationFixtures } = {
           ? { ...item, [`${action}_at`]: item[`${action}_at`] || new Date().toISOString() }
           : item));
         data = { updated: ids.length };
+      } else if (setupResponses[`${method} ${url}`]) {
+        data = setupResponses[`${method} ${url}`](config);
       } else {
         return Promise.reject(new Error(`No harness response for ${method.toUpperCase()} ${url}`));
       }
