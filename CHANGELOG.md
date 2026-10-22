@@ -1,5 +1,11 @@
 # Changelog
 
+## 4.18.0 - UCM-BILL-10
+
+`AccountPage` accepts an optional `billingOperator({ user, account }) => boolean` and passes it as the operator rule to
+the billing users columns it builds when `billingUsers` is set, so status, badge and the "Ohne Abo" switch follow the
+app's rule. Without the prop the superuser default stays; with `billingUsers` off nothing changes.
+
 ## 4.17.0 - UCM-BILL-9
 
 Users tab, every app: the billing access column is a short coloured status (`accountAccessText` now returns

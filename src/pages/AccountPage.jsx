@@ -38,6 +38,11 @@ import { fetchAuthPolicy, updateUserProfile } from '../auth/authApi'; // Ggf. Pf
 import { defaultBillingApi } from '../billing/api';
 import { useBillingUsersColumn } from '../billing/useBillingUsersColumn';
 
+/**
+ * `billingOperator({ user, account }) => boolean` (optional, UCM-BILL-10): the app's operator rule for the billing
+ * users columns built when `billingUsers` is set (status, badge and the "Ohne Abo" switch). Without it superusers are
+ * the operators. A new function on each render only recomputes the columns; it does not refetch the accounts.
+ */
 export function AccountPage({
   userListExtraColumns = [],
   userListExtraRowActions = [],
@@ -56,6 +61,7 @@ export function AccountPage({
   extraTabs = [],
   showProfileStatements = true,
   billingUsers = false,
+  billingOperator,
 }) {
   const { t, i18n } = useTranslation();
   const { user, login, loading } = useContext(AuthContext);
@@ -65,7 +71,11 @@ export function AccountPage({
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const billingApi = billingUsers && typeof billingUsers === 'object' ? billingUsers : defaultBillingApi;
-  const billing = useBillingUsersColumn({ api: billingApi, enabled: Boolean(billingUsers) });
+  const billing = useBillingUsersColumn({
+    api: billingApi,
+    enabled: Boolean(billingUsers),
+    ...(billingOperator ? { isOperator: billingOperator } : {}),
+  });
 
   // 1. URL State Management
   const currentTabRaw = searchParams.get('tab') || 'profile';

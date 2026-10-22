@@ -29,7 +29,9 @@ With billing in the account page, the user list shows two columns: "Zugang", a s
 "{Plan} · bis {Datum}", "Team · bis {Datum}", "Schreibgeschützt", "Betreiber"), and "Ohne Abo", the free-access switch
 without a visible label (only for free and read-only rows; "–" otherwise). Plan names come from the app's own catalogue
 (`getMe().plans`); a plan without a name shows "Abo", never its key. Operator rows default to `user.is_superuser`;
-`useBillingUsersColumn({ isOperator: ({ user, account }) => ... })` overrides that. The built-in delete is an icon button
+`<AccountPage billingUsers billingOperator={({ user }) => user.is_superuser || user.role === 'admin'}>` (or
+`useBillingUsersColumn({ isOperator })` directly) applies the app's own rule; a new function per render does not
+refetch the accounts. The built-in delete is an icon button
 named "Löschen – {Name}", shown disabled on the own row; confirmation, permissions and app row actions are unchanged.
 
 ## Account section: plan choice on the app's own page

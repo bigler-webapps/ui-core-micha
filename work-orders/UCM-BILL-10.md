@@ -118,5 +118,10 @@ chosen by the Orchestrator (the Envelope names none). Execution: codex/gpt-6-lun
 Review: lenses envelope, regression, duplication, tests, codex/gpt-6-luna read-only (no UI surface change, no
 `ui_review`; no auth/security change, no `sec_review`). Verification: the new test, `billingOperatorAccountPage`,
 `AccountPage*`, `billingAccessColumn`, `pageTitles`, `checkKitIntegration`, tsc; full suite in `ci.yml` on
-`ci-test/UCM-BILL-10`. README + CHANGELOG + minor version by the Orchestrator. Origin: the UCM Orchestrator's answer to the Maana Expertenchat
+`ci-test/UCM-BILL-10`. README + CHANGELOG + minor version by the Orchestrator.
+
+Launch evidence: 2026-10-22, model gpt-6-luna, reasoning high, session 01a1636f-6c3d-7043-8e2d-87381bd5ae00;
+`RESULT: DONE` (its one run: 4 tests passed), `AccountPage.jsx` and the new test only, no commit. Orchestrator: prop
+doc comment, README, CHANGELOG, version 4.18.0, and one test tightening from the review (the rerender test now also
+shows the changed rule applied). Origin: the UCM Orchestrator's answer to the Maana Expertenchat
 (2026-10-22) named this prop as the cleaner fix; operator decided 2026-10-22 to do it in ucm.
