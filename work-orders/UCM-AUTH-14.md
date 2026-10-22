@@ -523,6 +523,13 @@ sandbox, so all reviewed the inline diff): round 1 all six (envelope, regression
 tests + envelope after fixes; round 3 envelope + ui after the focus fix; round 4 envelope after the submit-guard fix.
 Dispositions in the register Notiz.
 
+CI proof: `ci.yml` on `ci-test/UCM-AUTH-14` for candidate 20b9736 (run 39675235455): build passed, 1171 of 1172
+tests passed including `packageTreeShaking`; `themeCompleteness` "kit sx disjointness" failed on seven inline `sx`
+objects in the new components (kit convention: top-level exported objects in `kitSxRegistry`). The Orchestrator's
+affected list had dropped `themeCompleteness` (an Orchestrator error). Fixed in a follow-up commit: exported
+`SIGN_UP_PROVIDER_*_SX`, `PROFILE_STEP_*_SX`, `SETUP_WIZARD_CARD_SX` with registry entries; the card now takes the
+theme's Paper radius. Delta reviewed (regression + ui lenses) and CI re-run on the new head.
+
 Verification: affected set on the final tree (32 files, 205 tests): 204 passed; `tests/packageTreeShaking.test.js`
 fails locally only on a Windows symlink permission (EPERM, environment), proven in CI below; `packageEntries` needs
 `--testTimeout=60000` on this machine. `tsc -p tsconfig.build.json` passed. Rendered comparison against

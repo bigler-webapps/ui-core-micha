@@ -18,6 +18,9 @@ import { defaultTermsApi } from '../auth/termsApi';
 import { resolveErrorText } from '../utils/resolveErrorText';
 import { profileIdentity, refreshProfileDraft } from '../utils/profileDraft';
 
+export const PROFILE_STEP_OPTION_SX = { alignItems: 'flex-start' };
+export const PROFILE_STEP_CHECKBOX_SX = { mt: -0.5 };
+
 // Only http(s) documents are linked; the terms URL comes from the server.
 function safeDocumentUrl(value) {
   if (typeof value !== 'string' || !value) return null;
@@ -322,13 +325,13 @@ export function ProfileStepContent({
 
       <Stack spacing={0.5}>
         <FormControlLabel
-          sx={{ alignItems: 'flex-start' }}
+          sx={PROFILE_STEP_OPTION_SX}
           control={(
             <Checkbox
               checked={requiredChecked}
               onChange={handleRequiredChange}
               disabled={busy || (termsEnabled && !currentTerms)}
-              sx={{ mt: -0.5 }}
+              sx={PROFILE_STEP_CHECKBOX_SX}
             />
           )}
           label={requiredLabel}
@@ -339,13 +342,13 @@ export function ProfileStepContent({
           </Typography>
         )}
         <FormControlLabel
-          sx={{ alignItems: 'flex-start' }}
+          sx={PROFILE_STEP_OPTION_SX}
           control={(
             <Checkbox
               checked={Boolean(values.acceptedCookies)}
               onChange={(event) => commit({ acceptedCookies: event.target.checked })}
               disabled={busy}
-              sx={{ mt: -0.5 }}
+              sx={PROFILE_STEP_CHECKBOX_SX}
             />
           )}
           label={t('Auth.CONVENIENCE_COOKIES_LABEL')}

@@ -24,6 +24,8 @@ import { sanitizeContinuation } from '../utils/continuation';
 import { resolveErrorText } from '../utils/resolveErrorText';
 
 export const SIGN_UP_PAGE_ALERT_SX = { mb: 2 };
+export const SIGN_UP_PROVIDER_ALERT_SX = { mt: 2 };
+export const SIGN_UP_PROVIDER_DIVIDER_SX = { mt: 2 };
 
 const TURNSTILE_SIGNUP_MODES = new Set([
   'self_signup_open',
@@ -214,11 +216,11 @@ export function SignUpContent({
             providers={socialProviders}
           />
           {providerTransition && (
-            <Alert severity="info" sx={{ mt: 2 }}>
+            <Alert severity="info" sx={SIGN_UP_PROVIDER_ALERT_SX}>
               {t('Auth.PROVIDER_TRANSITION', { provider: PROVIDER_NAMES[providerTransition] || providerTransition })}
             </Alert>
           )}
-          <Divider sx={{ mt: 2 }}>{t('Auth.LOGIN_OR')}</Divider>
+          <Divider sx={SIGN_UP_PROVIDER_DIVIDER_SX}>{t('Auth.LOGIN_OR')}</Divider>
         </Box>
       )}
 

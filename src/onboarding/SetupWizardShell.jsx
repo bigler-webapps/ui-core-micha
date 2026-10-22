@@ -8,6 +8,16 @@ import Paper from '@mui/material/Paper';
 import Typography from '@mui/material/Typography';
 import CheckIcon from '@mui/icons-material/Check';
 
+// The step card: one column with the prototype's spacing. Its radius and border
+// come from the theme's outlined Paper.
+export const SETUP_WIZARD_CARD_SX = {
+  display: 'flex',
+  flexDirection: 'column',
+  gap: { xs: 2.5, sm: 3 },
+  px: { xs: 2, sm: 4 },
+  py: { xs: 2.5, sm: 4 },
+};
+
 /**
  * Page/inline frame for a host-controlled setup flow (UCM-AUTH-14): one column of
  * stable width with a labelled step list, the step title, an error region, the
@@ -167,10 +177,7 @@ export function SetupWizardShell({
         </Box>
       </Box>
 
-      <Paper
-        variant="outlined"
-        sx={{ display: 'flex', flexDirection: 'column', gap: { xs: 2.5, sm: 3 }, px: { xs: 2, sm: 4 }, py: { xs: 2.5, sm: 4 }, borderRadius: 2 }}
-      >
+      <Paper variant="outlined" sx={SETUP_WIZARD_CARD_SX}>
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
           <Typography
             ref={titleRef}

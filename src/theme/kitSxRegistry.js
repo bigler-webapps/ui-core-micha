@@ -95,6 +95,9 @@ import { ACCOUNT_PAGE_SECTION_PAPER_SX } from '../pages/AccountPage';
 import { LOGIN_PAGE_ALERT_SX } from '../pages/LoginPage';
 import { SIGN_UP_PAGE_ALERT_SX } from '../pages/SignUpPage';
 import { SIGNUP_CONFIRM_PAGE_ALERT_SX } from '../pages/SignupConfirmPage';
+import { SIGN_UP_PROVIDER_ALERT_SX, SIGN_UP_PROVIDER_DIVIDER_SX } from '../components/SignUpContent';
+import { PROFILE_STEP_CHECKBOX_SX, PROFILE_STEP_OPTION_SX } from '../components/ProfileStepContent';
+import { SETUP_WIZARD_CARD_SX } from '../onboarding/SetupWizardShell';
 import { REAUTH_MODAL_ALERT_SX, REAUTH_MODAL_TEXT_FIELD_SX } from '../auth/ReauthModal';
 import { createKitSxEntry } from './kitSxEntry';
 import { ACCESS_ENDED_BANNER_ALERT_SX } from '../billing/AccessEndedBanner';
@@ -177,6 +180,11 @@ const SX_EXPORTS = {
   SOFT_CHIP_STATUS_SX,
   SIGNUP_CONFIRM_PAGE_ALERT_SX,
   SIGN_UP_PAGE_ALERT_SX,
+  SIGN_UP_PROVIDER_ALERT_SX,
+  SIGN_UP_PROVIDER_DIVIDER_SX,
+  PROFILE_STEP_CHECKBOX_SX,
+  PROFILE_STEP_OPTION_SX,
+  SETUP_WIZARD_CARD_SX,
   SUPPORT_RECOVERY_AGENT_BUTTON_SX,
   SUPPORT_RECOVERY_AGENT_PAPER_SX,
   SUPPORT_RECOVERY_ALERT_SX,
@@ -306,6 +314,11 @@ export const KIT_COMPONENT_SX_REGISTRY = [
   entry('LoginPage.alert', 'MuiAlert', LOGIN_PAGE_ALERT_SX),
   entry('SignUpPage.alert', 'MuiAlert', SIGN_UP_PAGE_ALERT_SX),
   entry('SignupConfirmPage.alert', 'MuiAlert', SIGNUP_CONFIRM_PAGE_ALERT_SX),
+  entry('SignUpContent.providerAlert', 'MuiAlert', SIGN_UP_PROVIDER_ALERT_SX),
+  entry('SignUpContent.providerDivider', 'MuiDivider', SIGN_UP_PROVIDER_DIVIDER_SX),
+  entry('ProfileStepContent.option', 'MuiFormControlLabel', PROFILE_STEP_OPTION_SX),
+  entry('ProfileStepContent.checkbox', 'MuiCheckbox', PROFILE_STEP_CHECKBOX_SX),
+  entry('SetupWizardShell.card', 'MuiPaper', SETUP_WIZARD_CARD_SX),
   entry('ReauthModal.alert', 'MuiAlert', REAUTH_MODAL_ALERT_SX),
   entry('ReauthModal.field', 'MuiTextField', REAUTH_MODAL_TEXT_FIELD_SX),
   entry('AccessEndedBanner.alert', 'MuiAlert', ACCESS_ENDED_BANNER_ALERT_SX),
