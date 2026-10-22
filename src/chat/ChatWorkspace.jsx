@@ -56,7 +56,7 @@ const appendDelta = (turns, text) => {
  * Props: `apiBase` and `wsUrl` (where the app mounted the chat routes), `api` (partial overrides of the REST
  * calls; every function not given keeps its default), `scope` (passed when creating a chat), `sx`.
  */
-export function ChatWorkspace({ apiBase, wsUrl, api: apiOverrides, scope, sx, unavailableReasonText, sidePanel, sidePanelLabel, renderAnswerExtra, renderComposerExtra, onAppFrame, activeChatId, onActiveChatChange, composerPrefill, getSendContext, sendRequest, onSendRequestHandled, layout = 'viewport', compactBelow = 720, tokenBalance = null, usageToTokens, longChatTokens = 40000 }) {
+export function ChatWorkspace({ apiBase, wsUrl, api: apiOverrides, scope, sx, unavailableReasonText, sidePanel, sidePanelLabel, renderAnswerExtra, renderComposerExtra, composerLayout = 'standard', renderComposerContext, onAppFrame, activeChatId, onActiveChatChange, composerPrefill, getSendContext, sendRequest, onSendRequestHandled, layout = 'viewport', compactBelow = 720, tokenBalance = null, usageToTokens, longChatTokens = 40000 }) {
   const { t } = useTranslation();
   const theme = useTheme();
   const viewportNarrow = useMediaQuery(theme.breakpoints.down('md'));
@@ -115,6 +115,7 @@ export function ChatWorkspace({ apiBase, wsUrl, api: apiOverrides, scope, sx, un
   const [listOpen, setListOpen] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [openedOnce, setOpenedOnce] = useState(false); // distinguishes a reconnect from the first connect
+  const [dismissedComposerNotices, setDismissedComposerNotices] = useState(() => new Set());
 
   const running = turns.some(isGenerating);
   const isArchived = Boolean(chat?.archived_at);
@@ -456,9 +457,14 @@ export function ChatWorkspace({ apiBase, wsUrl, api: apiOverrides, scope, sx, un
             <ChatThread turns={turns} chat={chat} renderAnswerExtra={answerExtra} trimmedCount={trimmedCount} tool={tool} notice={noticeFor()} hasOlder={Boolean(olderCursor)} olderBusy={olderBusy} onLoadOlder={loadOlder} onRetry={retry} readOnly={isArchived} summary={summary} usageToTokens={usageToTokens} />
             {isArchived ? <Typography variant="caption" color="text.secondary" sx={{ px: 2, pb: 1 }}>{t('Chat.archivedReadOnly')}</Typography> : null}
             {renderComposerExtra ? <Box key={chat.id}>{renderComposerExtra({ chat })}</Box> : null}
-            {longChat ? <Alert severity="info" action={<Button color="inherit" size="small" onClick={createChat}>{t('Chat.newConversation')}</Button>}>{t('Chat.longChat')}</Alert> : null}
-            <ChatComposer value={draft} onChange={setDraft} onSend={send} onStop={() => socket.send({ type: 'stop' })} running={running} archived={isArchived} connected={socket.connected} inputRef={composerInputRef}
-              actions={<ModelPicker entries={catalogue.entries} selection={selection} disabled={isArchived || running || (catalogueLoading && catalogueChatId !== chat.id)} open={pickerOpen} onOpenChange={setPickerOpen} onChange={(next) => updateChat(chat, { selection: next })} sheet={narrow} balance={tokenBalance} longChat={longChat} onNewChat={createChat} />} />
+            {composerLayout !== 'compact' && longChat ? <Alert severity="info" action={<Button color="inherit" size="small" onClick={createChat}>{t('Chat.newConversation')}</Button>}>{t('Chat.longChat')}</Alert> : null}
+            <ChatComposer layout={composerLayout} context={composerLayout === 'compact' ? renderComposerContext?.({ chat }) : undefined}
+              notice={composerLayout === 'compact' && longChat && !dismissedComposerNotices.has(`${chat.id}:long-chat`) ? {
+                id: 'long-chat', text: t('Chat.longChatShort'), action: t('Chat.newChat'), onAction: createChat,
+                onDismiss: () => setDismissedComposerNotices((current) => new Set(current).add(`${chat.id}:long-chat`)),
+              } : null}
+              value={draft} onChange={setDraft} onSend={send} onStop={() => socket.send({ type: 'stop' })} running={running} archived={isArchived} connected={socket.connected} inputRef={composerInputRef}
+              actions={<ModelPicker entries={catalogue.entries} selection={selection} disabled={isArchived || running || (catalogueLoading && catalogueChatId !== chat.id)} open={pickerOpen} onOpenChange={setPickerOpen} onChange={(next) => updateChat(chat, { selection: next })} sheet={narrow} balance={tokenBalance} longChat={longChat} onNewChat={createChat} shortLabel={composerLayout === 'compact'} />} />
           </>
         ) : (
           <Stack alignItems="center" justifyContent="center" spacing={2} sx={{ flex: 1, p: 3 }}>

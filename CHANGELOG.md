@@ -1,5 +1,14 @@
 # Changelog
 
+## 4.16.0 - UCM-CHAT-7
+
+Opt-in compact chat composer: `ChatWorkspace` props `composerLayout` (`'standard'` default, `'compact'`) and
+`renderComposerContext({ chat })`; `ChatComposer` props `layout`, `context`, `notice`; `ModelPicker` prop `shortLabel`.
+Compact: a non-wrapping context row (host content, model choice at its end), a full-width input with an icon Send that
+becomes Stop while running, the short model label, and the long-chat hint as one dismissible line per chat
+(`Chat.longChatShort` with "Neuer Chat"). New keys `Chat.longChatShort`, `Chat.stopAnswer`, `Chat.dismissNotice`.
+Without the option the composer, its texts and `renderComposerExtra` are unchanged.
+
 ## 4.15.0 - UCM-PERF-4
 
 Opt-in `AuthProvider` prop `bootstrap` (`true` for `/api/bootstrap/`, or a same-origin path; requires

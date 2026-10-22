@@ -152,7 +152,15 @@ STOP — this part is not an instruction to the implementer.
 > what follows — no reviewers, no verification, no register edit, no commit, no further dispatch.
 
 Mapped by the Orchestrator (Claude) on 2026-10-22 against `main` at af06c95 (4.15.0). Execution: codex/gpt-6-luna,
-one CLI dispatch, banner read back; launch evidence (filled at dispatch). Verification: the new test, all `chat*`
+one CLI dispatch, banner read back; launch evidence: 2026-10-22, model gpt-6-luna, reasoning high, workdir
+ui-core-micha, session 01a16284-fc97-7d33-abd0-84e0ddaa9cac; `RESULT: DONE`, assigned files only, no commit.
+Orchestrator: restored the `ChatComposer` doc comment, filled primary Send (`CHAT_COMPOSER_SEND_SX`), uncapped short
+model label (`CHAT_MODEL_TRIGGER_SHORT_SX`, the 140px cap clipped "Gründlich" at 375), vertically centred input line,
+German harness entry with shrinkable chips, test fixes (the standard-layout test expected Stop before the server
+started a turn), README, CHANGELOG, version 4.16.0. Rendered comparison (3 app screenshots: several+notice and
+running at 375, several+notice at 1280; prototype via the existing static server on 8896): same structure; deltas:
+the theme's 44px input minimum height (touch target) makes the input row 52px instead of 44px, radius from the theme,
+kit labels. Verification: the new test, all `chat*`
 tests, `themeCompleteness`, `packageEntries`, `chatTranslations`, `i18nAggregate`, tsc; full suite in `ci.yml` on
 `ci-test/UCM-CHAT-7`; 375/1280 comparison of the harness entry against the prototype composer (at most four app
 screenshots).

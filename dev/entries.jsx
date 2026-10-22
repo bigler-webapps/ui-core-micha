@@ -827,6 +827,26 @@ function ChatPickerEntry() {
   </Stack>;
 }
 
+function ChatCompactComposerEntry() {
+  const [selection, setSelection] = useState({ entry: 'api:sonnet-5-5', effort: 'medium' });
+  const [state, setState] = useState('empty');
+  const [draft, setDraft] = useState('');
+  const [noticeOpen, setNoticeOpen] = useState(true);
+  const items = state === 'one' ? ['Klimaanalyse'] : state === 'several' ? ['Klimaanalyse', 'Interview 04', 'Feldnotiz'] : [];
+  const running = state === 'running';
+  const context = <Stack direction="row" alignItems="center" gap={0.5} sx={{ minWidth: 0, overflow: 'hidden', flexWrap: 'nowrap' }}>{items.map((item) => <Chip key={item} size="small" label={item} sx={{ minWidth: 0, flexShrink: 1 }} />)}{state === 'several' ? <Chip size="small" label="+2" sx={{ flexShrink: 0 }} /> : null}</Stack>;
+  const notice = noticeOpen ? { id: 'long-chat', text: 'Lange Unterhaltung: ältere Teile werden zusammengefasst.', action: 'Neuer Chat', onAction: () => setDraft(''), onDismiss: () => setNoticeOpen(false) } : null;
+  // German, like the prototype: the same informal-German instance as the setup-wizard entry.
+  return <I18nextProvider i18n={setupI18n}><Stack spacing={1} sx={{ width: 'min(100%, 760px)', mx: 'auto', mt: 2 }}>
+    <Stack direction="row" gap={0.5} flexWrap="wrap">
+      {['empty', 'one', 'several', 'running'].map((next) => <Button key={next} size="small" variant={state === next ? 'contained' : 'outlined'} onClick={() => setState(next)}>{next}</Button>)}
+      <Button size="small" variant={noticeOpen ? 'contained' : 'outlined'} onClick={() => setNoticeOpen((open) => !open)}>{noticeOpen ? 'Notice shown' : 'Notice closed'}</Button>
+    </Stack>
+    <ChatComposer layout="compact" value={draft} onChange={setDraft} onSend={() => setDraft('')} onStop={() => setState('empty')} running={running} context={context} notice={notice}
+      actions={<ModelPicker entries={pickerEntries} selection={selection} onChange={setSelection} balance={1153} shortLabel />} />
+  </Stack></I18nextProvider>;
+}
+
 
 const receiptA = { merchant: 'Coop Pronto Bern', date: '2026-10-14', total: '14.60', currency: 'CHF', payment_method: 'card', confidence: 'high', items: [{ description: 'Sandwich', amount: '7.90', box: { x: 0.1, y: 0.3, w: 0.8, h: 0.05 } }, { description: 'Mineralwasser', amount: '2.50', box: null }, { description: 'Kaffee', amount: '4.20', box: null }], vat: [], box: { x: 0.05, y: 0.05, w: 0.9, h: 0.9 }, account_suggestions: [{ account_id: '6640', confidence: 'low' }] };
 const receiptB = { ...receiptA, merchant: 'SBB Billett', total: '23.40', confidence: 'high', items: [], box: { x: 0, y: 0, w: 0.5, h: 0.5 }, account_suggestions: [] };
@@ -927,6 +947,7 @@ export const entries = [
   { id: 'messaging-poll-card', label: 'Messaging / Poll card', Component: PollCardEntry },
   { id: 'messaging-scope-config', label: 'Messaging / Scope config', Component: MessagingScopeConfigEntry },
   { id: 'chat-model-picker', label: 'Chat / Model picker', Component: ChatPickerEntry },
+  { id: 'chat-compact-composer', label: 'Chat / Compact composer', Component: ChatCompactComposerEntry, fullViewport: true },
   { id: 'receipts-capture', label: 'Receipts / Capture card', Component: ReceiptsEntry },
   { id: 'billing-operator', label: 'Billing / Operator overview and access', Component: OperatorBillingEntry },
   { id: 'billing-seats', label: 'Billing / Seats with candidates', Component: BillingSeatsEntry },

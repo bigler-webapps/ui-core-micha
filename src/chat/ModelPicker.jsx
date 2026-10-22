@@ -6,7 +6,9 @@ import { useTranslation } from 'react-i18next';
 const LEVELS = ['top', 'best', 'balanced', 'fast'];
 const EFFORTS = ['low', 'medium', 'high', 'max'];
 export const CHAT_MODEL_TRIGGER_SX = { minWidth: 0, px: 1.25, color: 'text.secondary', whiteSpace: 'nowrap', flexShrink: 0, maxWidth: { xs: 140, sm: 'none' } };
-export const CHAT_MODEL_ENTRY_SX = { borderRadius: 1, alignItems: 'flex-start' };
+// The short label sits at the end of the compact composer's context row, which clips the host content first.
+export const CHAT_MODEL_TRIGGER_SHORT_SX = { ...CHAT_MODEL_TRIGGER_SX, maxWidth: 'none' };
+export const CHAT_MODEL_ENTRY_SX ={ borderRadius: 1, alignItems: 'flex-start' };
 export const CHAT_MODEL_EFFORT_SX = { flex: 1, minWidth: 0 };
 export const CHAT_MODEL_CLOSE_SX = { ml: 'auto' };
 
@@ -19,7 +21,10 @@ const fallback = (entries) => {
   const entry = entries.find((item) => item.default) || entries[0];
   return entry ? { entry: entry.id, effort: entry.efforts?.[0] } : null;
 };
-const cleanLabel = (entry) => (entry?.label || entry?.model || '').replace(/\s+\d+(?:\.\d+)*$/, '');
+const cleanLabel = (entry, shortLabel = false) => {
+  const withoutVersion = (entry?.label || entry?.model || '').replace(/\s+\d+(?:\.\d+)*$/, '');
+  return shortLabel ? withoutVersion.replace(/^(?:(?:Claude|Anthropic|OpenAI)\s+)+/i, '') : withoutVersion;
+};
 
 function estimateText(entry, effort, t, language) {
   if (entry.billing === 'subscription') return t('Chat.noTokenSubscription');
@@ -36,7 +41,7 @@ function estimateText(entry, effort, t, language) {
   return null;
 }
 
-export function ModelPicker({ entries = [], selection, onChange, disabled = false, open, onOpenChange, sheet, balance = null, longChat = false, onNewChat }) {
+export function ModelPicker({ entries = [], selection, onChange, disabled = false, open, onOpenChange, sheet, balance = null, longChat = false, onNewChat, shortLabel = false }) {
   const { t, i18n } = useTranslation();
   const language = typeof i18n?.language === 'string' ? i18n.language.split('_')[0] || undefined : undefined;
   const theme = useTheme();
@@ -102,7 +107,7 @@ export function ModelPicker({ entries = [], selection, onChange, disabled = fals
       </Stack>
     </Box>
   );
-  const trigger = <Button ref={anchor} size="small" color="inherit" sx={CHAT_MODEL_TRIGGER_SX} disabled={disabled || !entries.length} onClick={() => setOpen(true)} aria-haspopup="dialog"><Box component="span" sx={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{active ? `${cleanLabel(active)} · ${t(`Chat.effort.${effort}`)} ▾` : t('Chat.chooseModel')}</Box></Button>;
+  const trigger = <Button ref={anchor} size="small" color="inherit" sx={shortLabel ? CHAT_MODEL_TRIGGER_SHORT_SX : CHAT_MODEL_TRIGGER_SX} disabled={disabled || !entries.length} onClick={() => setOpen(true)} aria-haspopup="dialog"><Box component="span" sx={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{active ? `${cleanLabel(active, shortLabel)} · ${t(`Chat.effort.${effort}`)} ▾` : t('Chat.chooseModel')}</Box></Button>;
   return <>{trigger}{narrow ? <Drawer anchor="bottom" open={isOpen} onClose={() => setOpen(false)}>{content}</Drawer> : <Popover open={isOpen} anchorEl={anchor.current} onClose={() => setOpen(false)} anchorOrigin={{ vertical: 'top', horizontal: 'left' }} transformOrigin={{ vertical: 'bottom', horizontal: 'left' }}>{content}</Popover>}</>;
 }
 export default ModelPicker;
