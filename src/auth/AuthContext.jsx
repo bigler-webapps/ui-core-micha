@@ -3,11 +3,13 @@ import React, {
   createContext,
   useState,
   useEffect,
+  useCallback,
 } from 'react';
 import { ensureCsrfToken } from './apiClient'; // <--- IMPORT ADDED
 import {
   fetchAuthMethods,
   fetchCurrentUser,
+  fetchBootstrap,
   logoutSession,
 } from './authApi';
 import { ReauthModal } from './ReauthModal';
@@ -33,10 +35,16 @@ const DEFAULT_AUTH_METHODS = {
   qr_signup_enabled: false,
 };
 
-export const AuthProvider = ({ children }) => {
+export const AuthProvider = ({ children, bootstrap = false }) => {
   const [user, setUser] = useState(null);
   const [authMethods, setAuthMethods] = useState(DEFAULT_AUTH_METHODS);
   const [loading, setLoading] = useState(true);
+  const [notificationSeed, setNotificationSeed] = useState(null);
+  const [bootstrapExtensions, setBootstrapExtensions] = useState({});
+
+  const consumeBootstrapNotificationSeed = useCallback(() => {
+    setNotificationSeed(null);
+  }, []);
 
   const mapUserFromApi = (data) => {
     const profile = data?.profile || {};
@@ -75,7 +83,7 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     let isMounted = true;
 
-    const initAuth = async () => {
+    const initSeparateAuth = async () => {
       try {
         // 1) Ensure CSRF cookie exists using the specific client
         await ensureCsrfToken();
@@ -112,15 +120,53 @@ export const AuthProvider = ({ children }) => {
       }
     };
 
+    const initAuth = async () => {
+      if (!bootstrap) {
+        await initSeparateAuth();
+        return;
+      }
+
+      try {
+        const data = await fetchBootstrap(bootstrap === true ? '/api/bootstrap/' : bootstrap);
+        if (!isMounted) return;
+        const mappedUser = data?.user ? mapUserFromApi(data.user) : null;
+        const methods = data?.auth_methods;
+        if (methods && typeof methods === 'object') {
+          setAuthMethods((prev) => ({ ...prev, ...methods }));
+        }
+        setUser(mappedUser);
+        setBootstrapExtensions(data?.extensions && typeof data.extensions === 'object'
+          ? data.extensions : {});
+        setNotificationSeed(mappedUser && data?.notifications
+          ? { userId: mappedUser.id, notifications: data.notifications }
+          : null);
+        setLoading(false);
+      } catch (error) {
+        if (isMounted) {
+          setBootstrapExtensions({});
+          setNotificationSeed(null);
+          await initSeparateAuth();
+        }
+      }
+    };
+
     initAuth();
 
     return () => { isMounted = false; };
-  }, []);
+  }, [bootstrap]);
+
+  // Bootstrap data belongs to the person it was loaded for; drop it when the session changes hands.
+  const clearBootstrapData = () => {
+    setBootstrapExtensions({});
+    setNotificationSeed(null);
+  };
 
   const login = (userData) => {
+    const mapped = mapUserFromApi(userData);
+    if (user && mapped.id !== user.id) clearBootstrapData();
     setUser((prev) => ({
       ...prev,
-      ...mapUserFromApi(userData),
+      ...mapped,
     }));
   };
 
@@ -136,6 +182,7 @@ export const AuthProvider = ({ children }) => {
       // eslint-disable-next-line no-console
       console.error('Error during logout:', error);
     } finally {
+      clearBootstrapData();
       setUser(null);
     }
   };
@@ -149,6 +196,9 @@ export const AuthProvider = ({ children }) => {
         login,
         logout,
         refreshUser,
+        bootstrapNotificationSeed: notificationSeed,
+        consumeBootstrapNotificationSeed,
+        bootstrapExtensions,
       }}
     >
       {children}
@@ -156,3 +206,9 @@ export const AuthProvider = ({ children }) => {
     </AuthContext.Provider>
   );
 };
+
+export function useBootstrapExtension(name) {
+  const context = React.useContext(AuthContext);
+  const payload = context?.bootstrapExtensions?.[name];
+  return payload == null ? undefined : payload;
+}

@@ -25,7 +25,7 @@ export { checkKitIntegration } from './testing/checkKitIntegration';
 export { installChunkLoadRecovery, isChunkLoadError } from './utils/chunkLoadRecovery';
 
 // --- 1. Auth Context (Essentiell für den Wrapper) ---
-export { AuthContext, AuthProvider } from './auth/AuthContext';
+export { AuthContext, AuthProvider, useBootstrapExtension } from './auth/AuthContext';
 export { UserMenu } from './auth/UserMenu';
 
 export {

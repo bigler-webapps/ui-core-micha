@@ -86,6 +86,16 @@ const setupBillingApi = createBillingApi({
 <PlanPicker api={setupBillingApi} plans={plans} />;
 ```
 
+## Start from one bootstrap request (opt-in)
+
+With `django-core-micha` >= 3.17.0, `<AuthProvider bootstrap>` starts from `GET /api/bootstrap/` (or pass a same-origin
+path instead of `true`): one request instead of CSRF, `users/current` + `auth-methods`, then the notification feed and
+unread count. User, auth methods and the initial notifications end up as from the separate requests, `loading` ends at
+the same point, and the notification WebSocket still connects only after that state is in place. If the bootstrap fails
+in any way (a part failure, 501, 404, network), the provider runs today's separate start requests once. App start data
+registered as dcm bootstrap providers is read with `useBootstrapExtension('application_access')` (`undefined` when
+absent, `null`, the opt-in is off or the bootstrap failed). Without the prop nothing changes.
+
 ## Stale chunks after a deploy
 
 An app that lazy-loads code calls `installChunkLoadRecovery()` once at startup (before rendering). When a deploy has

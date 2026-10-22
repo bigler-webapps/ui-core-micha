@@ -197,7 +197,16 @@ Gate #1: a42ea7d; envelope amendment (fallback) 3efda01. Upstream: django-core-m
 contract `docs/design/bootstrap.md` read from DCM `origin/main` on 2026-10-22. Mapped by the
 Orchestrator (Claude) on 2026-10-22.
 
-Execution: codex/gpt-6-luna, one CLI dispatch, banner read back. Launch evidence: (filled at dispatch).
+Execution: codex/gpt-6-luna, one CLI dispatch, banner read back. Launch evidence: 2026-10-22, model
+gpt-6-luna, reasoning high, workdir ui-core-micha, session 01a16259-ba62-7b83-843b-e25dcea1c8ba; `RESULT:
+DONE`, assigned files only, no commit (its single test run had two probe failures it then corrected).
+Orchestrator fixes: `bootstrapExtensions` was not in the context value (hook always undefined); a new
+`user.id` effect dependency would have refetched notifications on a user switch for apps without the
+opt-in (removed); review fixes: extensions and seed cleared on logout and on a person change via
+`login()`; integration tests for the AuthProvider→NotificationsProvider handoff, socket ordering, the
+notification fallback and the seeded feed content. Not fixed here (pre-existing, today's behaviour in
+every app): notifications are not refetched when `login()` switches to another person without logout —
+registered as UCM-NOTIF-15.
 Review (Tier 3, auth path): lenses envelope, regression, duplication, tests + `sec_review` (auth
 start, session handling, redirect suppression) + `ui_review` (loading timing, socket gating),
 codex/gpt-6-luna read-only, one batch; fixes by the Orchestrator, re-review on the corrected diff.

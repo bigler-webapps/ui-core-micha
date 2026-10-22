@@ -1,5 +1,14 @@
 # Changelog
 
+## 4.15.0 - UCM-PERF-4
+
+Opt-in `AuthProvider` prop `bootstrap` (`true` for `/api/bootstrap/`, or a same-origin path; requires
+`django-core-micha` >= 3.17.0): the app shell starts from one bootstrap request instead of CSRF, `users/current`,
+`auth-methods`, feed and unread count; `NotificationsProvider` takes its initial feed and count from it once for the same
+person and still opens the WebSocket only after that. Any bootstrap failure falls back to the separate start requests
+exactly once. New hook `useBootstrapExtension(name)` for dcm bootstrap provider payloads. Without the prop nothing
+changes.
+
 ## 4.14.0 - UCM-PERF-5
 
 New `installChunkLoadRecovery({ guardWindowMs?, reload? })` and `isChunkLoadError(error)`. Installed once at app

@@ -23,6 +23,11 @@ export async function fetchCurrentUser() {
   return res.data;
 }
 
+export async function fetchBootstrap(url) {
+  const res = await apiClient.get(url, { skipAuthRedirect: true });
+  return res.data;
+}
+
 export async function fetchAuthMethods() {
   const res = await apiClient.get('/api/auth-methods/');
   return res.data || {};

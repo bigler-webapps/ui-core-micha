@@ -57,6 +57,8 @@ function patchStatus(notification, status) {
 export function NotificationsProvider({ children, wsUrlBase }) {
   const auth = useContext(AuthContext);
   const authenticated = Boolean(auth?.user);
+  const bootstrapSeed = auth?.bootstrapNotificationSeed;
+  const consumeBootstrapSeed = auth?.consumeBootstrapNotificationSeed;
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const notificationsRef = useRef([]);
@@ -154,6 +156,18 @@ export function NotificationsProvider({ children, wsUrlBase }) {
       return undefined;
     }
 
+    if (bootstrapSeed && bootstrapSeed.userId === auth?.user?.id) {
+      const feed = bootstrapSeed.notifications?.feed;
+      const unread = bootstrapSeed.notifications?.unread_count;
+      const nextNotifications = (feed?.results || []).map(normalizeNotification);
+      notificationsRef.current = nextNotifications;
+      setNotifications(nextNotifications);
+      setUnreadCount(unread?.count || 0);
+      setSeeded(true);
+      consumeBootstrapSeed?.();
+      return undefined;
+    }
+
     let cancelled = false;
     refresh()
       .catch(() => {
@@ -166,7 +180,9 @@ export function NotificationsProvider({ children, wsUrlBase }) {
     return () => {
       cancelled = true;
     };
-  }, [authenticated, refresh, replaceNotifications]);
+    // The seed and the user id are read when the provider becomes authenticated; adding the user id as
+    // a dependency would refetch on a user switch without logout, which is not today's behaviour.
+  }, [authenticated, refresh, replaceNotifications, consumeBootstrapSeed]);
 
   const mark = useCallback((action, ids) => {
     const selectedIds = Array.isArray(ids) ? ids : [];
