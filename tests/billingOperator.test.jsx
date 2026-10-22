@@ -3,7 +3,7 @@ import React from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 vi.mock('react-i18next', () => ({ useTranslation: () => ({ t: (key, values) => {
-  const names = { 'Billing.OP_OVERVIEW_TITLE':'Overview', 'Billing.OP_MONTH':'Month','Billing.OP_ACTIVE_ACCOUNTS':'Active accounts','Billing.OP_PLAN':'Subscription {{plan}}','Billing.OP_TEAM_SEAT':'Team seat','Billing.OP_FREE_ACCESS':'Free access','Billing.OP_NEW_SUBSCRIPTIONS':'New subscriptions','Billing.OP_ENDED_SUBSCRIPTIONS':'Ended subscriptions','Billing.OP_PACKAGES_SOLD':'Packages sold','Billing.OP_TOKENS_GRANTED':'Tokens granted','Billing.OP_TOKENS_USED':'Tokens used','Billing.OP_TOKENS_EXPIRED':'Tokens expired','Billing.OP_AI_COST':'AI costs','Billing.OP_COST_PER_TOKEN':'Cost per token','Billing.OP_PROVIDER':'Provider','Billing.OP_MODEL':'Model','Billing.OP_CALLS':'Calls','Billing.OP_COST_USD':'Cost (USD)','Billing.OP_NO_AI_COST':'No AI calls this month.','Billing.OP_LOAD_ERROR':'Overview error','Billing.RETRY':'Retry','Billing.OP_REASON':'Reason','Billing.OP_CANCEL':'Cancel','Billing.OP_GRANT':'Grant','Billing.OP_REVOKE':'Revoke','Billing.OP_REVOKE_TITLE':'Revoke access?','Billing.OP_REVOKE_BODY':'Data stays; access becomes read-only.','Billing.OP_SAVE_ERROR':'Save error','Billing.OP_FORBIDDEN':'Forbidden','Billing.OP_ACCESS':'Access','Billing.OP_READ_ONLY':'Read-only','Billing.OP_UNTIL':'until {{date}}'};
+  const names = { 'Billing.OP_OVERVIEW_TITLE':'Overview', 'Billing.OP_MONTH':'Month','Billing.OP_ACTIVE_ACCOUNTS':'Active accounts','Billing.OP_PLAN':'Subscription {{plan}}','Billing.OP_TEAM_SEAT':'Team seat','Billing.OP_FREE_ACCESS':'Free access','Billing.OP_FREE_ACCESS_SHORT':'Free access','Billing.OP_TEAM':'Team','Billing.OP_NEW_SUBSCRIPTIONS':'New subscriptions','Billing.OP_ENDED_SUBSCRIPTIONS':'Ended subscriptions','Billing.OP_PACKAGES_SOLD':'Packages sold','Billing.OP_TOKENS_GRANTED':'Tokens granted','Billing.OP_TOKENS_USED':'Tokens used','Billing.OP_TOKENS_EXPIRED':'Tokens expired','Billing.OP_AI_COST':'AI costs','Billing.OP_COST_PER_TOKEN':'Cost per token','Billing.OP_PROVIDER':'Provider','Billing.OP_MODEL':'Model','Billing.OP_CALLS':'Calls','Billing.OP_COST_USD':'Cost (USD)','Billing.OP_NO_AI_COST':'No AI calls this month.','Billing.OP_LOAD_ERROR':'Overview error','Billing.RETRY':'Retry','Billing.OP_REASON':'Reason','Billing.OP_CANCEL':'Cancel','Billing.OP_GRANT':'Grant','Billing.OP_REVOKE':'Revoke','Billing.OP_REVOKE_TITLE':'Revoke access?','Billing.OP_REVOKE_BODY':'Data stays; access becomes read-only.','Billing.OP_SAVE_ERROR':'Save error','Billing.OP_FORBIDDEN':'Forbidden','Billing.OP_ACCESS':'Access','Billing.OP_READ_ONLY':'Read-only','Billing.OP_UNTIL':'until {{date}}'};
   return Object.entries(values || {}).reduce((out, [name, value]) => out.replaceAll(`{{${name}}}`, String(value)), names[key] || key);
 }, i18n:{language:'en'} }) }));
 import { OperatorOverview } from '../src/billing/OperatorOverview';
@@ -82,15 +82,15 @@ describe('operator billing surfaces', () => {
     const api={listOperatorAccounts:vi.fn().mockResolvedValueOnce({count:101,results:Array.from({length:100},(_,i)=>({user_id:i}))}).mockResolvedValueOnce({count:101,results:[{user_id:100}]})};
     const hook=renderHook(()=>useOperatorAccounts(api)); await waitFor(()=>expect(hook.result.current.status).toBe('ready')); expect(api.listOperatorAccounts).toHaveBeenCalledTimes(2); expect(hook.result.current.accounts.size).toBe(101);
     const t=(key,v={})=>Object.entries(v).reduce((s,[k,x])=>s.replace(`{{${k}}}`,x),key);
-    expect(accountAccessText(account({access:{source:'subscription',status:'active',ends_at:null},plan_key:'pro'}),t,'en')).toBe('Billing.OP_PLAN');
+    expect(accountAccessText(account({access:{source:'subscription',status:'active',ends_at:null},plan_key:'pro'}),t,'en')).toBe('Billing.OP_SUBSCRIPTION'); // UCM-BILL-9: neutral label, never the plan key
     expect(accountAccessText(null,t,'en')).toBe('–');
     render(<BillingAccessCell account={account({access:{source:'team',status:'active',ends_at:null}})}/>);
-    expect(screen.getByText('Team seat')).toBeTruthy();
+    expect(screen.getByText('Team')).toBeTruthy(); // UCM-BILL-9: short status
     const hiddenApi={listOperatorAccounts:vi.fn().mockRejectedValue({response:{status:404}})};
     const hidden=renderHook(()=>useOperatorAccounts(hiddenApi)); await waitFor(()=>expect(hidden.result.current.status).toBe('hidden')); expect(hidden.result.current.accounts.size).toBe(0);
     const readyApi={listOperatorAccounts:vi.fn().mockResolvedValue({count:1,results:[{user_id:7,access:{status:'active',source:'free',ends_at:null},free_access:null}]})};
     const column=renderHook(()=>useBillingUsersColumn({api:readyApi})); await waitFor(()=>expect(column.result.current.status).toBe('ready'));
-    expect(column.result.current.extraColumns).toHaveLength(1);
+    expect(column.result.current.extraColumns.map((item) => item.key)).toEqual(['billing-access', 'billing-free-access']); // UCM-BILL-9
     expect(column.result.current.extraColumns[0].getSortValue({user:{id:7}})).toBe('Free access');
     const disabledApi={listOperatorAccounts:vi.fn()}; const disabled=renderHook(()=>useOperatorAccounts(disabledApi,{enabled:false}));
     expect(disabled.result.current.status).toBe('idle'); expect(disabledApi.listOperatorAccounts).not.toHaveBeenCalled();

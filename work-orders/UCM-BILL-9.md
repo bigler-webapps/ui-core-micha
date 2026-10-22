@@ -161,7 +161,15 @@ Mapped by the Orchestrator (Claude) on 2026-10-22 against `main` at d5b3ef3 (4.1
 to report: plan display names come from `api.getMe().plans` (DCM operator rows carry only `plan_key`); operator rows
 default to `user.is_superuser` with an `isOperator` override, because DCM rows have no operator flag; the own row's
 delete becomes disabled instead of hidden, as the prototype shows. Execution: codex/gpt-6-luna, one CLI dispatch,
-banner read back; launch evidence (filled at dispatch). Verification: the new test, `UserListComponent`,
+banner read back; launch evidence: 2026-10-22, model gpt-6-luna, reasoning high, session
+01a162b6-c8bd-75d2-8286-6ed506ca5770; `RESULT: DONE`, assigned files only, no commit (its one run preceded its own
+declaration-order fix). Orchestrator fixes: `BillingAccessError` lost its `Typography` import (error state crashed);
+badges switched to the kit's `SoftChip` (tinted as the prototype; the filled MUI chips were heavier) with an outlined
+neutral chip for operators; plan names loaded once per activation through a ref (an inline `api` caused refetch loops);
+harness entry German and fed through the mock transport (StrictMode reset the swapped adapter); existing tests updated
+for the Envelope's intended changes (own row disabled instead of hidden, short status, two columns, new names);
+README, CHANGELOG, version 4.17.0. Rendered comparison: 2 app screenshots at 1280 beside the prototype; at 375 the DOM
+check shows no page overflow and the table scrolling inside (1000px in 342px). Verification: the new test, `UserListComponent`,
 `billingOperator*`, `billingComponents`, `billingExports`, `billingPublicExports`, `AccountPage*`,
 `billingTranslations`, `userScreenTranslations`, `i18nAggregate`, `themeCompleteness`, `packageEntries`, tsc; full suite
 in `ci.yml` on `ci-test/UCM-BILL-9`; 375/1280 comparison of the harness entry against the prototype (at most four app

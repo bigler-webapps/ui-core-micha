@@ -1,5 +1,17 @@
 # Changelog
 
+## 4.17.0 - UCM-BILL-9
+
+Users tab, every app: the billing access column is a short coloured status (`accountAccessText` now returns
+"Freigeschaltet", "{plan name} · bis {short date}", "Team · bis {date}", "Schreibgeschützt" or "Betreiber"; plan names from
+`getMe().plans`, neutral `Billing.OP_SUBSCRIPTION` when missing, never the key) and the free-access switch moved to its own
+"Ohne Abo" column without a visible label (`FreeAccessSwitch` option `hideLabel`; "–" for subscription, team and operator
+rows); grant and revoke dialogs unchanged. `useBillingUsersColumn` returns two columns and takes `isOperator` (default
+`user.is_superuser`). The built-in delete in `UserListComponent` is an icon button named "Löschen – {name}" and is shown
+disabled on the own row instead of hidden; confirmation, permissions and app row actions unchanged. New `formatShortDate`.
+New keys `Billing.OP_FREE_ACCESS_SHORT`, `OP_TEAM`, `OP_OPERATOR`, `OP_SUBSCRIPTION`, `OP_NO_SUBSCRIPTION`,
+`OP_FREE_ACCESS_FOR`, `Common.DELETE_FOR`.
+
 ## 4.16.0 - UCM-CHAT-7
 
 Opt-in compact chat composer: `ChatWorkspace` props `composerLayout` (`'standard'` default, `'compact'`) and

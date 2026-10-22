@@ -4,6 +4,8 @@ import { ModelPicker } from '../src/chat/ModelPicker';
 import { ReceiptCaptureCard } from '../src/receipts/ReceiptCaptureCard';
 import { OperatorOverview } from '../src/billing/OperatorOverview';
 import { BillingAccessCell } from '../src/billing/BillingAccessCell';
+import { useBillingUsersColumn } from '../src/billing/useBillingUsersColumn';
+import { UserListComponent } from '../src/components/UserListComponent';
 import { SubscriptionSection } from '../src/billing/SubscriptionSection';
 import i18next from 'i18next';
 import { I18nextProvider } from 'react-i18next';
@@ -177,7 +179,7 @@ import { ReactionBar } from '../src/messaging/ReactionBar';
 import { PollCard } from '../src/messaging/PollCard';
 import { MessagingScopeConfig } from '../src/messaging/MessagingScopeConfig';
 import { barChartFixture } from './fixtures';
-import { setupHarnessUser, useMockTransport } from './mockTransport';
+import { setHarnessUsers, setupHarnessUser, useMockTransport } from './mockTransport';
 
 function NotificationBellEntry() {
   return (
@@ -886,6 +888,41 @@ const operatorAccounts = [
   { user_id: 2, email: 'ben@example.test', name: 'Ben', access: { status: 'active', source: 'free', ends_at: null }, plan_key: null, term_ends_at: null, token_balance: 0, free_access: { reason: 'Pilot', granted_by: 'op@example.test', granted_at: '2026-10-01T00:00:00Z' } },
   { user_id: 3, email: 'cara@example.test', name: 'Cara', access: { status: 'read_only', source: null, ends_at: '2026-09-01T00:00:00Z' }, plan_key: null, term_ends_at: null, token_balance: 0, free_access: null },
 ];
+
+const billingColumnUsers = [
+  { id: 1, first_name: 'Anna', last_name: 'Free', username: 'anna', email: 'anna@example.test' },
+  { id: 2, first_name: 'Ben', last_name: 'Plan', username: 'ben', email: 'ben@example.test' },
+  { id: 3, first_name: 'Cara', last_name: 'Unknown', username: 'cara', email: 'cara@example.test' },
+  { id: 4, first_name: 'David', last_name: 'Team', username: 'david', email: 'david@example.test' },
+  { id: 5, first_name: 'Ella', last_name: 'ReadOnly', username: 'ella', email: 'ella@example.test' },
+  { id: 6, first_name: 'Frank', last_name: 'Operator', username: 'frank', email: 'frank@example.test', is_superuser: true },
+  { id: 99, first_name: 'Micha', last_name: 'Own row', username: 'micha', email: 'micha@example.test', is_superuser: true },
+];
+const billingColumnAccounts = [
+  { user_id: 1, name: 'Anna Free', access: { status: 'active', source: 'free' }, free_access: { reason: 'Pilot' } },
+  { user_id: 2, name: 'Ben Plan', access: { status: 'active', source: 'subscription', ends_at: '2026-11-19T00:00:00Z' }, plan_key: 'personal-monthly', term_ends_at: '2026-11-19T00:00:00Z' },
+  { user_id: 3, name: 'Cara Unknown', access: { status: 'active', source: 'subscription', ends_at: '2026-11-19T00:00:00Z' }, plan_key: 'legacy-plan' },
+  { user_id: 4, name: 'David Team', access: { status: 'active', source: 'team', ends_at: '2027-04-01T00:00:00Z' } },
+  { user_id: 5, name: 'Ella ReadOnly', access: { status: 'read_only', source: null, ends_at: '2026-09-01T00:00:00Z' } },
+  { user_id: 6, name: 'Frank Operator', access: { status: 'active', source: 'free' } },
+  { user_id: 99, name: 'Micha Own row', access: { status: 'active', source: 'free' } },
+];
+const billingColumnApi = {
+  listOperatorAccounts: async () => ({ count: billingColumnAccounts.length, results: billingColumnAccounts }),
+  getMe: async () => ({ plans: [{ key: 'personal-monthly', name: 'Persönlich monatlich' }] }),
+  grantFreeAccess: async (userId, reason) => ({ user_id: userId, free_access: { reason }, access: { status: 'active', source: 'free' } }),
+  revokeFreeAccess: async (userId) => ({ user_id: userId, free_access: null, access: { status: 'read_only', source: null } }),
+};
+function BillingAccessColumnList() {
+  const { extraColumns } = useBillingUsersColumn({ api: billingColumnApi });
+  return <UserListComponent currentUser={{ id: 99, is_superuser: true }} extraColumns={extraColumns} showNewColumn={false} showSuccessfulLoginColumn={false} showRoleColumn={false} />;
+}
+// The user rows come from the harness transport (`get /api/users/` in mockTransport.jsx); German like the prototype.
+setHarnessUsers(billingColumnUsers);
+function BillingAccessColumnEntry() {
+  return <I18nextProvider i18n={setupI18n}><BillingAccessColumnList /></I18nextProvider>;
+}
+
 function OperatorBillingEntry() {
   return <Stack spacing={3}>
     <OperatorOverview api={operatorHarnessApi} />
@@ -950,6 +987,7 @@ export const entries = [
   { id: 'chat-compact-composer', label: 'Chat / Compact composer', Component: ChatCompactComposerEntry, fullViewport: true },
   { id: 'receipts-capture', label: 'Receipts / Capture card', Component: ReceiptsEntry },
   { id: 'billing-operator', label: 'Billing / Operator overview and access', Component: OperatorBillingEntry },
+  { id: 'billing-access-column', label: 'Billing / Compact access column', Component: BillingAccessColumnEntry, fullViewport: true },
   { id: 'billing-seats', label: 'Billing / Seats with candidates', Component: BillingSeatsEntry },
   { id: 'billing-origins', label: 'Billing / Balance by origin and purchases', Component: BillingOriginsEntry },
   { id: 'setup-wizard', label: 'Auth / Setup wizard', Component: SetupWizardEntry, fullViewport: true },

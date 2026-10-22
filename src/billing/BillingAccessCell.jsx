@@ -1,28 +1,38 @@
 import React from 'react';
-import { Button, Stack, Typography } from '@mui/material';
+import { Button, Chip, Stack, Typography } from '@mui/material';
 import { useTranslation } from 'react-i18next';
-import { formatDate } from './format';
-import { FreeAccessSwitch } from './FreeAccessSwitch';
+import { formatShortDate } from './format';
+import SoftChip from '../components/SoftChip';
 
-export function accountAccessText(account, t, language) {
+export const BILLING_ACCESS_BADGE_SX = { maxWidth: '100%' };
+
+export function accountAccessText(account, t, language, { planNames = {}, isOperator = false } = {}) {
   if (!account) return '–'; // no row for this person (not loaded): say nothing rather than claim read-only
   const access = account.access || {};
+  if (isOperator) return t('Billing.OP_OPERATOR');
+  if (access.status === 'read_only') return t('Billing.OP_READ_ONLY');
   if (access.source === 'subscription') {
-    const date = formatDate(account.term_ends_at || access.ends_at, language);
-    const plan = account.plan_key || '';
-    return [t('Billing.OP_PLAN', { plan }), date && t('Billing.OP_UNTIL', { date }), access.status === 'read_only' && t('Billing.OP_READ_ONLY')].filter(Boolean).join(' · ');
+    const date = formatShortDate(account.term_ends_at || access.ends_at, language);
+    const plan = planNames[account.plan_key] || t('Billing.OP_SUBSCRIPTION');
+    return [plan, date && t('Billing.OP_UNTIL', { date })].filter(Boolean).join(' · ');
   }
   if (access.source === 'team') {
-    const date = formatDate(access.ends_at, language);
-    return [t('Billing.OP_TEAM_SEAT'), date && t('Billing.OP_UNTIL', { date }), access.status === 'read_only' && t('Billing.OP_READ_ONLY')].filter(Boolean).join(' · ');
+    const date = formatShortDate(access.ends_at, language);
+    return [t('Billing.OP_TEAM'), date && t('Billing.OP_UNTIL', { date })].filter(Boolean).join(' · ');
   }
-  if (access.source === 'free') return [t('Billing.OP_FREE_ACCESS'), access.status === 'read_only' && t('Billing.OP_READ_ONLY')].filter(Boolean).join(' · ');
+  if (access.source === 'free' && access.status !== 'read_only') return t('Billing.OP_FREE_ACCESS_SHORT');
   return t('Billing.OP_READ_ONLY');
 }
 
-export function BillingAccessCell({ account, api, onChanged }) {
+export function BillingAccessCell({ account, planNames, isOperator = false }) {
   const { t, i18n } = useTranslation();
-  return <Stack spacing={0.5}><Typography>{accountAccessText(account, t, i18n.language)}</Typography>{account && <FreeAccessSwitch account={account} api={api} onChanged={onChanged} />}</Stack>;
+  if (!account) return '–';
+  const access = account.access || {};
+  const label = accountAccessText(account, t, i18n.language, { planNames, isOperator });
+  // Operator is neutral; the others are the kit's soft tinted status chips, as in the prototype.
+  if (isOperator) return <Chip size="small" variant="outlined" label={label} sx={BILLING_ACCESS_BADGE_SX} />;
+  const tone = access.status === 'read_only' ? 'warning' : access.source === 'subscription' ? 'success' : 'primary';
+  return <SoftChip tone={tone} label={label} />;
 }
 
 export function BillingAccessError({ onRetry }) {

@@ -130,11 +130,12 @@ describe('German user and invite screen translations', () => {
     expect(screen.getByLabelText('Suche')).toBeTruthy();
     expect(screen.getByPlaceholderText('Benutzer suchen...')).toBeTruthy();
     expect(screen.getByText('1–1 von 1')).toBeTruthy();
-    for (const german of ['Neu', 'Erfolgreiche Anmeldung', 'Rolle', 'Aktionen', 'Zeilen pro Seite:', 'Löschen']) {
+    for (const german of ['Neu', 'Erfolgreiche Anmeldung', 'Rolle', 'Aktionen', 'Zeilen pro Seite:']) {
       expect(screen.getByText(german)).toBeTruthy();
     }
 
-    fireEvent.click(screen.getByRole('button', { name: 'Löschen' }));
+    // UCM-BILL-9: delete is an icon button named "Löschen – {name}".
+    fireEvent.click(screen.getByRole('button', { name: /^Löschen – / }));
     expect(confirm).toHaveBeenCalledWith('Möchten Sie diesen Benutzer wirklich löschen?');
 
     fireEvent.click(screen.getByRole('button', { name: 'Aktion' }));

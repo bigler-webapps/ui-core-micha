@@ -37,6 +37,13 @@ export function formatDate(iso, language) {
   return new Intl.DateTimeFormat(intlLocale(language), { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' }).format(date);
 }
 
+export function formatShortDate(iso, language) {
+  if (typeof iso !== 'string' || !iso) return '';
+  const date = new Date(iso);
+  if (!Number.isFinite(date.getTime())) return '';
+  return new Intl.DateTimeFormat(intlLocale(language), { year: 'numeric', month: 'numeric', day: 'numeric', timeZone: 'UTC' }).format(date);
+}
+
 export function formatDateTime(iso, language) {
   if (typeof iso !== 'string' || !iso) return '';
   const date = new Date(iso);

@@ -1774,6 +1774,12 @@ export const authTranslations = {
     "en": "Delete",
     "sw": "Futa"
   },
+  "Common.DELETE_FOR": {
+    "de": "Löschen – {{name}}",
+    "fr": "Supprimer – {{name}}",
+    "en": "Delete – {{name}}",
+    "sw": "Futa – {{name}}"
+  },
   "Common.CANCEL": {
     "de": "Abbrechen",
     "fr": "Annuler",

@@ -59,7 +59,12 @@ const setupTermsBody = () => ({
   accepted: Boolean(setupTermsAcceptedAt),
   accepted_at: setupTermsAcceptedAt,
 });
+// User rows for entries that render the user list (UCM-BILL-9 access column).
+let harnessUsers = [];
+export function setHarnessUsers(users) { harnessUsers = users; }
+
 const setupResponses = {
+  'get /api/users/': () => harnessUsers,
   'post /api/users/register-request/': () => ({ code: 'Auth.INVITE_SENT' }),
   'post /api/users/register-confirm/': () => ({}),
   'patch /api/users/current/': (config) => ({ ...setupHarnessUser, ...JSON.parse(config.data || '{}') }),

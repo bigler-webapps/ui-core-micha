@@ -23,6 +23,15 @@ the kit's navigation groups: `my-account` (Profile, Security), `management` (Use
 then appears in that group after the kit's own tabs, in the order of `extraTabs`, in the desktop sidebar and in the
 phone navigation. Without `group`, or with `more` or an unknown value, it stays in "More" as before.
 
+## Users tab: access column and delete
+
+With billing in the account page, the user list shows two columns: "Zugang", a short coloured status ("Freigeschaltet",
+"{Plan} · bis {Datum}", "Team · bis {Datum}", "Schreibgeschützt", "Betreiber"), and "Ohne Abo", the free-access switch
+without a visible label (only for free and read-only rows; "–" otherwise). Plan names come from the app's own catalogue
+(`getMe().plans`); a plan without a name shows "Abo", never its key. Operator rows default to `user.is_superuser`;
+`useBillingUsersColumn({ isOperator: ({ user, account }) => ... })` overrides that. The built-in delete is an icon button
+named "Löschen – {Name}", shown disabled on the own row; confirmation, permissions and app row actions are unchanged.
+
 ## Account section: plan choice on the app's own page
 
 `SubscriptionSection` shows an inline plan picker for an account without access. An app with its own plan page passes

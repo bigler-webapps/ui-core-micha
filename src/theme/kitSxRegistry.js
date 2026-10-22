@@ -101,6 +101,7 @@ import { SETUP_WIZARD_CARD_SX } from '../onboarding/SetupWizardShell';
 import { REAUTH_MODAL_ALERT_SX, REAUTH_MODAL_TEXT_FIELD_SX } from '../auth/ReauthModal';
 import { createKitSxEntry } from './kitSxEntry';
 import { ACCESS_ENDED_BANNER_ALERT_SX } from '../billing/AccessEndedBanner';
+import { BILLING_ACCESS_BADGE_SX } from '../billing/BillingAccessCell';
 import { TOKEN_BALANCE_BADGE_SX } from '../billing/TokenBalanceBadge';
 import { PLAN_PICKER_ALERT_SX, PLAN_PICKER_CARD_SX, PLAN_PICKER_LABEL_SX, PLAN_PICKER_SELECTED_CARD_SX } from '../billing/PlanPicker';
 import { SUBSCRIPTION_SECTION_ALERT_SX, SUBSCRIPTION_SECTION_SEAT_ADD_SX, SUBSCRIPTION_SECTION_SEAT_SELECT_SX } from '../billing/SubscriptionSection';
@@ -116,6 +117,7 @@ import { RECEIPT_REVIEW_ACTIONS_SX, RECEIPT_REVIEW_ACTION_BUTTON_SX, RECEIPT_REV
 const SX_EXPORTS = {
   ACCESS_CODE_ACTION_SX,
   ACCESS_ENDED_BANNER_ALERT_SX,
+  BILLING_ACCESS_BADGE_SX,
   FREE_ACCESS_SWITCH_ALERT_SX,
   OPERATOR_OVERVIEW_ALERT_SX,
   ACCESS_CODE_ALERT_SX,
@@ -322,6 +324,7 @@ export const KIT_COMPONENT_SX_REGISTRY = [
   entry('ReauthModal.alert', 'MuiAlert', REAUTH_MODAL_ALERT_SX),
   entry('ReauthModal.field', 'MuiTextField', REAUTH_MODAL_TEXT_FIELD_SX),
   entry('AccessEndedBanner.alert', 'MuiAlert', ACCESS_ENDED_BANNER_ALERT_SX),
+  entry('BillingAccessCell.badge', 'MuiChip', BILLING_ACCESS_BADGE_SX),
   entry('TokenBalanceBadge.root', 'MuiChip', TOKEN_BALANCE_BADGE_SX),
   entry('PlanPicker.card', 'MuiCard', PLAN_PICKER_CARD_SX),
   entry('PlanPicker.selectedCard', 'MuiCard', PLAN_PICKER_SELECTED_CARD_SX),

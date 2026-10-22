@@ -6,6 +6,7 @@ import {
   Select,
   MenuItem,
   Button,
+  IconButton,
   Tooltip,
   CircularProgress,
   Alert,
@@ -200,6 +201,8 @@ export function UserListComponent({
     }
     return user?.username || '';
   };
+
+  const getUserDeleteName = (user) => getUserDisplayName(user) || user?.email || user?.username || '';
 
   const renderBooleanStatusIcon = (value, positiveLabel, negativeLabel) => (
     <Tooltip title={value ? positiveLabel : negativeLabel}>
@@ -451,20 +454,18 @@ export function UserListComponent({
             );
           })}
 
-          {showDeleteAction && !isOwnRow(row) && (
-            <Tooltip title={t('Common.DELETE', 'Delete')}>
+          {showDeleteAction && (
+            <Tooltip title={t('Common.DELETE_FOR', { name: getUserDeleteName(row) })}>
               <span>
-                <Button
-                  size="small"
-                  variant="outlined"
+                <IconButton
                   color="error"
-                  startIcon={<DeleteIcon />}
+                  aria-label={t('Common.DELETE_FOR', { name: getUserDeleteName(row) })}
                   onClick={() => handleDelete(row.id)}
-                  disabled={!canDelete(row)}
-                  sx={USER_LIST_ACTION_SX}
+                  disabled={isOwnRow(row) || !canDelete(row)}
+                  size="small"
                 >
-                  {t('Common.DELETE', 'Delete')}
-                </Button>
+                  <DeleteIcon fontSize="small" />
+                </IconButton>
               </span>
             </Tooltip>
           )}

@@ -14,6 +14,8 @@ vi.mock('react-i18next', () => {
   const KEYS = {
     'UserList.TITLE': 'All Users',
     'Common.SEARCH': 'Search',
+    // UCM-BILL-9: the icon delete button is named "Delete – {name}"; the mock does not interpolate.
+    'Common.DELETE_FOR': 'Delete',
     'UserList.SEARCH_PLACEHOLDER': 'Search users...',
     'Auth.EMAIL_LABEL': 'Email',
     'Profile.NAME_LABEL': 'Name',
@@ -121,27 +123,28 @@ describe('UserListComponent delete actions', () => {
   it('does not offer a superuser deletion of their own row', async () => {
     renderDeleteList();
 
-    await waitFor(() => expect(screen.getAllByRole('button', { name: 'Delete' })).toHaveLength(1));
+    await waitFor(() => expect(screen.getAllByRole('button', { name: 'Delete' })).toHaveLength(2));
 
-    expect(within(getRowByEmail(ownUser.email)).queryByRole('button', { name: 'Delete' })).toBeNull();
+    // UCM-BILL-9: the own row shows the icon button disabled instead of hiding it.
+    expect(within(getRowByEmail(ownUser.email)).getByRole('button', { name: 'Delete' }).disabled).toBe(true);
     expect(within(getRowByEmail(user.email)).getByRole('button', { name: 'Delete' }).disabled).toBe(false);
   });
 
   it('does not offer an admin deletion of their own row', async () => {
     renderDeleteList({ currentUser: { id: 99, role: 'admin' } });
 
-    await waitFor(() => expect(screen.getAllByRole('button', { name: 'Delete' })).toHaveLength(1));
+    await waitFor(() => expect(screen.getAllByRole('button', { name: 'Delete' })).toHaveLength(2));
 
-    expect(within(getRowByEmail(ownUser.email)).queryByRole('button', { name: 'Delete' })).toBeNull();
+    expect(within(getRowByEmail(ownUser.email)).getByRole('button', { name: 'Delete' }).disabled).toBe(true);
     expect(within(getRowByEmail(user.email)).getByRole('button', { name: 'Delete' }).disabled).toBe(false);
   });
 
   it('does not restore the own-row delete action when canDeleteUser returns true', async () => {
     renderDeleteList({ canDeleteUser: () => true });
 
-    await waitFor(() => expect(screen.getAllByRole('button', { name: 'Delete' })).toHaveLength(1));
+    await waitFor(() => expect(screen.getAllByRole('button', { name: 'Delete' })).toHaveLength(2));
 
-    expect(within(getRowByEmail(ownUser.email)).queryByRole('button', { name: 'Delete' })).toBeNull();
+    expect(within(getRowByEmail(ownUser.email)).getByRole('button', { name: 'Delete' }).disabled).toBe(true);
     expect(within(getRowByEmail(user.email)).getByRole('button', { name: 'Delete' }).disabled).toBe(false);
   });
 
@@ -161,9 +164,9 @@ describe('UserListComponent delete actions', () => {
     authApi.fetchUsersList.mockResolvedValue([{ ...ownUser, id: String(ownUser.id) }, user]);
     renderDeleteList();
 
-    await waitFor(() => expect(screen.getAllByRole('button', { name: 'Delete' })).toHaveLength(1));
+    await waitFor(() => expect(screen.getAllByRole('button', { name: 'Delete' })).toHaveLength(2));
 
-    expect(within(getRowByEmail(ownUser.email)).queryByRole('button', { name: 'Delete' })).toBeNull();
+    expect(within(getRowByEmail(ownUser.email)).getByRole('button', { name: 'Delete' }).disabled).toBe(true);
     expect(within(getRowByEmail(user.email)).getByRole('button', { name: 'Delete' }).disabled).toBe(false);
   });
 });

@@ -18,7 +18,8 @@ afterEach(cleanup);
 
 function Column({ api }) {
   const { extraColumns } = useBillingUsersColumn({ api });
-  return extraColumns[0] ? extraColumns[0].renderCell({ user: { id: 1 } }) : <span>no column</span>;
+  // UCM-BILL-9: the access badge and the "Ohne Abo" switch are separate columns.
+  return extraColumns.length ? <>{extraColumns.map((column) => <div key={column.key}>{column.renderCell({ user: { id: 1, first_name: 'Ada' } })}</div>)}</> : <span>no column</span>;
 }
 
 const account = { user_id: 1, email: 'ada@example.test', name: 'Ada', access: { status: 'read_only', source: null, ends_at: null }, plan_key: null, term_ends_at: null, token_balance: 0, free_access: null };
@@ -26,7 +27,7 @@ const account = { user_id: 1, email: 'ada@example.test', name: 'Ada', access: { 
 describe('Users column', () => {
   it('names each switch by the account it changes', async () => {
     render(<Column api={{ listOperatorAccounts: vi.fn().mockResolvedValue({ count: 1, results: [account] }) }} />);
-    expect(await screen.findByRole('switch', { name: 'Billing.OP_FREE_ACCESS – Ada' })).toBeTruthy();
+    expect((await screen.findByRole('switch')).getAttribute('aria-label')).toContain('Billing.OP_FREE_ACCESS_FOR');
   });
 
   it('shows the switch on and the access text from the server answer after a grant', async () => {
@@ -38,7 +39,7 @@ describe('Users column', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Billing.OP_GRANT' }));
     await waitFor(() => expect(api.grantFreeAccess).toHaveBeenCalledWith(1, 'Pilot'));
     await waitFor(() => expect(screen.getByRole('switch').checked).toBe(true));
-    expect(screen.getAllByText('Billing.OP_FREE_ACCESS').length).toBe(2);
+    expect(screen.getByText('Billing.OP_FREE_ACCESS_SHORT')).toBeTruthy();
   });
 
   it('keeps a column with an error and a retry when loading fails for another reason', async () => {

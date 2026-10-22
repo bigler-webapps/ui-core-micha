@@ -1,11 +1,11 @@
 import React, { useId, useRef, useState } from 'react';
-import { Alert, Button, Dialog, DialogActions, DialogContent, DialogTitle, FormControlLabel, Switch, TextField, Box } from '@mui/material';
+import { Alert, Button, Dialog, DialogActions, DialogContent, DialogTitle, FormControlLabel, Switch, TextField, Box, Tooltip } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 
 export const FREE_ACCESS_SWITCH_ALERT_SX = { width: '100%' };
 const statusOf = (error) => error?.response?.status;
 
-export function FreeAccessSwitch({ account, api, onChanged, sx }) {
+export function FreeAccessSwitch({ account, api, onChanged, sx, hideLabel = false, name }) {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const [reason, setReason] = useState('');
@@ -14,6 +14,7 @@ export function FreeAccessSwitch({ account, api, onChanged, sx }) {
   const inFlight = useRef(false);
   const titleId = useId();
   const active = Boolean(account?.free_access);
+  const displayName = name || account?.name || account?.email || account?.user_id || '';
   const openDialog = () => { setReason(''); setError(null); setOpen(true); };
   const close = () => { if (!busy) setOpen(false); };
   const submit = async () => {
@@ -27,8 +28,9 @@ export function FreeAccessSwitch({ account, api, onChanged, sx }) {
     } finally { inFlight.current = false; setBusy(false); }
   };
   const validReason = reason.trim().length > 0 && reason.trim().length <= 1000;
+  const control = <Switch checked={active} disabled={busy} onChange={openDialog} slotProps={{ input: { 'aria-label': hideLabel ? t('Billing.OP_FREE_ACCESS_FOR', { name: displayName }) : `${t('Billing.OP_FREE_ACCESS')} – ${displayName}` } }} />;
   return <>
-    <Box sx={sx}><FormControlLabel control={<Switch checked={active} disabled={busy} onChange={openDialog} slotProps={{ input: { 'aria-label': `${t('Billing.OP_FREE_ACCESS')} – ${account?.name || account?.email || account?.user_id}` } }} />} label={t('Billing.OP_FREE_ACCESS')} /></Box>
+    <Box sx={sx}>{hideLabel ? <Tooltip title={t('Billing.OP_FREE_ACCESS_FOR', { name: displayName })}><span>{control}</span></Tooltip> : <FormControlLabel control={control} label={t('Billing.OP_FREE_ACCESS')} />}</Box>
     <Dialog open={open} onClose={close} aria-labelledby={titleId}>
       <DialogTitle id={titleId}>{active ? t('Billing.OP_REVOKE_TITLE') : t('Billing.OP_FREE_ACCESS')}</DialogTitle>
       <DialogContent>
