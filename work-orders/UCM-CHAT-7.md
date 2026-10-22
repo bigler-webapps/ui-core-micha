@@ -61,11 +61,101 @@ label; English equivalents.
 
 ## Part B — Implementation map (implementer)
 
-Placeholder — dispatch-blocking. To be filled by the Orchestrator.
+### Target and ownership
+
+Target working directory (absolute): `C:/Users/Micha Bigler/Documents/webapps/ui-core-micha`. A library: you are
+the single implementer. Shared checkout: preserve foreign edits, including the untracked `scratchpad/` directory.
+
+You own exactly: `src/chat/ChatComposer.jsx`, `src/chat/ChatWorkspace.jsx` (composer part and the notice state only),
+`src/chat/ModelPicker.jsx` (button label only), `src/chat/kitSxRegistry.js`, `src/i18n/chatTranslations.ts`,
+`dev/entries.jsx` (one new entry), and new `tests/chatCompactComposer.test.jsx`. No other file: no exports in
+`src/entries/chat.js` or `src/index.js` (`tests/packageEntries.test.js` pins the exact sub-path export names), no
+README, CHANGELOG, package files, lockfile, register or existing tests.
+
+### Seams (verified against `main` at af06c95)
+
+- **Composer today.** `src/chat/ChatComposer.jsx:11-38`: one wrapping `Stack` row with the multiline input
+  (`CHAT_COMPOSER_INPUT_SX`, `maxRows={6}`), the `actions` slot, Stop (outlined, only while `running`) and Send
+  (contained). Enter sends, Shift+Enter breaks a line, IME composition is respected (:29-31); Send is disabled while
+  running, archived, disconnected or empty (:13-15). This stays the default, byte-for-byte.
+- **Workspace today.** `src/chat/ChatWorkspace.jsx:458-461`: `renderComposerExtra({ chat })` in a box keyed by chat,
+  then the long-chat `Alert` (`longChat`, :124) with "Neue Unterhaltung" → `createChat`, then `ChatComposer` with
+  `ModelPicker` in `actions`. Props are declared at :59.
+- **Model label.** `src/chat/ModelPicker.jsx:105`: trigger text `${cleanLabel(active)} · ${effort} ▾`; `cleanLabel`
+  (:22) only strips a trailing version. The picker content is unchanged.
+- **Kit sx convention.** Every `sx` on an MUI component that `themeCompleteness` checks (Alert, Button, IconButton,
+  TextField, Chip, Paper, …) must be a top-level exported object registered in `src/chat/kitSxRegistry.js`
+  (`createKitSxEntry(name, muiKey, object, exportName)`); an inline object fails `tests/themeCompleteness.test.js`
+  ("kit sx disjointness"). Do not set properties the theme already styles (radius, border colour).
+
+### What to build (binding names)
+
+- `ChatWorkspace` gains `composerLayout` (`'standard'` default, `'compact'`) and `renderComposerContext({ chat })`
+  (host content for the context row, used only in the compact layout). `renderComposerExtra` keeps rendering where it
+  renders today in both layouts.
+- `ChatComposer` gains `layout` (`'standard'` default, `'compact'`), `context` (node) and `notice` (node). Compact:
+  1. optional notice line; 2. context row: `context` then `actions` (the model choice) at its end, one line that never
+  wraps — the context is clipped/ellipsised and the actions keep their width; 3. input row: one outlined field across
+  the full width containing the multiline input (grows to about five lines) and, at its end, an icon button Send
+  (accessible name `Chat.send`), replaced in the same place by Stop (accessible name `Chat.stopAnswer`, "Antwort
+  stoppen") while `running`. Same enabling and Enter/Shift+Enter/IME rules as today. The prototype's measurements:
+  context row min 30px with 6px gaps, input row padding 3px 3px 3px 10px, 36px square action, focus ring on the row.
+- Notice line (internal component, not exported): one line, text ellipsised, its action as a text button and a close
+  icon button (accessible name `Chat.dismissNotice`). In the compact layout `ChatWorkspace` renders the long-chat
+  notice there with `Chat.longChatShort` ("Lange Unterhaltung: ältere Teile werden zusammengefasst.") and the action
+  `Chat.newChat` ("Neuer Chat") → `createChat`, instead of the `Alert`. Dismissal is held in workspace state keyed by
+  chat id and notice id: it stays closed for that chat across re-renders and turns, another chat (or a new one) shows
+  it again, and dismissing one notice never hides a different notice. In memory only (no storage). The standard
+  layout keeps today's `Alert` and text.
+- `ModelPicker` gains `shortLabel` (boolean, default false): the trigger shows family and effort without a leading
+  vendor word (`Claude`, `Anthropic`, `OpenAI`) and without the version, e.g. "Sonnet · Gründlich ▾". `ChatWorkspace`
+  passes it only in the compact layout.
+- New keys in `src/i18n/chatTranslations.ts` (`de`, `en`, `fr`, `sw`, as the bundle does): `Chat.longChatShort`,
+  `Chat.stopAnswer`, `Chat.dismissNotice`. Existing keys and texts stay.
+- Dev harness: an entry `chat-compact-composer` in `dev/entries.jsx` rendering the compact `ChatComposer` with the
+  real `ModelPicker` (`shortLabel`) and switchable states: empty context, one added item, several items (a "+n" chip),
+  running (Stop), notice shown, notice closed; context items are simple `Chip`s supplied as host content. Mark it
+  `fullViewport: true` so `#chat-compact-composer` opens it alone at the browser viewport (see `dev/main.jsx`).
+
+### Required tests (maps Part A)
+
+`tests/chatCompactComposer.test.jsx` (`// @vitest-environment jsdom`, conventions of `tests/chatPicker.test.jsx` and
+`tests/chatWorkspace.test.jsx`): compact layout renders context and model choice in one row and the input with Send
+in the next; Enter sends, Shift+Enter does not; Send becomes Stop while running and back, Stop calls `onStop`; the
+workspace notice closes for that chat, stays closed after a re-render, shows again for another chat, and a different
+notice id is not hidden; without `composerLayout` the workspace renders today's composer (outlined Stop and contained
+Send buttons, the long-chat `Alert` with today's text); `shortLabel` drops vendor and version.
+
+Work from this package; do not explore broadly.
+
+### Required preamble and progress contract
+
+The text above is the COMPLETE spec — the committed WO file's content, not a plan to refine; there is no separate
+plan file. Read the workspace `AGENTS.md` and `.codex/skills/frontend-engineering/SKILL.md` (both under
+`C:/Users/Micha Bigler/Documents/webapps/`) only for conventions. Stay in scope; do not update `MEMORY.md`. **Do NOT
+edit `WORK_ORDERS.md` — the register row and the review verdicts are the Orchestrator's alone.** Your tools are for
+editing the assigned files and for running the test you wrote — nothing else. Do NOT install dependencies, touch a
+lockfile, run a package manager or tidy stray files; if repo state blocks you, stop with `RESULT: BLOCKED <reason>`.
+Do NOT `git add`/`commit`/`push`; leave every change uncommitted. WRITE the required tests AND run only
+`node_modules/.bin/vitest run tests/chatCompactComposer.test.jsx` from the target directory, once — your ONLY test run;
+the Orchestrator's run and the independent review are the gate. Use explicit UTF-8 file I/O.
+
+Start with `PLAN: <step1> | <step2> | ...`, print a single-line `PROGRESS: [<n>/<total>] <present-tense action>`
+before every relevant action (and `... done` after), with no gap above ~2 minutes, unbuffered, and finish with exactly
+one `RESULT: DONE` or `RESULT: BLOCKED <reason>`.
 
 ## Part C — Orchestrator only
 
 STOP — this part is not an instruction to the implementer.
+
+> If you are the implementer reading this work order as your own specification: STOP at this line. You do none of
+> what follows — no reviewers, no verification, no register edit, no commit, no further dispatch.
+
+Mapped by the Orchestrator (Claude) on 2026-10-22 against `main` at af06c95 (4.15.0). Execution: codex/gpt-6-luna,
+one CLI dispatch, banner read back; launch evidence (filled at dispatch). Verification: the new test, all `chat*`
+tests, `themeCompleteness`, `packageEntries`, `chatTranslations`, `i18nAggregate`, tsc; full suite in `ci.yml` on
+`ci-test/UCM-CHAT-7`; 375/1280 comparison of the harness entry against the prototype composer (at most four app
+screenshots).
 
 Gate #1 approved by the operator on 2026-10-22 in the Maana Expertenchat (session
 local_cbfc9d51-5217-42a4-99ba-27a315c854ce). Tier 3: all reviewer lenses and `ui_reviewer`; 375/1280 comparison
