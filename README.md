@@ -86,6 +86,22 @@ const setupBillingApi = createBillingApi({
 <PlanPicker api={setupBillingApi} plans={plans} />;
 ```
 
+## Stale chunks after a deploy
+
+An app that lazy-loads code calls `installChunkLoadRecovery()` once at startup (before rendering). When a deploy has
+removed a chunk that an open page still asks for ("Failed to fetch dynamically imported module", Vite's
+`vite:preloadError`, "Unable to preload CSS"), the page reloads once onto the new build. A second chunk failure within
+60 seconds of that reload is left alone and surfaces as today, so a genuinely broken deploy cannot loop; a later failure
+reloads again. Without usable `sessionStorage` it never reloads. Other errors are untouched; `isChunkLoadError(error)`
+lets an error boundary tell the cases apart. Option `guardWindowMs` changes the window; the function returns an
+uninstall. A reload loses unsaved input, so do not lazy-load routes where people type before the chunk is needed.
+
+```js
+import { installChunkLoadRecovery } from '@micha.bigler/ui-core-micha';
+
+installChunkLoadRecovery();
+```
+
 ## Consumer integration check
 
 ```js

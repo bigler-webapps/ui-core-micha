@@ -160,7 +160,12 @@ Configured `implementation`: codex/gpt-6-luna, CLI route, cwd ui-core-micha:
 `codex exec --skip-git-repo-check --dangerously-bypass-approvals-and-sandbox -m gpt-6-luna -C <ucm> - < work-orders/UCM-PERF-5.md`,
 backgrounded, banner read back. One dispatch; findings are fixed by the Orchestrator.
 
-Launch evidence: (filled at dispatch).
+Launch evidence: one CLI dispatch 2026-10-22, banner read back: model gpt-6-luna, reasoning high, workdir
+ui-core-micha, session 01a161fe-5314-7243-b7e5-1914bf786237. `RESULT: DONE`; edited only the three assigned files,
+no commit. Orchestrator: README note, CHANGELOG, version 4.14.0, and one review fix (an invalid `guardWindowMs` now
+falls back to the default instead of disabling the loop guard, with a test). Reviews: lenses envelope, regression,
+duplication, tests and ui in one batch (1 raised, accepted), ui re-run on the corrected diff clean. Local: 
+`chunkLoadRecovery` (10), `packageEntries`, `themeCompleteness`, `billingPublicExports` green; tsc build green.
 
 ## Review routing (Tier 3)
 

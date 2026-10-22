@@ -1,5 +1,13 @@
 # Changelog
 
+## 4.14.0 - UCM-PERF-5
+
+New `installChunkLoadRecovery({ guardWindowMs?, reload? })` and `isChunkLoadError(error)`. Installed once at app
+startup, a failed chunk load after a deploy (Vite `vite:preloadError` or an unhandled dynamic-import rejection whose
+error is a fetch failure) reloads the page once; a repeat within the guard window (default 60 s, held in
+`sessionStorage` across the reload) does not, and without usable storage nothing reloads. Module evaluation errors and
+all other errors are left alone. Additive; nothing changes for apps that do not install it.
+
 ## 4.13.0 - UCM-AUTH-14
 
 Composable account and profile steps for a page-based setup wizard; all additive. New exports: `SetupWizardShell`

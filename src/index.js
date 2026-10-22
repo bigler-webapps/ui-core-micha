@@ -22,6 +22,7 @@ export {
 
 // --- 0.1 Consumer integration ---
 export { checkKitIntegration } from './testing/checkKitIntegration';
+export { installChunkLoadRecovery, isChunkLoadError } from './utils/chunkLoadRecovery';
 
 // --- 1. Auth Context (Essentiell für den Wrapper) ---
 export { AuthContext, AuthProvider } from './auth/AuthContext';
