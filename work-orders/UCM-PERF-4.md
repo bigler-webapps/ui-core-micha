@@ -16,6 +16,10 @@
     still connects only after that initial state is in place.
   - The app can read each extension payload from the bootstrap by its provider name (for hram: its
     application-access data), without its own request.
+  - If the bootstrap request fails for any reason (a non-200 answer such as dcm's
+    `bootstrap_part_failed`, `bootstrap_unavailable` or a 404 from a backend without the endpoint,
+    or a network error), ucm falls back to today's separate start requests once, so every part
+    succeeds or fails exactly as it does today (operator decision 2026-10-22).
   - With the opt-in off (the default), behaviour is exactly today's.
 
 ## Background (measured 2026-10-21 from Tanzania)
@@ -41,19 +45,23 @@ Johannesburg plus origin in Germany). Today's start sequence in `AuthContext` an
 
 - Tier 3: shared-core change on the auth bootstrap path.
 - Precondition: `DCM-PERF-4` has landed, so the endpoint's path and response contract are fixed.
+  Met 2026-10-22: released in django-core-micha 3.17.0; contract in django-core-micha
+  `docs/design/bootstrap.md`.
 - Release ordering: the dcm release carrying `DCM-PERF-4` is published before any app enables the
   opt-in.
 
 ## Risks
 
-- A failed bootstrap request must leave the app in the same state today's failures produce:
-  unauthenticated user and default auth methods, no crash, no endless loading state.
+- dcm's bootstrap fails as a whole when any one part fails (for example a feed error or a throttled
+  part). Treating that as "signed out" would show a signed-in user as signed out when only the feed
+  failed; the fallback to the separate start requests prevents it. The fallback runs at most once
+  per start, never loops, and never runs when the bootstrap succeeded.
 - Loading-state timing: today `loading` stays true until both start requests settle; the opt-in
   path must not render protected routes earlier or later than that.
 - Notification seeding: the WebSocket must not connect before the seeded state is in place (the
   existing comment in `NotificationsProvider` explains the race this prevents).
-- An app that enables the opt-in against a backend without the endpoint gets a failed start; the
-  adoption WO pins dcm first, but the failure must still look like today's failure, not a crash.
+- An app that enables the opt-in against a backend without the endpoint gets a failed bootstrap; the
+  adoption WO pins dcm first, and the fallback keeps such an app working as today.
 
 ## Required tests to WRITE (you write them and run YOUR OWN new ones; the Orchestrator's run is the gate)
 
@@ -61,7 +69,11 @@ Johannesburg plus origin in Germany). Today's start sequence in `AuthContext` an
   `auth-methods`, the CSRF endpoint, the initial feed or the unread count; the resulting user,
   auth methods, notifications and unread count equal the bootstrap payload.
 - Opt-in off: the start request set is unchanged from today.
-- Bootstrap failure: user is unauthenticated, auth methods are the defaults, loading ends.
+- Bootstrap failure (a part-failure status such as 500 or 429, a 501, a 404, a network error): ucm
+  falls back to the separate start requests exactly once, and the resulting state equals today's for
+  the same per-part outcomes — for example user request succeeds and feed fails: signed in, no
+  notifications, as today; user request refused: signed out, as today. Loading ends.
+- Successful bootstrap: no fallback request is made.
 - WebSocket connects only after the seeded notification state, in the opt-in path too.
 - An extension payload is readable by provider name; an absent or `null` provider key reads as
   absent without throwing.
