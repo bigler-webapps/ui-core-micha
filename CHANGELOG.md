@@ -1,5 +1,14 @@
 # Changelog
 
+## 4.19.0 - UCM-CHAT-8
+
+`ChatWorkspace` starts the status, catalogue and both chat-list requests together on mount and on every scope change,
+instead of waiting for the status first; when the status is not `available` (or fails) the other answers are discarded
+and the unavailable or error state is shown as before. New optional prop `preloadedChats` (`{ scope, results, next }`):
+an active list the app already loaded for the same `scope` replaces the active-list request at the start; the archived
+list is still requested, and later reloads are unchanged. Every consumer now sends catalogue and list requests also when
+the assistant is not configured.
+
 ## 4.18.0 - UCM-BILL-10
 
 `AccountPage` accepts an optional `billingOperator({ user, account }) => boolean` and passes it as the operator rule to

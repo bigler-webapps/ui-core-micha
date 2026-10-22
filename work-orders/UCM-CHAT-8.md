@@ -146,3 +146,14 @@ tests, codex/gpt-6-luna read-only (no visible change: no `ui_review`; no auth su
 the new test and all `chat*` tests, `packageEntries`, tsc; full suite in `ci.yml` on `ci-test/UCM-CHAT-8`. README,
 CHANGELOG, minor version by the Orchestrator. Origin: the MAANA-WEBPERF-3 re-measurement on 2026-10-22; operator
 chose the ucm fix the same day. First consumer: maana MAANA-WEBPERF-3.
+
+Launch evidence: 2026-10-22, model gpt-6-luna, reasoning high, session 01a1637c-4b18-7613-8776-64412ac128da;
+`RESULT: BLOCKED` only because its one allowed test run had surfaced a failure it could not re-run under the one-run
+rule; `ChatWorkspace.jsx` and the new test only, no commit. Orchestrator: the preloaded list read through a ref (an
+inline object must not restart the start), indentation, README, CHANGELOG, version 4.19.0. The existing chatWorkspace
+test "does not request catalogue or chat lists when no model is configured" contradicted the Envelope's parallel start
+and was changed to assert the unavailable state with no chats shown (the Envelope's "existing tests pass unchanged"
+cannot hold for that one test). Two review findings accepted (both test gaps): the unavailable/error test now also
+covers catalogue and lists that resolve successfully after the status (first pass); the scope-change test now opens the
+new scope's chat and shows that a late old-scope catalogue does not replace the new one (re-review; that last tightening
+not re-reviewed).

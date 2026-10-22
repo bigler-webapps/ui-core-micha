@@ -169,7 +169,10 @@ above the composer. Without `composerLayout` the composer is unchanged. `ChatCom
 
 `ChatWorkspace` (from `@micha.bigler/ui-core-micha/chat`) takes optional props for apps that put UI around the surface;
 without them it behaves as before. Each is described in `CHANGELOG.md` under the release that added it.
-Since 4.3.0: `getSendContext()` (a plain object attached as `context` to every `send` frame, read by
+Since 4.19.0: `preloadedChats` (`{ scope, results, next }`, the active-list response the app already loaded for that
+`scope`): the start then requests only the archived list. It is used once, at the start, and only when its `scope`
+equals the workspace's `scope`; later reloads request both lists as before. The start requests status, catalogue and
+both lists together; when the status is not available their answers are discarded. Since 4.3.0: `getSendContext()` (a plain object attached as `context` to every `send` frame, read by
 `django-core-micha` 3.3.0), `sendRequest` (`{ id, text }`, sends a message on the host's behalf) and
 `onSendRequestHandled({ id, sent })`. Since 4.2.0: `activeChatId`, `onActiveChatChange`, `composerPrefill` and
 `send(text)` / `canSend` in `renderAnswerExtra`.

@@ -54,9 +54,10 @@ const appendDelta = (turns, text) => {
  * The complete chat surface: chat list, thread, composer and model picker for one user.
  *
  * Props: `apiBase` and `wsUrl` (where the app mounted the chat routes), `api` (partial overrides of the REST
- * calls; every function not given keeps its default), `scope` (passed when creating a chat), `sx`.
+ * calls; every function not given keeps its default), `scope` (passed when creating a chat),
+ * `preloadedChats` (optional active-list response `{ scope, results, next }` already loaded for that exact scope), `sx`.
  */
-export function ChatWorkspace({ apiBase, wsUrl, api: apiOverrides, scope, sx, unavailableReasonText, sidePanel, sidePanelLabel, renderAnswerExtra, renderComposerExtra, composerLayout = 'standard', renderComposerContext, onAppFrame, activeChatId, onActiveChatChange, composerPrefill, getSendContext, sendRequest, onSendRequestHandled, layout = 'viewport', compactBelow = 720, tokenBalance = null, usageToTokens, longChatTokens = 40000 }) {
+export function ChatWorkspace({ apiBase, wsUrl, api: apiOverrides, scope, preloadedChats, sx, unavailableReasonText, sidePanel, sidePanelLabel, renderAnswerExtra, renderComposerExtra, composerLayout = 'standard', renderComposerContext, onAppFrame, activeChatId, onActiveChatChange, composerPrefill, getSendContext, sendRequest, onSendRequestHandled, layout = 'viewport', compactBelow = 720, tokenBalance = null, usageToTokens, longChatTokens = 40000 }) {
   const { t } = useTranslation();
   const theme = useTheme();
   const viewportNarrow = useMediaQuery(theme.breakpoints.down('md'));
@@ -148,27 +149,59 @@ export function ChatWorkspace({ apiBase, wsUrl, api: apiOverrides, scope, sx, un
   const scopeVersion = useRef(0);
   useEffect(() => { scopeVersion.current += 1; setChat(null); setListsLoaded(false); appliedId.current = undefined; unloadableIds.current.clear(); }, [scope]);
 
-  const loadLists = useCallback(async () => {
+  const loadLists = useCallback(async ({ initial = false, preloaded } = {}) => {
     const version = scopeVersion.current;
     // Without a scope the api is called exactly as before the scope existed.
-    const [active, old] = scope === undefined
-      ? await Promise.all([api.listChats(), api.listChats({ archived: true })])
-      : await Promise.all([api.listChats({ scope }), api.listChats({ scope, archived: true })]);
+    const activeRequest = preloaded === undefined
+      ? (scope === undefined ? api.listChats() : api.listChats({ scope }))
+      : Promise.resolve(preloaded);
+    const archivedRequest = scope === undefined ? api.listChats({ archived: true }) : api.listChats({ scope, archived: true });
+    const [active, old] = await Promise.all([activeRequest, archivedRequest]);
     if (version !== scopeVersion.current) return undefined;
-    setChats(active.results || []);
-    setNextChats(active.next || null);
-    setArchived(old.results || []);
-    return [...(active.results || []), ...(old.results || [])];
+    if (!initial) {
+      setChats(active.results || []);
+      setNextChats(active.next || null);
+      setArchived(old.results || []);
+    }
+    return { active, old, all: [...(active.results || []), ...(old.results || [])] };
   }, [api, scope]);
+
+  // Read through a ref: the preloaded list only matters when a start begins, and an inline object from the app must
+  // not restart the start requests on every render.
+  const preloadedChatsRef = useRef(preloadedChats);
+  preloadedChatsRef.current = preloadedChats;
 
   useEffect(() => {
     let live = true;
-    const request = scope === undefined ? api.getStatus() : api.getStatus({ scope });
-    request
-      .then(async (state) => {
-        if (state.status !== 'available') { if (live) { setStatus(state.status); setUnavailableReason(state.reason || null); } return; }
-        const [entries] = await Promise.all([api.getCatalogue(), loadLists()]);
-        if (live) { setStatus(state.status); setCatalogue(entries); setListsLoaded(true); }
+    const offered = preloadedChatsRef.current;
+    const preloaded = offered && offered.scope === scope
+      ? { results: offered.results, next: offered.next }
+      : undefined;
+    const statusRequest = Promise.resolve().then(() => (scope === undefined ? api.getStatus() : api.getStatus({ scope })));
+    const catalogueRequest = Promise.resolve().then(() => api.getCatalogue());
+    const listsRequest = Promise.resolve().then(() => loadLists({ initial: true, preloaded }));
+    // These may finish after an unavailable status; attach rejection handlers immediately and never expose their answers.
+    catalogueRequest.catch(() => {});
+    listsRequest.catch(() => {});
+    statusRequest
+      .then((state) => {
+        if (!live) return;
+        if (state.status !== 'available') {
+          setStatus(state.status);
+          setUnavailableReason(state.reason || null);
+          return;
+        }
+        Promise.all([catalogueRequest, listsRequest]).then(([entries, lists]) => {
+          if (!live || lists === undefined) return;
+          const { active, old } = lists;
+          setCatalogue(entries);
+          setChats(active.results || []);
+          setNextChats(active.next || null);
+          setArchived(old.results || []);
+          setStatus(state.status);
+          setListsLoaded(true);
+          setUnavailableReason(null);
+        }).catch(() => { if (live) setStatus('error'); });
       })
       .catch(() => { if (live) setStatus('error'); });
     return () => { live = false; };
@@ -201,7 +234,7 @@ export function ChatWorkspace({ apiBase, wsUrl, api: apiOverrides, scope, sx, un
     let live = true;
     loadLists().then((loaded) => {
       if (!live || loaded === undefined || latestWantedId.current === undefined || String(latestWantedId.current) !== wantedKey) return;
-      const found = loaded.find((item) => String(item.id) === wantedKey);
+      const found = loaded.all.find((item) => String(item.id) === wantedKey);
       if (!found) unloadableIds.current.add(wantedKey);
       setChat(found || null);
     }).catch(() => {

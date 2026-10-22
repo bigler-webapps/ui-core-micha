@@ -171,12 +171,12 @@ describe('ChatWorkspace load order', () => {
     expect(screen.queryByText('Chat.reconnecting')).toBeNull();
   });
 
-  it('does not request catalogue or chat lists when no model is configured', async () => {
+  it('shows the unavailable state and no chats when no model is configured', async () => {
+    // UCM-CHAT-8: catalogue and lists start with the status; their answers are discarded when it is not available.
     const api = makeApi({ getStatus: vi.fn().mockResolvedValue({ status: 'not_configured' }) });
     render(<ChatWorkspace api={api} />);
     await screen.findByText('Chat.unavailable');
-    expect(api.getCatalogue).not.toHaveBeenCalled();
-    expect(api.listChats).not.toHaveBeenCalled();
+    expect(screen.queryByText('Budget')).toBeNull();
   });
 });
 
