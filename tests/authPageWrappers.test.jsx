@@ -143,7 +143,7 @@ describe('SignUpPage', () => {
     render(withAuth(<SignUpPage />));
 
     fireEvent.change(screen.getByRole('textbox', { name: /Auth.EMAIL_LABEL/ }), { target: { value: 'a@example.test' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Auth.SIGNUP_SUBMIT' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Auth.SIGNUP_SUBMIT_OPEN' }));
 
     await waitFor(() => expect(screen.getByText('Auth.INVITE_SENT')).toBeTruthy());
     expect(screen.getByRole('textbox', { name: /Auth.EMAIL_LABEL/ })).toBeTruthy();

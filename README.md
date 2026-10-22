@@ -54,7 +54,10 @@ project, import or payment work. Existing pages and the dialog `OnboardingProvid
   ignored until it settles. `primaryForm` names a form in the content that the primary button submits natively.
 - `SignUpContent` — the sign-up form of `SignUpPage` (all modes, Turnstile, QR token via `registrationContextToken`).
   `onSubmitted(email)` switches it to the confirmation instruction; remount it (new `key`) to let the person change the
-  email. `showProviders` adds Google/Microsoft above the form.
+  email. `showProviders` adds Google/Microsoft above the form. `preferredSignupMode` (also on `SignUpPage`, e.g.
+  `'self_signup_open'`) shows that mode first and selected when the server offers it; otherwise it is ignored and the
+  server order applies. Open self-signup submits with "Konto anlegen" (`Auth.SIGNUP_SUBMIT_OPEN`); the other modes
+  keep "Einladung anfordern".
 - `SignupConfirmContent` — the password form of `SignupConfirmPage`. Pass `token` (from the emailed
   `/signup/confirm/?token=…` link, which your app routes) and `onSuccess()`; there is no automatic sign-in, show
   `LoginContent` next.

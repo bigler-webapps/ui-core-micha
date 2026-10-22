@@ -486,6 +486,12 @@ export const authTranslations = {
     "en": "Request invitation",
     "sw": "Omba mwaliko"
   },
+  "Auth.SIGNUP_SUBMIT_OPEN": {
+    "de": "Konto anlegen",
+    "fr": "Créer un compte",
+    "en": "Create account",
+    "sw": "Fungua akaunti"
+  },
   "Auth.SIGNUP_SUBMITTING": {
     "de": "Sende…",
     "fr": "Envoi…",

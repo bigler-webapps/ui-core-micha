@@ -62,7 +62,7 @@ function renderSignUp(props = {}) {
 function submitEmail(email = 'a@example.test') {
   fireEvent.change(screen.getByRole('textbox', { name: /Auth.EMAIL_LABEL/ }), { target: { value: email } });
   fireEvent.click(screen.getByText('captcha'));
-  fireEvent.click(screen.getByRole('button', { name: 'Auth.SIGNUP_SUBMIT' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Auth.SIGNUP_SUBMIT_OPEN' }));
 }
 
 describe('SignUpContent', () => {

@@ -1,5 +1,13 @@
 # Changelog
 
+## 4.20.0 - UCM-AUTH-15
+
+`SignUpContent` and `SignUpPage` accept an optional `preferredSignupMode`: when the server offers that mode it is shown
+first and preselected, otherwise it is ignored and the server order applies (a QR link still selects the QR mode).
+Visible change in every app: the submit button of open self-signup (`self_signup_open`) now reads "Konto anlegen" /
+"Create account" (new key `Auth.SIGNUP_SUBMIT_OPEN`); access-code, e-mail-domain and QR signup keep "Einladung
+anfordern" / "Request invitation".
+
 ## 4.19.0 - UCM-CHAT-8
 
 `ChatWorkspace` starts the status, catalogue and both chat-list requests together on mount and on every scope change,

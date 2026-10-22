@@ -93,7 +93,7 @@ describe('SignUpPage Turnstile integration', () => {
       target: { value: 'ada@example.com' },
     });
 
-    const submit = screen.getByRole('button', { name: 'Auth.SIGNUP_SUBMIT' });
+    const submit = screen.getByRole('button', { name: 'Auth.SIGNUP_SUBMIT_OPEN' });
     expect(submit.disabled).toBe(true);
 
     await act(async () => {
@@ -124,10 +124,10 @@ describe('SignUpPage Turnstile integration', () => {
       window.turnstile.render.mock.calls[0][1].callback('turnstile-token');
     });
 
-    fireEvent.click(screen.getByRole('button', { name: 'Auth.SIGNUP_SUBMIT' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Auth.SIGNUP_SUBMIT_OPEN' }));
 
     await waitFor(() => expect(window.turnstile.reset).toHaveBeenCalledWith('widget-id'));
-    expect(screen.getByRole('button', { name: 'Auth.SIGNUP_SUBMIT' }).disabled).toBe(true);
+    expect(screen.getByRole('button', { name: 'Auth.SIGNUP_SUBMIT_OPEN' }).disabled).toBe(true);
   });
 
   it('resets the widget and gates submission when its token expires', async () => {
@@ -137,14 +137,14 @@ describe('SignUpPage Turnstile integration', () => {
     await act(async () => {
       window.turnstile.render.mock.calls[0][1].callback('turnstile-token');
     });
-    await waitFor(() => expect(screen.getByRole('button', { name: 'Auth.SIGNUP_SUBMIT' }).disabled).toBe(false));
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Auth.SIGNUP_SUBMIT_OPEN' }).disabled).toBe(false));
 
     await act(async () => {
       window.turnstile.render.mock.calls[0][1]['expired-callback']();
     });
 
     expect(window.turnstile.reset).toHaveBeenCalledWith('widget-id');
-    expect(screen.getByRole('button', { name: 'Auth.SIGNUP_SUBMIT' }).disabled).toBe(true);
+    expect(screen.getByRole('button', { name: 'Auth.SIGNUP_SUBMIT_OPEN' }).disabled).toBe(true);
   });
 
   it.each([
@@ -154,7 +154,7 @@ describe('SignUpPage Turnstile integration', () => {
   ])('does not render for %s without an eligible key/mode combination', async (mode, siteKey) => {
     renderSignUp({ signupModes: [mode], siteKey });
 
-    await waitFor(() => expect(screen.getByRole('button', { name: 'Auth.SIGNUP_SUBMIT' })).toBeTruthy());
+    await waitFor(() => expect(screen.getByRole('button', { name: mode === 'self_signup_open' ? 'Auth.SIGNUP_SUBMIT_OPEN' : 'Auth.SIGNUP_SUBMIT' })).toBeTruthy());
     expect(screen.queryByTestId('turnstile-widget')).toBeNull();
     expect(window.turnstile.render).not.toHaveBeenCalled();
   });
@@ -179,7 +179,7 @@ describe('SignUpPage — success message reflects the backend response, not a ha
         target: { value: 'some-code' },
       });
     }
-    fireEvent.click(screen.getByRole('button', { name: 'Auth.SIGNUP_SUBMIT' }));
+    fireEvent.click(screen.getByRole('button', { name: mode === 'self_signup_open' ? 'Auth.SIGNUP_SUBMIT_OPEN' : 'Auth.SIGNUP_SUBMIT' }));
     await waitFor(() => expect(authApi.submitRegistrationRequest).toHaveBeenCalled());
   }
 

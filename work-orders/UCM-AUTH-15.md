@@ -131,3 +131,13 @@ regression, duplication, tests plus `ui_review`, codex/gpt-6-luna read-only; no 
 the server policy still decides which modes exist and the request is unchanged). Verification: the new test,
 `SignUpContent`, `SignUpPage`, `authTranslations`, `i18nAggregate`, `i18nGermanVariant`, `pageTitles`, tsc; full suite
 in `ci.yml` on `ci-test/UCM-AUTH-15`. README + CHANGELOG + minor version by the Orchestrator.
+
+Launch evidence: 2026-10-22, model gpt-6-luna, reasoning high, session 01a16406-8a20-7e52-9b1a-557791dc9a71 (the first
+launch attempt was refused by the Claude auto-mode classifier; the operator then allowed the dispatch); `RESULT: DONE`,
+the four assigned files only, no commit. Orchestrator: the ordering rule written twice became the module helper
+`orderSignupModes` (not exported from the package index); `SignUpContent`, `SignUpPage` and `authPageWrappers` tests
+that submit in open mode now expect `Auth.SIGNUP_SUBMIT_OPEN` (Envelope decision 3); README, CHANGELOG, version 4.20.0.
+Review: tests finding accepted (the DE/EN label test now resolves through the shared `uiCoreTranslations`; that fix not
+re-reviewed). Envelope finding not accepted: a QR registration token still selects the QR mode over a preferred mode,
+as mapped in Part B (the person opened a QR link; the preferred mode is still listed first) — reported to the
+Expertenchat for override.

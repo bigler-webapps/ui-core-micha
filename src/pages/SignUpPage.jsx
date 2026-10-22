@@ -7,6 +7,7 @@ import { AuthContext } from '../auth/AuthContext';
 import {
   SIGN_UP_PAGE_ALERT_SX,
   SignUpContent,
+  orderSignupModes,
   resolveSignupModes,
 } from '../components/SignUpContent';
 
@@ -21,13 +22,17 @@ const MODE_SUBTITLES = {
 
 // The form and its sign-up logic live in SignUpContent (UCM-AUTH-14); the page
 // keeps the route framing, the `?rt` QR token source and the login link.
-export function SignUpPage() {
+export function SignUpPage({ preferredSignupMode }) {
   const navigate = useNavigate();
   const location = useLocation();
   const { t } = useTranslation();
   const { authMethods } = useContext(AuthContext);
 
-  const signupModes = useMemo(() => resolveSignupModes(authMethods), [authMethods]);
+  const serverSignupModes = useMemo(() => resolveSignupModes(authMethods), [authMethods]);
+  const signupModes = useMemo(
+    () => orderSignupModes(serverSignupModes, preferredSignupMode),
+    [preferredSignupMode, serverSignupModes],
+  );
 
   const query = new URLSearchParams(location.search);
   const tokenFromUrl = query.get('rt') || '';
@@ -62,7 +67,11 @@ export function SignUpPage() {
     >
       <title>{`${t('App.NAME')} – ${t('Auth.LOGIN_SIGNUP_BUTTON')}`}</title>
 
-      <SignUpContent registrationContextToken={tokenFromUrl} onModeChange={setMode} />
+      <SignUpContent
+        registrationContextToken={tokenFromUrl}
+        preferredSignupMode={preferredSignupMode}
+        onModeChange={setMode}
+      />
 
       {/* Always rendered, closed or open — a closed signup page must still
           leave the person a way forward (the Envelope's own Goal), not just

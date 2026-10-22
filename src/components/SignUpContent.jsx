@@ -51,6 +51,13 @@ export function resolveSignupModes(authMethods) {
   return authMethods?.signup ? ['self_signup_access_code'] : [];
 }
 
+// An app's preferred mode moves to the front only when the server offers it; the server decides which modes exist.
+export function orderSignupModes(modes, preferredMode) {
+  return preferredMode && modes.includes(preferredMode)
+    ? [preferredMode, ...modes.filter((entry) => entry !== preferredMode)]
+    : modes;
+}
+
 /**
  * The sign-up form shared by SignUpPage and embedded flows: every configured
  * sign-up mode, Turnstile, the QR registration context and the existing
@@ -58,6 +65,7 @@ export function resolveSignupModes(authMethods) {
  *
  * Props:
  * - `registrationContextToken`: the QR token (SignUpPage passes `?rt`).
+ * - `preferredSignupMode`: optional available mode to show and select first.
  * - `onModeChange(mode)`: reports the selected sign-up mode.
  * - `onSubmitted(email)`: embedded use. Called after the request succeeded with
  *   the email only; the component then shows the confirmation instruction instead
@@ -70,6 +78,7 @@ export function resolveSignupModes(authMethods) {
  */
 export function SignUpContent({
   registrationContextToken = '',
+  preferredSignupMode,
   onModeChange,
   onSubmitted,
   showProviders = false,
@@ -78,7 +87,11 @@ export function SignUpContent({
   const { t, i18n } = useTranslation();
   const { authMethods } = useContext(AuthContext) || {};
 
-  const signupModes = useMemo(() => resolveSignupModes(authMethods), [authMethods]);
+  const serverSignupModes = useMemo(() => resolveSignupModes(authMethods), [authMethods]);
+  const signupModes = useMemo(
+    () => orderSignupModes(serverSignupModes, preferredSignupMode),
+    [preferredSignupMode, serverSignupModes],
+  );
 
   const initialMode = useMemo(() => {
     if (registrationContextToken && signupModes.includes('self_signup_qr')) {
@@ -282,7 +295,7 @@ export function SignUpContent({
         >
           {submitting
             ? t('Auth.SIGNUP_SUBMITTING')
-            : t('Auth.SIGNUP_SUBMIT')}
+            : t(mode === 'self_signup_open' ? 'Auth.SIGNUP_SUBMIT_OPEN' : 'Auth.SIGNUP_SUBMIT')}
         </Button>
       </Box>
     </>
