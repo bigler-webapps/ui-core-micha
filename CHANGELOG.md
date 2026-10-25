@@ -1,5 +1,13 @@
 # Changelog
 
+## 4.21.0 - UCM-SHELL-9
+
+`AccountPage` accepts an optional `groups` declaration (`[{ key, label, order?, tabs?, visible? }]`) that replaces the
+kit's My account / Management / Help groups: app labels, order, built-in tabs placed in any declared group (their own
+permission checks unchanged), `extraTabs[].group` naming any declared key, and a `visible(context)` rule that hides a
+group together with its tabs (also for `?tab=`). Empty groups stay hidden; unplaced tabs land in "More". Without
+`groups` nothing changes.
+
 ## 4.20.0 - UCM-AUTH-15
 
 `SignUpContent` and `SignUpPage` accept an optional `preferredSignupMode`: when the server offers that mode it is shown

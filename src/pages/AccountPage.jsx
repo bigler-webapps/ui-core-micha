@@ -42,6 +42,9 @@ import { useBillingUsersColumn } from '../billing/useBillingUsersColumn';
  * `billingOperator({ user, account }) => boolean` (optional, UCM-BILL-10): the app's operator rule for the billing
  * users columns built when `billingUsers` is set (status, badge and the "Ohne Abo" switch). Without it superusers are
  * the operators. A new function on each render only recomputes the columns; it does not refetch the accounts.
+ * `groups` (optional): app-defined account navigation groups with `{ key, label, order?, tabs?, visible? }`. Labels
+ * may be strings or `(context) => string`; `tabs` assigns built-in tab values, and `visible(context)` can hide a group
+ * and its tabs. Without this prop, the default groups and placement are unchanged.
  */
 export function AccountPage({
   userListExtraColumns = [],
@@ -62,6 +65,7 @@ export function AccountPage({
   showProfileStatements = true,
   billingUsers = false,
   billingOperator,
+  groups: groupsProp,
 }) {
   const { t, i18n } = useTranslation();
   const { user, login, loading } = useContext(AuthContext);
@@ -98,6 +102,33 @@ export function AccountPage({
   const canSendInvites = Boolean(isSuperUser || perms.can_send_invites);
   const canManageAccessCodes = Boolean(isSuperUser || perms.can_manage_access_codes);
   const canManageSignupQr = Boolean(isSuperUser || perms.can_manage_signup_qr);
+
+  const extensionContext = { user, perms, isSuperUser, t };
+  const declaredGroups = useMemo(() => {
+    if (!Array.isArray(groupsProp)) return null;
+
+    const definitions = groupsProp
+      .filter((group) => group && typeof group.key === 'string' && group.key.length > 0)
+      .map((group, index) => ({
+        ...group,
+        index,
+        sortOrder: Number.isFinite(group.order) ? group.order : index,
+        isVisible: typeof group.visible === 'function' ? Boolean(group.visible(extensionContext)) : true,
+      }))
+      .sort((left, right) => left.sortOrder - right.sortOrder || left.index - right.index);
+
+    const builtInAssignments = new Map();
+    definitions.forEach((group) => {
+      (Array.isArray(group.tabs) ? group.tabs : []).forEach((value) => {
+        if (['profile', 'security', 'users', 'invite', 'support'].includes(value)
+          && !builtInAssignments.has(value)) {
+          builtInAssignments.set(value, group.key);
+        }
+      });
+    });
+
+    return { definitions, builtInAssignments };
+  }, [groupsProp, user, perms, isSuperUser, t]);
 
   const handleTabChange = (_event, newValue) => {
     setSearchParams({ tab: newValue });
@@ -142,7 +173,6 @@ export function AccountPage({
   const tabs = useMemo(() => {
     if (!user) return [];
 
-    const extensionContext = { user, perms, isSuperUser, t };
     const list = [
       { value: 'profile', label: t('Account.TAB_PROFILE', 'Profile') },
       { value: 'security', label: t('Account.TAB_SECURITY', 'Security') },
@@ -162,12 +192,26 @@ export function AccountPage({
       list.push({ value: 'support', label: t('Account.TAB_SUPPORT', 'Support') });
     }
 
+    if (declaredGroups) {
+      for (let index = list.length - 1; index >= 0; index -= 1) {
+        const assignedGroupKey = declaredGroups.builtInAssignments.get(list[index].value);
+        const assignedGroup = declaredGroups.definitions.find((group) => group.key === assignedGroupKey);
+        if (assignedGroup && !assignedGroup.isVisible) list.splice(index, 1);
+      }
+    }
+
     extraTabs.forEach((tab) => {
       if (!tab?.value || !tab?.label) return;
       const isVisible = typeof tab.visible === 'function' ? tab.visible(extensionContext) : true;
+      const declaredGroup = declaredGroups?.definitions.find((group) => group.key === tab.group);
+      const collidesWithBuiltIn = declaredGroups
+        && ['profile', 'security', 'users', 'invite', 'support'].includes(tab.value);
+      if (declaredGroups && (collidesWithBuiltIn || (declaredGroup && !declaredGroup.isVisible))) return;
       if (isVisible && !list.some((entry) => entry.value === tab.value)) {
-        // Extra tabs may join my-account, management, or help.
-        const group = ['my-account', 'management', 'help'].includes(tab.group) ? tab.group : undefined;
+        // Legacy apps may join the three built-in groups; declared apps may use any declared group key.
+        const group = declaredGroups
+          ? (declaredGroup ? tab.group : undefined)
+          : (['my-account', 'management', 'help'].includes(tab.group) ? tab.group : undefined);
         list.push({
           value: tab.value,
           label: typeof tab.label === 'function' ? tab.label(extensionContext) : tab.label,
@@ -177,9 +221,42 @@ export function AccountPage({
     });
 
     return list;
-  }, [user, perms, t, isSuperUser, extraTabs, canViewUsers, canViewInvite]);
+  }, [user, perms, t, isSuperUser, extraTabs, canViewUsers, canViewInvite, declaredGroups]);
 
   const groups = useMemo(() => {
+    if (declaredGroups) {
+      const placedValues = new Set();
+      const mappedGroups = declaredGroups.definitions
+        .filter((group) => group.isVisible)
+        .map((group) => {
+          const builtInValues = (Array.isArray(group.tabs) ? group.tabs : [])
+            .filter((value) => declaredGroups.builtInAssignments.get(value) === group.key);
+          const items = [
+            ...builtInValues.map((value) => tabs.find((tab) => tab.value === value)).filter(Boolean),
+            ...tabs.filter((tab) => tab.group === group.key),
+          ].map((tab) => ({ key: tab.value, label: tab.label }));
+          items.forEach((item) => placedValues.add(item.key));
+          return {
+            key: group.key,
+            label: typeof group.label === 'function' ? group.label(extensionContext) : group.label,
+            items,
+          };
+        })
+        .filter((group) => group.items.length > 0);
+      const extraItems = tabs
+        .filter((tab) => !placedValues.has(tab.value))
+        .map((tab) => ({ key: tab.value, label: tab.label }));
+
+      if (extraItems.length > 0) {
+        mappedGroups.push({
+          key: 'more',
+          label: t('Account.GROUP_MORE', 'More'),
+          items: extraItems,
+        });
+      }
+      return mappedGroups;
+    }
+
     const groupDefinitions = [
       {
         key: 'my-account',
@@ -223,7 +300,7 @@ export function AccountPage({
     }
 
     return mappedGroups.filter((group) => group.items.length > 0);
-  }, [tabs, t]);
+  }, [tabs, t, declaredGroups, user, perms, isSuperUser]);
 
   // 4. Loading & Auth Checks
   if (loading) {

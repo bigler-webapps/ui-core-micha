@@ -136,3 +136,9 @@ changes: a declaration can only hide or regroup tabs, never add one). Verificati
 `accountPage*` / `billingOperatorAccountPage`, `sectionNav*`, `pageTitles`, `checkKitIntegration`, tsc; full suite in
 `ci.yml` on `ci-test/UCM-SHELL-9`. README (with Maana's four groups as the example) + CHANGELOG + minor version by the
 Orchestrator.
+
+Launch evidence: 2026-10-25, model gpt-6-luna, reasoning high, session 01a17286-533c-79e0-98bb-f02d0c4c9d76;
+`RESULT: BLOCKED` only because its single allowed test run failed before its own selector fix (the Orchestrator's run of
+that test is green); `AccountPage.jsx` and the new test only, no commit. Orchestrator: README (new section with
+Maana's example; also corrects the pre-existing `extraTabs` shape to `render`), CHANGELOG, version 4.21.0. Review: all
+five passes without findings.

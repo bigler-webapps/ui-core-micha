@@ -18,10 +18,38 @@ The privacy and cookie consent controls and their submitted values remain availa
 
 ## Account page: extra tabs in a navigation group
 
-An entry of `AccountPage`'s `extraTabs` (`{ value, label, content, visible? }`) may carry an optional `group` naming one of
+An entry of `AccountPage`'s `extraTabs` (`{ value, label, render, visible? }`) may carry an optional `group` naming one of
 the kit's navigation groups: `my-account` (Profile, Security), `management` (Users, Invite) or `help` (Support). The tab
 then appears in that group after the kit's own tabs, in the order of `extraTabs`, in the desktop sidebar and in the
 phone navigation. Without `group`, or with `more` or an unknown value, it stays in "More" as before.
+
+## Account page: app-defined groups
+
+Since 4.21.0 `AccountPage` takes an optional `groups` declaration that replaces the kit's three groups:
+`[{ key, label, order?, tabs?, visible? }]`. `label` is the app's text (or `(context) => string`); groups render by
+`order` (array order when absent); `tabs` places the built-in tabs (`profile`, `security`, `users`, `invite`,
+`support`), each still shown only when its own permission check passes; `extraTabs[].group` may name any declared key.
+`visible(context)` (`context` = `{ user, perms, isSuperUser, t }`, as for `extraTabs`) hides a group and makes its tabs
+unreachable, `?tab=` included. Empty groups are hidden; a tab placed in no declared group lands in "More". Without
+`groups` the hub is unchanged.
+
+```jsx
+<AccountPage
+  groups={[
+    { key: 'personal', label: 'Persönlich', tabs: ['profile', 'security'] },
+    { key: 'collaboration', label: 'Zusammenarbeit', tabs: ['invite'] },
+    { key: 'help', label: 'Hilfe', tabs: ['support'] },
+    { key: 'operations', label: 'Betrieb', tabs: ['users'], visible: ({ user }) => isOperator(user) },
+  ]}
+  extraTabs={[
+    { value: 'subscription', label: 'Abo und Token', group: 'personal', render: () => <Subscription /> },
+    { value: 'teams', label: 'Teams', group: 'collaboration', render: () => <Teams /> },
+    { value: 'all-projects', label: 'Alle Projekte', group: 'operations', render: () => <AllProjects /> },
+  ]}
+/>
+```
+
+Labels are passed already translated (for example `t('Maana.GROUP_PERSONAL')`), so an app's own DE and EN texts apply.
 
 ## Users tab: access column and delete
 
