@@ -1,5 +1,12 @@
 # Changelog
 
+## 4.23.0 - UCM-CHAT-10
+
+`ChatWorkspace` (and `ChatThread`) accept an optional `renderTurnError({ turn, chat, retry })`. For a failed or
+cancelled turn with an error code, a returned node replaces the generic "answer could not be completed" alert; `null`
+(or no prop) keeps the generic alert. `retry` re-sends the turn and is `undefined` where the thread is read-only.
+Interrupted turns and every other state are unchanged.
+
 ## 4.22.0 - UCM-CHAT-9
 
 Chat pieces for the DCM-CHAT-16 server data; without that data nothing changes. `ChatWorkspace` reads the per-user

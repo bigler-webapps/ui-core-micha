@@ -25,10 +25,14 @@ function SourceChips({ sources }) {
   );
 }
 
-function Answer({ turn, tool, onRetry, chat, renderAnswerExtra, usageToTokens, onNavigate }) {
+function Answer({ turn, tool, onRetry, chat, renderAnswerExtra, renderTurnError, usageToTokens, onNavigate }) {
   const { t, i18n } = useTranslation();
   const generating = turn.state === 'generating';
   const failed = ['failed', 'cancelled'].includes(turn.state) && turn.error_code;
+  const turnError = failed && renderTurnError
+    ? renderTurnError({ turn, chat, retry: onRetry ? () => onRetry(turn) : undefined })
+    : null;
+  const hasCustomTurnError = turnError !== null && turnError !== undefined && turnError !== false;
   const replyCaption = (turn) => {
     const tokens = turn.usage && usageToTokens?.(turn.usage);
     if (Number.isInteger(tokens) && tokens >= 0) {
@@ -55,7 +59,7 @@ function Answer({ turn, tool, onRetry, chat, renderAnswerExtra, usageToTokens, o
         </Stack>
       ) : null}
       {failed ? (
-        <Alert severity="error" action={onRetry ? <Button color="inherit" size="small" onClick={() => onRetry(turn)}>{t('Chat.retry')}</Button> : null}>
+        hasCustomTurnError ? turnError : <Alert severity="error" action={onRetry ? <Button color="inherit" size="small" onClick={() => onRetry(turn)}>{t('Chat.retry')}</Button> : null}>
           {t('Chat.answerIncomplete')}
         </Alert>
       ) : null}
@@ -67,7 +71,7 @@ function Answer({ turn, tool, onRetry, chat, renderAnswerExtra, usageToTokens, o
  * The turns of one chat. The streaming answer is simply the last turn in state `generating`; the caller keeps its text
  * up to date. `notice` is a connection or limit message shown under the last turn. `readOnly` (an archived chat) hides Retry.
  */
-export function ChatThread({ turns = [], tool = null, notice = null, hasOlder = false, olderBusy = false, onLoadOlder, onRetry, readOnly = false, sx, chat, renderAnswerExtra, trimmedCount, summary = null, usageToTokens, onNavigate }) {
+export function ChatThread({ turns = [], tool = null, notice = null, hasOlder = false, olderBusy = false, onLoadOlder, onRetry, readOnly = false, sx, chat, renderAnswerExtra, renderTurnError, trimmedCount, summary = null, usageToTokens, onNavigate }) {
   const { t } = useTranslation();
   const end = useRef(null);
   const scroller = useRef(null);
@@ -127,7 +131,7 @@ export function ChatThread({ turns = [], tool = null, notice = null, hasOlder = 
                 {turn.user_text}
               </Typography>
             </Box>
-            <Answer turn={turn} tool={index === turns.length - 1 ? tool : null} onRetry={readOnly ? undefined : onRetry} chat={chat} renderAnswerExtra={renderAnswerExtra} usageToTokens={usageToTokens} onNavigate={onNavigate} />
+            <Answer turn={turn} tool={index === turns.length - 1 ? tool : null} onRetry={readOnly ? undefined : onRetry} chat={chat} renderAnswerExtra={renderAnswerExtra} renderTurnError={renderTurnError} usageToTokens={usageToTokens} onNavigate={onNavigate} />
           </Box>
         );
       })}

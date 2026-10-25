@@ -114,3 +114,9 @@ regression, duplication, tests plus `ui_review`, codex/gpt-6-luna read-only, one
 `sec_review` (no auth surface; the host renders its own node as today with `renderAnswerExtra`). Orchestrator's own
 Envelope pass while the lenses run. Verification: the new test, all `chat*` tests, `packageEntries`, tsc; full suite in
 `ci.yml` on `ci-test/UCM-CHAT-10`. README chat section, CHANGELOG, minor version by the Orchestrator.
+
+Launch evidence: 2026-10-25, model gpt-6-luna, reasoning high, session 01a1739c-9f83-7b00-8952-04c37dbda15d;
+`RESULT: DONE`, `ChatThread.jsx`, `ChatWorkspace.jsx` and the new test only, no commit. No Orchestrator code changes;
+README example, CHANGELOG, version 4.23.0. Orchestrator's Envelope pass (before the lens results): does what Part A
+asked; nothing beyond it; nothing missing (all four required tests plus interrupted and pass-through). Review: all five
+passes without findings, one round.

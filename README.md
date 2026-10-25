@@ -208,6 +208,19 @@ Since 4.22.0, with django-core-micha's DCM-CHAT-16 data:
   app's router, which keeps the chat panel open. External http(s) links open in a new tab, and other schemes stay text.
   `MarkdownReply` takes the same `onNavigate`.
 
+## Shared chat: the app's own failed-turn message
+
+Since 4.23.0 `renderTurnError({ turn, chat, retry })` lets an app replace the generic failed-turn alert for the error
+codes it knows; return `null` for everything else:
+
+```jsx
+<ChatWorkspace
+  renderTurnError={({ turn, retry }) => (turn.error_code === 'prompt_too_long'
+    ? <Alert severity="warning" action={retry ? <Button onClick={retry}>Erneut versuchen</Button> : null}>Gib weniger Interviews frei.</Alert>
+    : null)}
+/>
+```
+
 ## Shared chat: host controls
 
 `ChatWorkspace` (from `@micha.bigler/ui-core-micha/chat`) takes optional props for apps that put UI around the surface;
