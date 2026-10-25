@@ -133,14 +133,14 @@ describe('MarkdownReply links', () => {
 });
 
 describe('ModelPicker estimates', () => {
-  it('shows average cost when present and no average-cost line when absent', async () => {
+  it('no longer shows the average cost per answer in the picker (UCM-CHAT-12)', async () => {
     const entries = [
       { ...catalogue.entries[0], average_cost_usd_micros: 125000 },
       { ...catalogue.entries[0], id: 'free', label: 'Free model', average_cost_usd_micros: null },
     ];
-    render(<ModelPicker entries={entries} selection={selection} sheet />);
+    render(<ModelPicker entries={entries} selection={selection} />);
     fireEvent.click(screen.getByRole('button', { name: /Claude Sonnet/ }));
-    expect(await screen.findByText('Chat.estimatePerAnswer:0.13')).toBeTruthy();
-    expect(screen.getByRole('radio', { name: /Free model/ }).textContent).not.toContain('Chat.estimatePerAnswer');
+    await screen.findByRole('radiogroup');
+    expect(screen.getByRole('radiogroup').textContent).not.toMatch(/estimatePerAnswer|USD/);
   });
 });

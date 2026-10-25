@@ -223,3 +223,29 @@ Verification:
 - the full suite in `ci.yml` on `ci-test/UCM-CHAT-12`.
 
 README, CHANGELOG and the minor version are written by the Orchestrator.
+
+Launch evidence: 2026-10-25, model gpt-6-luna, reasoning high, session 01a1748a-19cf-7a81-922a-fa0160555cd9; `RESULT: DONE`
+(its single test run failed in its own new test helper; it fixed that afterwards without a rerun). Assigned files only,
+no commit.
+
+Orchestrator after the implementer:
+- fixed the remaining helper bug in the new test;
+- updated existing tests outside the picker files for the intended removals (`chatDriverNames`, `chatExtensions`,
+  `chatLimitLinksSteps`, `chatReviewFixes`, `chatTranslations`, `chatWorkspace`);
+- showed token ranges of 1000 or more compactly ("≈ 1,2–2,4k Token", the prototype's form), because the full range
+  made labels wrap at 300 px;
+- corrected the README line about the average cost;
+- wrote the CHANGELOG and set the version to 4.25.0.
+
+Rendered side-by-side in the dev harness (`#chat-compact-composer`), 1280 px popover and 375 px sheet: matches the
+prototype. The selected-row and selected-effort highlight come from the theme, with no new tokens.
+
+Orchestrator's Envelope pass (before the lens results): complete; nothing missing; beyond scope only the compact token
+form, which follows the prototype.
+
+Review, first pass: 2 raised, 2 accepted.
+- envelope R1: the `sheet` prop could force the sheet on wide viewports. Accepted: the prop is removed (no consumer
+  used it), which supersedes the Part B choice to keep it.
+- tests R1: the picker copy was not pinned. Accepted: the values are now pinned.
+
+Single re-run on the corrected diff: all five clean. The round is closed.

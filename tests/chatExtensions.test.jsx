@@ -77,10 +77,11 @@ describe('ChatWorkspace extension arguments and placement', () => {
     expect(thread.contains(screen.getByText('Beside'))).toBe(false);
   });
 
-  it('opens the model picker as a sheet in the compact layout', async () => {
+  it('opens the model picker as a popover in the compact layout on a wide viewport (UCM-CHAT-12)', async () => {
     await launch(makeApi(), { layout: 'compact', sidePanel: () => <div>Side</div> });
     fireEvent.click(screen.getByRole('button', { name: /Model/ }));
-    expect(document.querySelector('.MuiDrawer-paperAnchorBottom')).toBeTruthy();
+    expect(document.querySelector('.MuiDrawer-paperAnchorBottom')).toBeNull();
+    expect(document.querySelector('.MuiPopover-paper')).toBeTruthy();
   });
 
   it('names the side-panel sheet and drops the open chat when the scope changes', async () => {

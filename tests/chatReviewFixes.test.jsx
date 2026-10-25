@@ -30,24 +30,20 @@ const entries = [
   { id: 'cli', label: 'Sonnet 5.5', provider: 'claude_code', level: 'fast', efforts: ['low'], billing: 'subscription', estimate: {} },
   { id: 'odd', label: 'Mystery', level: 'fast', efforts: ['low'], billing: 'pay_per_use', estimate: {} },
 ];
-const digits = (value) => String(value).replace(/\D/g, '');
 
 describe('picker rows', () => {
-  it('shows name, provider and estimate of every entry and no provider for an unknown one', () => {
+  it('shows name and one cost value of every entry and no provider line (UCM-CHAT-12)', () => {
     render(<ModelPicker entries={entries} selection={{ entry: 'top', effort: 'low' }} />);
     fireEvent.click(screen.getByRole('button', { name: /Opus/ }));
     const rows = screen.getAllByRole('radio');
     const text = (index) => rows[index].textContent;
     expect(text(0)).toContain('Opus 5.5');
-    expect(text(0)).toContain('Chat.by Anthropic');
-    expect(digits(text(0))).toContain('55' + '10002000');
+    expect(text(0)).toMatch(/1[^0-9]*2k/); // 1000-2000 tokens shown compactly as "1–2k"
     expect(text(1)).toContain('GPT 6');
-    expect(text(1)).toContain('Chat.by OpenAI');
     expect(rows[1].querySelector('[aria-label="Chat.costScale.2"]')).toBeTruthy();
-    expect(text(2)).toContain('Chat.by Anthropic');
-    expect(text(2)).toContain('Chat.noTokenSubscription');
+    expect(text(2)).toContain('Chat.subscriptionShort');
     expect(text(3)).toContain('Mystery');
-    expect(text(3)).not.toContain('Chat.by');
+    rows.forEach((row) => expect(row.textContent).not.toContain('Chat.by'));
   });
 
   it('is a radio group on the keyboard: only the checked row is a tab stop and arrows move the choice', () => {
@@ -123,19 +119,17 @@ describe('stored selection fallback', () => {
 describe('picker effort options and level purposes', () => {
   it('offers only the efforts of the selected model and follows a change of model', () => {
     const { rerender } = render(<ModelPicker entries={entries} selection={{ entry: 'top', effort: 'low' }} open onOpenChange={() => {}} />);
-    expect(screen.getByRole('button', { name: 'Chat.effort.high' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'High' })).toBeTruthy();
     rerender(<ModelPicker entries={entries} selection={{ entry: 'cli', effort: 'low' }} open onOpenChange={() => {}} />);
-    expect(screen.queryByRole('button', { name: 'Chat.effort.high' })).toBeNull();
-    expect(screen.getByRole('button', { name: 'Chat.effort.low' })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'High' })).toBeNull();
+    expect(screen.getByRole('button', { name: 'Low' })).toBeTruthy();
   });
 
-  it('shows the purpose of every level that has models', () => {
-    const all = ['top', 'best', 'balanced', 'fast'].map((level) => ({ id: level, label: level, provider: 'openai', level, efforts: ['low'] }));
+  it('lists every level in level order without group headings (UCM-CHAT-12)', () => {
+    const all = ['fast', 'best', 'top', 'balanced'].map((level) => ({ id: level, label: level, provider: 'openai', level, efforts: ['low'] }));
     render(<ModelPicker entries={all} selection={{ entry: 'top', effort: 'low' }} open onOpenChange={() => {}} />);
-    for (const level of ['top', 'best', 'balanced', 'fast']) {
-      expect(screen.getByText('Chat.level.' + level)).toBeTruthy();
-      expect(screen.getByText('Chat.levelHint.' + level)).toBeTruthy();
-    }
+    expect(screen.getAllByRole('radio').map((row) => row.textContent)).toEqual(['top', 'best', 'balanced', 'fast']);
+    expect(screen.queryByText(/Chat\.level/)).toBeNull();
   });
 });
 
@@ -226,7 +220,7 @@ describe('failed catalogue load and top effort', () => {
   it('offers Max when the model supports it', () => {
     const maxEntries = [{ id: 'm', label: 'Max model', provider: 'openai', efforts: ['low', 'max'] }];
     render(<ModelPicker entries={maxEntries} selection={{ entry: 'm', effort: 'low' }} open onOpenChange={() => {}} />);
-    expect(screen.getByRole('button', { name: 'Chat.effort.max' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Max' })).toBeTruthy();
   });
 
   it('does not keep the previous catalogue on offer when the new chat catalogue fails to load', async () => {

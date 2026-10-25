@@ -1,5 +1,18 @@
 # Changelog
 
+## 4.25.0 - UCM-CHAT-12
+
+Visible change in every app: the chat model picker is a compact panel. Title "Modell"; a flat model list without
+quality groups or hints; one line per model with one short muted cost value ("Abo", "≈ 2–6k Token" or the cost dots);
+no provider line and no per-answer average cost; effort "Aufwand" with Low · Medium · High · Max in every language and
+no hint sentence; the balance caption stays. The long-conversation alert is no longer inside the picker (the
+composer's notice is unchanged). The panel is a ~300 px popover on wide viewports and a bottom sheet only below `md`,
+whatever the chat container's width: `ChatWorkspace` no longer passes `sheet`, and `ModelPicker`'s `longChat` /
+`onNewChat` props are gone (the explicit `sheet` prop is removed as well). The trigger label and thread captions keep their
+localised effort names. New keys `Chat.subscriptionShort`, `Chat.estimateTokensShort`; `Chat.pickerTitle` shortened;
+removed `Chat.level.*`, `Chat.levelHint.*`, `Chat.by`, `Chat.effortQuestion`, `Chat.effortHint(Tokens)`,
+`Chat.noTokenSubscription`, `Chat.estimateTokens`, `Chat.estimatePerAnswer`.
+
 ## 4.24.0 - UCM-CHAT-11
 
 Visible change in every app: the chat thread no longer shows the "N earlier messages left out" chip. The server

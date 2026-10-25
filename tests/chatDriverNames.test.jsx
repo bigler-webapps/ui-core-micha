@@ -7,7 +7,7 @@ import { I18nextProvider } from 'react-i18next';
 import ModelPicker from '../src/chat/ModelPicker';
 import { chatTranslations } from '../src/i18n/chatTranslations';
 afterEach(cleanup);
-it('uses localized effort labels and provider names without driver groups', async () => {
+it('keeps the localized trigger label; the panel uses provider effort wording without a provider line (UCM-CHAT-12)', async () => {
   const resources = {};
   Object.entries(chatTranslations).forEach(([key, value]) => Object.entries(value).forEach(([locale, text]) => { resources[locale] ||= { translation: {} }; resources[locale].translation[key] = text; }));
   const i18n = i18next.createInstance();
@@ -15,6 +15,8 @@ it('uses localized effort labels and provider names without driver groups', asyn
   render(<I18nextProvider i18n={i18n}><ModelPicker entries={[{ id: 'a', label: 'Sonnet 4.5', provider: 'anthropic', level: 'balanced', efforts: ['high'] }]} selection={{ entry: 'a', effort: 'high' }} /></I18nextProvider>);
   expect(screen.getByRole('button', { name: 'Sonnet · Sehr gründlich ▾' })).toBeTruthy();
   fireEvent.click(screen.getByRole('button', { name: 'Sonnet · Sehr gründlich ▾' }));
-  expect(screen.getByText('von Anthropic')).toBeTruthy();
+  expect(screen.getByText('Modell')).toBeTruthy();
+  expect(screen.getByRole('button', { name: 'High' })).toBeTruthy();
+  expect(screen.queryByText('von Anthropic')).toBeNull();
   expect(screen.queryByRole('group', { name: /driver/i })).toBeNull();
 });

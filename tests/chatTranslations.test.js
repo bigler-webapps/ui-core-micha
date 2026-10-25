@@ -26,8 +26,14 @@ describe('chatTranslations', () => {
     expect(chatTranslations['Chat.sidePanel'].en).toBe('Details');
   });
 
+  it('pins the compact picker copy (UCM-CHAT-12)', () => {
+    expect(chatTranslations['Chat.pickerTitle']).toMatchObject({ de: 'Modell', en: 'Model' });
+    expect(chatTranslations['Chat.subscriptionShort']).toMatchObject({ de: 'Abo', en: 'Subscription' });
+    expect(chatTranslations['Chat.effortLabel']).toMatchObject({ de: 'Aufwand', en: 'Effort' });
+  });
+
   it('includes the redesigned picker copy in all locales', () => {
-    for (const key of ['Chat.pickerTitle', 'Chat.level.top', 'Chat.level.best', 'Chat.level.balanced', 'Chat.level.fast', 'Chat.longChat', 'Chat.summaryUntilHere', 'Chat.replyTokens']) {
+    for (const key of ['Chat.pickerTitle', 'Chat.subscriptionShort', 'Chat.estimateTokensShort', 'Chat.effortLabel', 'Chat.longChat', 'Chat.summaryUntilHere', 'Chat.replyTokens']) {
       for (const locale of LOCALES) expect(chatTranslations[key][locale].trim(), `${key}.${locale}`).not.toBe('');
     }
   });

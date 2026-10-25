@@ -185,7 +185,7 @@ describe('ChatWorkspace wiring', () => {
     const api = makeApi();
     await openChat(api);
     fireEvent.click(screen.getByRole('button', { name: 'Sonnet · Chat.effort.high ▾' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Chat.effort.low' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Low' }));
     await waitFor(() => expect(api.updateChat).toHaveBeenCalledWith(7, { selection: { entry: 'cli-sonnet', effort: 'low' } }));
   });
   it('wires rename, archive and delete of a chat to the endpoints', async () => {

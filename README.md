@@ -203,7 +203,8 @@ Since 4.22.0, with django-core-micha's DCM-CHAT-16 data:
 - `ChatWorkspace` shows the per-user period limit (`GET <apiBase>limit/`) as a meter in the composer and disables the
   composer at the limit with the reset date. Without a limit, or against an older backend, the composer is unchanged.
 - Answers show their stored tool steps after reload.
-- The model picker adds "≈ <cost> USD per answer" when the catalogue sends `average_cost_usd_micros`.
+- Since 4.25.0 (UCM-CHAT-12) the compact model picker no longer shows `average_cost_usd_micros`; each model shows one
+  short cost value ("Abo", a token range or the cost dots).
 - Links in answers are clickable. Pass `onNavigate={(path) => navigate(path)}` to route same-origin links through the
   app's router, which keeps the chat panel open. External http(s) links open in a new tab, and other schemes stay text.
   `MarkdownReply` takes the same `onNavigate`.
