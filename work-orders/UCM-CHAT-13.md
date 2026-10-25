@@ -158,3 +158,34 @@ Measurement:
   Profiler render counts and duration, recorded here.
 - The consumer measurement on a long Maana chat after the pin bump belongs to the Maana QDA session. The baseline on
   Maana staging (4.25.0) is a median of 780 ms and a maximum of 1,140 ms per keystroke.
+
+Launch evidence: 2026-10-26, model gpt-6-luna, reasoning high, session 01a17509-c95c-70b1-b967-5c9cb4e87a03; `RESULT: DONE`
+(its single test run had 2 failures; it fixed them afterwards without a rerun). Assigned files only, no commit.
+
+Orchestrator fixes after the implementer:
+- the duplicate React key between the composer and the `renderComposerExtra` Box (both keyed `chat.id`), which
+  duplicated slot content: the composer is now keyed `composer-<id>`;
+- `draftRequest.seq` restarted at 1 after being cleared, so a second prefill was skipped: it is now a running ref
+  counter;
+- the implementer had made a prefill that arrives with no open chat wait for one; today's behaviour is restored (the
+  prefill is consumed and dropped);
+- two fixes in the new test: the prefill now comes after the chat opens, and the input is re-queried after the keyed
+  remount;
+- CHANGELOG, version 4.26.0.
+
+Measurement (ucm harness bench in jsdom: 50 turns with long Markdown answers, a 50-switch side panel and answer extras;
+20 keystrokes; 3 runs each). React Profiler render time of the workspace subtree per keystroke:
+- median: 20-39 ms before, ~2.4-2.6 ms after;
+- maximum: 76-133 ms before, 3.3-4.6 ms after.
+
+The consumer measurement on Maana after the pin bump is handed to the Maana QDA session.
+
+Orchestrator's Envelope pass (before the lens results): complete; beyond scope only the needed optional props and the
+composer key; nothing missing.
+
+Review, first pass: 1 raised (by the envelope and tests lenses, deduplicated), 1 accepted. The refused-send test did
+not attempt a send; it now makes the socket refuse while Send is enabled.
+
+Single re-run on the corrected diff: all five clean. The round is closed.
+
+`chatSummary` flaked once under local load; it was green alone three times and in the rerun.

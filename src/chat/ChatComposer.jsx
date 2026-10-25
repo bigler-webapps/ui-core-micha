@@ -63,13 +63,28 @@ function UsageLimit({ usageLimit, t, language }) {
   </Stack>;
 }
 
-export function ChatComposer({ value = '', onChange, onSend, onStop, running = false, archived = false, connected = true, inputRef, sx, actions, layout = 'standard', context, notice, usageLimit = null }) {
+export function ChatComposer({ value, onChange, onSend, onStop, running = false, archived = false, connected = true, inputRef, sx, actions, layout = 'standard', context, notice, usageLimit = null, draftRequest, onDraftRequestApplied }) {
   const { t, i18n } = useTranslation();
+  const [internalDraft, setInternalDraft] = React.useState('');
+  const appliedDraftRequest = React.useRef(undefined);
+  const controlled = value !== undefined;
+  const draft = controlled ? value : internalDraft;
+  React.useLayoutEffect(() => {
+    if (controlled || !draftRequest || draftRequest.seq === appliedDraftRequest.current) return;
+    appliedDraftRequest.current = draftRequest.seq;
+    setInternalDraft(typeof draftRequest.text === 'string' ? draftRequest.text : '');
+    onDraftRequestApplied?.(draftRequest.seq);
+  }, [controlled, draftRequest, onDraftRequestApplied]);
   const limitReached = Boolean(usageLimit && usageLimit.usedUsdMicros >= usageLimit.limitUsdMicros);
   const blocked = archived || !connected || limitReached;
   const language = typeof i18n?.language === 'string' ? i18n.language.split('_')[0] || undefined : undefined;
-  const canSend = !running && !blocked && value.trim().length > 0;
-  const submit = () => { if (canSend) onSend?.(); };
+  const canSend = !running && !blocked && draft.trim().length > 0;
+  const changeDraft = (next) => { if (controlled) onChange?.(next); else setInternalDraft(next); };
+  const submit = () => {
+    if (!canSend) return;
+    if (controlled) onSend?.();
+    else if (onSend?.(draft) === true) setInternalDraft('');
+  };
   const handleKeyDown = (event) => {
     if (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent?.isComposing) { event.preventDefault(); submit(); }
   };
@@ -83,10 +98,10 @@ export function ChatComposer({ value = '', onChange, onSend, onStop, running = f
       </Stack>
       <Stack direction="row" alignItems="flex-end" sx={CHAT_COMPOSER_INPUT_ROW_SX}>
         <TextField
-          multiline maxRows={5} variant="outlined" sx={CHAT_COMPOSER_COMPACT_FIELD_SX} size="small" value={value}
+          multiline maxRows={5} variant="outlined" sx={CHAT_COMPOSER_COMPACT_FIELD_SX} size="small" value={draft}
           inputRef={inputRef} disabled={blocked} placeholder={t('Chat.message')}
           slotProps={{ htmlInput: { 'aria-label': t('Chat.message') } }}
-          onChange={(event) => onChange?.(event.target.value)} onKeyDown={handleKeyDown}
+          onChange={(event) => changeDraft(event.target.value)} onKeyDown={handleKeyDown}
         />
         {running
           ? <IconButton aria-label={t('Chat.stopAnswer')} title={t('Chat.stopAnswer')} sx={CHAT_COMPOSER_ACTION_SX} onClick={onStop}><StopIcon /></IconButton>
@@ -97,8 +112,8 @@ export function ChatComposer({ value = '', onChange, onSend, onStop, running = f
   return (
     <Stack direction="row" alignItems="flex-end" flexWrap="wrap" gap={1} sx={{ p: { xs: 1, md: 2 }, borderTop: 1, borderColor: 'divider', ...sx }}>
       {usageLimit ? <Stack flexBasis="100%"><UsageLimit usageLimit={usageLimit} t={t} language={language} /></Stack> : null}
-      <TextField multiline maxRows={6} sx={CHAT_COMPOSER_INPUT_SX} size="small" value={value} inputRef={inputRef} disabled={blocked} placeholder={t('Chat.message')}
-        slotProps={{ htmlInput: { 'aria-label': t('Chat.message') } }} onChange={(event) => onChange?.(event.target.value)} onKeyDown={handleKeyDown} />
+      <TextField multiline maxRows={6} sx={CHAT_COMPOSER_INPUT_SX} size="small" value={draft} inputRef={inputRef} disabled={blocked} placeholder={t('Chat.message')}
+        slotProps={{ htmlInput: { 'aria-label': t('Chat.message') } }} onChange={(event) => changeDraft(event.target.value)} onKeyDown={handleKeyDown} />
       {actions ? <Stack direction="row" alignItems="flex-end">{actions}</Stack> : null}
       {running ? <Button variant="outlined" onClick={onStop}>{t('Chat.stop')}</Button> : null}
       <Button variant="contained" onClick={submit} disabled={!canSend}>{t('Chat.send')}</Button>

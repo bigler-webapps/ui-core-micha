@@ -90,7 +90,8 @@ export function ChatWorkspace({ apiBase, wsUrl, api: apiOverrides, scope, preloa
   const [olderCursor, setOlderCursor] = useState(null);
   const [olderBusy, setOlderBusy] = useState(false);
   const [tool, setTool] = useState(null);
-  const [draft, setDraft] = useState('');
+  const [draftRequest, setDraftRequest] = useState(null);
+  const draftRequestSeq = useRef(0);
   const composerInputRef = useRef(null);
   const lastPrefillId = useRef(undefined);
   const lastSendRequestId = useRef(undefined);
@@ -102,6 +103,9 @@ export function ChatWorkspace({ apiBase, wsUrl, api: apiOverrides, scope, preloa
   sendRequestHandledRef.current = onSendRequestHandled;
   const [focusRequest, setFocusRequest] = useState(0);
   const focusPending = useRef(false);
+  const onDraftRequestApplied = useCallback((seq) => {
+    setDraftRequest((current) => current?.seq === seq ? null : current);
+  }, []);
   const [problem, setProblem] = useState(null);
   const [unavailableReason, setUnavailableReason] = useState(null);
   const [sidePanelOpen, setSidePanelOpen] = useState(false);
@@ -274,7 +278,7 @@ export function ChatWorkspace({ apiBase, wsUrl, api: apiOverrides, scope, preloa
   useLayoutEffect(() => {
     connectedChatId.current = null; // the socket of the new chat has not opened yet
     shownChatId.current = chat?.id ?? null;
-    setTurns([]); setOlderCursor(null); setTool(null); setProblem(null); setSidePanelOpen(false); setDraft(''); setOpenedOnce(false); setSummary(null);
+    setTurns([]); setOlderCursor(null); setTool(null); setProblem(null); setSidePanelOpen(false); setOpenedOnce(false); setSummary(null);
   }, [chat?.id]);
 
   useEffect(() => {
@@ -323,7 +327,9 @@ export function ChatWorkspace({ apiBase, wsUrl, api: apiOverrides, scope, preloa
     if (wanted !== null && String(chat?.id) !== wanted && !unloadableIds.current.has(wanted)) return;
     lastPrefillId.current = composerPrefill.id;
     if (!chat || isArchived) return;
-    setDraft(composerPrefill.text);
+    // A running counter: the request is cleared once applied, and the next one must still carry a new sequence number.
+    draftRequestSeq.current += 1;
+    setDraftRequest({ seq: draftRequestSeq.current, text: composerPrefill.text, chatId: chat.id });
     focusPending.current = true;
     setFocusRequest((count) => count + 1);
   }, [composerPrefill, chat, isArchived, activeChatId]);
@@ -442,7 +448,6 @@ export function ChatWorkspace({ apiBase, wsUrl, api: apiOverrides, scope, preloa
   const answerExtra = renderAnswerExtra
     ? (args) => renderAnswerExtra({ ...args, send: sendFromSlot, canSend: canSendFromSlot })
     : undefined;
-  const send = () => { if (startTurn(draft)) setDraft(''); };
   const retry = (turn) => {
     if (!socket.connected) return;
     if (startTurn(turn.user_text)) setTurns((current) => current.filter((item) => item.id !== turn.id));
@@ -517,12 +522,12 @@ export function ChatWorkspace({ apiBase, wsUrl, api: apiOverrides, scope, preloa
             {isArchived ? <Typography variant="caption" color="text.secondary" sx={{ px: 2, pb: 1 }}>{t('Chat.archivedReadOnly')}</Typography> : null}
             {renderComposerExtra ? <Box key={chat.id}>{renderComposerExtra({ chat })}</Box> : null}
             {composerLayout !== 'compact' && longChat ? <Alert severity="info" action={<Button color="inherit" size="small" onClick={createChat}>{t('Chat.newConversation')}</Button>}>{t('Chat.longChat')}</Alert> : null}
-            <ChatComposer layout={composerLayout} context={composerLayout === 'compact' ? renderComposerContext?.({ chat }) : undefined}
+            <ChatComposer key={`composer-${chat.id}`} layout={composerLayout} context={composerLayout === 'compact' ? renderComposerContext?.({ chat }) : undefined}
               notice={composerLayout === 'compact' && longChat && !dismissedComposerNotices.has(`${chat.id}:long-chat`) ? {
                 id: 'long-chat', text: t('Chat.longChatShort'), action: t('Chat.newChat'), onAction: createChat,
                 onDismiss: () => setDismissedComposerNotices((current) => new Set(current).add(`${chat.id}:long-chat`)),
               } : null}
-              value={draft} onChange={setDraft} onSend={send} onStop={() => socket.send({ type: 'stop' })} running={running} archived={isArchived} connected={socket.connected} inputRef={composerInputRef} usageLimit={usageLimit}
+              draftRequest={draftRequest?.chatId === chat.id ? draftRequest : null} onDraftRequestApplied={onDraftRequestApplied} onSend={(text) => startTurn(text)} onStop={() => socket.send({ type: 'stop' })} running={running} archived={isArchived} connected={socket.connected} inputRef={composerInputRef} usageLimit={usageLimit}
               actions={<ModelPicker entries={catalogue.entries} selection={selection} disabled={isArchived || running || (catalogueLoading && catalogueChatId !== chat.id)} open={pickerOpen} onOpenChange={setPickerOpen} onChange={(next) => updateChat(chat, { selection: next })} balance={tokenBalance} shortLabel={composerLayout === 'compact'} />} />
           </>
         ) : (

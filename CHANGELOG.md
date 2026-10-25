@@ -1,5 +1,15 @@
 # Changelog
 
+## 4.26.0 - UCM-CHAT-13
+
+Typing in `ChatWorkspace` re-renders only the composer: the draft now lives in `ChatComposer`, so a keystroke no
+longer re-renders the thread, `renderAnswerExtra`, `renderComposerContext` / `renderComposerExtra` or `sidePanel`
+(Maana staging, 4.25.0: 780 ms median per keystroke in a ~50-turn chat with the side panel open). `ChatComposer` is
+uncontrolled when `value` is not given — `onSend(text)` then receives the text and the draft clears when it returns
+`true` — and new optional `draftRequest` (`{ seq, text }`) / `onDraftRequestApplied` carry a host prefill; with
+`value`/`onChange` it stays controlled as before. Prefill, focus, send/clear, chat switch, Enter/Shift+Enter, Stop and
+the blocked states are unchanged.
+
 ## 4.25.0 - UCM-CHAT-12
 
 Visible change in every app: the chat model picker is a compact panel. Title "Modell"; a flat model list without
