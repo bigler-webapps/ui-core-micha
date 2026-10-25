@@ -78,7 +78,7 @@ Placeholder — dispatch-blocking. To be filled by the Orchestrator.
 
 STOP — this part is not an instruction to the implementer.
 
-Gate #1 pending: the operator approves the prototype and the copy list in the Maana Expertenchat (session
-local_cbfc9d51-5217-42a4-99ba-27a315c854ce). Tier 3 · Prototyp: all reviewer lenses and `ui_reviewer`; the rendered
+Gate #1 approved by the operator on 2026-10-25 in the Maana Expertenchat (session
+local_cbfc9d51-5217-42a4-99ba-27a315c854ce), prototype and copy list included. Tier 3 · Prototyp: all reviewer lenses and `ui_reviewer`; the rendered
 375/1280 side-by-side against the prototype is a commit gate. Same files as UCM-CHAT-11 (`ChatWorkspace.jsx`
 `sheet` wiring): land UCM-CHAT-11 first. Publish a minor release and report the version.
