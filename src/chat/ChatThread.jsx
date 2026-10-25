@@ -5,7 +5,6 @@ import MarkdownReply from './MarkdownReply';
 
 export const CHAT_THREAD_TOOL_CHIP_SX = { alignSelf: 'flex-start' };
 export const CHAT_THREAD_NOTICE_SX = { mb: 2 };
-export const CHAT_THREAD_TRIMMED_SX = { mb: 1.5 };
 export const CHAT_THREAD_TOOL_STEPS_SX = { alignItems: 'flex-start' };
 
 const selectionLine = (turn, t) => [turn.model, turn.effort && t(`Chat.effort.${turn.effort}`)].filter(Boolean).join(' · ');
@@ -71,7 +70,7 @@ function Answer({ turn, tool, onRetry, chat, renderAnswerExtra, renderTurnError,
  * The turns of one chat. The streaming answer is simply the last turn in state `generating`; the caller keeps its text
  * up to date. `notice` is a connection or limit message shown under the last turn. `readOnly` (an archived chat) hides Retry.
  */
-export function ChatThread({ turns = [], tool = null, notice = null, hasOlder = false, olderBusy = false, onLoadOlder, onRetry, readOnly = false, sx, chat, renderAnswerExtra, renderTurnError, trimmedCount, summary = null, usageToTokens, onNavigate }) {
+export function ChatThread({ turns = [], tool = null, notice = null, hasOlder = false, olderBusy = false, onLoadOlder, onRetry, readOnly = false, sx, chat, renderAnswerExtra, renderTurnError, summary = null, usageToTokens, onNavigate }) {
   const { t } = useTranslation();
   const end = useRef(null);
   const scroller = useRef(null);
@@ -136,7 +135,6 @@ export function ChatThread({ turns = [], tool = null, notice = null, hasOlder = 
         );
       })}
       {!summaryRendered ? renderSummary() : null}
-      {trimmedCount ? <Chip size="small" variant="outlined" label={t(trimmedCount === 1 ? 'Chat.historyTrimmed_one' : 'Chat.historyTrimmed_other', { count: trimmedCount })} sx={CHAT_THREAD_TRIMMED_SX} /> : null}
       {notice ? (
         <Alert
           severity={notice.severity || 'warning'}

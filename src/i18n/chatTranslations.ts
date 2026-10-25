@@ -63,8 +63,6 @@ export const chatTranslations = {
   'Chat.toolSteps': { de: 'Verwendete Werkzeuge', en: 'Tools used', fr: 'Outils utilisés', sw: 'Zana zilizotumika' },
   'Chat.answerIncomplete': { de: 'Die Antwort konnte nicht abgeschlossen werden.', en: 'The answer could not be completed.', fr: 'La réponse n’a pas pu être terminée.', sw: 'Jibu halikuweza kukamilishwa.' },
   'Chat.notAvailableHere': { de: 'Der Assistent ist hier nicht verfügbar.', en: 'The assistant is not available here.', fr: 'L’assistant n’est pas disponible ici.', sw: 'Msaidizi hapatikani hapa.' },
-  'Chat.historyTrimmed_one': { de: '{{count}} frühere Nachricht wurde ausgelassen', en: '{{count}} earlier message left out', fr: '{{count}} message précédent omis', sw: 'Ujumbe {{count}} wa awali umeachwa' },
-  'Chat.historyTrimmed_other': { de: '{{count}} frühere Nachrichten wurden ausgelassen', en: '{{count}} earlier messages left out', fr: '{{count}} messages précédents omis', sw: 'Ujumbe {{count}} wa awali umeachwa' },
   'Chat.sidePanel': { de: 'Details', en: 'Details', fr: 'Détails', sw: 'Maelezo' },
   'Chat.unavailable': { de: 'Chat ist nicht verfügbar', en: 'Chat is not available', fr: 'Le chat n’est pas disponible', sw: 'Mazungumzo hayapatikani' },
   'Chat.noModel': { de: 'Auf diesem Server ist kein Sprachmodell konfiguriert.', en: 'No language model is configured on this server.', fr: 'Aucun modèle de langage n’est configuré sur ce serveur.', sw: 'Hakuna modeli ya lugha iliyosanidiwa kwenye seva hii.' },

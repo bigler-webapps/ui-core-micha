@@ -1,5 +1,13 @@
 # Changelog
 
+## 4.24.0 - UCM-CHAT-11
+
+Visible change in every app: the chat thread no longer shows the "N earlier messages left out" chip. The server
+still trims the history and still sends the `history_trimmed` notice; `ChatWorkspace` ignores it. Removed with it:
+the `ChatThread` prop `trimmedCount` (an old caller passing it sees no effect), the export `CHAT_THREAD_TRIMMED_SX`,
+the public kit-sx registry entry `ChatThread.trimmed` in `CHAT_KIT_SX_REGISTRY`, `CHAT_NOTICE_CODES`, and the keys
+`Chat.historyTrimmed_one` / `_other`. No consuming app (maana, cockpit, hram, survey_app) referenced any of them.
+
 ## 4.23.0 - UCM-CHAT-10
 
 `ChatWorkspace` (and `ChatThread`) accept an optional `renderTurnError({ turn, chat, retry })`. For a failed or

@@ -76,3 +76,10 @@ Work from this package; do not explore broadly. Part A is the authoritative spec
 STOP — this part is not an instruction to the implementer.
 
 Gate #1 approved by the operator on 2026-10-25 in the Maana Expertenchat (session local_cbfc9d51-5217-42a4-99ba-27a315c854ce). Tier 3: all reviewer lenses (envelope, regression, duplication, tests) and `ui_reviewer`; no `sec_review` (no auth surface). Review is ONE round plus ONE re-run on the corrected diff (AGENTS.md → Reviews "One round, not a cycle"); only a blocker holds the commit. The Orchestrator reads the diff against the Envelope itself while the lenses run. Evidence: a `ci-test/UCM-CHAT-11` run via `ci-proof.py push` then `ci-proof.py dispatch`. Minor release 4.24.0 (current version 4.23.0) by push to `main` (the register row is filled in a second commit after the landing commit, both in one push); the release note (CHANGELOG, Orchestrator) names the removed public sx registry entry `ChatThread.trimmed` and the removed export `CHAT_THREAD_TRIMMED_SX`; consumers searched: no reference in maana, cockpit, hram or survey_app sources. Do NOT start UCM-CHAT-12 (compact model picker): its Gate #1 is pending; it lands after this order. Report to the Maana Expertenchat session `local_cbfc9d51-5217-42a4-99ba-27a315c854ce` with the released version.
+
+Handover (2026-10-25): mapped and dispatched (codex/gpt-6-luna) by the session "UCM Implementierung"; the operator
+then assigned the order to the Orchestrator session "UCM-AUTH-14 auth integration", and the first session closed. Its
+Luna run's RESULT line was not observed; the tree was quiet for 3 minutes before the takeover, and the inherited diff
+was checked against this map: every removal and every required test is present, nothing beyond scope. Orchestrator:
+CHANGELOG, version 4.24.0. Orchestrator's Envelope pass (before the lens results): complete, nothing beyond scope,
+nothing missing. Review: all five passes without findings, one round.

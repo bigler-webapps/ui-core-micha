@@ -7,4 +7,3 @@ export const chatApiUrls = (base = '/api/assistant/') => {
 export const defaultChatWsUrl = (chatId) => (window.location.protocol === 'https:' ? 'wss:' : 'ws:') + '//' + window.location.host + '/ws/assistant/chats/' + encodeURIComponent(chatId) + '/';
 
 export const CHAT_FRAME_TYPES = { APP: 'app', NOTICE: 'notice' };
-export const CHAT_NOTICE_CODES = { HISTORY_TRIMMED: 'history_trimmed' };
