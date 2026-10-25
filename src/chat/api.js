@@ -12,6 +12,7 @@ export function createChatApi(overrides = {}, { apiBase = '/api/assistant/' } = 
     deleteChat: (id) => data(apiClient.delete(urls.chat(id))),
     listTurns: (id, { cursor } = {}) => data(apiClient.get(urls.turns(id), { params: cursor ? { cursor } : {} })),
     getStatus: ({ scope } = {}) => data(scope !== undefined ? apiClient.get(urls.status, { params: { scope } }) : apiClient.get(urls.status)),
+    getLimit: () => data(apiClient.get(urls.limit)),
   };
   return { ...defaults, ...overrides };
 }

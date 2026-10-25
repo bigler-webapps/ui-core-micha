@@ -27,12 +27,15 @@ describe('MarkdownReply', () => {
     expect(container.textContent).toContain('<script>');
   });
 
-  it('does not load an image reference and does not link', () => {
+  it('does not load an image reference and opens an external link in a new tab', () => {
+    // UCM-CHAT-9: links are clickable now; external ones open in a new tab.
     const { container } = render(<MarkdownReply text={'![the chart](https://img.example.test/a.png) and [docs](https://docs.example.test)'} />);
     expect(container.querySelector('img')).toBeNull();
-    expect(container.querySelector('a')).toBeNull();
     expect(container.textContent).toContain('the chart');
-    expect(container.textContent).toContain('docs (https://docs.example.test)');
+    const link = container.querySelector('a');
+    expect(link.textContent).toBe('docs');
+    expect(link.getAttribute('target')).toBe('_blank');
+    expect(link.getAttribute('rel')).toBe('noopener noreferrer');
   });
 });
 

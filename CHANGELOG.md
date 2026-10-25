@@ -1,5 +1,16 @@
 # Changelog
 
+## 4.22.0 - UCM-CHAT-9
+
+Chat pieces for the DCM-CHAT-16 server data; without that data nothing changes. `ChatWorkspace` reads the per-user
+period limit (`api.getLimit()`, `GET <apiBase>limit/`; a missing route counts as no limit) and passes it to
+`ChatComposer`'s new `usageLimit` prop: a usage meter ("<used> of <limit> USD") below the limit, and at the limit a
+disabled composer with "Monthly/Daily limit reached" and the reset date. Answers keep their stored tool steps
+(`turn.tool_steps`) as chips after reload. The model picker shows "≈ <cost> USD per answer" from
+`average_cost_usd_micros`. Visible change in every app: Markdown links in answers are links now. App links
+(same origin) go through the new `ChatWorkspace` / `MarkdownReply` prop `onNavigate(path)` when given, external http(s)
+links open in a new tab, and every other scheme stays text as before.
+
 ## 4.21.0 - UCM-SHELL-9
 
 `AccountPage` accepts an optional `groups` declaration (`[{ key, label, order?, tabs?, visible? }]`) that replaces the

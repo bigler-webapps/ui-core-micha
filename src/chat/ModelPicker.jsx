@@ -62,10 +62,13 @@ export function ModelPicker({ entries = [], selection, onChange, disabled = fals
   const entryRow = (entry) => {
     const shown = supported(entry, effort) ? effort : entry.efforts?.[0];
     const estimate = estimateText(entry, shown, t, language);
+    const averageCost = Number.isInteger(entry.average_cost_usd_micros) && entry.average_cost_usd_micros >= 0
+      ? t('Chat.estimatePerAnswer', { cost: new Intl.NumberFormat(language, { maximumSignificantDigits: 2 }).format(entry.average_cost_usd_micros / 1000000) })
+      : null;
     const provider = providerName(entry);
     const checked = entry.id === active?.id;
     return <ListItemButton key={entry.id} role="radio" aria-checked={checked} tabIndex={checked ? 0 : -1} data-model-entry={entry.id} selected={checked} sx={CHAT_MODEL_ENTRY_SX} onClick={() => selectEntry(entry)}>
-      <ListItemText primary={<Typography variant="body2" sx={{ fontWeight: 600 }}>{entry.label || entry.model}</Typography>} secondary={<>{provider ? t('Chat.by', { provider }) : null}{estimate ? <Box component="span" sx={{ display: 'block' }}>{estimate}</Box> : null}</>} />
+      <ListItemText primary={<Typography variant="body2" sx={{ fontWeight: 600 }}>{entry.label || entry.model}</Typography>} secondary={<>{provider ? t('Chat.by', { provider }) : null}{estimate ? <Box component="span" sx={{ display: 'block' }}>{estimate}</Box> : null}{averageCost ? <Box component="span" sx={{ display: 'block' }}>{averageCost}</Box> : null}</>} />
     </ListItemButton>;
   };
   // Radio-group keyboard behaviour: arrows move the focus and the choice, only the checked row is a tab stop.

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Button, IconButton, Stack, TextField } from '@mui/material';
+import { Box, Button, IconButton, LinearProgress, Stack, TextField, Typography } from '@mui/material';
 import SendIcon from '@mui/icons-material/Send';
 import StopIcon from '@mui/icons-material/Stop';
 import CloseIcon from '@mui/icons-material/Close';
@@ -33,6 +33,7 @@ export const CHAT_COMPOSER_NOTICE_SX = { display: 'flex', alignItems: 'center', 
 export const CHAT_COMPOSER_NOTICE_TEXT_SX = { minWidth: 0, flex: '1 1 auto', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' };
 export const CHAT_COMPOSER_NOTICE_ACTION_SX = { flex: '0 0 auto', minWidth: 0, p: 0.25, whiteSpace: 'nowrap' };
 export const CHAT_COMPOSER_NOTICE_CLOSE_SX = { width: 28, height: 28, flex: '0 0 28px' };
+export const CHAT_COMPOSER_USAGE_METER_SX = { height: 3 };
 
 function CompactNotice({ notice, t }) {
   if (!notice) return null;
@@ -47,9 +48,26 @@ function CompactNotice({ notice, t }) {
   );
 }
 
-export function ChatComposer({ value = '', onChange, onSend, onStop, running = false, archived = false, connected = true, inputRef, sx, actions, layout = 'standard', context, notice }) {
-  const { t } = useTranslation();
-  const blocked = archived || !connected;
+function UsageLimit({ usageLimit, t, language }) {
+  if (!usageLimit) return null;
+  const format = (micros) => new Intl.NumberFormat(language, { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(micros / 1000000);
+  const reached = usageLimit.usedUsdMicros >= usageLimit.limitUsdMicros;
+  const date = new Date(usageLimit.resetsAt);
+  const resetDate = Number.isNaN(date.getTime()) ? usageLimit.resetsAt : new Intl.DateTimeFormat(language, { dateStyle: 'medium' }).format(date);
+  const usageText = t('Chat.limitUsage', { used: format(usageLimit.usedUsdMicros), limit: format(usageLimit.limitUsdMicros) });
+  return <Stack spacing={0.5}>
+    {reached
+      ? <><Typography variant="caption" color="text.secondary">{t(`Chat.limitReached.${usageLimit.period}`)}</Typography><Typography variant="caption" color="text.secondary">{t('Chat.limitResets', { date: resetDate })}</Typography></>
+      : <Typography variant="caption" color="text.secondary">{usageText}</Typography>}
+    <LinearProgress variant="determinate" aria-label={usageText} value={reached ? 100 : Math.min(100, (usageLimit.usedUsdMicros / usageLimit.limitUsdMicros) * 100)} sx={CHAT_COMPOSER_USAGE_METER_SX} />
+  </Stack>;
+}
+
+export function ChatComposer({ value = '', onChange, onSend, onStop, running = false, archived = false, connected = true, inputRef, sx, actions, layout = 'standard', context, notice, usageLimit = null }) {
+  const { t, i18n } = useTranslation();
+  const limitReached = Boolean(usageLimit && usageLimit.usedUsdMicros >= usageLimit.limitUsdMicros);
+  const blocked = archived || !connected || limitReached;
+  const language = typeof i18n?.language === 'string' ? i18n.language.split('_')[0] || undefined : undefined;
   const canSend = !running && !blocked && value.trim().length > 0;
   const submit = () => { if (canSend) onSend?.(); };
   const handleKeyDown = (event) => {
@@ -58,6 +76,7 @@ export function ChatComposer({ value = '', onChange, onSend, onStop, running = f
   if (layout === 'compact') return (
     <Stack sx={sx ? [CHAT_COMPOSER_COMPACT_ROOT_SX, sx] : CHAT_COMPOSER_COMPACT_ROOT_SX}>
       <CompactNotice notice={notice} t={t} />
+      <UsageLimit usageLimit={usageLimit} t={t} language={language} />
       <Stack direction="row" alignItems="center" sx={CHAT_COMPOSER_CONTEXT_ROW_SX}>
         <Box sx={CHAT_COMPOSER_CONTEXT_SX}>{context}</Box>
         {actions ? <Box sx={CHAT_COMPOSER_CONTEXT_ACTIONS_SX}>{actions}</Box> : null}
@@ -77,6 +96,7 @@ export function ChatComposer({ value = '', onChange, onSend, onStop, running = f
   );
   return (
     <Stack direction="row" alignItems="flex-end" flexWrap="wrap" gap={1} sx={{ p: { xs: 1, md: 2 }, borderTop: 1, borderColor: 'divider', ...sx }}>
+      {usageLimit ? <Stack flexBasis="100%"><UsageLimit usageLimit={usageLimit} t={t} language={language} /></Stack> : null}
       <TextField multiline maxRows={6} sx={CHAT_COMPOSER_INPUT_SX} size="small" value={value} inputRef={inputRef} disabled={blocked} placeholder={t('Chat.message')}
         slotProps={{ htmlInput: { 'aria-label': t('Chat.message') } }} onChange={(event) => onChange?.(event.target.value)} onKeyDown={handleKeyDown} />
       {actions ? <Stack direction="row" alignItems="flex-end">{actions}</Stack> : null}

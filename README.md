@@ -196,6 +196,18 @@ closed for that chat until the page reloads, and another chat shows it again. `r
 above the composer. Without `composerLayout` the composer is unchanged. `ChatComposer` takes the same `layout`,
 `context` and `notice` props directly; `ModelPicker` takes `shortLabel`.
 
+## Shared chat: limit, links, tool steps, estimates
+
+Since 4.22.0, with django-core-micha's DCM-CHAT-16 data:
+
+- `ChatWorkspace` shows the per-user period limit (`GET <apiBase>limit/`) as a meter in the composer and disables the
+  composer at the limit with the reset date. Without a limit, or against an older backend, the composer is unchanged.
+- Answers show their stored tool steps after reload.
+- The model picker adds "≈ <cost> USD per answer" when the catalogue sends `average_cost_usd_micros`.
+- Links in answers are clickable. Pass `onNavigate={(path) => navigate(path)}` to route same-origin links through the
+  app's router, which keeps the chat panel open. External http(s) links open in a new tab, and other schemes stay text.
+  `MarkdownReply` takes the same `onNavigate`.
+
 ## Shared chat: host controls
 
 `ChatWorkspace` (from `@micha.bigler/ui-core-micha/chat`) takes optional props for apps that put UI around the surface;

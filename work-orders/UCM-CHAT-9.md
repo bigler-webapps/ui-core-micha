@@ -179,3 +179,15 @@ Work from this package; do not explore broadly.
   tests plus `ui_review` and `sec_review` (link rendering), codex/gpt-6-luna read-only. Verification: the new test, all
   `chat*` tests, `packageEntries`, `checkKitIntegration`, tsc; full suite in `ci.yml` on `ci-test/UCM-CHAT-9`. README
   chat section, CHANGELOG, minor version by the Orchestrator.
+- Launch evidence: 2026-10-25, model gpt-6-luna, reasoning high, session 01a172f4-2160-7701-bb2d-74b6a8637f26;
+  `RESULT: DONE`, only the assigned files, no commit. Orchestrator fixes before review:
+  - App links are classified by the resolved origin and rendered as the normalised path; the raw prefix check would
+    have accepted `/\host`.
+  - The standard-layout meter container renders only with `usageLimit`.
+  - The estimate is formatted with two significant digits.
+  - The `chatThread` link test is updated: links are intentionally clickable now (Envelope point 2).
+  - README, CHANGELOG, version 4.22.0.
+- Review: `envelope` and `sec_review` without findings. Accepted: `ui_review` U1 (the meter has an accessible name; not
+  re-reviewed). Not accepted, raised by three lenses: bare-relative (`./x`, `settings`) and protocol-relative (`//host`)
+  links stay text. This is the Envelope rule (only http(s) and app-relative links) and the Part B classification: a
+  page-relative link in a panel answer would depend on the page the panel happens to be open on.

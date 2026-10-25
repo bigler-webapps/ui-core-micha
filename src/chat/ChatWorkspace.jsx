@@ -57,7 +57,7 @@ const appendDelta = (turns, text) => {
  * calls; every function not given keeps its default), `scope` (passed when creating a chat),
  * `preloadedChats` (optional active-list response `{ scope, results, next }` already loaded for that exact scope), `sx`.
  */
-export function ChatWorkspace({ apiBase, wsUrl, api: apiOverrides, scope, preloadedChats, sx, unavailableReasonText, sidePanel, sidePanelLabel, renderAnswerExtra, renderComposerExtra, composerLayout = 'standard', renderComposerContext, onAppFrame, activeChatId, onActiveChatChange, composerPrefill, getSendContext, sendRequest, onSendRequestHandled, layout = 'viewport', compactBelow = 720, tokenBalance = null, usageToTokens, longChatTokens = 40000 }) {
+export function ChatWorkspace({ apiBase, wsUrl, api: apiOverrides, scope, preloadedChats, sx, unavailableReasonText, sidePanel, sidePanelLabel, renderAnswerExtra, renderComposerExtra, composerLayout = 'standard', renderComposerContext, onAppFrame, onNavigate, activeChatId, onActiveChatChange, composerPrefill, getSendContext, sendRequest, onSendRequestHandled, layout = 'viewport', compactBelow = 720, tokenBalance = null, usageToTokens, longChatTokens = 40000 }) {
   const { t } = useTranslation();
   const theme = useTheme();
   const viewportNarrow = useMediaQuery(theme.breakpoints.down('md'));
@@ -77,6 +77,7 @@ export function ChatWorkspace({ apiBase, wsUrl, api: apiOverrides, scope, preloa
 
   const [catalogue, setCatalogue] = useState({ entries: [], default: null });
   const [summary, setSummary] = useState(null);
+  const [usageLimit, setUsageLimit] = useState(null);
   // The chat the current catalogue was requested for: a general catalogue must never drive the stored selection of a chat.
   const [catalogueChatId, setCatalogueChatId] = useState(null);
   const [chats, setChats] = useState([]);
@@ -120,6 +121,7 @@ export function ChatWorkspace({ apiBase, wsUrl, api: apiOverrides, scope, preloa
 
   const running = turns.some(isGenerating);
   const isArchived = Boolean(chat?.archived_at);
+  const usageLimitReached = Boolean(usageLimit && usageLimit.usedUsdMicros >= usageLimit.limitUsdMicros);
   const selection = chat?.selection || catalogue.default;
   const activeEntry = catalogue.entries.find((entry) => entry.id === selection?.entry);
   const latestUsageTurn = [...turns].reverse().find((turn) => turn.usage);
@@ -147,7 +149,28 @@ export function ChatWorkspace({ apiBase, wsUrl, api: apiOverrides, scope, preloa
 
   // Bumped on every scope change so that a list response of the previous scope is dropped.
   const scopeVersion = useRef(0);
-  useEffect(() => { scopeVersion.current += 1; setChat(null); setListsLoaded(false); appliedId.current = undefined; unloadableIds.current.clear(); }, [scope]);
+  const limitRequest = useRef(0);
+  const refreshLimit = useCallback(async (chatId) => {
+    const request = ++limitRequest.current;
+    const version = scopeVersion.current;
+    const current = () => request === limitRequest.current && version === scopeVersion.current
+      && (chatId === undefined || String(shownChatId.current) === String(chatId));
+    try {
+      const data = await api.getLimit();
+      if (!current()) return;
+      if (!data || !['day', 'month'].includes(data.period)
+        || !Number.isInteger(data.limit_usd_micros) || data.limit_usd_micros < 0
+        || !Number.isInteger(data.used_usd_micros) || data.used_usd_micros < 0
+        || typeof data.resets_at !== 'string') {
+        setUsageLimit(null);
+        return;
+      }
+      setUsageLimit({ period: data.period, limitUsdMicros: data.limit_usd_micros, usedUsdMicros: data.used_usd_micros, resetsAt: data.resets_at });
+    } catch {
+      if (current()) setUsageLimit(null);
+    }
+  }, [api]);
+  useEffect(() => { scopeVersion.current += 1; limitRequest.current += 1; setUsageLimit(null); setChat(null); setListsLoaded(false); appliedId.current = undefined; unloadableIds.current.clear(); }, [scope]);
 
   const loadLists = useCallback(async ({ initial = false, preloaded } = {}) => {
     const version = scopeVersion.current;
@@ -191,6 +214,7 @@ export function ChatWorkspace({ apiBase, wsUrl, api: apiOverrides, scope, preloa
           setUnavailableReason(state.reason || null);
           return;
         }
+        refreshLimit();
         Promise.all([catalogueRequest, listsRequest]).then(([entries, lists]) => {
           if (!live || lists === undefined) return;
           const { active, old } = lists;
@@ -205,7 +229,7 @@ export function ChatWorkspace({ apiBase, wsUrl, api: apiOverrides, scope, preloa
       })
       .catch(() => { if (live) setStatus('error'); });
     return () => { live = false; };
-  }, [api, loadLists, scope]);
+  }, [api, loadLists, refreshLimit, scope]);
 
   useEffect(() => { if (chat?.id !== undefined) refreshCatalogue(chat.id); }, [chat?.id, refreshCatalogue]);
   useEffect(() => { if (pickerOpen) refreshCatalogue(chat?.id); }, [pickerOpen]);
@@ -277,13 +301,15 @@ export function ChatWorkspace({ apiBase, wsUrl, api: apiOverrides, scope, preloa
       setTool(null);
       setTurns((current) => { const pending = current.findLast(isGenerating); return settleTurn(current, { ...frame.turn, appFrames: pending?.appFrames || [] }); });
       refreshCatalogue(chatId);
+      refreshLimit(chatId);
       if (frame.turn.error_code === 'quota_exceeded') setProblem('quota_exceeded');
     } else if (frame.type === 'error') {
       setTool(null);
       setTurns((current) => failGenerating(current, frame.code));
       setProblem(frame.code); if (frame.code === 'unavailable') setUnavailableReason(frame.reason || unavailableReason);
+      if (frame.code === 'quota_exceeded') refreshLimit(chatId);
     }
-  }, [chat?.id, api, refreshCatalogue]);
+  }, [chat?.id, api, refreshCatalogue, refreshLimit]);
   const onOpen = useCallback((chatId) => { connectedChatId.current = String(chatId); setOpenedOnce(true); setProblem((current) => (current === 'connection_lost' ? null : current)); }, []);
   const onClose = useCallback(({ reason, retrying }) => { connectedChatId.current = null; if (!retrying) setProblem(reason); }, []);
   const socket = useChatSocket(chat?.id, { wsUrl, onFrame, onOpen, onClose });
@@ -427,7 +453,7 @@ export function ChatWorkspace({ apiBase, wsUrl, api: apiOverrides, scope, preloa
       session_ended: 'Chat.sessionEnded', access_lost: 'Chat.accessLost', rate_limited: 'Chat.rateLimited',
       load_error: 'Chat.loadError', action_error: 'Chat.actionError',
     };
-    if (problem === 'quota_exceeded') {
+    if (problem === 'quota_exceeded' && !usageLimitReached) {
       return { text: t('Chat.usageLimit', { model: activeEntry?.label || activeEntry?.model || '' }), action: { label: t('Chat.changeModel'), onClick: () => setPickerOpen(true) } };
     }
     if (problem === 'connection_lost') return { text: t('Chat.connectionLost'), action: { label: t('Chat.reconnect'), onClick: socket.reconnect } };
@@ -487,7 +513,7 @@ export function ChatWorkspace({ apiBase, wsUrl, api: apiOverrides, scope, preloa
         </Stack>
         {chat ? (
           <>
-            <ChatThread turns={turns} chat={chat} renderAnswerExtra={answerExtra} trimmedCount={trimmedCount} tool={tool} notice={noticeFor()} hasOlder={Boolean(olderCursor)} olderBusy={olderBusy} onLoadOlder={loadOlder} onRetry={retry} readOnly={isArchived} summary={summary} usageToTokens={usageToTokens} />
+            <ChatThread turns={turns} chat={chat} renderAnswerExtra={answerExtra} trimmedCount={trimmedCount} tool={tool} notice={noticeFor()} hasOlder={Boolean(olderCursor)} olderBusy={olderBusy} onLoadOlder={loadOlder} onRetry={retry} readOnly={isArchived} summary={summary} usageToTokens={usageToTokens} onNavigate={onNavigate} />
             {isArchived ? <Typography variant="caption" color="text.secondary" sx={{ px: 2, pb: 1 }}>{t('Chat.archivedReadOnly')}</Typography> : null}
             {renderComposerExtra ? <Box key={chat.id}>{renderComposerExtra({ chat })}</Box> : null}
             {composerLayout !== 'compact' && longChat ? <Alert severity="info" action={<Button color="inherit" size="small" onClick={createChat}>{t('Chat.newConversation')}</Button>}>{t('Chat.longChat')}</Alert> : null}
@@ -496,7 +522,7 @@ export function ChatWorkspace({ apiBase, wsUrl, api: apiOverrides, scope, preloa
                 id: 'long-chat', text: t('Chat.longChatShort'), action: t('Chat.newChat'), onAction: createChat,
                 onDismiss: () => setDismissedComposerNotices((current) => new Set(current).add(`${chat.id}:long-chat`)),
               } : null}
-              value={draft} onChange={setDraft} onSend={send} onStop={() => socket.send({ type: 'stop' })} running={running} archived={isArchived} connected={socket.connected} inputRef={composerInputRef}
+              value={draft} onChange={setDraft} onSend={send} onStop={() => socket.send({ type: 'stop' })} running={running} archived={isArchived} connected={socket.connected} inputRef={composerInputRef} usageLimit={usageLimit}
               actions={<ModelPicker entries={catalogue.entries} selection={selection} disabled={isArchived || running || (catalogueLoading && catalogueChatId !== chat.id)} open={pickerOpen} onOpenChange={setPickerOpen} onChange={(next) => updateChat(chat, { selection: next })} sheet={narrow} balance={tokenBalance} longChat={longChat} onNewChat={createChat} shortLabel={composerLayout === 'compact'} />} />
           </>
         ) : (

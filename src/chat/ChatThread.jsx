@@ -6,6 +6,7 @@ import MarkdownReply from './MarkdownReply';
 export const CHAT_THREAD_TOOL_CHIP_SX = { alignSelf: 'flex-start' };
 export const CHAT_THREAD_NOTICE_SX = { mb: 2 };
 export const CHAT_THREAD_TRIMMED_SX = { mb: 1.5 };
+export const CHAT_THREAD_TOOL_STEPS_SX = { alignItems: 'flex-start' };
 
 const selectionLine = (turn, t) => [turn.model, turn.effort && t(`Chat.effort.${turn.effort}`)].filter(Boolean).join(' · ');
 const sameSelection = (a, b) => a.driver === b.driver && a.model === b.model && a.effort === b.effort;
@@ -24,7 +25,7 @@ function SourceChips({ sources }) {
   );
 }
 
-function Answer({ turn, tool, onRetry, chat, renderAnswerExtra, usageToTokens }) {
+function Answer({ turn, tool, onRetry, chat, renderAnswerExtra, usageToTokens, onNavigate }) {
   const { t, i18n } = useTranslation();
   const generating = turn.state === 'generating';
   const failed = ['failed', 'cancelled'].includes(turn.state) && turn.error_code;
@@ -38,9 +39,12 @@ function Answer({ turn, tool, onRetry, chat, renderAnswerExtra, usageToTokens })
   };
   return (
     <Stack spacing={1} aria-busy={generating}>
-      {turn.assistant_text ? <MarkdownReply text={turn.assistant_text} /> : null}
+      {turn.assistant_text ? <MarkdownReply text={turn.assistant_text} onNavigate={onNavigate} /> : null}
       {generating && !turn.assistant_text && !tool ? <Typography variant="body2" color="text.secondary">{t('Chat.typing')}</Typography> : null}
       {generating && tool ? <Chip size="small" color="primary" variant="outlined" label={tool.label} sx={CHAT_THREAD_TOOL_CHIP_SX} /> : null}
+      {!generating && turn.tool_steps?.length ? <Stack direction="row" flexWrap="wrap" gap={0.75} role="list" aria-label={t('Chat.toolSteps')} sx={CHAT_THREAD_TOOL_STEPS_SX}>
+        {turn.tool_steps.map((step, index) => <Chip key={`${step.name || step.label}-${index}`} role="listitem" size="small" variant="outlined" label={step.label} sx={CHAT_THREAD_TOOL_CHIP_SX} />)}
+      </Stack> : null}
       <SourceChips sources={turn.sources} />
       {!generating && replyCaption(turn) ? <Typography variant="caption" color="text.secondary">{replyCaption(turn)}</Typography> : null}
       {renderAnswerExtra ? <React.Fragment key={chat?.id}>{renderAnswerExtra({ turn, chat, appFrames: turn.appFrames ?? [] })}</React.Fragment> : null}
@@ -63,7 +67,7 @@ function Answer({ turn, tool, onRetry, chat, renderAnswerExtra, usageToTokens })
  * The turns of one chat. The streaming answer is simply the last turn in state `generating`; the caller keeps its text
  * up to date. `notice` is a connection or limit message shown under the last turn. `readOnly` (an archived chat) hides Retry.
  */
-export function ChatThread({ turns = [], tool = null, notice = null, hasOlder = false, olderBusy = false, onLoadOlder, onRetry, readOnly = false, sx, chat, renderAnswerExtra, trimmedCount, summary = null, usageToTokens }) {
+export function ChatThread({ turns = [], tool = null, notice = null, hasOlder = false, olderBusy = false, onLoadOlder, onRetry, readOnly = false, sx, chat, renderAnswerExtra, trimmedCount, summary = null, usageToTokens, onNavigate }) {
   const { t } = useTranslation();
   const end = useRef(null);
   const scroller = useRef(null);
@@ -123,7 +127,7 @@ export function ChatThread({ turns = [], tool = null, notice = null, hasOlder = 
                 {turn.user_text}
               </Typography>
             </Box>
-            <Answer turn={turn} tool={index === turns.length - 1 ? tool : null} onRetry={readOnly ? undefined : onRetry} chat={chat} renderAnswerExtra={renderAnswerExtra} usageToTokens={usageToTokens} />
+            <Answer turn={turn} tool={index === turns.length - 1 ? tool : null} onRetry={readOnly ? undefined : onRetry} chat={chat} renderAnswerExtra={renderAnswerExtra} usageToTokens={usageToTokens} onNavigate={onNavigate} />
           </Box>
         );
       })}
