@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { ChatComposer } from '../src/chat/ChatComposer';
+import { ChatWorkspace } from '../src/chat/ChatWorkspace';
 import { ModelPicker } from '../src/chat/ModelPicker';
 import { ReceiptCaptureCard } from '../src/receipts/ReceiptCaptureCard';
 import { OperatorOverview } from '../src/billing/OperatorOverview';
@@ -33,6 +34,7 @@ import {
   FormControl,
   FormControlLabel,
   IconButton,
+  Switch,
   InputLabel,
   MenuItem,
   Paper,
@@ -849,6 +851,26 @@ function ChatCompactComposerEntry() {
   </Stack></I18nextProvider>;
 }
 
+// A long chat with heavy host slots: the layout cost of a keystroke (UCM-CHAT-14) is measured here in a real browser.
+const longChatAnswer = Array.from({ length: 10 }, (_, i) => `Absatz ${i}: **Distanz** und *Kosten* treten gemeinsam auf, siehe [Interview ${i}](/interviews/${i}).\n\n- erster Punkt\n- zweiter Punkt\n- dritter Punkt`).join('\n\n');
+const longChatTurns = Array.from({ length: 50 }, (_, i) => ({ id: `long-${i}`, seq: i + 1, user_text: `Frage ${i}: Welche Codes kommen gemeinsam vor?`, assistant_text: longChatAnswer, state: 'completed', sources: [{ label: `Interview ${i}`, reference: `i${i}` }], tool_steps: [{ name: 'search', label: 'Interviews durchsucht' }], driver: 'claude_cli', model: 'Sonnet', effort: 'medium' }));
+const longChat = { id: 'long-chat', title: 'Lange Unterhaltung', archived_at: null, selection: { entry: 'api:sonnet-5-5', effort: 'medium' } };
+const longChatApi = {
+  getStatus: async () => ({ status: 'available' }),
+  getCatalogue: async () => ({ entries: pickerEntries, default: { entry: 'api:sonnet-5-5', effort: 'medium' } }),
+  listChats: async ({ archived } = {}) => ({ results: archived ? [] : [longChat], next: null }),
+  listTurns: async () => ({ results: longChatTurns, next: null }),
+  getLimit: async () => ({ period: null, limit_usd_micros: null, used_usd_micros: null, resets_at: null }),
+  createChat: async () => longChat,
+  updateChat: async (_id, patch) => ({ ...longChat, ...patch }),
+  deleteChat: async () => null,
+};
+const longChatSidePanel = () => <Stack sx={{ p: 1.5 }}>{Array.from({ length: 60 }, (_, i) => <FormControlLabel key={i} control={<Switch defaultChecked={i % 3 === 0} size="small" />} label={`Interview ${i}`} />)}</Stack>;
+const longChatAnswerExtra = ({ turn }) => <Stack direction="row" gap={0.5} flexWrap="wrap">{Array.from({ length: 8 }, (_, i) => <Chip key={i} size="small" variant="outlined" label={`${turn.id} · ${i}`} />)}</Stack>;
+
+function ChatLongThreadEntry() {
+  return <Box sx={{ height: '100vh', p: 1 }}><ChatWorkspace api={longChatApi} activeChatId="long-chat" sidePanel={longChatSidePanel} renderAnswerExtra={longChatAnswerExtra} composerLayout="compact" /></Box>;
+}
 
 const receiptA = { merchant: 'Coop Pronto Bern', date: '2026-10-14', total: '14.60', currency: 'CHF', payment_method: 'card', confidence: 'high', items: [{ description: 'Sandwich', amount: '7.90', box: { x: 0.1, y: 0.3, w: 0.8, h: 0.05 } }, { description: 'Mineralwasser', amount: '2.50', box: null }, { description: 'Kaffee', amount: '4.20', box: null }], vat: [], box: { x: 0.05, y: 0.05, w: 0.9, h: 0.9 }, account_suggestions: [{ account_id: '6640', confidence: 'low' }] };
 const receiptB = { ...receiptA, merchant: 'SBB Billett', total: '23.40', confidence: 'high', items: [], box: { x: 0, y: 0, w: 0.5, h: 0.5 }, account_suggestions: [] };
@@ -985,6 +1007,7 @@ export const entries = [
   { id: 'messaging-scope-config', label: 'Messaging / Scope config', Component: MessagingScopeConfigEntry },
   { id: 'chat-model-picker', label: 'Chat / Model picker', Component: ChatPickerEntry },
   { id: 'chat-compact-composer', label: 'Chat / Compact composer', Component: ChatCompactComposerEntry, fullViewport: true },
+  { id: 'chat-long-thread', label: 'Chat / Long thread (layout cost)', Component: ChatLongThreadEntry, fullViewport: true },
   { id: 'receipts-capture', label: 'Receipts / Capture card', Component: ReceiptsEntry },
   { id: 'billing-operator', label: 'Billing / Operator overview and access', Component: OperatorBillingEntry },
   { id: 'billing-access-column', label: 'Billing / Compact access column', Component: BillingAccessColumnEntry, fullViewport: true },

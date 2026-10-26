@@ -57,7 +57,96 @@ test).
 
 ## Part B — Implementation map (implementer)
 
-Placeholder — dispatch-blocking. To be filled by the Orchestrator.
+### Target and ownership
+
+Target working directory (absolute): `C:/Users/Micha Bigler/Documents/webapps/ui-core-micha`. You are the single
+implementer. Shared checkout: preserve foreign edits, including the untracked `scratchpad/` directory. You own exactly
+`src/chat/ChatWorkspace.jsx`, `src/chat/ChatThread.jsx`, `src/chat/ChatComposer.jsx` (only if its region needs the
+boundary), `src/chat/kitSxRegistry.js` and new `tests/chatLayoutIsolation.test.jsx`. No other file (no README,
+CHANGELOG, package files, lockfile, register, `dev/**`, no new exports in `src/entries/*.js`).
+
+### Seams (verified against `main` at c1c359e, 4.26.0)
+
+- `src/chat/ChatWorkspace.jsx`:
+  - `:508` the root grid (`display: 'grid'`, columns list | main | optional side panel, `height: '100%'`,
+    `overflow: 'hidden'`);
+  - `:509` the list column;
+  - `:510` the main column `Stack` with the header (`:511-518`);
+  - `:521` `<ChatThread …>`;
+  - `:522-524` the archived caption, `renderComposerExtra` and the long-chat Alert;
+  - `:525-532` `<ChatComposer key=… …>`;
+  - `:540` the wide side panel `Box` (`borderLeft`, `minHeight: 0`, `overflow: 'auto'`);
+  - `:541` the narrow side panel `Drawer`.
+- `src/chat/ChatThread.jsx`:
+  - `:81` streaming pin: `end.current.scrollIntoView({ block: 'end' })` while `pinned`;
+  - `:84-88` older-turn position keeping through `scrollTop += scrollHeight - heightBeforeOlder` in a
+    `useLayoutEffect` on `turns[0]?.id`;
+  - `:90-96` `loadOlder` records `heightBeforeOlder`;
+  - `:103-107` the scroll container (`role="log"`, `onScroll` sets `pinned` from `scrollHeight - scrollTop -
+    clientHeight < 80` and loads older turns near the top; `sx={{ minHeight: 0, flex: 1, overflowY: 'auto', … }}`);
+  - `:119` each turn wrapper `<Box key={turn.id ?? index} sx={{ mb: 3 }}>`;
+  - `:133` `<Answer …>`.
+- `src/chat/ChatComposer.jsx`:
+  - the compact root `CHAT_COMPOSER_COMPACT_ROOT_SX` and the standard root `Stack` sx;
+  - the MUI multiline `TextField` (`maxRows` 5 or 6), whose `TextareaAutosize` reads the textarea's `scrollHeight` on
+    each value change. That read forces the page layout.
+- Exported sx objects are registered in `src/chat/kitSxRegistry.js` (`createKitSxEntry(name, muiKey, sx, exportName)`);
+  inline sx on registry-checked MUI components fails `themeCompleteness`.
+
+### What to build
+
+- **Layout boundaries.**
+  - The thread scroll container gets size, layout and paint containment. It is a flex child with `minHeight: 0` whose
+    size comes from its parent, so `contain: strict` is safe; if you use `contain: layout paint`, also make sure its
+    size does not depend on content.
+  - The composer region gets `contain: layout paint`. It must keep its intrinsic height, because it grows with the
+    text up to `maxRows`, so do not add size containment there.
+  - The wide side panel `Box` gets `contain: strict`; it is a grid cell with `minHeight: 0` and its own scroll.
+  - Prefer exported, registered sx constants over inline objects where the component is registry-checked.
+- **Off-screen turns skipped.** Each turn wrapper gets `content-visibility: auto` and
+  `contain-intrinsic-size: auto <estimate>`, for example `auto 320px`. The `auto` keyword makes the browser remember
+  the real size once a turn has rendered, so scroll heights stay stable after first view.
+- **Scroll behaviour exact.**
+  - Streaming keeps the bottom pin: the end sentinel stays outside the `content-visibility` wrappers, and the last turn
+    is near the viewport, so it renders.
+  - Loading older turns keeps the position. The layout effect measures `scrollHeight` before and after prepending; new
+    turns above the viewport use the intrinsic estimate, which keeps the delta consistent. Check that nothing relies on
+    the real heights of off-screen turns.
+  - Do not set `overflow-anchor: none` anywhere.
+- **No visual change.** Same spacing (keep `mb: 3` on turns), same borders, same compact and standard layouts.
+  Containment must not clip anything that is visible today: focus rings, the popover, menus and tooltips render in
+  portals, so they are not affected, but check box-shadows and focus outlines at region edges.
+
+### Required tests (maps Part A)
+
+`tests/chatLayoutIsolation.test.jsx` (`// @vitest-environment jsdom`, conventions of `tests/chatThread.test.jsx` and
+`tests/chatWorkspace.test.jsx`). jsdom cannot measure layout, so assert styles through `getComputedStyle` or the
+element's style/class as MUI emits it:
+- the thread scroll container carries its containment;
+- every turn wrapper carries `content-visibility: auto` and `contain-intrinsic-size`;
+- the composer region and the wide side panel carry their containment.
+
+Keep the existing scroll tests green: streaming pin and older-turn position keeping in `tests/chatThread.test.jsx` /
+`tests/chatWorkspace.test.jsx`. Add one assertion that the streaming end sentinel is not inside a `content-visibility`
+wrapper.
+
+Work from this package; do not explore broadly.
+
+### Required preamble and progress contract
+
+The text above is the COMPLETE spec — the committed WO file's content, not a plan to refine; there is no separate
+plan file. Read the workspace `AGENTS.md` and `.codex/skills/frontend-engineering/SKILL.md` (both under
+`C:/Users/Micha Bigler/Documents/webapps/`) only for conventions. Stay in scope; do not update `MEMORY.md`. **Do NOT
+edit `WORK_ORDERS.md` — the register row and the review verdicts are the Orchestrator's alone.** Your tools are for
+editing the assigned files and for running the test you wrote — nothing else. Do NOT install dependencies, touch a
+lockfile, run a package manager or tidy stray files; if repo state blocks you, stop with `RESULT: BLOCKED <reason>`.
+Do NOT `git add`/`commit`/`push`; leave every change uncommitted. Run only
+`node_modules/.bin/vitest run tests/chatLayoutIsolation.test.jsx` from the target directory, once — your ONLY test run;
+the Orchestrator's run and the independent review are the gate. Use explicit UTF-8 file I/O.
+
+Start with `PLAN: <step1> | <step2> | ...`, print a single-line `PROGRESS: [<n>/<total>] <present-tense action>`
+before every relevant action (and `... done` after), with no gap above ~2 minutes, unbuffered, and finish with exactly
+one `RESULT: DONE` or `RESULT: BLOCKED <reason>`.
 
 ## Part C — Orchestrator only
 
@@ -67,3 +156,20 @@ Gate #1 approved by the operator on 2026-10-26 in the Maana Expertenchat (sessio
 local_cbfc9d51-5217-42a4-99ba-27a315c854ce). Tier 3: all reviewer lenses and `ui_reviewer`; no `sec_review`. Publish
 a minor release and report the version; the Maana QDA session bumps the pin and the Expertenchat re-measures on
 staging (decision 3).
+
+Mapped by the Orchestrator (Claude) on 2026-10-26 against `main` at c1c359e (4.26.0).
+
+Execution: codex/gpt-6-luna, one CLI dispatch, banner read back.
+
+Review: lenses plus `ui_review`, one round. The Orchestrator does its own Envelope pass while they run.
+
+Verification:
+- the new test, all `chat*` tests, `checkKitIntegration`, `themeCompleteness`, `packageEntries` and tsc;
+- the full suite in CI on `ci-test/UCM-CHAT-14`;
+- a real-browser measurement in the dev harness. The new entry `#chat-long-thread` (Orchestrator-owned `dev/entries.jsx`)
+  has 50 turns of long Markdown, a 60-switch side panel and answer chips, about 6,300 elements. It uses the staging
+  method: native value setter plus input event, timed around `dispatchEvent`, 16 keystrokes.
+  - Before (4.26.0), 3 runs: median 30-44 ms, max 63-67 ms.
+- A visual check that nothing moved, at most two screenshots.
+
+The staging acceptance (median below 16 ms on the Maana chat) is measured by the Expertenchat after the Maana pin bump.
