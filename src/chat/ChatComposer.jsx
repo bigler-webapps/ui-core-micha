@@ -14,7 +14,8 @@ import { useTranslation } from 'react-i18next';
  * input row with an icon Send that becomes Stop while running. The default `standard` layout is unchanged.
  */
 export const CHAT_COMPOSER_INPUT_SX = { flex: '1 1 12rem', minWidth: 0 };
-export const CHAT_COMPOSER_COMPACT_ROOT_SX = { display: 'flex', flexDirection: 'column', gap: 0.75, p: { xs: 1, md: 1.5 }, borderTop: 1, borderColor: 'divider', minWidth: 0 };
+export const CHAT_COMPOSER_COMPACT_ROOT_SX = { display: 'flex', flexDirection: 'column', gap: 0.75, p: { xs: 1, md: 1.5 }, borderTop: 1, borderColor: 'divider', minWidth: 0, contain: 'layout paint' };
+export const CHAT_COMPOSER_STANDARD_ROOT_SX = { p: { xs: 1, md: 2 }, borderTop: 1, borderColor: 'divider', contain: 'layout paint' };
 export const CHAT_COMPOSER_CONTEXT_ROW_SX = { display: 'flex', alignItems: 'center', gap: 0.75, minHeight: 30, minWidth: 0, flexWrap: 'nowrap' };
 export const CHAT_COMPOSER_CONTEXT_SX = { minWidth: 0, flex: '1 1 auto', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' };
 export const CHAT_COMPOSER_CONTEXT_ACTIONS_SX = { flex: '0 0 auto', minWidth: 0, whiteSpace: 'nowrap' };
@@ -110,7 +111,7 @@ export function ChatComposer({ value, onChange, onSend, onStop, running = false,
     </Stack>
   );
   return (
-    <Stack direction="row" alignItems="flex-end" flexWrap="wrap" gap={1} sx={{ p: { xs: 1, md: 2 }, borderTop: 1, borderColor: 'divider', ...sx }}>
+    <Stack direction="row" alignItems="flex-end" flexWrap="wrap" gap={1} sx={{ ...CHAT_COMPOSER_STANDARD_ROOT_SX, ...sx }}>
       {usageLimit ? <Stack flexBasis="100%"><UsageLimit usageLimit={usageLimit} t={t} language={language} /></Stack> : null}
       <TextField multiline maxRows={6} sx={CHAT_COMPOSER_INPUT_SX} size="small" value={draft} inputRef={inputRef} disabled={blocked} placeholder={t('Chat.message')}
         slotProps={{ htmlInput: { 'aria-label': t('Chat.message') } }} onChange={(event) => changeDraft(event.target.value)} onKeyDown={handleKeyDown} />

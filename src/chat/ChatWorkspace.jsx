@@ -58,6 +58,8 @@ const appendDelta = (turns, text) => {
  * `preloadedChats` (optional active-list response `{ scope, results, next }` already loaded for that exact scope), `sx`,
  * `renderTurnError({ turn, chat, retry })` (optional failed-turn message; return `null` to show the default alert).
  */
+export const CHAT_WORKSPACE_SIDE_PANEL_SX = { borderLeft: 1, borderColor: 'divider', minHeight: 0, overflow: 'auto', contain: 'strict' };
+
 export function ChatWorkspace({ apiBase, wsUrl, api: apiOverrides, scope, preloadedChats, sx, unavailableReasonText, sidePanel, sidePanelLabel, renderAnswerExtra, renderTurnError, renderComposerExtra, composerLayout = 'standard', renderComposerContext, onAppFrame, onNavigate, activeChatId, onActiveChatChange, composerPrefill, getSendContext, sendRequest, onSendRequestHandled, layout = 'viewport', compactBelow = 720, tokenBalance = null, usageToTokens, longChatTokens = 40000 }) {
   const { t } = useTranslation();
   const theme = useTheme();
@@ -537,7 +539,7 @@ export function ChatWorkspace({ apiBase, wsUrl, api: apiOverrides, scope, preloa
           </Stack>
         )}
       </Stack>
-      {chat && sidePanel && !narrow ? <Box key={chat.id} sx={{ borderLeft: 1, borderColor: 'divider', minHeight: 0, overflow: 'auto' }}>{sidePanel(chat)}</Box> : null}
+      {chat && sidePanel && !narrow ? <Box key={chat.id} sx={CHAT_WORKSPACE_SIDE_PANEL_SX}>{sidePanel(chat)}</Box> : null}
       {narrow && chat && sidePanel ? <Drawer anchor="right" open={sidePanelOpen} onClose={() => setSidePanelOpen(false)} slotProps={{ paper: { 'aria-label': sidePanelLabel || t('Chat.sidePanel') } }}><Box key={chat.id}>{sidePanel(chat)}</Box></Drawer> : null}
       {narrow ? <Drawer open={listOpen} onClose={() => setListOpen(false)} slotProps={{ paper: { sx: { width: 'min(320px, 86vw)' } } }}>{list}</Drawer> : null}
     </Box>

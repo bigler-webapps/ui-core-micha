@@ -3,6 +3,8 @@ import { Alert, Box, Button, Chip, Stack, Tooltip, Typography } from '@mui/mater
 import { useTranslation } from 'react-i18next';
 import MarkdownReply from './MarkdownReply';
 
+export const CHAT_THREAD_SCROLL_SX = { minHeight: 0, flex: 1, overflowY: 'auto', p: { xs: 1.5, md: 2.5 }, contain: 'strict' };
+export const CHAT_THREAD_TURN_SX = { mb: 3, contentVisibility: 'auto', containIntrinsicSize: 'auto 320px' };
 export const CHAT_THREAD_TOOL_CHIP_SX = { alignSelf: 'flex-start' };
 export const CHAT_THREAD_NOTICE_SX = { mb: 2 };
 export const CHAT_THREAD_TOOL_STEPS_SX = { alignItems: 'flex-start' };
@@ -79,6 +81,16 @@ export function ChatThread({ turns = [], tool = null, notice = null, hasOlder = 
   const last = turns[turns.length - 1];
   // Follow the stream, but only when new content arrives at the end (not when older turns are prepended).
   useEffect(() => { if (pinned.current) end.current?.scrollIntoView?.({ block: 'end' }); }, [last?.id, last?.assistant_text, last?.state]);
+  // Turns skip layout off-screen (content-visibility, UCM-CHAT-14) and take their real height only once rendered, so the
+  // content can still grow after the scroll above. While pinned, follow that growth to stay at the bottom.
+  const content = useRef(null);
+  useEffect(() => {
+    const el = scroller.current;
+    if (!el || !content.current || typeof ResizeObserver === 'undefined') return undefined;
+    const observer = new ResizeObserver(() => { if (pinned.current) el.scrollTop = el.scrollHeight; });
+    observer.observe(content.current);
+    return () => observer.disconnect();
+  }, []);
 
   // Keep the reader's position when older turns are prepended.
   useLayoutEffect(() => {
@@ -104,7 +116,8 @@ export function ChatThread({ turns = [], tool = null, notice = null, hasOlder = 
       const el = event.currentTarget;
       pinned.current = el.scrollHeight - el.scrollTop - el.clientHeight < 80;
       if (hasOlder && !olderBusy && el.scrollTop <= 40) loadOlder();
-    }} role="log" aria-live="polite" aria-label={t('Chat.thread')} sx={{ minHeight: 0, flex: 1, overflowY: 'auto', p: { xs: 1.5, md: 2.5 }, ...sx }}>
+    }} role="log" aria-live="polite" aria-label={t('Chat.thread')} sx={{ ...CHAT_THREAD_SCROLL_SX, ...sx }}>
+      <div ref={content}>
       {hasOlder ? (
         <Box sx={{ textAlign: 'center', mb: 2 }}>
           <Button size="small" onClick={loadOlder} disabled={olderBusy}>{t('Chat.loadOlder')}</Button>
@@ -116,7 +129,7 @@ export function ChatThread({ turns = [], tool = null, notice = null, hasOlder = 
       {turns.map((turn, index) => {
         const previous = turns[index - 1];
         return (
-          <Box key={turn.id ?? index} sx={{ mb: 3 }}>
+          <Box key={turn.id ?? index} sx={CHAT_THREAD_TURN_SX}>
             {!summaryRendered && summaryVisible && turn.seq > summary.up_to_seq ? (summaryRendered = true, renderSummary()) : null}
             {previous && !sameSelection(previous, turn) ? (
               <Stack direction="row" alignItems="center" gap={1} sx={{ mb: 2, color: 'text.secondary' }} role="separator">
@@ -145,6 +158,7 @@ export function ChatThread({ turns = [], tool = null, notice = null, hasOlder = 
         </Alert>
       ) : null}
       <div ref={end} />
+      </div>
     </Box>
   );
 }

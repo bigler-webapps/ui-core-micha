@@ -173,3 +173,39 @@ Verification:
 - A visual check that nothing moved, at most two screenshots.
 
 The staging acceptance (median below 16 ms on the Maana chat) is measured by the Expertenchat after the Maana pin bump.
+
+Launch evidence: 2026-10-26, model gpt-6-luna, reasoning high, session 01a1766e-bbb5-7d33-b5d8-f8995541b68f; `RESULT: DONE`
+(its test run: 4 passed). Assigned files only, no commit.
+
+Orchestrator fix after the implementer. In the browser the chat opened about 8,000 px above the bottom: the initial
+`scrollIntoView` landed on the 320 px estimates, and the turns near the viewport then grew to their real height. This
+is a regression against today.
+- Fix: a ResizeObserver on a plain content wrapper re-pins to the bottom while `pinned`.
+- Verified that the chat opens at the last turn again; test added.
+- Adapted the selector test to the wrapper.
+- CHANGELOG, version 4.27.0.
+
+Harness measurement (`#chat-long-thread`, dev build, staging method, 3 runs):
+
+| | Before (4.26.0) | After |
+|---|---|---|
+| Keystroke, median | 30-44 ms | 6-7 ms |
+| Keystroke, max | 63-67 ms | 9.5-13 ms |
+| Forced layout read after a value change | — | ~1.1 ms |
+
+Not verified in the browser:
+- Position keeping when older turns load. The harness has no older pages, so this rests on the existing jsdom test and
+  the unchanged layout effect.
+- Keyboard focus and in-page search into skipped turns, which the browser handles natively.
+
+Orchestrator's Envelope pass (before the lens results): complete; beyond scope only the re-pin observer, which the
+pinning risk requires; nothing missing apart from the browser checks above.
+
+Review, first pass: 3 raised, 1 accepted.
+- Accepted, tests R2: the side-panel test now asserts the grid cell itself.
+- Not accepted, `ui_review` U1 (re-pin after prepending in a short thread): it is equivalent to keeping the position,
+  because the scroll is clamped to the same bottom.
+- Not accepted, tests R1 (the real ResizeObserver cannot be simulated in jsdom): the browser behaviour was verified.
+
+Single re-run: four clean. Tests R1 claimed the assertions read the exported constants; in fact they read computed
+styles of the rendered nodes. Not accepted, not a blocker. The round is closed.

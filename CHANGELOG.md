@@ -1,5 +1,15 @@
 # Changelog
 
+## 4.27.0 - UCM-CHAT-14
+
+Typing in a long chat relayouts only the composer. The thread's scroll region and the wide side panel are CSS
+containment boundaries (`contain: strict`), the composer roots `contain: layout paint`, and each turn has
+`content-visibility: auto` with `contain-intrinsic-size: auto 320px`, so the browser lays out only turns near the
+viewport. Because off-screen turns take their real height only once rendered, the thread follows content growth with a
+ResizeObserver while it is pinned to the bottom (opening a chat and streaming stay at the bottom). No visual change. In
+the dev harness (`#chat-long-thread`, ~6,300 elements, dev build) a keystroke went from a 30-44 ms median to 6-7 ms and
+the forced layout after a value change costs about 1 ms; the staging acceptance is measured after the consumer pin bump.
+
 ## 4.26.0 - UCM-CHAT-13
 
 Typing in `ChatWorkspace` re-renders only the composer: the draft now lives in `ChatComposer`, so a keystroke no
