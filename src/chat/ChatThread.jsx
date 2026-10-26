@@ -82,15 +82,20 @@ export function ChatThread({ turns = [], tool = null, notice = null, hasOlder = 
   // Follow the stream, but only when new content arrives at the end (not when older turns are prepended).
   useEffect(() => { if (pinned.current) end.current?.scrollIntoView?.({ block: 'end' }); }, [last?.id, last?.assistant_text, last?.state]);
   // Turns skip layout off-screen (content-visibility, UCM-CHAT-14) and take their real height only once rendered, so the
-  // content can still grow after the scroll above. While pinned, follow that growth to stay at the bottom.
+  // content can still grow after the scroll above. While pinned, follow that growth to stay at the bottom. The scroll
+  // region itself is observed too: a thread mounted in a hidden host panel gets its real size only when shown.
   const content = useRef(null);
   useEffect(() => {
     const el = scroller.current;
     if (!el || !content.current || typeof ResizeObserver === 'undefined') return undefined;
     const observer = new ResizeObserver(() => { if (pinned.current) el.scrollTop = el.scrollHeight; });
     observer.observe(content.current);
+    observer.observe(el);
     return () => observer.disconnect();
   }, []);
+  // Another chat opens at its bottom, whatever the reader did in the previous one; do not rely on the scroll event that
+  // emptying the thread may (or, in a background page, may not) produce.
+  useLayoutEffect(() => { pinned.current = true; }, [chat?.id]);
 
   // Keep the reader's position when older turns are prepended.
   useLayoutEffect(() => {

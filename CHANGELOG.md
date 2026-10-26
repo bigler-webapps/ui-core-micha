@@ -1,5 +1,12 @@
 # Changelog
 
+## 4.27.1 - UCM-CHAT-14 follow-up
+
+The thread's bottom pin no longer depends on scroll events: switching chats re-pins explicitly, and the thread also
+observes its own scroll region, so a chat mounted in a hidden host panel goes to the bottom when the panel is shown.
+Found in the Maana staging acceptance of 4.27.0 (thread opened far above the bottom after mounting in a not-yet-shown
+tab, and after switching chats).
+
 ## 4.27.0 - UCM-CHAT-14
 
 Typing in a long chat relayouts only the composer. The thread's scroll region and the wide side panel are CSS

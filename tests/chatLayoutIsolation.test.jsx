@@ -56,6 +56,44 @@ describe('chat layout isolation', () => {
     }
   });
 
+  it('observes the scroll region too, so a thread mounted hidden pins to the bottom when shown', () => {
+    let callback;
+    const observe = vi.fn();
+    globalThis.ResizeObserver = class { constructor(cb) { callback = cb; } observe(node) { observe(node); } disconnect() {} };
+    try {
+      render(<ChatThread turns={[turn(1), turn(2)]} />);
+      const log = screen.getByRole('log');
+      expect(observe).toHaveBeenCalledWith(log);
+      // Shown: the region gets its real size; the observer reports it and the thread goes to the bottom.
+      Object.defineProperty(log, 'clientHeight', { configurable: true, value: 600 });
+      Object.defineProperty(log, 'scrollHeight', { configurable: true, value: 9000 });
+      act(() => callback([]));
+      expect(log.scrollTop).toBe(9000);
+    } finally {
+      delete globalThis.ResizeObserver;
+    }
+  });
+
+  it('opens another chat at its bottom even if the reader scrolled up in the previous one', () => {
+    let callback;
+    globalThis.ResizeObserver = class { constructor(cb) { callback = cb; } observe() {} disconnect() {} };
+    try {
+      const view = render(<ChatThread chat={{ id: 1 }} turns={[turn(1), turn(2)]} />);
+      const log = screen.getByRole('log');
+      Object.defineProperty(log, 'scrollHeight', { configurable: true, value: 5000 });
+      Object.defineProperty(log, 'clientHeight', { configurable: true, value: 400 });
+      log.scrollTop = 100;
+      fireEvent.scroll(log);
+      // Switch without any scroll event (as in a background page), then the new chat's content grows.
+      view.rerender(<ChatThread chat={{ id: 2 }} turns={[turn(3), turn(4)]} />);
+      Object.defineProperty(log, 'scrollHeight', { configurable: true, value: 7000 });
+      act(() => callback([]));
+      expect(log.scrollTop).toBe(7000);
+    } finally {
+      delete globalThis.ResizeObserver;
+    }
+  });
+
   it('contains the wide side panel independently', async () => {
     globalThis.WebSocket = TestSocket;
     const chat = { id: 7, title: 'Chat', archived_at: null, selection: { entry: 'model', effort: 'high' } };
