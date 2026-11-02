@@ -60,7 +60,7 @@ const appendDelta = (turns, text) => {
  */
 export const CHAT_WORKSPACE_SIDE_PANEL_SX = { borderLeft: 1, borderColor: 'divider', minHeight: 0, overflow: 'auto', contain: 'strict' };
 
-export function ChatWorkspace({ apiBase, wsUrl, api: apiOverrides, scope, preloadedChats, sx, unavailableReasonText, sidePanel, sidePanelLabel, renderAnswerExtra, renderTurnError, renderComposerExtra, composerLayout = 'standard', renderComposerContext, onAppFrame, onNavigate, activeChatId, onActiveChatChange, composerPrefill, getSendContext, sendRequest, onSendRequestHandled, layout = 'viewport', compactBelow = 720, tokenBalance = null, usageToTokens, longChatTokens = 40000 }) {
+export function ChatWorkspace({ apiBase, wsUrl, api: apiOverrides, scope, preloadedChats, sx, unavailableReasonText, sidePanel, sidePanelLabel, renderAnswerExtra, renderTurnError, renderComposerExtra, composerLayout = 'standard', renderComposerContext, onAppFrame, onNavigate, activeChatId, onActiveChatChange, onComposeStart, composerPrefill, getSendContext, sendRequest, onSendRequestHandled, layout = 'viewport', compactBelow = 720, tokenBalance = null, usageToTokens, longChatTokens = 40000 }) {
   const { t } = useTranslation();
   const theme = useTheme();
   const viewportNarrow = useMediaQuery(theme.breakpoints.down('md'));
@@ -70,6 +70,10 @@ export function ChatWorkspace({ apiBase, wsUrl, api: apiOverrides, scope, preloa
   const narrow = layout === 'compact' || (layout === 'container' ? containerNarrow : viewportNarrow);
   const appFrameCallback = useRef(onAppFrame);
   useEffect(() => { appFrameCallback.current = onAppFrame; }, [onAppFrame]);
+  const composeStartCallback = useRef(onComposeStart);
+  composeStartCallback.current = onComposeStart;
+  const composeChatRef = useRef(null);
+  const composeStart = useCallback(() => composeStartCallback.current?.({ chatId: composeChatRef.current }), []);
   useEffect(() => {
     if (layout !== 'container') return undefined;
     if (typeof ResizeObserver === 'undefined' || !rootRef.current) { setContainerNarrow(viewportNarrow); return undefined; }
@@ -152,6 +156,12 @@ export function ChatWorkspace({ apiBase, wsUrl, api: apiOverrides, scope, preloa
     } finally { if (request === catalogueRequest.current) setCatalogueLoading(false); }
   }, [api]);
   const shownChatId = useRef(null);
+  const generalCatalogueRequested = useRef(false);
+  const requestGeneralCatalogue = useCallback(() => {
+    if (generalCatalogueRequested.current) return null;
+    generalCatalogueRequested.current = true;
+    return refreshCatalogue();
+  }, [refreshCatalogue]);
 
   // Bumped on every scope change so that a list response of the previous scope is dropped.
   const scopeVersion = useRef(0);
@@ -207,7 +217,9 @@ export function ChatWorkspace({ apiBase, wsUrl, api: apiOverrides, scope, preloa
       ? { results: offered.results, next: offered.next }
       : undefined;
     const statusRequest = Promise.resolve().then(() => (scope === undefined ? api.getStatus() : api.getStatus({ scope })));
-    const catalogueRequest = Promise.resolve().then(() => api.getCatalogue());
+    const catalogueRequest = latestWantedId.current == null
+      ? Promise.resolve().then(() => requestGeneralCatalogue())
+      : Promise.resolve(null);
     const listsRequest = Promise.resolve().then(() => loadLists({ initial: true, preloaded }));
     // These may finish after an unavailable status; attach rejection handlers immediately and never expose their answers.
     catalogueRequest.catch(() => {});
@@ -221,10 +233,9 @@ export function ChatWorkspace({ apiBase, wsUrl, api: apiOverrides, scope, preloa
           return;
         }
         refreshLimit();
-        Promise.all([catalogueRequest, listsRequest]).then(([entries, lists]) => {
+        Promise.all([catalogueRequest, listsRequest]).then(([, lists]) => {
           if (!live || lists === undefined) return;
           const { active, old } = lists;
-          setCatalogue(entries);
           setChats(active.results || []);
           setNextChats(active.next || null);
           setArchived(old.results || []);
@@ -235,9 +246,18 @@ export function ChatWorkspace({ apiBase, wsUrl, api: apiOverrides, scope, preloa
       })
       .catch(() => { if (live) setStatus('error'); });
     return () => { live = false; };
-  }, [api, loadLists, refreshLimit, scope]);
+  }, [api, loadLists, refreshLimit, requestGeneralCatalogue, scope]);
 
-  useEffect(() => { if (chat?.id !== undefined) refreshCatalogue(chat.id); }, [chat?.id, refreshCatalogue]);
+  // Once a chat was shown, closing it needs the general catalogue again (also when that chat's own request failed);
+  // before any chat was shown, the start effect has already decided about the general request.
+  const chatWasShown = useRef(false);
+  useEffect(() => {
+    if (chat?.id !== undefined) {
+      chatWasShown.current = true;
+      generalCatalogueRequested.current = false;
+      refreshCatalogue(chat.id);
+    } else if (!generalCatalogueRequested.current && chatWasShown.current) requestGeneralCatalogue();
+  }, [chat?.id, refreshCatalogue, requestGeneralCatalogue]);
   useEffect(() => { if (pickerOpen) refreshCatalogue(chat?.id); }, [pickerOpen]);
 
   useEffect(() => {
@@ -265,21 +285,23 @@ export function ChatWorkspace({ apiBase, wsUrl, api: apiOverrides, scope, preloa
     loadLists().then((loaded) => {
       if (!live || loaded === undefined || latestWantedId.current === undefined || String(latestWantedId.current) !== wantedKey) return;
       const found = loaded.all.find((item) => String(item.id) === wantedKey);
-      if (!found) unloadableIds.current.add(wantedKey);
+      if (!found) { unloadableIds.current.add(wantedKey); requestGeneralCatalogue(); }
       setChat(found || null);
     }).catch(() => {
       if (live && latestWantedId.current !== undefined && String(latestWantedId.current) === wantedKey) {
         unloadableIds.current.add(wantedKey);
+        requestGeneralCatalogue();
         setChat(null);
       }
     });
     return () => { live = false; };
-  }, [activeChatId, status, listsLoaded]);
+  }, [activeChatId, status, listsLoaded, requestGeneralCatalogue]);
 
   // Clear the previous chat's content before the browser paints, so a host-driven switch never flashes it under the new title.
   useLayoutEffect(() => {
     connectedChatId.current = null; // the socket of the new chat has not opened yet
     shownChatId.current = chat?.id ?? null;
+    composeChatRef.current = chat?.id ?? null;
     setTurns([]); setOlderCursor(null); setTool(null); setProblem(null); setSidePanelOpen(false); setOpenedOnce(false); setSummary(null);
   }, [chat?.id]);
 
@@ -524,7 +546,7 @@ export function ChatWorkspace({ apiBase, wsUrl, api: apiOverrides, scope, preloa
             {isArchived ? <Typography variant="caption" color="text.secondary" sx={{ px: 2, pb: 1 }}>{t('Chat.archivedReadOnly')}</Typography> : null}
             {renderComposerExtra ? <Box key={chat.id}>{renderComposerExtra({ chat })}</Box> : null}
             {composerLayout !== 'compact' && longChat ? <Alert severity="info" action={<Button color="inherit" size="small" onClick={createChat}>{t('Chat.newConversation')}</Button>}>{t('Chat.longChat')}</Alert> : null}
-            <ChatComposer key={`composer-${chat.id}`} layout={composerLayout} context={composerLayout === 'compact' ? renderComposerContext?.({ chat }) : undefined}
+            <ChatComposer key={`composer-${chat.id}`} layout={composerLayout} onComposeStart={composeStart} context={composerLayout === 'compact' ? renderComposerContext?.({ chat }) : undefined}
               notice={composerLayout === 'compact' && longChat && !dismissedComposerNotices.has(`${chat.id}:long-chat`) ? {
                 id: 'long-chat', text: t('Chat.longChatShort'), action: t('Chat.newChat'), onAction: createChat,
                 onDismiss: () => setDismissedComposerNotices((current) => new Set(current).add(`${chat.id}:long-chat`)),

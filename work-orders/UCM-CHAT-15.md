@@ -171,3 +171,25 @@ Verification:
 - the full suite on `ci-test/UCM-CHAT-15`.
 
 README chat section, CHANGELOG, minor version by the Orchestrator.
+
+Launch evidence: 2026-11-02, model gpt-6-luna, reasoning high, session 01a19ccd-a47f-7931-9d1e-89223e53aaaa. The auto-mode
+classifier did not refuse this dispatch. `RESULT: BLOCKED`, only because its single test run had 3 expectation
+mismatches that it fixed without a rerun. Assigned files only, no commit.
+
+Orchestrator after the implementer:
+- fixed one remaining test bug: `findAllByRole` resolved before the second workspace's composer existed;
+- review fix: closing a chat whose own catalogue request failed now requests the general catalogue (a `chatWasShown`
+  ref replaces the `catalogueFor` check), with a test;
+- README, CHANGELOG, version 4.28.0.
+
+Orchestrator's Envelope pass (before the lens results): complete; one side effect is that the general start catalogue
+now sets state through `refreshCatalogue` even when the status is not available, which is not visible; nothing
+missing.
+
+Review, first pass: 1 raised (envelope R1 = regression R1, deduplicated), 1 accepted, fixed.
+
+Single re-run, which closes the round:
+- duplication R1 was not accepted: in the unloadable path the general request starts in the same tick before
+  `setChat(null)`; newest-request-wins and the guard make this harmless.
+- ui U1 was accepted and carried, deliberately not fixed. While no chat is shown, a change of `api` does not request
+  the general catalogue again; for `scope` there is no effect, because the catalogue is not scope-dependent.

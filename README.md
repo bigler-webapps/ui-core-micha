@@ -222,6 +222,13 @@ codes it knows; return `null` for everything else:
 />
 ```
 
+## Shared chat: composer start signal
+
+Since 4.28.0 `onComposeStart({ chatId })` tells the host that the person started composing in a chat: on the first
+focus of the composer and when the draft goes from empty to non-empty, again after it was cleared. Use it to prepare
+something before the send (for example a context-size check), not per keystroke. A shown chat requests its catalogue
+once; the general catalogue is only requested while no chat is shown.
+
 ## Shared chat: host controls
 
 `ChatWorkspace` (from `@micha.bigler/ui-core-micha/chat`) takes optional props for apps that put UI around the surface;

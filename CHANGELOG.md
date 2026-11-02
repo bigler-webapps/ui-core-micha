@@ -1,5 +1,14 @@
 # Changelog
 
+## 4.28.0 - UCM-CHAT-15
+
+New optional `ChatWorkspace` prop `onComposeStart({ chatId })`: called when the composer of a shown chat gains focus
+and when its draft goes from empty to non-empty, once each until the draft is cleared again (sent or emptied); never
+per keystroke and without re-rendering the workspace. `ChatComposer` takes the matching optional `onComposeStart()`.
+A shown chat now costs one catalogue request: the general catalogue is requested only while no chat is shown (at start
+only when no `activeChatId` names a chat, and again when the requested chat cannot be shown); the picker-open and
+after-turn refreshes are unchanged.
+
 ## 4.27.1 - UCM-CHAT-14 follow-up
 
 The thread's bottom pin no longer depends on scroll events: switching chats re-pins explicitly, and the thread also
