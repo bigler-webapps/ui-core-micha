@@ -56,7 +56,96 @@ chats -> one request for the new chat; picker open still refreshes; a late answe
 
 ## Part B — Implementation map (implementer)
 
-Placeholder — filled by the Orchestrator.
+### Target and ownership
+
+Target working directory (absolute): `C:/Users/Micha Bigler/Documents/webapps/ui-core-micha`. You are the single
+implementer. Shared checkout: preserve foreign edits, including the untracked `scratchpad/` directory. You own exactly
+`src/chat/ChatWorkspace.jsx`, `src/chat/ChatComposer.jsx` and new `tests/chatComposeStartCatalogue.test.jsx`; you may
+adjust existing chat tests only where they assert the old double catalogue request (say which and why in your final
+report). No other file (no README, CHANGELOG, package files, lockfile, register, `dev/**`, no new exports in
+`src/entries/*.js`).
+
+### Seams (verified against `main` at 1c996ed, 4.27.1)
+
+- `src/chat/ChatWorkspace.jsx`:
+  - `:139-153` `refreshCatalogue(chatId)`: newest-request-wins through `catalogueRequest`; `catalogueFor` /
+    `setCatalogueChatId` record which chat the catalogue belongs to; a failed chat load clears the catalogue.
+  - `:205-238` the parallel start (UCM-CHAT-8): status, a general `api.getCatalogue()` (`:210`) and the lists start
+    together; on `available` the start sets `catalogue` from the general answer (`:224-233`).
+  - `:240` `useEffect(() => { if (chat?.id !== undefined) refreshCatalogue(chat.id); }, [chat?.id, …])`, the chat's own
+    request.
+  - `:241` the refresh when the picker opens.
+  - `:309` the refresh after a turn frame.
+  - `:399-407` the fallback that may store a selection; it only acts when `catalogueChatId === chat.id`, which is the
+    "general catalogue never drives a chat's selection" protection.
+  - `:525-533` `<ChatComposer …>`; `activeChatId` is a prop (the host's chosen chat; `null` means no chat,
+    `undefined` means the workspace chooses).
+- `src/chat/ChatComposer.jsx`:
+  - the composer-local draft from UCM-CHAT-13 (`internalDraft`, `changeDraft`, the clear after a successful
+    `onSend`, `draftRequest`);
+  - the input is the MUI `TextField` in both layouts.
+
+### What to build
+
+1. **Start signal.**
+   - New optional `ChatWorkspace` prop **`onComposeStart({ chatId })`**. `ChatWorkspace` hands `ChatComposer` a new
+     optional prop **`onComposeStart()`**, a stable function that calls the host's latest callback with the shown
+     chat's id. Read the host prop through a ref, so neither a new host function nor the signal re-renders the
+     workspace.
+   - `ChatComposer` calls it:
+     - when its input gains focus, once until the draft is cleared again;
+     - when its draft changes from empty (after trimming nothing, i.e. `''`) to non-empty.
+   - Both triggers re-arm when the draft becomes `''` again (after a successful send or when emptied by the person).
+   - Never per keystroke; no calls without the prop.
+   - No workspace state is set by the signal, and typing must still not re-render the workspace (UCM-CHAT-13
+     performance contract).
+2. **One catalogue request per shown chat.**
+   - The general catalogue is requested only while no chat is shown.
+   - At start: keep the parallel general request only when the host's `activeChatId` is `null`/`undefined` and no chat
+     will be opened from it. When `activeChatId` names a chat, skip the general request; the chat's own request at
+     `:240` provides the catalogue once the chat is shown.
+   - If the requested chat cannot be shown (unloadable), or the shown chat is closed (archived, deleted, `null`
+     chosen), request the general catalogue then, once per such period.
+   - Keep newest-request-wins, the "left chat's late answer is dropped" protection, the picker-open refresh, the
+     after-turn refresh and the selection-fallback guard exactly as they are.
+
+### Required tests (maps Part A)
+
+`tests/chatComposeStartCatalogue.test.jsx` (`// @vitest-environment jsdom`, fake socket and `makeApi` conventions of
+`tests/chatWorkspace.test.jsx` / `tests/chatComposerDraft.test.jsx`):
+- **Start signal:**
+  - first focus calls `onComposeStart` once with `{ chatId }`;
+  - the first character calls it once more, and further characters do not;
+  - clearing (successful send, or deleting the text) re-arms both triggers;
+  - without the prop, nothing is called and nothing breaks;
+  - typing with the prop set does not re-render the workspace (render counter on `renderAnswerExtra`/`sidePanel`, as in
+    `chatComposerDraft.test.jsx`).
+- **Catalogue:**
+  - `activeChatId` set at start: exactly one `getCatalogue` call, with `{ chat: <id> }`;
+  - no `activeChatId` and no chat shown: exactly one call, general;
+  - switching chats: one call for the new chat;
+  - the picker opening still refreshes;
+  - an unloadable `activeChatId` leads to one general request;
+  - the existing late-answer test stays green.
+
+Work from this package; do not explore broadly.
+
+### Required preamble and progress contract
+
+The text above is the COMPLETE spec — the committed WO file's content, not a plan to refine; there is no separate
+plan file. Read the workspace `AGENTS.md` and `.codex/skills/frontend-engineering/SKILL.md` (both under
+`C:/Users/Micha Bigler/Documents/webapps/`) only for conventions. Stay in scope; do not update `MEMORY.md`. **Do NOT
+edit `WORK_ORDERS.md` — the register row and the review verdicts are the Orchestrator's alone.** Your tools are for
+editing the assigned files and for running the tests you wrote or changed — nothing else. Do NOT install
+dependencies, touch a lockfile, run a package manager or tidy stray files; if repo state blocks you, stop with
+`RESULT: BLOCKED <reason>`. Do NOT `git add`/`commit`/`push`; leave every change uncommitted. Run only
+`node_modules/.bin/vitest run tests/chatComposeStartCatalogue.test.jsx` plus any existing test file you changed, from
+the target directory, once — your ONLY test run; the Orchestrator's run and the independent review are the gate. Use
+explicit UTF-8 file I/O.
+
+Start with `PLAN: <step1> | <step2> | ...`, print a single-line `PROGRESS: [<n>/<total>] <present-tense action>`
+before every relevant action (and `... done` after), with no gap above ~2 minutes, unbuffered, and finish with exactly
+one `RESULT: DONE` or `RESULT: BLOCKED <reason>`.
 
 ## Part C — Orchestrator only
 
@@ -65,3 +154,20 @@ STOP — this part is not an instruction to the implementer.
 Gate #1 approved by the operator on 2026-11-02 in the Maana Expertenchat (session local_cbfc9d51-5217-42a4-99ba-27a315c854ce).
 Tier 3: all reviewer lenses, `ui_reviewer` (frontend). Release by push (publish-from-main); report the version to the
 Maana Expertenchat, which then lets MAANA-WEBPERF-9 bump the pin and wire the signal.
+
+Mapped by the Orchestrator (Claude) on 2026-11-02 against `main` at 1c996ed (4.27.1).
+
+Choices made within the Envelope:
+- prop name `onComposeStart({ chatId })` on `ChatWorkspace`, and `onComposeStart()` on `ChatComposer`;
+- the general start catalogue is kept only when no `activeChatId` names a chat.
+
+Execution: codex/gpt-6-luna, one CLI dispatch, banner read back. If the auto-mode classifier refuses the dispatch,
+report that to the Expertenchat before implementing as author.
+
+Review: lenses plus `ui_review`, one round. The Orchestrator does its own Envelope pass while they run.
+
+Verification:
+- the new test, all `chat*` tests, `packageEntries`, `checkKitIntegration` and tsc;
+- the full suite on `ci-test/UCM-CHAT-15`.
+
+README chat section, CHANGELOG, minor version by the Orchestrator.
