@@ -190,7 +190,7 @@ rows: a context row with the host's content (for example chips of what was added
 its end — one line that never wraps, the host content is clipped first (plain text gets an ellipsis; give element
 items `minWidth: 0` and their own ellipsis, as MUI `Chip` labels have, and a "+n" item, so they shorten instead of
 being cut) — and a full-width input with an icon Send that
-becomes Stop ("Antwort stoppen") while an answer runs. The model button then shows a short label ("Sonnet · Gründlich")
+becomes Stop ("Antwort stoppen") while an answer runs. Without host context (nothing returned by `renderComposerContext`) there is no first row: the model choice sits in the input row before Send/Stop (since 4.30.0, UCM-CHAT-19). The model button then shows a short label ("Sonnet · Gründlich")
 without vendor and version. The long-chat hint becomes one line with "Neuer Chat" and a close button; closed, it stays
 closed for that chat until the page reloads, and another chat shows it again. `renderComposerExtra` keeps rendering
 above the composer. Without `composerLayout` the composer is unchanged. `ChatComposer` takes the same `layout`,

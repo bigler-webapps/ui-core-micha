@@ -125,3 +125,57 @@ describe('compact chat composer', () => {
     expect(screen.getByRole('button', { name: 'Sonnet · Gründlich ▾' })).toBeTruthy();
   });
 });
+
+describe('compact chat composer without context (UCM-CHAT-19)', () => {
+  const picker = <ModelPicker entries={entries} selection={selection} shortLabel />;
+
+  it('puts the actions into the input row before Send and renders no context row', () => {
+    const { container } = render(<ChatComposer layout="compact" value="" onChange={() => {}} onSend={() => {}} actions={picker} />);
+    const model = screen.getByRole('button', { name: /Sonnet/ });
+    const input = screen.getByRole('textbox', { name: 'Nachricht' });
+    const send = screen.getByRole('button', { name: 'Senden' });
+    const row = input.closest('.MuiTextField-root').parentElement;
+    expect(row.contains(model)).toBe(true);
+    expect(row.contains(send)).toBe(true);
+    // order inside the row: input, actions, Send
+    expect(input.compareDocumentPosition(model) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(model.compareDocumentPosition(send) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    // the composer is only the input row: no row of its own for the picker
+    expect(container.querySelectorAll('.MuiStack-root')).toHaveLength(2); // root + input row
+    const actionsBox = model.closest('.MuiButtonBase-root').parentElement;
+    expect(getComputedStyle(actionsBox).flexShrink).toBe('1'); // it shrinks before the input or Send is pushed out
+    expect(getComputedStyle(actionsBox).maxWidth).toBe('45%');
+    expect(getComputedStyle(actionsBox).overflow).toBe('hidden');
+    expect(getComputedStyle(actionsBox).whiteSpace).toBe('nowrap');
+    expect(getComputedStyle(send).flexShrink).toBe('0');
+  });
+
+  it('keeps Stop in the row while an answer runs', () => {
+    render(<ChatComposer layout="compact" value="" onChange={() => {}} onSend={() => {}} onStop={() => {}} running actions={picker} />);
+    const row = screen.getByRole('textbox', { name: 'Nachricht' }).closest('.MuiTextField-root').parentElement;
+    expect(row.contains(screen.getByRole('button', { name: 'Antwort stoppen' }))).toBe(true);
+    expect(row.contains(screen.getByRole('button', { name: /Sonnet/ }))).toBe(true);
+    expect(screen.getByRole('button', { name: /Sonnet/ }).compareDocumentPosition(screen.getByRole('button', { name: 'Antwort stoppen' })) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it('treats a rendered 0 as context', () => {
+    const { container } = render(<ChatComposer layout="compact" value="" onChange={() => {}} onSend={() => {}} context={0} actions={picker} />);
+    expect(container.querySelectorAll('.MuiStack-root')).toHaveLength(3);
+    expect(container.querySelectorAll('.MuiStack-root')[1].textContent).toContain('0');
+  });
+
+  it('keeps the context row with its actions when there is a context, as before', () => {
+    const { container } = render(<ChatComposer layout="compact" value="" onChange={() => {}} onSend={() => {}} context={<span>Excerpt A</span>} actions={picker} />);
+    const contextRow = container.querySelectorAll('.MuiStack-root')[1];
+    expect(contextRow.textContent).toContain('Excerpt A');
+    expect(contextRow.contains(screen.getByRole('button', { name: /Sonnet/ }))).toBe(true);
+    expect(contextRow.contains(screen.getByRole('textbox', { name: 'Nachricht' }))).toBe(false);
+  });
+
+  it('leaves the standard layout alone', () => {
+    const { container } = render(<ChatComposer value="" onChange={() => {}} onSend={() => {}} actions={picker} />);
+    expect(container.querySelectorAll('.MuiStack-root').length).toBeGreaterThanOrEqual(2);
+    expect(screen.getByRole('button', { name: /Sonnet/ })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Senden' }).textContent).toBe('Senden');
+  });
+});

@@ -11,7 +11,8 @@ import { useTranslation } from 'react-i18next';
  *
  * `layout="compact"` (UCM-CHAT-7) stacks an optional one-line `notice` (`{ text, action, onAction, onDismiss }`),
  * a context row (`context`, then `actions` at its end; never wraps, the context is clipped first) and a full-width
- * input row with an icon Send that becomes Stop while running. The default `standard` layout is unchanged.
+ * input row with an icon Send that becomes Stop while running. Without `context` there is no context row: the `actions`
+ * sit in the input row before Send/Stop (UCM-CHAT-19). The default `standard` layout is unchanged.
  */
 export const CHAT_COMPOSER_INPUT_SX = { flex: '1 1 12rem', minWidth: 0 };
 export const CHAT_COMPOSER_COMPACT_ROOT_SX = { display: 'flex', flexDirection: 'column', gap: 0.75, p: { xs: 1, md: 1.5 }, borderTop: 1, borderColor: 'divider', minWidth: 0, contain: 'layout paint' };
@@ -21,6 +22,8 @@ export const CHAT_COMPOSER_CONTEXT_SX = { minWidth: 0, flex: '1 1 auto', overflo
 export const CHAT_COMPOSER_CONTEXT_ACTIONS_SX = { flex: '0 0 auto', minWidth: 0, whiteSpace: 'nowrap' };
 export const CHAT_COMPOSER_INPUT_ROW_SX = { display: 'flex', alignItems: 'flex-end', gap: 0.5, minWidth: 0, p: '3px 3px 3px 10px', border: 1, borderColor: 'divider', borderRadius: 1, '&:focus-within': { borderColor: 'primary.main', boxShadow: (theme) => `0 0 0 2px ${theme.palette.primary.main}33` } };
 export const CHAT_COMPOSER_COMPACT_FIELD_SX = { flex: '1 1 auto', minWidth: 0, '& .MuiOutlinedInput-root': { p: 0, alignItems: 'flex-end' }, '& .MuiOutlinedInput-notchedOutline': { border: 0 }, '& .MuiInputBase-inputMultiline': { px: 0, py: 1.5, maxHeight: '7.5em', overflowY: 'auto' } };
+// Without a context the actions (the model picker) sit in the input row before Send/Stop (UCM-CHAT-19); they shrink and clip before the input or Send is pushed out.
+export const CHAT_COMPOSER_INPUT_ACTIONS_SX = { flex: '0 1 auto', minWidth: 0, maxWidth: '45%', overflow: 'hidden', alignSelf: 'center', whiteSpace: 'nowrap' };
 export const CHAT_COMPOSER_ACTION_SX = { width: 36, height: 36, flex: '0 0 36px' };
 // Send is the filled primary action of the input row, as in the prototype; Stop keeps the plain icon button.
 export const CHAT_COMPOSER_SEND_SX = {
@@ -102,14 +105,18 @@ export function ChatComposer({ value, onChange, onSend, onStop, onComposeStart, 
   const handleKeyDown = (event) => {
     if (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent?.isComposing) { event.preventDefault(); submit(); }
   };
+  // 0 and '' are values a host may render; only nothing at all (null, undefined, false) means there is no context.
+  const hasContext = context !== null && context !== undefined && context !== false;
   if (layout === 'compact') return (
     <Stack sx={sx ? [CHAT_COMPOSER_COMPACT_ROOT_SX, sx] : CHAT_COMPOSER_COMPACT_ROOT_SX}>
       <CompactNotice notice={notice} t={t} />
       <UsageLimit usageLimit={usageLimit} t={t} language={language} />
-      <Stack direction="row" alignItems="center" sx={CHAT_COMPOSER_CONTEXT_ROW_SX}>
-        <Box sx={CHAT_COMPOSER_CONTEXT_SX}>{context}</Box>
-        {actions ? <Box sx={CHAT_COMPOSER_CONTEXT_ACTIONS_SX}>{actions}</Box> : null}
-      </Stack>
+      {hasContext ? (
+        <Stack direction="row" alignItems="center" sx={CHAT_COMPOSER_CONTEXT_ROW_SX}>
+          <Box sx={CHAT_COMPOSER_CONTEXT_SX}>{context}</Box>
+          {actions ? <Box sx={CHAT_COMPOSER_CONTEXT_ACTIONS_SX}>{actions}</Box> : null}
+        </Stack>
+      ) : null}
       <Stack direction="row" alignItems="flex-end" sx={CHAT_COMPOSER_INPUT_ROW_SX}>
         <TextField
           multiline maxRows={5} variant="outlined" sx={CHAT_COMPOSER_COMPACT_FIELD_SX} size="small" value={draft}
@@ -117,6 +124,7 @@ export function ChatComposer({ value, onChange, onSend, onStop, onComposeStart, 
           slotProps={{ htmlInput: { 'aria-label': t('Chat.message') } }}
           onFocus={handleFocus} onChange={(event) => changeDraft(event.target.value)} onKeyDown={handleKeyDown}
         />
+        {!hasContext && actions ? <Box sx={CHAT_COMPOSER_INPUT_ACTIONS_SX}>{actions}</Box> : null}
         {running
           ? <IconButton aria-label={t('Chat.stopAnswer')} title={t('Chat.stopAnswer')} sx={CHAT_COMPOSER_ACTION_SX} onClick={onStop}><StopIcon /></IconButton>
           : <IconButton aria-label={t('Chat.send')} sx={CHAT_COMPOSER_SEND_SX} onClick={submit} disabled={!canSend}><SendIcon fontSize="small" /></IconButton>}

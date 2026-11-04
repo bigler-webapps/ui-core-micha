@@ -1,5 +1,13 @@
 # Changelog
 
+## 4.30.0 - UCM-CHAT-19
+
+`ChatComposer` `layout="compact"` without `context`: the `actions` (the model picker) now sit in the input row before Send/Stop and
+no context row is rendered, which saves a row of about 35 px on a phone. They shrink and clip (max 45% of the row) before the input
+or Send is pushed out, so nothing wraps at 320 px. With a `context` the layout is unchanged (context row, actions at its end), as
+are the standard layout, the notice and the usage limit. Every compact consumer without context gets the new arrangement with its next
+pin bump.
+
 ## 4.29.2 - UCM-CHAT-16 follow-up
 
 The narrow thread no longer has a viewport-height floor (`min-height: 50vh`, 4.29.0): in a host box shorter than that floor plus the

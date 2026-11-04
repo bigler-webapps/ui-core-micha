@@ -41,7 +41,12 @@ row with its actions as before; standard layout unchanged.
 
 ## Part B — Implementation map (implementer)
 
-To be filled by the Orchestrator.
+Implemented by the Orchestrator as author (no Luna dispatch); no implementer preamble applies.
+
+- `src/chat/ChatComposer.jsx` (compact branch): the context row renders only when `context` is truthy; without it the `actions` render inside the input row after the text field and before Send/Stop, in a box `CHAT_COMPOSER_INPUT_ACTIONS_SX` (shrinks, `maxWidth: 45%`, clipped). Standard layout, notice and usage limit untouched.
+- `tests/chatCompactComposer.test.jsx`: no-context placement and order, Stop while running, with-context unchanged, standard unchanged.
+- `CHANGELOG.md`, `README.md`, `package.json` 4.30.0.
+- Invariant: a `context` that is an element rendering nothing still counts as context (hosts return `null` for none, as Maana does).
 
 ## Part C — Orchestrator only
 
