@@ -103,6 +103,55 @@ describe('chats without a message', () => {
     expect(nav().queryByRole('button', { name: /Chat\.archived/ })).toBeNull();      // nothing left to expand
   });
 
+  it('without the host hook an existing empty chat is hidden and reused by New chat (4.29.0 behaviour)', async () => {
+    const api = makeApi({ listChats: vi.fn().mockResolvedValue({ results: [talk, empty], next: null }) });
+    render(<ChatWorkspace api={api} />);
+    await screen.findByText('Budget talk');
+    await waitFor(() => expect(rowsOf()).toEqual(['Budget talk']));
+    fireEvent.click(nav().getByRole('button', { name: 'Chat.newChat' }));
+    await waitFor(() => expect(screen.getByRole('textbox', { name: 'Chat.message' })).toBeTruthy());
+    expect(api.createChat).not.toHaveBeenCalled();                                   // the empty chat is shown instead
+  });
+
+  it('keeps a chat the host marks in use listed, does not read it as empty and does not reuse it', async () => {
+    const api = makeApi({ listChats: vi.fn().mockResolvedValue({ results: [talk, empty], next: null }) });
+    render(<ChatWorkspace api={api} isChatInUse={(item) => item.id === 2} />);
+    await screen.findByText('Budget talk');
+    await waitFor(() => expect(rowsOf()).toEqual(['Budget talk', 'New chat']));       // listed although it has no turn
+    expect(api.listTurns).not.toHaveBeenCalledWith(2);                                // never read as empty
+    fireEvent.click(nav().getByRole('button', { name: 'Chat.newChat' }));
+    await waitFor(() => expect(api.createChat).toHaveBeenCalledTimes(1));             // a fresh chat, not the marked one
+  });
+
+  it('does not reuse an open empty chat once the host marks it in use', async () => {
+    const used = new Set();
+    const api = makeApi({ listChats: vi.fn().mockResolvedValue({ results: [talk], next: null }) });     // one stable api object across the host's renders
+    function Host() {
+      const [, setTick] = React.useState(0);
+      return <>
+        <button onClick={() => { used.add(99); setTick((n) => n + 1); }}>mark</button>
+        <ChatWorkspace api={api} isChatInUse={(item) => used.has(item.id)} />
+      </>;
+    }
+    render(<Host />);
+    await screen.findByText('Budget talk');
+    fireEvent.click(nav().getByRole('button', { name: 'Chat.newChat' }));
+    await waitFor(() => expect(screen.getByRole('textbox', { name: 'Chat.message' })).toBeTruthy());
+    expect(rowsOf()).toEqual(['Budget talk']);                                       // the new empty chat is open, not listed yet
+    fireEvent.click(screen.getByText('mark'));                                        // a release puts excerpts into the open chat
+    await waitFor(() => expect(rowsOf()).toEqual(['New chat', 'Budget talk']));       // it is listed now (a new chat is listed first)
+    fireEvent.click(nav().getByRole('button', { name: 'Chat.newChat' }));
+    await waitFor(() => expect(api.createChat).toHaveBeenCalledTimes(2));             // and New chat creates a fresh one
+  });
+
+  it('keeps an archived chat the host marks in use listed', async () => {
+    const archivedEmpty = { ...base, id: 6, title: 'New chat', archived_at: '2026-11-01T10:00:00Z' };
+    const api = makeApi({ listChats: vi.fn().mockImplementation(async ({ archived } = {}) => ({ results: archived ? [archivedEmpty] : [talk], next: null })) });
+    render(<ChatWorkspace api={api} isChatInUse={(item) => item.id === 6} />);
+    await screen.findByText('Budget talk');
+    expect(await nav().findByRole('button', { name: /Chat\.archived/ })).toBeTruthy();   // the archive section stays
+  });
+
   it('keeps a chat with a failed first turn listed', async () => {
     const api = makeApi({
       listChats: vi.fn().mockResolvedValue({ results: [talk, empty], next: null }),

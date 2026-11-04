@@ -56,13 +56,16 @@ const appendDelta = (turns, text) => {
  * Props: `apiBase` and `wsUrl` (where the app mounted the chat routes), `api` (partial overrides of the REST
  * calls; every function not given keeps its default), `scope` (passed when creating a chat),
  * `preloadedChats` (optional active-list response `{ scope, results, next }` already loaded for that exact scope), `sx`,
- * `renderTurnError({ turn, chat, retry })` (optional failed-turn message; return `null` to show the default alert).
+ * `renderTurnError({ turn, chat, retry })` (optional failed-turn message; return `null` to show the default alert),
+ * `isChatInUse(chat)` (optional, UCM-CHAT-17: return `true` for a chat without messages that the app created on purpose, for example with
+ * released excerpts; such a chat stays listed and "New chat" never reuses it. Read at every render and decision, so it also holds for a chat
+ * that becomes in use while it is open and empty. Without it a chat without messages is hidden and reused, as in 4.29.0).
  */
 // On a phone the thread keeps at least half the screen: composer, notice and header take what is left (UCM-CHAT-16).
 const CHAT_WORKSPACE_NARROW_THREAD_SX = { minHeight: '50vh' };
-export const CHAT_WORKSPACE_SIDE_PANEL_SX ={ borderLeft: 1, borderColor: 'divider', minHeight: 0, overflow: 'auto', contain: 'strict' };
+export const CHAT_WORKSPACE_SIDE_PANEL_SX = { borderLeft: 1, borderColor: 'divider', minHeight: 0, overflow: 'auto', contain: 'strict' };
 
-export function ChatWorkspace({ apiBase, wsUrl, api: apiOverrides, scope, preloadedChats, sx, unavailableReasonText, sidePanel, sidePanelLabel, renderAnswerExtra, renderTurnError, renderComposerExtra, composerLayout = 'standard', renderComposerContext, onAppFrame, onNavigate, activeChatId, onActiveChatChange, onComposeStart, composerPrefill, getSendContext, sendRequest, onSendRequestHandled, layout = 'viewport', compactBelow = 720, tokenBalance = null, usageToTokens, longChatTokens = 40000 }) {
+export function ChatWorkspace({ apiBase, wsUrl, api: apiOverrides, scope, preloadedChats, sx, unavailableReasonText, sidePanel, sidePanelLabel, renderAnswerExtra, renderTurnError, renderComposerExtra, composerLayout = 'standard', renderComposerContext, onAppFrame, onNavigate, activeChatId, onActiveChatChange, onComposeStart, composerPrefill, getSendContext, sendRequest, onSendRequestHandled, layout = 'viewport', compactBelow = 720, tokenBalance = null, usageToTokens, longChatTokens = 40000, isChatInUse }) {
   const { t } = useTranslation();
   const theme = useTheme();
   const viewportNarrow = useMediaQuery(theme.breakpoints.down('md'));
@@ -93,6 +96,9 @@ export function ChatWorkspace({ apiBase, wsUrl, api: apiOverrides, scope, preloa
   // Chats without a message are not listed (UCM-CHAT-16): the server creates the chat when "New chat" is pressed, the list shows it from its
   // first message on. emptyIds are the chats known to be empty; emptyChecks remembers what was found per chat so each is read once.
   const [emptyIds, setEmptyIds] = useState(() => new Set());
+  const inUseRef = useRef(isChatInUse);
+  inUseRef.current = isChatInUse;
+  const inUse = (item) => Boolean(item && inUseRef.current?.(item));
   const emptyChecks = useRef(new Map()); // id -> 'pending' | 'empty' | 'used'
   const markUsed = (id) => {
     emptyChecks.current.set(id, 'used');
@@ -329,7 +335,7 @@ export function ChatWorkspace({ apiBase, wsUrl, api: apiOverrides, scope, preloa
   useEffect(() => {
     const untitled = (item) => !item.title || (item.title === 'New chat' && item.title_source !== 'user');
     [...chats, ...archived].filter(untitled).forEach((item) => {
-      if (emptyChecks.current.has(item.id)) return;
+      if (emptyChecks.current.has(item.id) || inUse(item)) return;          // a chat the app marked in use is never read as empty
       emptyChecks.current.set(item.id, 'pending');
       api.listTurns(item.id)
         .then((page) => {
@@ -437,7 +443,8 @@ export function ChatWorkspace({ apiBase, wsUrl, api: apiOverrides, scope, preloa
   // "New chat" while an empty chat is open (or exists) shows that one instead of creating another.
   const createChat = guarded(async () => {
     // Only a list of the current scope may offer a chat: after a scope change the old list stays until the new one has loaded.
-    const reusable = chat && emptyIds.has(chat.id) && !running ? chat : (listsLoaded ? chats.find((item) => emptyIds.has(item.id)) : undefined);
+    const open = chat ? (chats.find((item) => item.id === chat.id) ?? chat) : null;       // the listed copy is the fresher one
+    const reusable = chat && emptyIds.has(chat.id) && !running && !inUse(open) ? chat :(listsLoaded ? chats.find((item) => emptyIds.has(item.id) && !inUse(item)) : undefined);
     if (reusable) {
       selectChat(reusable);
       focusPending.current = true;
@@ -533,8 +540,8 @@ export function ChatWorkspace({ apiBase, wsUrl, api: apiOverrides, scope, preloa
 
   const list = (
     <ChatList
-      chats={chats.filter((item) => !emptyIds.has(item.id))}
-      archivedChats={archived.filter((item) => !emptyIds.has(item.id))}
+      chats={chats.filter((item) => !emptyIds.has(item.id) || inUse(item))}
+      archivedChats={archived.filter((item) => !emptyIds.has(item.id) || inUse(item))}
       activeId={chat?.id}
       hasMore={Boolean(nextChats)}
       onSelect={selectChat}

@@ -229,6 +229,12 @@ focus of the composer and when the draft goes from empty to non-empty, again aft
 something before the send (for example a context-size check), not per keystroke. A shown chat requests its catalogue
 once; the general catalogue is only requested while no chat is shown.
 
+## Shared chat: chats without messages
+
+Since 4.29.0 a chat without a message is not listed and "New chat" reuses it. Since 4.29.1 an app can pass
+`isChatInUse(chat)` and return `true` for a chat without messages that it created on purpose (for example with released
+excerpts): such a chat stays listed and is never reused, also when it becomes in use while it is open and empty.
+
 ## Shared chat: host controls
 
 `ChatWorkspace` (from `@micha.bigler/ui-core-micha/chat`) takes optional props for apps that put UI around the surface;

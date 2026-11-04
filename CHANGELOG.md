@@ -1,5 +1,13 @@
 # Changelog
 
+## 4.29.1 - UCM-CHAT-17
+
+New optional `ChatWorkspace` prop `isChatInUse(chat)`: an app returns `true` for a chat without messages that it created on purpose
+(Maana: a chat with released excerpts). Since 4.29.0 a chat without a turn is hidden from the list and reused by "New chat"; a chat
+marked in use stays listed, is never read as empty and is never reused, also when it becomes in use while it is open and empty (a
+release into the open new chat). Read at every render and decision. Without the prop nothing changes from 4.29.0. Found by the
+independent review of the Maana pin bump to 4.29.0. Also: a whitespace fix in `CHAT_WORKSPACE_SIDE_PANEL_SX` (no change of value).
+
 ## 4.29.0 - UCM-CHAT-16
 
 Chat opens at its end, no empty chat entries, usable thread on phones. Found in the Maana staging acceptance of 2026-11-03.

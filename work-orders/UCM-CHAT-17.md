@@ -47,7 +47,13 @@ is hidden and reused as in 4.29.0; a chat that becomes in use while open and emp
 
 ## Part B — Implementation map (implementer)
 
-To be filled by the Orchestrator.
+Implemented by the Orchestrator as author (operator decision of 2026-11-02, no Luna dispatch); no implementer preamble applies.
+
+- `src/chat/ChatWorkspace.jsx`: optional prop `isChatInUse(chat)` (documented in the component's props comment), read through `inUseRef` at every
+  decision: the empty check skips a marked chat, the list and the archived list keep it, `createChat` neither reuses the open chat nor a listed one
+  when marked. No prop means 4.29.0 behaviour. The stray space in `CHAT_WORKSPACE_SIDE_PANEL_SX =` from 4.29.0 is fixed on the way.
+- Tests: `tests/chatEmptyChats.test.jsx` (no hook = hidden and reused; hook = listed, never read, not reused; marked while open = listed and not reused).
+- Release 4.29.1: `package.json`, `CHANGELOG.md`.
 
 ## Part C — Orchestrator only
 
