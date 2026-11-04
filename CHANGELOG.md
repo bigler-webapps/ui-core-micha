@@ -1,5 +1,17 @@
 # Changelog
 
+## 4.31.0 - UCM-BILL-11
+
+Contract status, cancellation and withdrawal declarations, and the full-refund withdrawal view, against the django-core-micha
+DCM-BILL-8 endpoints (`contracts/`, `contracts/<reference>/cancel|withdraw/`, `public/declarations/`, `public/declarations/confirm/`).
+New opt-in exports `ContractSummary`, `CancellationDialog` ("Verträge hier kündigen" / "Jetzt kündigen"), `DeclarationForm` (public
+cancellation or withdrawal without login, saveable localised acknowledgement) and `DeclarationConfirm`; `createBillingApi` gains
+`listContracts`, `cancelContract`, `withdrawContract`, `primeDeclarationCsrf`, `submitDeclaration`, `confirmDeclaration`.
+`SubscriptionSection` shows the owner's contracts when the server offers them (a 404 renders nothing). Withdrawal rows and previews with
+`policy: "full"` use the server deadline, the label "Vertrag widerrufen" and show paid, previously refunded and refund amounts plus the
+refund status instead of the time/token breakdown; legacy rows are unchanged. `PlanPicker` shows an annual plan's monthly continuation
+(price plus applicable taxes, allowance, monthly cancellable). Translations only add keys; no existing text changed.
+
 ## 4.30.0 - UCM-CHAT-19
 
 `ChatComposer` `layout="compact"` without `context`: the `actions` (the model picker) now sit in the input row before Send/Stop and

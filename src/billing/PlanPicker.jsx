@@ -54,6 +54,7 @@ export function PlanPicker({ plans = [], kinds = ['subscription', 'team_package'
                 <Typography>{formatPrice(plan.amount_cents, i18n.language)}{suffix}</Typography>
                 {plan.kind === 'team_package' && <Typography>{t('Billing.SEATS', { count: plan.seats })} · {t('Billing.TERM_MONTHS', { count: plan.term_months })}</Typography>}
                 {Number.isFinite(plan.token_allowance) && plan.token_allowance > 0 && <Typography>{t('Billing.TOKENS_INCLUDED', { tokens: formatTokens(plan.token_allowance, i18n.language) })}</Typography>}
+                {plan.continuation && Number.isFinite(plan.continuation.amount_cents) && Number.isFinite(plan.continuation.token_allowance) && <Typography>{t('Billing.PLAN_CONTINUATION', { amount: formatPrice(plan.continuation.amount_cents, i18n.language), tokens: formatTokens(plan.continuation.token_allowance, i18n.language) })}</Typography>}
                 {describePlan?.(plan)}
               </Stack>
           } />

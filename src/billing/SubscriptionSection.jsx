@@ -10,6 +10,8 @@ import { TokenBalanceBadge } from './TokenBalanceBadge';
 import { AccessEndedBanner } from './AccessEndedBanner';
 import { WithdrawalSection } from './WithdrawalSection';
 import { TokenOriginTable } from './TokenOriginTable';
+import { ContractSummary } from './ContractSummary';
+import { CancellationDialog } from './CancellationDialog';
 
 export const SUBSCRIPTION_SECTION_ALERT_SX = { width: '100%' };
 export const SUBSCRIPTION_SECTION_SEAT_SELECT_SX = { flex: '1 1 auto', minWidth: 0 };
@@ -32,6 +34,10 @@ export function SubscriptionSection({ api = defaultBillingApi, redirect = (url) 
   const [seatInput, setSeatInput] = useState('');
   const [busy, setBusy] = useState(false);
   const [actionError, setActionError] = useState(null);
+  const [contracts, setContracts] = useState([]);
+  const [contractLoadError, setContractLoadError] = useState(false);
+  const [selectedContract, setSelectedContract] = useState(null);
+  const [reloadAfterCancellation, setReloadAfterCancellation] = useState(false);
   const renewalPickerRef = useRef(null);
 
   useEffect(() => {
@@ -45,6 +51,23 @@ export function SubscriptionSection({ api = defaultBillingApi, redirect = (url) 
         else setSeatError(error);
       });
     }
+    return () => { live = false; };
+  }, [api, state, me]);
+
+  useEffect(() => {
+    if (state !== 'ready') return undefined;
+    let live = true;
+    setContractLoadError(false);
+    // `me.contract` names only the current subscription's contract; the owner may hold more, so the list wins when it exists.
+    const embedded = me?.contract && typeof me.contract === 'object' && !Array.isArray(me.contract) ? [me.contract] : [];
+    setContracts(embedded);
+    if (typeof api?.listContracts !== 'function') return () => { live = false; };
+    Promise.resolve().then(() => api.listContracts()).then((result) => {
+      if (live) setContracts(Array.isArray(result?.contracts) ? result.contracts.filter((item) => item && typeof item === 'object') : embedded);
+    }).catch((error) => {
+      if (!live) return;
+      if (!isStatus(error, 404)) setContractLoadError(true);
+    });
     return () => { live = false; };
   }, [api, state, me]);
 
@@ -68,6 +91,14 @@ export function SubscriptionSection({ api = defaultBillingApi, redirect = (url) 
     } catch (error) {
       setSeatError(isStatus(error, 409) ? 'Billing.ERROR_SEAT_LIMIT' : isStatus(error, 400) ? 'Billing.ERROR_SEAT_USER' : 'Billing.ERROR_LOAD');
     } finally { setBusy(false); }
+  };
+
+  const closeCancellation = () => {
+    setSelectedContract(null);
+    if (reloadAfterCancellation) {
+      setReloadAfterCancellation(false);
+      reload();
+    }
   };
 
   if (state === 'loading') return <Stack sx={sx} role="status" direction="row" spacing={1} alignItems="center"><CircularProgress size={20} /><Typography>{t('Billing.LOADING')}</Typography></Stack>;
@@ -146,6 +177,12 @@ export function SubscriptionSection({ api = defaultBillingApi, redirect = (url) 
         {typeof me.seat.payer_name === 'string' && me.seat.payer_name.trim() && <Typography color="text.secondary">{t('Billing.SEAT_PAYER', { name: me.seat.payer_name })}</Typography>}
       </Stack>}
     </>}
+
+    {contracts.length > 0 && <Stack spacing={1}>
+      {contracts.map((contract) => <ContractSummary key={contract.reference || contract.plan_key} contract={contract} onCancel={() => setSelectedContract(contract)} />)}
+    </Stack>}
+    {contractLoadError && <Alert severity="error" sx={SUBSCRIPTION_SECTION_ALERT_SX}>{t('Billing.CONTRACT_LOAD_ERROR')}</Alert>}
+    <CancellationDialog open={Boolean(selectedContract)} contract={selectedContract} api={api} onClose={closeCancellation} onCancelled={() => setReloadAfterCancellation(true)} />
 
     <Stack direction="row" spacing={1} alignItems="center"><Typography>{t('Billing.BALANCE_LABEL')}</Typography><TokenBalanceBadge balance={tokens.balance} /></Stack>
     <Typography>{t('Billing.BALANCE', { tokens: formatTokens(tokens.balance, i18n.language) })}</Typography>

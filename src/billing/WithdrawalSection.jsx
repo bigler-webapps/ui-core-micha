@@ -7,12 +7,15 @@ import { WithdrawalDialog } from './WithdrawalDialog';
 export const WITHDRAWAL_SECTION_ALERT_SX = { width: '100%' };
 
 const is404 = (error) => error?.response?.status === 404;
-const deadline = (purchase) => {
+const legacyDeadline = (purchase) => {
   const date = new Date(purchase.purchased_at);
   if (!Number.isFinite(date.getTime())) return '';
   date.setUTCDate(date.getUTCDate() + 14);
   return date.toISOString();
 };
+const deadline = (purchase) => purchase?.deadline !== undefined && purchase?.deadline !== null ? purchase.deadline : legacyDeadline(purchase);
+const refundStatusKey = (status) => ['pending', 'requested', 'succeeded', 'failed', 'requires_action', 'cancelled'].includes(status)
+  ? `Billing.REFUND_STATUS_${status.toUpperCase()}` : 'Billing.REFUND_STATUS_UNKNOWN';
 
 export function WithdrawalSection({ api, plans = [], onWithdrawn, sessionWithdrawals = {}, sx }) {
   const { t, i18n } = useTranslation();
@@ -49,6 +52,7 @@ export function WithdrawalSection({ api, plans = [], onWithdrawn, sessionWithdra
     {Object.entries(successful).map(([id, entry]) => <Stack key={id} spacing={0.5} role="status">
       <Typography>{t('Billing.WITHDRAWAL_DONE')}</Typography>
       <Typography>{t('Billing.WITHDRAWAL_DONE_DETAIL', { date: formatDateTime((entry?.result || entry)?.withdrawn_at, i18n.language) })}</Typography>
+      {(entry?.result || entry)?.refund_status && <Typography>{t(refundStatusKey((entry?.result || entry).refund_status))}</Typography>}
     </Stack>)}
   </Stack>;
   if (!purchases.length && !Object.keys(successful).length) return null;
@@ -63,7 +67,7 @@ export function WithdrawalSection({ api, plans = [], onWithdrawn, sessionWithdra
       let status = null;
       if (withdrawnAt) status = <Typography color="text.secondary">{t('Billing.WITHDRAWN_ON', { date: formatDate(withdrawnAt, i18n.language) })}</Typography>;
       else if (purchase.eligible === true) status = <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
-        <Button onClick={() => setSelected(purchase)}>{t('Billing.WITHDRAWAL_BUTTON')}</Button>
+        <Button onClick={() => setSelected(purchase)}>{t(purchase.policy === 'full' ? 'Billing.WITHDRAW_CONTRACT' : 'Billing.WITHDRAWAL_BUTTON')}</Button>
         {deadlineText && <Typography color="text.secondary">{t('Billing.WITHDRAWAL_UNTIL', { date: deadlineText })}</Typography>}
       </Stack>;
       else if (purchase.reason === 'period_over') status = <Typography color="text.secondary">{t('Billing.WITHDRAWAL_PERIOD_OVER')}</Typography>;
@@ -78,6 +82,7 @@ export function WithdrawalSection({ api, plans = [], onWithdrawn, sessionWithdra
     {Object.entries(successful).map(([id, entry]) => <Stack key={id} spacing={0.5} role="status">
       <Typography>{t('Billing.WITHDRAWAL_DONE')}</Typography>
       <Typography>{t('Billing.WITHDRAWAL_DONE_DETAIL', { date: formatDateTime((entry?.result || entry)?.withdrawn_at, i18n.language) })}</Typography>
+      {(entry?.result || entry)?.refund_status && <Typography>{t(refundStatusKey((entry?.result || entry).refund_status))}</Typography>}
     </Stack>)}
     <WithdrawalDialog open={Boolean(selected)} purchase={selected} api={api} onClose={() => setSelected(null)} onWithdrawn={(result) => selected && handleWithdrawn(selected.id, result)} />
   </Stack>;

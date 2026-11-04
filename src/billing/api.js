@@ -28,6 +28,12 @@ export function createBillingApi(overrides = {}, { apiBase = '/api/billing/' } =
     listWithdrawals: () => data(apiClient.get(urls.withdrawals)),
     previewWithdrawal: (id) => data(apiClient.get(urls.withdrawalPreview(id))),
     confirmWithdrawal: (id) => data(apiClient.post(urls.withdrawalConfirm(id), { confirm: true })),
+    listContracts: () => data(apiClient.get(urls.contracts)),
+    cancelContract: (reference, body) => data(apiClient.post(urls.contractCancel(reference), body)),
+    withdrawContract: (reference) => data(apiClient.post(urls.contractWithdraw(reference), { confirm: true })),
+    primeDeclarationCsrf: () => data(apiClient.get(urls.declarationCsrf)),
+    submitDeclaration: (body) => data(apiClient.post(urls.declarations, body)),
+    confirmDeclaration: (token) => data(apiClient.post(urls.declarationConfirm, { token })),
     getOperatorOverview: ({ month } = {}) => data(month === undefined ? apiClient.get(urls.operatorOverview) : apiClient.get(urls.operatorOverview, { params: { month } })),
     listOperatorAccounts: ({ q, page, pageSize } = {}) => {
       const params = {};

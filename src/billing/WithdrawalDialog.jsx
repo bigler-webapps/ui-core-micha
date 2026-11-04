@@ -4,6 +4,8 @@ import { useTranslation } from 'react-i18next';
 import { formatDateTime, formatPrice } from './format';
 
 export const WITHDRAWAL_DIALOG_ALERT_SX = { width: '100%' };
+const refundStatusKey = (status) => ['pending', 'requested', 'succeeded', 'failed', 'requires_action', 'cancelled'].includes(status)
+  ? `Billing.REFUND_STATUS_${status.toUpperCase()}` : 'Billing.REFUND_STATUS_UNKNOWN';
 
 export function describeCalculation(preview, t, language) {
   const currency = preview?.currency || 'USD';
@@ -71,6 +73,7 @@ export function WithdrawalDialog({ open, purchase, api, onClose, onWithdrawn }) 
   const close = () => { if (state !== 'submitting') onClose?.(); };
   const amount = formatPrice(preview?.refund_cents, i18n.language, preview?.currency);
   const none = !(Number(preview?.refund_cents) > 0);
+  const fullRefund = preview?.policy === 'full' || purchase?.policy === 'full';
 
   return <Dialog open={open} onClose={close} disableEscapeKeyDown={state === 'submitting'} fullWidth maxWidth="sm" aria-labelledby={titleId}>
     <DialogTitle id={titleId}>{t(state === 'success' ? 'Billing.WITHDRAWAL_DONE' : 'Billing.WITHDRAWAL_TITLE')}</DialogTitle>
@@ -80,12 +83,18 @@ export function WithdrawalDialog({ open, purchase, api, onClose, onWithdrawn }) 
       {(state === 'not_possible') && <Alert severity="info">{t('Billing.WITHDRAWAL_NOT_POSSIBLE')}</Alert>}
       {(state === 'ready' || state === 'submitting' || state === 'confirm_error') && <Stack spacing={1}>
         <Typography>{t(purchase?.kind === 'token_package' ? 'Billing.WITHDRAWAL_EFFECT_TOKENS' : 'Billing.WITHDRAWAL_EFFECT')}</Typography>
-        <Typography>{none ? t('Billing.WITHDRAWAL_REFUND_NONE') : t('Billing.WITHDRAWAL_REFUND', { amount })}</Typography>
-        <Typography>{t('Billing.WITHDRAWAL_CALCULATION', { explanation: describeCalculation({ ...preview, kind: purchase?.kind }, t, i18n.language) })}</Typography>
+        <Typography>{fullRefund ? t('Billing.WITHDRAWAL_REFUND', { amount }) : none ? t('Billing.WITHDRAWAL_REFUND_NONE') : t('Billing.WITHDRAWAL_REFUND', { amount })}</Typography>
+        {fullRefund ? <>
+          <Typography>{t('Billing.WITHDRAWAL_PAID_TOTAL', { amount: formatPrice(preview?.amount_paid_cents, i18n.language, preview?.currency) })}</Typography>
+          <Typography>{t('Billing.WITHDRAWAL_REFUNDED_BEFORE', { amount: formatPrice(preview?.refunded_cents, i18n.language, preview?.currency) })}</Typography>
+        </> : <Typography>{t('Billing.WITHDRAWAL_CALCULATION', { explanation: describeCalculation({ ...preview, kind: purchase?.kind }, t, i18n.language) })}</Typography>}
         {state === 'confirm_error' && <Alert severity="error" sx={WITHDRAWAL_DIALOG_ALERT_SX}>{t('Billing.WITHDRAWAL_ERROR')}</Alert>}
         {state === 'submitting' && <Typography role="status"><CircularProgress size={16} /> {t('Billing.LOADING')}</Typography>}
       </Stack>}
-      {state === 'success' && <Typography>{t('Billing.WITHDRAWAL_DONE_DETAIL', { date: formatDateTime(result?.withdrawn_at, i18n.language) })}</Typography>}
+      {state === 'success' && <Stack spacing={0.5}>
+        <Typography>{t('Billing.WITHDRAWAL_DONE_DETAIL', { date: formatDateTime(result?.withdrawn_at, i18n.language) })}</Typography>
+        {result?.refund_status && <Typography>{t(refundStatusKey(result.refund_status))}</Typography>}
+      </Stack>}
     </DialogContent>
     <DialogActions>
       {state === 'ready' || state === 'confirm_error' ? <>

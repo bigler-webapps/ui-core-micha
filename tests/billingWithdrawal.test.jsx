@@ -47,6 +47,13 @@ describe('withdrawal section', () => {
     expect(await screen.findByRole('button', { name: 'Billing.WITHDRAWAL_BUTTON' })).toBeTruthy();
     expect(listWithdrawals).toHaveBeenCalledTimes(2);
   });
+  it('uses the server deadline and the contract withdrawal label for full-policy rows', async () => {
+    const api = { listWithdrawals: vi.fn().mockResolvedValue({ purchases: [purchase('full', { policy: 'full', deadline: '2026-02-01T00:00:00Z' })] }) };
+    render(<WithdrawalSection api={api} />);
+    expect(await screen.findByRole('button', { name: 'Billing.WITHDRAW_CONTRACT' })).toBeTruthy();
+    expect(screen.getByText('Billing.WITHDRAWAL_UNTIL February 1, 2026')).toBeTruthy();
+    expect(screen.queryByText('Billing.WITHDRAWAL_UNTIL January 15, 2026')).toBeNull();
+  });
 });
 
 describe('withdrawal dialog', () => {
@@ -69,6 +76,19 @@ describe('withdrawal dialog', () => {
     const api = { previewWithdrawal: vi.fn().mockResolvedValue(preview({ refund_cents: 0, time_share_cents: 0, token_share_cents: 0 })) };
     openDialog(api);
     return screen.findByText(/Billing.WITHDRAWAL_REFUND_NONE/);
+  });
+  it('shows full-policy paid, previously refunded and refund totals without a deduction breakdown', async () => {
+    const fullPreview = { policy: 'full', eligible: true, currency: 'usd', amount_paid_cents: 1200, refunded_cents: 400, refund_cents: 800 };
+    const api = { previewWithdrawal: vi.fn().mockResolvedValue(fullPreview), confirmWithdrawal: vi.fn().mockResolvedValue({ refund_status: 'pending', refund_cents: 800, withdrawn_at: '2026-02-01T14:30:00Z' }) };
+    openDialog(api, { purchase: purchase('p1', { policy: 'full' }) });
+    expect(await screen.findByText('Billing.WITHDRAWAL_PAID_TOTAL $12.00')).toBeTruthy();
+    expect(screen.getByText('Billing.WITHDRAWAL_REFUNDED_BEFORE $4.00')).toBeTruthy();
+    expect(screen.getByText('Billing.WITHDRAWAL_REFUND $8.00')).toBeTruthy();
+    expect(screen.queryByText(/Billing.WITHDRAWAL_CALCULATION/)).toBeNull();
+    expect(screen.queryByText(/Billing.WITHDRAWAL_TIME_SHARE|Billing.WITHDRAWAL_TOKEN_SHARE/)).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Billing.WITHDRAWAL_CONFIRM' }));
+    expect(await screen.findByText('Billing.REFUND_STATUS_PENDING')).toBeTruthy();
+    expect(screen.queryByText('Billing.REFUND_STATUS_SUCCEEDED')).toBeNull();
   });
   it('guards double confirmation and shows the success receipt once', async () => {
     let finish;
@@ -153,9 +173,9 @@ describe('withdrawal integration and helpers', () => {
     expect(keys.length).toBeGreaterThan(10);
     for (const key of keys) {
       const row = billingTranslations[key];
-      for (const language of ['de', 'en', 'fr', 'sw']) expect(row[language]).toBeTruthy();
+      for (const language of ['de', 'de_informal', 'en', 'fr', 'sw']) expect(row[language]).toBeTruthy();
       const placeholders = (value) => [...value.matchAll(/{{(.*?)}}/g)].map((match) => match[1]).sort();
-      expect(placeholders(row.de)).toEqual(placeholders(row.en)); expect(placeholders(row.de)).toEqual(placeholders(row.fr)); expect(placeholders(row.de)).toEqual(placeholders(row.sw));
+      for (const language of ['de_informal', 'en', 'fr', 'sw']) expect(placeholders(row.de)).toEqual(placeholders(row[language]));
     }
     expect(kit.WithdrawalSection).toBeTypeOf('function'); expect(kit.WithdrawalDialog).toBeTypeOf('function');
   });
