@@ -189,3 +189,12 @@ hram-tool / renovate-config / webapp-management-template / webapp-ops-scripts / 
   yopoulab-hhs-2026: not present (no frontend/src or src).
 ```
 FOUR `LineChart aspect` findings in fitness-monitor were NOT named in this WO's own F1 table (which only listed `ChartFrame`) -- `LineChart`'s `aspect`/`height`/`margin` were removed in `UCM-CHART-12` (v3.0.0), so if fitness-monitor's working tree is genuinely on `3.0.1` as this WO's own "why 3.1.1" section states, those four `LineChart` calls are ALREADY throwing `assertRemovedChartProp` errors at runtime, independent of anything in this WO. Flagged to the operator; NOT investigated or acted on here -- out of scope (`FM-CHART-1` territory, and this WO's Non-goals forbid touching fitness-monitor), but too material to bury in a code comment only. Publishes automatically via `publish.yml` on this push (version-increase gate, `3.1.1 > 3.1.0`). |
+
+## Privacy workstream — 2026-11-04
+
+Repository token: `UCM`; stream `UCM-PRIV-*` covers privacy information, purpose-specific browser choices and the application rollout.
+
+| ID | Title | Description | Date | Status | Commit(s) | Note |
+|---|---|---|---|---|---|---|
+| UCM-PRIV-1 | Shared privacy choices and notice surfaces | Shared privacy rollout; scope and required tests in the linked Envelope. | 2026-11-04 | planned | | Tier 3; [WO](work-orders/UCM-PRIV-1.md). Gate #1 pending; Part B not dispatchable. Prior opt-in and shared prototype requested; feature implementation not yet approved. |
+| UCM-PRIV-2 | Retire legacy privacy UI after adoption | Shared privacy rollout; scope and required tests in the linked Envelope. | 2026-11-04 | planned | | Tier 3; [WO](work-orders/UCM-PRIV-2.md). Gate #1 pending; Part B not dispatchable. Prior opt-in and shared prototype requested; feature implementation not yet approved. |
