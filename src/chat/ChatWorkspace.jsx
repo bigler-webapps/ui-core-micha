@@ -61,8 +61,6 @@ const appendDelta = (turns, text) => {
  * released excerpts; such a chat stays listed and "New chat" never reuses it. Read at every render and decision, so it also holds for a chat
  * that becomes in use while it is open and empty. Without it a chat without messages is hidden and reused, as in 4.29.0).
  */
-// On a phone the thread keeps at least half the screen: composer, notice and header take what is left (UCM-CHAT-16).
-const CHAT_WORKSPACE_NARROW_THREAD_SX = { minHeight: '50vh' };
 export const CHAT_WORKSPACE_SIDE_PANEL_SX = { borderLeft: 1, borderColor: 'divider', minHeight: 0, overflow: 'auto', contain: 'strict' };
 
 export function ChatWorkspace({ apiBase, wsUrl, api: apiOverrides, scope, preloadedChats, sx, unavailableReasonText, sidePanel, sidePanelLabel, renderAnswerExtra, renderTurnError, renderComposerExtra, composerLayout = 'standard', renderComposerContext, onAppFrame, onNavigate, activeChatId, onActiveChatChange, onComposeStart, composerPrefill, getSendContext, sendRequest, onSendRequestHandled, layout = 'viewport', compactBelow = 720, tokenBalance = null, usageToTokens, longChatTokens = 40000, isChatInUse }) {
@@ -589,7 +587,7 @@ export function ChatWorkspace({ apiBase, wsUrl, api: apiOverrides, scope, preloa
         </Stack>
         {chat ? (
           <>
-            <ChatThread sx={narrow ? CHAT_WORKSPACE_NARROW_THREAD_SX : undefined} turns={turns} chat={chat} renderAnswerExtra={answerExtra} renderTurnError={renderTurnError} tool={tool} notice={noticeFor()} hasOlder={Boolean(olderCursor)} olderBusy={olderBusy} onLoadOlder={loadOlder} onRetry={retry} readOnly={isArchived} summary={summary} usageToTokens={usageToTokens} onNavigate={onNavigate} />
+            <ChatThread turns={turns} chat={chat} renderAnswerExtra={answerExtra} renderTurnError={renderTurnError} tool={tool} notice={noticeFor()} hasOlder={Boolean(olderCursor)} olderBusy={olderBusy} onLoadOlder={loadOlder} onRetry={retry} readOnly={isArchived} summary={summary} usageToTokens={usageToTokens} onNavigate={onNavigate} />
             {isArchived ? <Typography variant="caption" color="text.secondary" sx={{ px: 2, pb: 1 }}>{t('Chat.archivedReadOnly')}</Typography> : null}
             {renderComposerExtra ? <Box key={chat.id}>{renderComposerExtra({ chat })}</Box> : null}
             {composerLayout !== 'compact' && longChat ? <Alert severity="info" action={<Button color="inherit" size="small" onClick={createChat}>{t('Chat.newConversation')}</Button>}>{t('Chat.longChat')}</Alert> : null}

@@ -1,5 +1,13 @@
 # Changelog
 
+## 4.29.2 - UCM-CHAT-16 follow-up
+
+The narrow thread no longer has a viewport-height floor (`min-height: 50vh`, 4.29.0): in a host box shorter than that floor plus the
+header, notice and composer the composer and the long-conversation banner were pushed out of the workspace (Maana staging, 375x812:
+nobody could write a message). The thread is flexible again (`flex: 1`, `min-height: 0`), so header, notice and composer always fit
+inside the workspace; how much of the screen the conversation gets is the host's choice of the workspace's height. Header (44 px
+when narrow) and the wrapping notice from 4.29.0 stay.
+
 ## 4.29.1 - UCM-CHAT-17
 
 New optional `ChatWorkspace` prop `isChatInUse(chat)`: an app returns `true` for a chat without messages that it created on purpose

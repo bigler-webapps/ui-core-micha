@@ -152,6 +152,20 @@ describe('chats without a message', () => {
     expect(await nav().findByRole('button', { name: /Chat\.archived/ })).toBeTruthy();   // the archive section stays
   });
 
+  it('keeps the thread flexible on a narrow layout, so the composer and the notice stay inside the workspace', async () => {
+    const api = makeApi({ listChats: vi.fn().mockResolvedValue({ results: [talk], next: null }) });
+    const { container } = render(<ChatWorkspace api={api} layout="compact" activeChatId={1} />);
+    const log = await screen.findByRole('log');
+    const input = await screen.findByRole('textbox', { name: 'Chat.message' });
+    // no viewport-height floor on the thread (it would push the composer out of a short host box, UCM-CHAT-16 staging blocker)
+    expect(window.getComputedStyle(log).minHeight).toBe('0px');
+    expect(window.getComputedStyle(log).flexGrow).toBe('1');
+    // the composer sits in the same column as the thread, inside the workspace root
+    const root = container.firstElementChild;
+    expect(root.contains(input) && root.contains(log)).toBe(true);
+    expect(log.parentElement.contains(input)).toBe(true);
+  });
+
   it('keeps a chat with a failed first turn listed', async () => {
     const api = makeApi({
       listChats: vi.fn().mockResolvedValue({ results: [talk, empty], next: null }),
