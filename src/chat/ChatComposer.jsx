@@ -31,7 +31,8 @@ export const CHAT_COMPOSER_SEND_SX = {
   '&.Mui-disabled': { bgcolor: 'action.disabledBackground', color: 'action.disabled' },
 };
 export const CHAT_COMPOSER_NOTICE_SX = { display: 'flex', alignItems: 'center', gap: 0.75, minWidth: 0, minHeight: 32, px: 1, color: 'text.secondary', bgcolor: 'action.hover', borderRadius: 1 };
-export const CHAT_COMPOSER_NOTICE_TEXT_SX = { minWidth: 0, flex: '1 1 auto', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' };
+// One line from the small breakpoint up; on a phone the text wraps instead of being cut mid-word, and its action stays beside it.
+export const CHAT_COMPOSER_NOTICE_TEXT_SX = { minWidth: 0, flex: '1 1 auto', overflow: { xs: 'visible', sm: 'hidden' }, whiteSpace: { xs: 'normal', sm: 'nowrap' }, overflowWrap: 'anywhere', textOverflow: 'ellipsis', fontSize: { xs: '0.8125rem', sm: 'inherit' }, lineHeight: 1.3, py: { xs: 0.5, sm: 0 } };
 export const CHAT_COMPOSER_NOTICE_ACTION_SX = { flex: '0 0 auto', minWidth: 0, p: 0.25, whiteSpace: 'nowrap' };
 export const CHAT_COMPOSER_NOTICE_CLOSE_SX = { width: 28, height: 28, flex: '0 0 28px' };
 export const CHAT_COMPOSER_USAGE_METER_SX = { height: 3 };

@@ -3,7 +3,7 @@ import React from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { ChatThread } from '../src/chat/ChatThread';
-import { ChatComposer } from '../src/chat/ChatComposer';
+import { ChatComposer, CHAT_COMPOSER_NOTICE_TEXT_SX } from '../src/chat/ChatComposer';
 import ChatWorkspace from '../src/chat/ChatWorkspace';
 
 vi.mock('react-i18next', () => ({ useTranslation: () => ({ t: (key) => key }) }));
@@ -54,6 +54,67 @@ describe('chat layout isolation', () => {
     } finally {
       delete globalThis.ResizeObserver;
     }
+  });
+
+  it('opens a long chat at its bottom although the scroll event of its first move arrives after the turns took their real height', () => {
+    let callback;
+    globalThis.ResizeObserver = class { constructor(cb) { callback = cb; } observe() {} disconnect() {} };
+    try {
+      render(<ChatThread turns={[turn(1), turn(2)]} />);
+      const log = screen.getByRole('log');
+      Object.defineProperty(log, 'clientHeight', { configurable: true, value: 600 });
+      Object.defineProperty(log, 'scrollHeight', { configurable: true, value: 16000 });     // the estimated height of the turns
+      act(() => callback([]));
+      expect(log.scrollTop).toBe(16000);
+      Object.defineProperty(log, 'scrollHeight', { configurable: true, value: 86000 });     // the off-screen turns take their real height
+      fireEvent.scroll(log);                                                               // the event of that first move, a frame late
+      act(() => callback([]));
+      expect(log.scrollTop).toBe(86000);
+    } finally {
+      delete globalThis.ResizeObserver;
+    }
+  });
+
+  it('keeps following when late-growing turns arrive in several steps after the first move', () => {
+    let callback;
+    globalThis.ResizeObserver = class { constructor(cb) { callback = cb; } observe() {} disconnect() {} };
+    try {
+      render(<ChatThread turns={[turn(1), turn(2)]} />);
+      const log = screen.getByRole('log');
+      Object.defineProperty(log, 'clientHeight', { configurable: true, value: 600 });
+      for (const height of [3000, 9000, 30000, 86000]) {
+        Object.defineProperty(log, 'scrollHeight', { configurable: true, value: height });
+        act(() => callback([]));
+        fireEvent.scroll(log);
+      }
+      expect(log.scrollTop).toBe(86000);
+    } finally {
+      delete globalThis.ResizeObserver;
+    }
+  });
+
+  it('keeps the reader\'s place when older turns are prepended', async () => {
+    const onLoadOlder = vi.fn(() => Promise.resolve());
+    const { rerender } = render(<ChatThread turns={[turn(3), turn(4)]} hasOlder onLoadOlder={onLoadOlder} />);
+    const log = screen.getByRole('log');
+    Object.defineProperty(log, 'clientHeight', { configurable: true, value: 400 });
+    Object.defineProperty(log, 'scrollHeight', { configurable: true, value: 5000 });
+    log.scrollTop = 300;
+    fireEvent.scroll(log);
+    fireEvent.click(screen.getByRole('button', { name: 'Chat.loadOlder' }));
+    await waitFor(() => expect(onLoadOlder).toHaveBeenCalled());
+    Object.defineProperty(log, 'scrollHeight', { configurable: true, value: 7000 });
+    rerender(<ChatThread turns={[turn(1), turn(2), turn(3), turn(4)]} hasOlder onLoadOlder={onLoadOlder} />);
+    expect(log.scrollTop).toBe(2300);
+  });
+
+  it('lets the composer notice wrap on a phone instead of cutting it, with its action beside it', () => {
+    // jsdom does not evaluate the breakpoint rules, so the rule itself is pinned: wrapping text below sm, the one-line ellipsis from sm up
+    expect(CHAT_COMPOSER_NOTICE_TEXT_SX.whiteSpace).toEqual({ xs: 'normal', sm: 'nowrap' });
+    expect(CHAT_COMPOSER_NOTICE_TEXT_SX.overflow).toEqual({ xs: 'visible', sm: 'hidden' });
+    render(<ChatComposer layout="compact" notice={{ text: 'Long conversation: older parts will be summarised', action: 'New chat', onAction: () => {}, onDismiss: () => {} }} />);
+    expect(screen.getByText('Long conversation: older parts will be summarised')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'New chat' })).toBeTruthy();
   });
 
   it('observes the scroll region too, so a thread mounted hidden pins to the bottom when shown', () => {

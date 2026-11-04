@@ -3,7 +3,9 @@ import { Alert, Box, Button, Chip, Stack, Tooltip, Typography } from '@mui/mater
 import { useTranslation } from 'react-i18next';
 import MarkdownReply from './MarkdownReply';
 
-export const CHAT_THREAD_SCROLL_SX = { minHeight: 0, flex: 1, overflowY: 'auto', p: { xs: 1.5, md: 2.5 }, contain: 'strict' };
+// overflowAnchor: the thread keeps its own position (bottom, or the reader's place after older turns are prepended); the browser's scroll anchoring
+// would move it a second time whenever an off-screen turn takes its real height.
+export const CHAT_THREAD_SCROLL_SX = { minHeight: 0, flex: 1, overflowY: 'auto', p: { xs: 1.5, md: 2.5 }, contain: 'strict', overflowAnchor: 'none' };
 export const CHAT_THREAD_TURN_SX = { mb: 3, contentVisibility: 'auto', containIntrinsicSize: 'auto 320px' };
 export const CHAT_THREAD_TOOL_CHIP_SX = { alignSelf: 'flex-start' };
 export const CHAT_THREAD_NOTICE_SX = { mb: 2 };
@@ -78,9 +80,17 @@ export function ChatThread({ turns = [], tool = null, notice = null, hasOlder = 
   const scroller = useRef(null);
   const heightBeforeOlder = useRef(null);
   const pinned = useRef(true); // follow the stream only while the reader is at the bottom
+  // The scroll position this component set itself. The scroll event of such a move arrives a frame later, when off-screen turns may have
+  // taken their real height and the bottom moved away: that event must not be read as the reader leaving the bottom (UCM-CHAT-16).
+  const ownTop = useRef(null);
+  const scrollToEnd = () => { const el = scroller.current; if (!el) return; el.scrollTop = el.scrollHeight; ownTop.current = el.scrollTop; };
   const last = turns[turns.length - 1];
   // Follow the stream, but only when new content arrives at the end (not when older turns are prepended).
-  useEffect(() => { if (pinned.current) end.current?.scrollIntoView?.({ block: 'end' }); }, [last?.id, last?.assistant_text, last?.state]);
+  useEffect(() => {
+    if (!pinned.current) return;
+    end.current?.scrollIntoView?.({ block: 'end' });
+    if (scroller.current) ownTop.current = scroller.current.scrollTop;
+  }, [last?.id, last?.assistant_text, last?.state]);
   // Turns skip layout off-screen (content-visibility, UCM-CHAT-14) and take their real height only once rendered, so the
   // content can still grow after the scroll above. While pinned, follow that growth to stay at the bottom. The scroll
   // region itself is observed too: a thread mounted in a hidden host panel gets its real size only when shown.
@@ -88,7 +98,7 @@ export function ChatThread({ turns = [], tool = null, notice = null, hasOlder = 
   useEffect(() => {
     const el = scroller.current;
     if (!el || !content.current || typeof ResizeObserver === 'undefined') return undefined;
-    const observer = new ResizeObserver(() => { if (pinned.current) el.scrollTop = el.scrollHeight; });
+    const observer = new ResizeObserver(() => { if (pinned.current) scrollToEnd(); });
     observer.observe(content.current);
     observer.observe(el);
     return () => observer.disconnect();
@@ -119,7 +129,10 @@ export function ChatThread({ turns = [], tool = null, notice = null, hasOlder = 
   return (
     <Box ref={scroller} onScroll={(event) => {
       const el = event.currentTarget;
-      pinned.current = el.scrollHeight - el.scrollTop - el.clientHeight < 80;
+      const atBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 80;
+      const own = ownTop.current !== null && Math.abs(el.scrollTop - ownTop.current) < 1;
+      if (atBottom) pinned.current = true;
+      else if (!own) pinned.current = false;        // only the reader moving away leaves the bottom, not content growing under a move of ours
       if (hasOlder && !olderBusy && el.scrollTop <= 40) loadOlder();
     }} role="log" aria-live="polite" aria-label={t('Chat.thread')} sx={{ ...CHAT_THREAD_SCROLL_SX, ...sx }}>
       <div ref={content}>

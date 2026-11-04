@@ -1,5 +1,24 @@
 # Changelog
 
+## 4.29.0 - UCM-CHAT-16
+
+Chat opens at its end, no empty chat entries, usable thread on phones. Found in the Maana staging acceptance of 2026-11-03.
+
+- **Opening position.** The thread's bottom pin could be lost on open: the scroll event of the first move to the (still estimated)
+  bottom arrives a frame later, when off-screen turns (`content-visibility`) have taken their real height, and was read as the
+  reader leaving the bottom. The thread now remembers the position it set itself and ignores that event; only the reader moving
+  away unpins, being near the bottom pins again. The scroll region sets `overflow-anchor: none` (browser scroll anchoring would
+  move it a second time). Position-on-prepend and follow-only-at-bottom are unchanged.
+- **Empty chats.** `ChatWorkspace` does not list a chat that has no turn. "New chat" creates the chat as before but lists it only
+  from its first message on; pressing it while an empty chat is open (or exists) shows that chat instead of creating another.
+  Chats that still carry the server's default title ("New chat", not named by the person) are read once (first page of turns) and
+  hidden when empty; a failed read keeps the chat listed, a chat with a streaming or failed first turn is listed from the send.
+- **Narrow screens (the workspace's narrow layout).** The thread keeps at least 45 % of the screen height, the header is 44 px, and
+  the composer notice (long-conversation banner) wraps below the small breakpoint instead of being cut mid-word; its action stays
+  beside it. From the small breakpoint up the notice is the one-line ellipsis as before.
+
+No new props, no API change.
+
 ## 4.28.0 - UCM-CHAT-15
 
 New optional `ChatWorkspace` prop `onComposeStart({ chatId })`: called when the composer of a shown chat gains focus

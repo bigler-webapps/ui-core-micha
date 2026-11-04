@@ -58,7 +58,9 @@ const appendDelta = (turns, text) => {
  * `preloadedChats` (optional active-list response `{ scope, results, next }` already loaded for that exact scope), `sx`,
  * `renderTurnError({ turn, chat, retry })` (optional failed-turn message; return `null` to show the default alert).
  */
-export const CHAT_WORKSPACE_SIDE_PANEL_SX = { borderLeft: 1, borderColor: 'divider', minHeight: 0, overflow: 'auto', contain: 'strict' };
+// On a phone the thread keeps at least half the screen: composer, notice and header take what is left (UCM-CHAT-16).
+const CHAT_WORKSPACE_NARROW_THREAD_SX = { minHeight: '50vh' };
+export const CHAT_WORKSPACE_SIDE_PANEL_SX ={ borderLeft: 1, borderColor: 'divider', minHeight: 0, overflow: 'auto', contain: 'strict' };
 
 export function ChatWorkspace({ apiBase, wsUrl, api: apiOverrides, scope, preloadedChats, sx, unavailableReasonText, sidePanel, sidePanelLabel, renderAnswerExtra, renderTurnError, renderComposerExtra, composerLayout = 'standard', renderComposerContext, onAppFrame, onNavigate, activeChatId, onActiveChatChange, onComposeStart, composerPrefill, getSendContext, sendRequest, onSendRequestHandled, layout = 'viewport', compactBelow = 720, tokenBalance = null, usageToTokens, longChatTokens = 40000 }) {
   const { t } = useTranslation();
@@ -88,6 +90,14 @@ export function ChatWorkspace({ apiBase, wsUrl, api: apiOverrides, scope, preloa
   // The chat the current catalogue was requested for: a general catalogue must never drive the stored selection of a chat.
   const [catalogueChatId, setCatalogueChatId] = useState(null);
   const [chats, setChats] = useState([]);
+  // Chats without a message are not listed (UCM-CHAT-16): the server creates the chat when "New chat" is pressed, the list shows it from its
+  // first message on. emptyIds are the chats known to be empty; emptyChecks remembers what was found per chat so each is read once.
+  const [emptyIds, setEmptyIds] = useState(() => new Set());
+  const emptyChecks = useRef(new Map()); // id -> 'pending' | 'empty' | 'used'
+  const markUsed = (id) => {
+    emptyChecks.current.set(id, 'used');
+    setEmptyIds((current) => { if (!current.has(id)) return current; const next = new Set(current); next.delete(id); return next; });
+  };
   const [archived, setArchived] = useState([]);
   const [nextChats, setNextChats] = useState(null);
   const [chat, setChat] = useState(null);
@@ -314,6 +324,24 @@ export function ChatWorkspace({ apiBase, wsUrl, api: apiOverrides, scope, preloa
     return () => { live = false; };
   }, [api, chat?.id]);
 
+  // Chats that still carry the server's default title may be empty ones left behind by earlier "New chat" presses: read their first
+  // page once and keep the empty ones out of the list. A failed read keeps the chat listed (never hide what might hold a conversation).
+  useEffect(() => {
+    const untitled = (item) => !item.title || (item.title === 'New chat' && item.title_source !== 'user');
+    [...chats, ...archived].filter(untitled).forEach((item) => {
+      if (emptyChecks.current.has(item.id)) return;
+      emptyChecks.current.set(item.id, 'pending');
+      api.listTurns(item.id)
+        .then((page) => {
+          if (emptyChecks.current.get(item.id) !== 'pending') return;   // a first message was sent meanwhile
+          const empty = !(page?.results || []).length && !page?.next;
+          emptyChecks.current.set(item.id, empty ? 'empty' : 'used');
+          if (empty) setEmptyIds((current) => new Set(current).add(item.id));
+        })
+        .catch(() => { if (emptyChecks.current.get(item.id) === 'pending') emptyChecks.current.set(item.id, 'used'); });
+    });
+  }, [api, chats, archived]);
+
   const onFrame = useCallback((frame, chatId) => {
     if (chatId !== chat?.id) return;
     if (frame.type === 'history') { setTurns(chronological((frame.turns || []).map((turn) => ({ ...turn, appFrames: [] })))); setSummary(frame.summary || null); }
@@ -406,8 +434,19 @@ export function ChatWorkspace({ apiBase, wsUrl, api: apiOverrides, scope, preloa
   };
 
   const selectChat = (next) => { setChat(next); setListOpen(false); };
+  // "New chat" while an empty chat is open (or exists) shows that one instead of creating another.
   const createChat = guarded(async () => {
+    // Only a list of the current scope may offer a chat: after a scope change the old list stays until the new one has loaded.
+    const reusable = chat && emptyIds.has(chat.id) && !running ? chat : (listsLoaded ? chats.find((item) => emptyIds.has(item.id)) : undefined);
+    if (reusable) {
+      selectChat(reusable);
+      focusPending.current = true;
+      setFocusRequest((count) => count + 1);
+      return;
+    }
     const created = await api.createChat(scope !== undefined ? { scope } : {});
+    emptyChecks.current.set(created.id, 'empty');
+    setEmptyIds((current) => new Set(current).add(created.id));
     setChats((current) => [created, ...current]);
     selectChat(created);
   });
@@ -452,6 +491,7 @@ export function ChatWorkspace({ apiBase, wsUrl, api: apiOverrides, scope, preloa
     if (built.error) { setProblem('action_error'); return false; }
     if (!socket.send(built.frame)) return false;
     setProblem(null);
+    if (chat) markUsed(chat.id);
     setTurns((current) => [...current, {
       id: PENDING_ID, user_text: message, assistant_text: '', state: 'generating', sources: [],
       driver: activeEntry?.driver, model: activeEntry?.label || activeEntry?.model, effort: selection?.effort,
@@ -493,8 +533,8 @@ export function ChatWorkspace({ apiBase, wsUrl, api: apiOverrides, scope, preloa
 
   const list = (
     <ChatList
-      chats={chats}
-      archivedChats={archived}
+      chats={chats.filter((item) => !emptyIds.has(item.id))}
+      archivedChats={archived.filter((item) => !emptyIds.has(item.id))}
       activeId={chat?.id}
       hasMore={Boolean(nextChats)}
       onSelect={selectChat}
@@ -532,7 +572,7 @@ export function ChatWorkspace({ apiBase, wsUrl, api: apiOverrides, scope, preloa
     <Box ref={rootRef} sx={{ display: 'grid', gridTemplateColumns: narrow ? 'minmax(0, 1fr)' : `minmax(240px, 320px) minmax(0, 1fr)${chat && sidePanel ? ' minmax(240px, 320px)' : ''}`, height: '100%', minHeight: 480, border: 1, borderColor: 'divider', borderRadius: 1, overflow: 'hidden', bgcolor: 'background.paper', ...sx }}>
       {narrow ? null : <Box sx={{ borderRight: 1, borderColor: 'divider', minHeight: 0 }}>{list}</Box>}
       <Stack sx={{ minWidth: 0, minHeight: 0 }}>
-        <Stack direction="row" alignItems="center" gap={1} sx={{ px: 1.5, py: 0.5, borderBottom: 1, borderColor: 'divider', minHeight: 56 }}>
+        <Stack direction="row" alignItems="center" gap={1} sx={{ px: 1.5, py: 0.5, borderBottom: 1, borderColor: 'divider', minHeight: narrow ? 44 : 56 }}>
           {narrow ? <Button color="inherit" onClick={() => setListOpen(true)}>{t('Chat.chats')}</Button> : null}
           <Typography noWrap sx={{ flex: 1, fontWeight: 600 }}>{chat ? (chat.title || t('Chat.untitled')) : ''}</Typography>
           {socket.status === 'connecting' && openedOnce ? <Chip size="small" color="warning" variant="outlined" label={t('Chat.reconnecting')} /> : null}
@@ -542,7 +582,7 @@ export function ChatWorkspace({ apiBase, wsUrl, api: apiOverrides, scope, preloa
         </Stack>
         {chat ? (
           <>
-            <ChatThread turns={turns} chat={chat} renderAnswerExtra={answerExtra} renderTurnError={renderTurnError} tool={tool} notice={noticeFor()} hasOlder={Boolean(olderCursor)} olderBusy={olderBusy} onLoadOlder={loadOlder} onRetry={retry} readOnly={isArchived} summary={summary} usageToTokens={usageToTokens} onNavigate={onNavigate} />
+            <ChatThread sx={narrow ? CHAT_WORKSPACE_NARROW_THREAD_SX : undefined} turns={turns} chat={chat} renderAnswerExtra={answerExtra} renderTurnError={renderTurnError} tool={tool} notice={noticeFor()} hasOlder={Boolean(olderCursor)} olderBusy={olderBusy} onLoadOlder={loadOlder} onRetry={retry} readOnly={isArchived} summary={summary} usageToTokens={usageToTokens} onNavigate={onNavigate} />
             {isArchived ? <Typography variant="caption" color="text.secondary" sx={{ px: 2, pb: 1 }}>{t('Chat.archivedReadOnly')}</Typography> : null}
             {renderComposerExtra ? <Box key={chat.id}>{renderComposerExtra({ chat })}</Box> : null}
             {composerLayout !== 'compact' && longChat ? <Alert severity="info" action={<Button color="inherit" size="small" onClick={createChat}>{t('Chat.newConversation')}</Button>}>{t('Chat.longChat')}</Alert> : null}

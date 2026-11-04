@@ -55,7 +55,15 @@ layout tests, otherwise none).
 
 ## Part B — Implementation map (implementer)
 
-To be filled by the Orchestrator.
+Implemented by the Orchestrator as author (the operator decision of 2026-11-02 for the Maana work orders: no Luna dispatch); no implementer preamble applies.
+
+- `src/chat/ChatThread.jsx`: `ownTop` remembers the scroll position the thread set (`scrollToEnd`, the `scrollIntoView` effect); `onScroll` pins
+  when near the bottom and unpins only for a scroll that is not its own; `CHAT_THREAD_SCROLL_SX` gets `overflowAnchor: 'none'`.
+- `src/chat/ChatWorkspace.jsx`: `emptyIds` / `emptyChecks` / `markUsed`; a check effect reads the first page of turns of default-titled chats; the list
+  gets `chats.filter(not empty)`; `createChat` reuses an empty chat; `startTurn` lists the chat; narrow thread `minHeight: '45vh'`, header 44 px.
+- `src/chat/ChatComposer.jsx`: `CHAT_COMPOSER_NOTICE_TEXT_SX` wraps below `sm`. The `ChatList` component itself is unchanged (it lists what it gets).
+- Tests: `tests/chatLayoutIsolation.test.jsx`, `tests/chatEmptyChats.test.jsx` (new), `tests/chatActiveChat.test.jsx` (the created chat is no longer a list row).
+- Release 4.29.0: `package.json`, `CHANGELOG.md`. Invariant: no prop or API change; a chat with a message behaves as before.
 
 ## Part C — Orchestrator only
 

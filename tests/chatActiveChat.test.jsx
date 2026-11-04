@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import React, { useState } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 
 vi.mock('react-i18next', () => ({ useTranslation: () => ({ t: (key) => key }) }));
 vi.mock('@mui/icons-material', () => ({ MoreVert: () => null }));
@@ -98,18 +98,22 @@ describe('ChatWorkspace activeChatId', () => {
     await waitFor(() => expect(onActiveChatChange).toHaveBeenLastCalledWith(7));
     fireEvent.click(screen.getAllByRole('button', { name: 'Chat.newChat' })[0]);
     await waitFor(() => expect(onActiveChatChange).toHaveBeenLastCalledWith(8));
+    // The new chat has no message yet: it is shown, not listed (UCM-CHAT-16). Back to the listed chat for archive and delete.
+    expect(within(screen.getByRole('navigation', { name: 'Chat.chats' })).queryByText('New conversation')).toBeNull();
+    fireEvent.click(screen.getByText('Budget'));
+    await waitFor(() => expect(onActiveChatChange).toHaveBeenLastCalledWith(7));
     const menu = () => fireEvent.click(screen.getAllByRole('button', { name: 'Chat.actions' })[0]);
     menu();
     fireEvent.click(screen.getByRole('menuitem', { name: 'Chat.archive' }));
-    await waitFor(() => expect(api.updateChat).toHaveBeenCalledWith(8, { archived: true }));
-    // Chat 8 stays shown, now read-only, and nothing was reported for the archive.
+    await waitFor(() => expect(api.updateChat).toHaveBeenCalledWith(7, { archived: true }));
+    // Chat 7 stays shown, now read-only, and nothing was reported for the archive.
     await waitFor(() => expect(screen.getByRole('textbox', { name: 'Chat.message' }).disabled).toBe(true));
-    expect(onActiveChatChange.mock.calls).toEqual([[7], [8]]);
+    expect(onActiveChatChange.mock.calls).toEqual([[7], [8], [7]]);
     menu();
     fireEvent.click(screen.getByRole('menuitem', { name: 'Chat.delete' }));
     fireEvent.click(screen.getByRole('button', { name: 'Chat.delete' }));
     await waitFor(() => expect(onActiveChatChange).toHaveBeenLastCalledWith(null));
-    expect(onActiveChatChange.mock.calls).toEqual([[7], [8], [null]]);
+    expect(onActiveChatChange.mock.calls).toEqual([[7], [8], [7], [null]]);
   });
 
   it('reports a switch that the host drives through activeChatId', async () => {
