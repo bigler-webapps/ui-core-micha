@@ -63,6 +63,6 @@ STOP — this part is not an instruction to the implementer.
 
 Scope approved by the operator 2026-11-03 in the Maana Expertenchat (session local_cbfc9d51-5217-42a4-99ba-27a315c854ce)
 as part of the final-acceptance follow-ups ("alle Dinge ... im Register ablegen und dann mit den WO beginnen"); moved
-from MAANA-QDA-53 because the code is shared-core. Gate #1 for this Tier-3 order: pending, asked of the operator on
-2026-11-04. Tier 3: all lenses, `ui_reviewer`. Release as a minor version; verify the published version with `npm view`
+from MAANA-QDA-53 because the code is shared-core. Gate #1 for this Tier-3 order: approved by the operator on
+2026-11-04 in the same session ("ja"). Tier 3: all lenses, `ui_reviewer`. Release as a minor version; verify the published version with `npm view`
 before MAANA-DEP-10 pins it.
