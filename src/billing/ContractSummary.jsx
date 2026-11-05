@@ -3,6 +3,7 @@ import { Button, Stack, Typography } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import { formatDate, formatPrice, formatTokens } from './format';
 
+export const CONTRACT_SUMMARY_CANCEL_BUTTON_SX = { alignSelf: 'flex-start' };
 const REFUND_STATUSES = new Set(['pending', 'requested', 'succeeded', 'failed', 'requires_action', 'cancelled']);
 const statusKey = (status) => REFUND_STATUSES.has(status) ? `Billing.REFUND_STATUS_${status.toUpperCase()}` : 'Billing.REFUND_STATUS_UNKNOWN';
 const DECLARATION_STATUSES = new Set(['received', 'awaiting_confirmation', 'needs_review', 'accepted', 'scheduled', 'effective', 'rejected']);
@@ -35,7 +36,7 @@ export function ContractSummary({ contract, onCancel, sx }) {
       {Number.isFinite(refund?.amount_cents) && <Typography>{formatPrice(refund.amount_cents, i18n.language, refund.currency)}</Typography>}
       {formatDate(refund?.due_by, i18n.language) && <Typography>{t('Billing.CONTRACT_REFUND_DUE', { date: formatDate(refund.due_by, i18n.language) })}</Typography>}
     </Stack>)}
-    {contract.status === 'active' && onCancel && <Button onClick={onCancel} sx={{ alignSelf: 'flex-start' }}>{t('Billing.CANCEL_OPEN')}</Button>}
+    {contract.status === 'active' && onCancel && <Button onClick={onCancel} sx={CONTRACT_SUMMARY_CANCEL_BUTTON_SX}>{t('Billing.CANCEL_OPEN')}</Button>}
   </Stack>;
 }
 

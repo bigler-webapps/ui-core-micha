@@ -109,6 +109,7 @@ import { WITHDRAWAL_DIALOG_ALERT_SX } from '../billing/WithdrawalDialog';
 import { WITHDRAWAL_SECTION_ALERT_SX } from '../billing/WithdrawalSection';
 import { FREE_ACCESS_SWITCH_ALERT_SX } from '../billing/FreeAccessSwitch';
 import { OPERATOR_OVERVIEW_ALERT_SX } from '../billing/OperatorOverview';
+import { CONTRACT_SUMMARY_CANCEL_BUTTON_SX } from '../billing/ContractSummary';
 import { RECEIPT_CONSENT_ALERT_SX, RECEIPT_CONSENT_CONTROL_SX } from '../receipts/ReceiptConsentSwitch';
 import { RECEIPT_CAPTURE_ACTION_SX, RECEIPT_CAPTURE_ALERT_SX, RECEIPT_CAPTURE_CARD_SX, RECEIPT_CAPTURE_PROGRESS_SX } from '../receipts/ReceiptCaptureCard';
 import { RECEIPT_PICKER_ACTION_SX, RECEIPT_PICKER_CARD_SX } from '../receipts/ReceiptPicker';
@@ -199,6 +200,7 @@ const SX_EXPORTS = {
   SUBSCRIPTION_SECTION_ALERT_SX,
   SUBSCRIPTION_SECTION_SEAT_SELECT_SX,
   SUBSCRIPTION_SECTION_SEAT_ADD_SX,
+  CONTRACT_SUMMARY_CANCEL_BUTTON_SX,
   WITHDRAWAL_DIALOG_ALERT_SX,
   WITHDRAWAL_SECTION_ALERT_SX,
   RECEIPT_CONSENT_ALERT_SX,
@@ -333,6 +335,7 @@ export const KIT_COMPONENT_SX_REGISTRY = [
   entry('SubscriptionSection.alert', 'MuiAlert', SUBSCRIPTION_SECTION_ALERT_SX),
   entry('SubscriptionSection.seatSelect', 'MuiTextField', SUBSCRIPTION_SECTION_SEAT_SELECT_SX),
   entry('SubscriptionSection.seatAdd', 'MuiButton', SUBSCRIPTION_SECTION_SEAT_ADD_SX),
+  entry('ContractSummary.cancel', 'MuiButton', CONTRACT_SUMMARY_CANCEL_BUTTON_SX),
   entry('FreeAccessSwitch.alert', 'MuiAlert', FREE_ACCESS_SWITCH_ALERT_SX),
   entry('OperatorOverview.alert', 'MuiAlert', OPERATOR_OVERVIEW_ALERT_SX),
   entry('WithdrawalDialog.alert', 'MuiAlert', WITHDRAWAL_DIALOG_ALERT_SX),
