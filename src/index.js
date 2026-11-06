@@ -173,3 +173,20 @@ export { createReceiptsApi, defaultReceiptsApi } from './receipts/api';
 export { receiptFileProblem, prepareReceiptFile } from './receipts/files';
 export { RECEIPT_ACCEPT, RECEIPT_MAX_BYTES } from './receipts/wire';
 export { createUiCoreTranslations, uiCoreTranslations } from './i18n/uiCoreTranslations';
+
+// --- 11. Privacy choices (opt-in; requires django-core-micha >= 3.22.0) ---
+export { PrivacyProvider, usePrivacy } from './privacy/PrivacyProvider';
+export { createPrivacyApi, defaultPrivacyApi } from './privacy/privacyApi';
+export { PrivacyBanner } from './privacy/PrivacyBanner';
+export { PrivacySettingsDialog, PrivacySettingsPanel } from './privacy/PrivacySettings';
+export { PrivacySettingsLink } from './privacy/PrivacySettingsLink';
+export { PrivacyFooterLinks, buildLegalReaderUrl, legalDocumentLanguage } from './privacy/PrivacyFooterLinks';
+export { PrivacyNoticeLink, safePrivacyDocumentUrl } from './privacy/PrivacyNoticeLink';
+export {
+  registerPrivacyService,
+  useGrantedPurpose,
+  guardedImport,
+  createPrivacyGuard,
+  isPurposeGranted,
+} from './privacy/serviceRegistry';
+export { privacyTranslations } from './i18n/privacyTranslations';

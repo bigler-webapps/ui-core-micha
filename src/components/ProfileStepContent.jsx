@@ -17,6 +17,7 @@ import { fetchPrivacyStatement, updateUserProfile } from '../auth/authApi';
 import { defaultTermsApi } from '../auth/termsApi';
 import { resolveErrorText } from '../utils/resolveErrorText';
 import { profileIdentity, refreshProfileDraft } from '../utils/profileDraft';
+import { PrivacyNoticeLink } from '../privacy/PrivacyNoticeLink';
 
 export const PROFILE_STEP_OPTION_SX = { alignItems: 'flex-start' };
 export const PROFILE_STEP_CHECKBOX_SX = { mt: -0.5 };
@@ -76,6 +77,7 @@ export function ProfileStepContent({
   onBusyChange,
   termsEnabled = false,
   termsApi = defaultTermsApi,
+  privacyMode = 'legacy',
   privacyUrl,
   formId,
   submitLabel,
@@ -104,6 +106,7 @@ export function ProfileStepContent({
     identity,
     editedFields,
     draftMatches ? activeDraft.values || {} : {},
+    privacyMode,
   );
   const currentTerms = terms && terms.owner === identity ? terms : null;
 
@@ -114,8 +117,10 @@ export function ProfileStepContent({
       values: {
         firstName: values.firstName,
         lastName: values.lastName,
-        acceptedPrivacy: values.acceptedPrivacy,
-        acceptedCookies: values.acceptedCookies,
+        ...(privacyMode !== 'central' ? {
+          acceptedPrivacy: values.acceptedPrivacy,
+          acceptedCookies: values.acceptedCookies,
+        } : {}),
         ...patch,
       },
       editedFields: [...editedFields],
@@ -127,9 +132,9 @@ export function ProfileStepContent({
   const applyTerms = useCallback((body, owner, privacyAccepted) => {
     const next = termsFromResponse(body);
     setTerms({ owner, ...next });
-    setTermsChecked(next.accepted && Boolean(privacyAccepted));
+    setTermsChecked(next.accepted && (privacyMode === 'central' || Boolean(privacyAccepted)));
     return next;
-  }, []);
+  }, [privacyMode]);
 
   // Terms evidence is per person: reset and reload whenever the identity changes.
   useEffect(() => {
@@ -137,7 +142,7 @@ export function ProfileStepContent({
     setTermsChecked(false);
     if (!termsEnabled || !user) return undefined;
     let active = true;
-    const privacyAccepted = Boolean(user.accepted_privacy_statement);
+    const privacyAccepted = privacyMode === 'central' || Boolean(user.accepted_privacy_statement);
     termsApi.getAcceptance()
       .then((body) => {
         if (active) applyTerms(body, identity, privacyAccepted);
@@ -150,7 +155,7 @@ export function ProfileStepContent({
     return () => {
       active = false;
     };
-  }, [termsEnabled, termsApi, identity]);
+  }, [termsEnabled, termsApi, identity, privacyMode]);
 
   useEffect(() => {
     onBusyChange?.(saving);
@@ -173,12 +178,14 @@ export function ProfileStepContent({
     setPrivacyOpen((previous) => !previous);
   };
 
-  const requiredChecked = termsEnabled ? termsChecked : Boolean(values.acceptedPrivacy);
+  const requiredChecked = termsEnabled
+    ? termsChecked
+    : privacyMode === 'central' || Boolean(values.acceptedPrivacy);
 
   const handleRequiredChange = (event) => {
     const { checked } = event.target;
     if (termsEnabled) setTermsChecked(checked);
-    commit({ acceptedPrivacy: checked });
+    if (privacyMode !== 'central') commit({ acceptedPrivacy: checked });
   };
 
   // Returns true when the acceptance is on record for the current version.
@@ -209,8 +216,10 @@ export function ProfileStepContent({
       setErrorKey(t('Auth.PROFILE_NAME_REQUIRED'));
       return;
     }
-    if (!requiredChecked) {
-      setErrorKey(t(termsEnabled ? 'Auth.TERMS_PRIVACY_REQUIRED' : 'Auth.PRIVACY_REQUIRED'));
+    if ((termsEnabled || privacyMode !== 'central') && !requiredChecked) {
+      setErrorKey(t(termsEnabled
+        ? (privacyMode === 'central' ? 'Auth.TERMS_REQUIRED' : 'Auth.TERMS_PRIVACY_REQUIRED')
+        : 'Auth.PRIVACY_REQUIRED'));
       return;
     }
 
@@ -230,12 +239,15 @@ export function ProfileStepContent({
       }
 
       stage = 'profile';
-      const updatedUser = await updateUserProfile({
+      const profileUpdate = {
         first_name: (values.firstName || '').trim(),
         last_name: (values.lastName || '').trim(),
-        accepted_privacy_statement: true,
-        accepted_convenience_cookies: Boolean(values.acceptedCookies),
-      });
+      };
+      if (privacyMode !== 'central') {
+        profileUpdate.accepted_privacy_statement = true;
+        profileUpdate.accepted_convenience_cookies = Boolean(values.acceptedCookies);
+      }
+      const updatedUser = await updateUserProfile(profileUpdate);
       if (updatedUser) login?.(updatedUser);
 
       if (termsEnabled && !termsState.accepted) {
@@ -277,7 +289,13 @@ export function ProfileStepContent({
     </Link>
   ) : t('Auth.TERMS_LINK_LABEL');
 
-  const requiredLabel = termsEnabled ? (
+  const requiredLabel = termsEnabled && privacyMode === 'central' ? (
+    <span>
+      {t('Auth.TERMS_PRIVACY_PREFIX')}
+      {termsLink}
+      {t('Auth.TERMS_PRIVACY_SUFFIX')}
+    </span>
+  ) : termsEnabled ? (
     <span>
       {t('Auth.TERMS_PRIVACY_PREFIX')}
       {termsLink}
@@ -285,7 +303,7 @@ export function ProfileStepContent({
       {privacyLink}
       {t('Auth.TERMS_PRIVACY_SUFFIX')}
     </span>
-  ) : (
+  ) : privacyMode === 'central' ? null : (
     <span>
       {t('Auth.PRIVACY_REQUIRED_LABEL')}{' '}
       {privacyLink}
@@ -323,7 +341,8 @@ export function ProfileStepContent({
         disabled={busy}
       />
 
-      <Stack spacing={0.5}>
+      {(termsEnabled || privacyMode !== 'central') && <Stack spacing={0.5}>
+        {(termsEnabled || privacyMode !== 'central') && (
         <FormControlLabel
           sx={PROFILE_STEP_OPTION_SX}
           control={(
@@ -336,12 +355,13 @@ export function ProfileStepContent({
           )}
           label={requiredLabel}
         />
+        )}
         {privacyOpen && privacyText && !privacyHref && (
           <Typography variant="body2" color="text.secondary" sx={{ whiteSpace: 'pre-wrap', pl: 4 }}>
             {privacyText}
           </Typography>
         )}
-        <FormControlLabel
+        {privacyMode !== 'central' && <FormControlLabel
           sx={PROFILE_STEP_OPTION_SX}
           control={(
             <Checkbox
@@ -352,8 +372,10 @@ export function ProfileStepContent({
             />
           )}
           label={t('Auth.CONVENIENCE_COOKIES_LABEL')}
-        />
-      </Stack>
+        />}
+      </Stack>}
+
+      {privacyMode === 'central' && <Box><PrivacyNoticeLink /></Box>}
 
       {!formId && (
         <Box>

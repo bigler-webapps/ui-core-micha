@@ -16,6 +16,32 @@ Spread `uiCoreTranslations` into the default i18n namespace as the supported agg
 offer privacy/cookie statement text endpoints; this hides their panels and prevents their requests.
 The privacy and cookie consent controls and their submitted values remain available.
 
+## Shared privacy choices (opt-in)
+
+Hosts using `django-core-micha` >= 3.22.0 can adopt `PrivacyProvider`, `PrivacyBanner`, `PrivacySettingsLink` and
+`PrivacyNoticeLink`. Create the API once and pass it to the provider when the host mounts the privacy routes elsewhere:
+
+```jsx
+const privacyApi = createPrivacyApi({}, { apiBase: '/api/privacy/', csrfUrl: '/api/csrf/' });
+
+<PrivacyProvider api={privacyApi}>
+  <Router>
+    <AppShell><PrivacyBanner /><AppRoutes /></AppShell>
+  </Router>
+</PrivacyProvider>
+```
+
+Place `PrivacyProvider` above the router content, render one `PrivacyBanner` in the app shell, and put
+`PrivacySettingsLink` in the public footer and account area. The provider owns the settings dialog. Register each app-owned
+optional adapter with `registerPrivacyService({ purposeId, serviceId, activate, deactivate, ownedStorage })`; gate imports,
+requests and callbacks with `useGrantedPurpose`, `guardedImport` or `createPrivacyGuard`. The package never loads vendors.
+
+Adoption is explicit. `OnboardingProvider` and `ProfileComponent` / `ProfileStepContent` accept `privacyMode="central"` to
+remove the legacy privacy and convenience-cookie prompts while keeping name completion and actual terms acceptance. The
+default remains `privacyMode="legacy"` during rollout. `CookieConsentStep` remains exported for compatibility and is
+deprecated. The host manifest supplies actual controllers, purpose details, providers, storage and localized notice links;
+empty optional configuration has no choice banner.
+
 ## Account page: extra tabs in a navigation group
 
 An entry of `AccountPage`'s `extraTabs` (`{ value, label, render, visible? }`) may carry an optional `group` naming one of

@@ -1,5 +1,14 @@
 # Changelog
 
+## 4.32.0 - UCM-PRIV-1
+
+Adds opt-in shared privacy choices for hosts on `django-core-micha` >= 3.22.0: `PrivacyProvider`, `usePrivacy`, the
+choice banner, purpose settings, notice/settings links, `createPrivacyApi`, and purpose-aware service lifecycle helpers.
+Adoption is explicit; no privacy dialog is mounted in an app unless the host adopts these exports. `OnboardingProvider`
+and the profile components accept `privacyMode="central"` to replace the legacy privacy/cookie prompts while preserving
+name completion and separate terms acceptance. Legacy exports and default behavior remain available and are deprecated
+where replaced. Adds `Privacy.*` translations and the privacy playground entry.
+
 ## 4.31.0 - UCM-BILL-11
 
 Contract status, cancellation and withdrawal declarations, and the full-refund withdrawal view, against the django-core-micha

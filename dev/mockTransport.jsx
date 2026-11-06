@@ -2,7 +2,7 @@ import { createContext, useContext, useMemo, useRef } from 'react';
 
 import apiClient from '../src/auth/apiClient';
 import { RealtimeContext } from '../src/notifications/realtime';
-import { notificationFixtures } from './fixtures';
+import { notificationFixtures, privacyManifestFixture } from './fixtures';
 
 const MockTransportContext = createContext(null);
 
@@ -64,6 +64,7 @@ let harnessUsers = [];
 export function setHarnessUsers(users) { harnessUsers = users; }
 
 const setupResponses = {
+  'get /api/csrf/': () => ({}),
   'get /api/users/': () => harnessUsers,
   'post /api/users/register-request/': () => ({ code: 'Auth.INVITE_SENT' }),
   'post /api/users/register-confirm/': () => ({}),
@@ -75,6 +76,58 @@ const setupResponses = {
     return setupTermsBody();
   },
 };
+
+const privacyHarnessStates = new Map();
+function privacyHarnessState(scenario) {
+  if (privacyHarnessStates.has(scenario)) return privacyHarnessStates.get(scenario);
+  const choices = {};
+  privacyManifestFixture.purposes.filter((purpose) => !purpose.required).forEach((purpose) => {
+    const initial = scenario === 'saved' ? 'granted' : scenario === 'necessary-only' ? 'refused' : 'unset';
+    choices[purpose.id] = {
+      state: initial,
+      revision: purpose.revision,
+      expires_at: initial === 'unset' ? null : new Date(Date.now() + 180 * 86400000).toISOString(),
+    };
+  });
+  const state = {
+    receipt_state: scenario === 'saved' || scenario === 'necessary-only' ? 'present' : 'unset',
+    seq: scenario === 'saved' || scenario === 'necessary-only' ? 1 : 0,
+    config_version: privacyManifestFixture.config_version,
+    notice_version: privacyManifestFixture.notice.version,
+    choices,
+  };
+  privacyHarnessStates.set(scenario, state);
+  return state;
+}
+
+function privacyResponse(method, url, config) {
+  const match = String(url).match(/\/api\/privacy\/dev\/(first-choice|saved|save-error|necessary-only)\/(manifest|choices)\/$/);
+  if (!match) return null;
+  const [, scenario, resource] = match;
+  if (resource === 'manifest' && method === 'get') return privacyManifestFixture;
+  if (resource !== 'choices') return null;
+  const current = privacyHarnessState(scenario);
+  if (method === 'get') return structuredClone(current);
+  if (method === 'post') {
+    if (scenario === 'save-error') {
+      return Promise.reject({ response: { status: 503, data: { code: 'unavailable', retryable: true } } });
+    }
+    const body = JSON.parse(config.data || '{}');
+    const next = { ...current, receipt_state: 'present', seq: current.seq + 1, choices: { ...current.choices } };
+    Object.entries(body.choices || {}).forEach(([purposeId, state]) => {
+      const purpose = privacyManifestFixture.purposes.find((item) => item.id === purposeId);
+      if (!purpose || purpose.required) return;
+      next.choices[purposeId] = {
+        state,
+        revision: purpose.revision,
+        expires_at: new Date(Date.now() + 180 * 86400000).toISOString(),
+      };
+    });
+    privacyHarnessStates.set(scenario, next);
+    return structuredClone(next);
+  }
+  return null;
+}
 
 export const setupHarnessUser = {
   id: 71,
@@ -95,6 +148,12 @@ export function createMockTransport({ notifications = notificationFixtures } = {
     async adapter(config) {
       const { method = 'get', url = '' } = config;
       let data = {};
+      const privacyData = privacyResponse(method, url, config);
+      if (privacyData !== null) {
+        if (privacyData && typeof privacyData.then === 'function') return privacyData;
+        data = privacyData;
+        return { config, data, headers: { 'cache-control': 'no-store' }, status: 200, statusText: 'OK' };
+      }
       if (method === 'get' && url === '/api/notifications/feed/') {
         data = { results: feed };
       } else if (method === 'get' && url === '/api/notifications/feed/unread-count/') {

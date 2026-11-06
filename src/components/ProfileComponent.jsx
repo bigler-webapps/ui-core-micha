@@ -20,6 +20,7 @@ import { AuthContext } from '../auth/AuthContext';
 import { fetchCookieStatement, fetchPrivacyStatement } from '../auth/authApi';
 import { resolveErrorText } from '../utils/resolveErrorText';
 import { refreshProfileDraft } from '../utils/profileDraft';
+import { PrivacyNoticeLink } from '../privacy/PrivacyNoticeLink';
 
 export function ProfileComponent({
   onSubmit,
@@ -30,6 +31,7 @@ export function ProfileComponent({
   showStatements = true,
   privacyStatementText = null,
   cookieStatementText = null,
+  privacyMode = 'legacy',
 }) {
   const { t, i18n } = useTranslation();
   
@@ -59,7 +61,7 @@ export function ProfileComponent({
   useEffect(() => {
     const refreshed = refreshProfileDraft(user, previousUserIdentity.current, editedFields.current, {
       firstName, lastName, acceptedPrivacy, acceptedCookies,
-    });
+    }, privacyMode);
     previousUserIdentity.current = refreshed.identity;
     editedFields.current = refreshed.editedFields;
     setUsername(refreshed.values.username);
@@ -68,7 +70,7 @@ export function ProfileComponent({
     setLastName(refreshed.values.lastName);
     setAcceptedPrivacy(refreshed.values.acceptedPrivacy);
     setAcceptedCookies(refreshed.values.acceptedCookies);
-  }, [user]);
+  }, [user, privacyMode]);
 
   useEffect(() => {
     if (privacyStatementText !== null && privacyStatementText !== undefined) {
@@ -86,7 +88,7 @@ export function ProfileComponent({
     let cancelled = false;
 
     const loadStatements = async () => {
-      if (!showStatements) return;
+      if (!showStatements || privacyMode === 'central') return;
 
       if (showPrivacy && (privacyStatementText === null || privacyStatementText === undefined)) {
         setLoadingPrivacyStatement(true);
@@ -118,7 +120,7 @@ export function ProfileComponent({
     return () => {
       cancelled = true;
     };
-  }, [showStatements, showPrivacy, showCookies, privacyStatementText, cookieStatementText]);
+  }, [showStatements, showPrivacy, showCookies, privacyStatementText, cookieStatementText, privacyMode]);
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -133,10 +135,10 @@ export function ProfileComponent({
         first_name: firstName,
         last_name: lastName,
       }),
-      ...(showPrivacy && {
+      ...(privacyMode !== 'central' && showPrivacy && {
         accepted_privacy_statement: acceptedPrivacy,
       }),
-      ...(showCookies && {
+      ...(privacyMode !== 'central' && showCookies && {
         accepted_convenience_cookies: acceptedCookies,
       }),
     };
@@ -239,7 +241,8 @@ export function ProfileComponent({
           </Typography>
 
           <Stack spacing={1}>
-            {showPrivacy && (
+            {privacyMode === 'central' && <PrivacyNoticeLink />}
+            {privacyMode !== 'central' && showPrivacy && (
               <FormControlLabel
                 control={
                   <Checkbox
@@ -254,7 +257,7 @@ export function ProfileComponent({
               />
             )}
 
-            {showCookies && (
+            {privacyMode !== 'central' && showCookies && (
               <FormControlLabel
                 control={
                   <Checkbox
@@ -270,7 +273,7 @@ export function ProfileComponent({
             )}
           </Stack>
 
-          {showStatements && (
+          {showStatements && privacyMode !== 'central' && (
             <Stack spacing={1.25} sx={{ mt: 1.5 }}>
               {showPrivacy && (
                 <Accordion disableGutters>

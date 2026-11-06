@@ -99,6 +99,7 @@ import { SIGN_UP_PROVIDER_ALERT_SX, SIGN_UP_PROVIDER_DIVIDER_SX } from '../compo
 import { PROFILE_STEP_CHECKBOX_SX, PROFILE_STEP_OPTION_SX } from '../components/ProfileStepContent';
 import { SETUP_WIZARD_CARD_SX } from '../onboarding/SetupWizardShell';
 import { REAUTH_MODAL_ALERT_SX, REAUTH_MODAL_TEXT_FIELD_SX } from '../auth/ReauthModal';
+import { PRIVACY_BANNER_CLOSE_SX, PRIVACY_BANNER_PAPER_SX } from '../privacy/PrivacyBanner';
 import { createKitSxEntry } from './kitSxEntry';
 import { ACCESS_ENDED_BANNER_ALERT_SX } from '../billing/AccessEndedBanner';
 import { BILLING_ACCESS_BADGE_SX } from '../billing/BillingAccessCell';
@@ -116,6 +117,8 @@ import { RECEIPT_PICKER_ACTION_SX, RECEIPT_PICKER_CARD_SX } from '../receipts/Re
 import { RECEIPT_REVIEW_ACTIONS_SX, RECEIPT_REVIEW_ACTION_BUTTON_SX, RECEIPT_REVIEW_CHIP_SX, RECEIPT_REVIEW_DIALOG_PAPER_SX, RECEIPT_REVIEW_SHEET_PAPER_SX } from '../receipts/ReceiptReviewDialog';
 
 const SX_EXPORTS = {
+  PRIVACY_BANNER_CLOSE_SX,
+  PRIVACY_BANNER_PAPER_SX,
   ACCESS_CODE_ACTION_SX,
   ACCESS_ENDED_BANNER_ALERT_SX,
   BILLING_ACCESS_BADGE_SX,
@@ -245,6 +248,8 @@ export { createKitSxEntry };
  * checks rather than being represented here as if they were fully inspected.
  */
 export const KIT_COMPONENT_SX_REGISTRY = [
+  entry('PrivacyBanner.paper', 'MuiPaper', PRIVACY_BANNER_PAPER_SX),
+  entry('PrivacyBanner.close', 'MuiButton', PRIVACY_BANNER_CLOSE_SX),
   entry('AccessCodeManager.action', 'MuiButton', ACCESS_CODE_ACTION_SX),
   entry('AccessCodeManager.primaryAction', 'MuiButton', ACCESS_CODE_PRIMARY_ACTION_SX),
   entry('AccessCodeManager.alert', 'MuiAlert', ACCESS_CODE_ALERT_SX),

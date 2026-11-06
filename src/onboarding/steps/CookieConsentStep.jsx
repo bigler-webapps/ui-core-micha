@@ -11,6 +11,7 @@ import Typography from '@mui/material/Typography';
 import PrivacyTipIcon from '@mui/icons-material/PrivacyTip';
 import { fetchCookieStatement, fetchPrivacyStatement, updateUserProfile } from '../../auth/authApi';
 
+/** @deprecated Adopt PrivacyProvider, PrivacyBanner and PrivacySettingsLink instead. */
 export function CookieConsentStep({ onComplete }) {
   const { t } = useTranslation();
   const [privacyAccepted, setPrivacyAccepted] = useState(false);

@@ -16,6 +16,9 @@ import { SignUpContent } from '../src/components/SignUpContent';
 import { SignupConfirmContent } from '../src/components/SignupConfirmContent';
 import { LoginContent } from '../src/components/LoginContent';
 import { ProfileStepContent } from '../src/components/ProfileStepContent';
+import { PrivacyProvider } from '../src/privacy/PrivacyProvider';
+import { PrivacyBanner } from '../src/privacy/PrivacyBanner';
+import { PrivacySettingsLink } from '../src/privacy/PrivacySettingsLink';
 import ChatBubbleOutlineIcon from '@mui/icons-material/ChatBubbleOutline';
 import InboxIcon from '@mui/icons-material/Inbox';
 import MoreHorizIcon from '@mui/icons-material/MoreHoriz';
@@ -151,6 +154,36 @@ function SetupWizardEntry() {
           {view.content}
         </SetupWizardShell>
       </AuthContext.Provider>
+    </I18nextProvider>
+  );
+}
+
+function PrivacyEntry() {
+  const [scenario, setScenario] = useState('first-choice');
+  const scenarios = [
+    ['first-choice', 'Erste Auswahl'],
+    ['saved', 'Gespeicherte Auswahl'],
+    ['save-error', 'Speicherfehler'],
+    ['necessary-only', 'Nur notwendige Funktionen'],
+  ];
+  return (
+    <I18nextProvider i18n={setupI18n}>
+      <Stack spacing={2}>
+        <FormControl size="small" sx={{ maxWidth: 360 }}>
+          <InputLabel id="privacy-scenario-label">Zustand</InputLabel>
+          <Select labelId="privacy-scenario-label" label="Zustand" value={scenario} onChange={(event) => setScenario(event.target.value)}>
+            {scenarios.map(([id, label]) => <MenuItem key={id} value={id}>{label}</MenuItem>)}
+          </Select>
+        </FormControl>
+        <PrivacyProvider key={scenario} apiBase={`/api/privacy/dev/${scenario}/`}>
+          <Paper variant="outlined" sx={{ p: 2, minHeight: 220 }}>
+            <Typography variant="h6">Gemeinsame Datenschutzauswahl</Typography>
+            <Typography color="text.secondary" sx={{ mt: 0.5 }}>Manifestdaten und Zustände kommen aus dem Harness-Transport.</Typography>
+            <Box sx={{ mt: 2 }}><PrivacySettingsLink /></Box>
+            <PrivacyBanner />
+          </Paper>
+        </PrivacyProvider>
+      </Stack>
     </I18nextProvider>
   );
 }
@@ -1022,4 +1055,5 @@ export const entries = [
   { id: 'billing-seats', label: 'Billing / Seats with candidates', Component: BillingSeatsEntry },
   { id: 'billing-origins', label: 'Billing / Balance by origin and purchases', Component: BillingOriginsEntry },
   { id: 'setup-wizard', label: 'Auth / Setup wizard', Component: SetupWizardEntry, fullViewport: true },
+  { id: 'privacy', label: 'Privacy / Shared choices', Component: PrivacyEntry, fullViewport: true },
 ];

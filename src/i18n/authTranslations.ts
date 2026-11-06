@@ -2730,6 +2730,13 @@ export const authTranslations = {
     "en": "Please accept the terms of use and the privacy statement.",
     "sw": "Tafadhali kubali masharti ya matumizi na taarifa ya faragha."
   },
+  "Auth.TERMS_REQUIRED": {
+    "de": "Bitte akzeptieren Sie die Nutzungsbedingungen.",
+    "de_informal": "Bitte akzeptiere die Nutzungsbedingungen.",
+    "fr": "Veuillez accepter les conditions d’utilisation.",
+    "en": "Please accept the terms of use.",
+    "sw": "Tafadhali kubali masharti ya matumizi."
+  },
   "Auth.PRIVACY_REQUIRED": {
     "de": "Bitte akzeptieren Sie die Datenschutzerklärung.",
     "de_informal": "Bitte akzeptiere die Datenschutzerklärung.",

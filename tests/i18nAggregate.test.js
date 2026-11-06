@@ -21,6 +21,7 @@ import {
   messagingTranslations as publicMessagingTranslations,
   notificationsTranslations as publicNotificationsTranslations,
   onboardingTranslations as publicOnboardingTranslations,
+  privacyTranslations as publicPrivacyTranslations,
   sectionNavTranslations as publicSectionNavTranslations,
   uiCoreTranslations,
   userMenuTranslations as publicUserMenuTranslations,
@@ -38,6 +39,7 @@ const PUBLIC_BUNDLES = {
   messagingTranslations: publicMessagingTranslations,
   notificationsTranslations: publicNotificationsTranslations,
   onboardingTranslations: publicOnboardingTranslations,
+  privacyTranslations: publicPrivacyTranslations,
   sectionNavTranslations: publicSectionNavTranslations,
   userMenuTranslations: publicUserMenuTranslations,
 };

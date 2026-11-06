@@ -6,6 +6,7 @@ import { messagingTranslations } from './messagingTranslations';
 import { notificationsTranslations } from './notificationsTranslations';
 import { receiptsTranslations } from './receiptsTranslations';
 import { onboardingTranslations } from './onboardingTranslations';
+import { privacyTranslations } from './privacyTranslations';
 import { sectionNavTranslations } from './sectionNavTranslations';
 import { userMenuTranslations } from './userMenuTranslations';
 
@@ -18,6 +19,7 @@ export const uiCoreTranslations = {
   ...notificationsTranslations,
   ...receiptsTranslations,
   ...onboardingTranslations,
+  ...privacyTranslations,
   ...sectionNavTranslations,
   ...userMenuTranslations,
 };

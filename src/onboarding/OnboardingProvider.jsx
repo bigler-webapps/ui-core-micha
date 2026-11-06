@@ -144,6 +144,7 @@ export function OnboardingProvider({
   extraContext = EMPTY_EXTRA_CONTEXT,
   pwaInstallEnabled = false,
   browserPush = EMPTY_BROWSER_PUSH,
+  privacyMode = 'legacy',
 }) {
   const { user } = useContext(AuthContext);
   const [configMap, setConfigMap] = useState({});
@@ -160,8 +161,11 @@ export function OnboardingProvider({
   );
 
   const descriptors = useMemo(
-    () => [...UNIVERSAL_STEP_DESCRIPTORS, ...extraSteps],
-    [extraSteps],
+    () => [
+      ...UNIVERSAL_STEP_DESCRIPTORS.filter((step) => privacyMode !== 'central' || step.id !== 'cookie_consent'),
+      ...extraSteps,
+    ],
+    [extraSteps, privacyMode],
   );
 
   useEffect(() => {
