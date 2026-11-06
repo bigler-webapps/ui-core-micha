@@ -37,7 +37,8 @@ describe('PrivacyBanner', () => {
       </TranslationRoot>,
     );
     const heading = await screen.findByRole('heading', { name: language === 'de' ? 'Datenschutzauswahl' : language === 'fr' ? 'Choix de confidentialité' : 'Privacy choices' });
-    expect(document.activeElement).toBe(heading);
+    // Focus moves in a passive effect after the heading mounts; findByRole can resolve before it runs under load.
+    await waitFor(() => expect(document.activeElement).toBe(heading));
     const refuseButton = screen.getByRole('button', { name: refuse });
     const acceptButton = screen.getByRole('button', { name: accept });
     expect(refuseButton.classList.contains('MuiButton-contained')).toBe(true);
