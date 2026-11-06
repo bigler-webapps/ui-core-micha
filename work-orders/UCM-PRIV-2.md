@@ -28,3 +28,5 @@ Reorient and re-read current instructions/pins at handoff. The shared visual ref
 
 Coordinate the release and explicit consumer updates as one removal sequence. Do not close this merely because a deprecation warning exists. Verify caller/export inventory before choosing the package's release boundary.
 
+Correction dependency recorded 2026-11-06: [UCM-PRIV-4](UCM-PRIV-4.md) supplies the missing AccountPage central-mode path and the 19 affected consumer integrations. That is an immediately usable migration correction, not cleanup to defer into this order. Require its consumer evidence before removing the legacy path; preserve historical findings until their actual consumer fix is verified.
+
