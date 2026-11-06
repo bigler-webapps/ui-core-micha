@@ -100,6 +100,16 @@ import { PROFILE_STEP_CHECKBOX_SX, PROFILE_STEP_OPTION_SX } from '../components/
 import { SETUP_WIZARD_CARD_SX } from '../onboarding/SetupWizardShell';
 import { REAUTH_MODAL_ALERT_SX, REAUTH_MODAL_TEXT_FIELD_SX } from '../auth/ReauthModal';
 import { PRIVACY_BANNER_CLOSE_SX, PRIVACY_BANNER_PAPER_SX } from '../privacy/PrivacyBanner';
+import {
+  PUBLIC_FOOTER_COPYRIGHT_SX,
+  PUBLIC_FOOTER_IDENTITY_SX,
+  PUBLIC_FOOTER_LEGAL_LINK_SX,
+  PUBLIC_FOOTER_NAV_SX,
+  PUBLIC_FOOTER_ROOT_SX,
+  PUBLIC_FOOTER_SETTINGS_LINK_SX,
+  PUBLIC_FOOTER_SETTINGS_ROW_SX,
+  PUBLIC_FOOTER_TOP_ROW_SX,
+} from '../privacy/PublicFooter';
 import { createKitSxEntry } from './kitSxEntry';
 import { ACCESS_ENDED_BANNER_ALERT_SX } from '../billing/AccessEndedBanner';
 import { BILLING_ACCESS_BADGE_SX } from '../billing/BillingAccessCell';
@@ -119,6 +129,14 @@ import { RECEIPT_REVIEW_ACTIONS_SX, RECEIPT_REVIEW_ACTION_BUTTON_SX, RECEIPT_REV
 const SX_EXPORTS = {
   PRIVACY_BANNER_CLOSE_SX,
   PRIVACY_BANNER_PAPER_SX,
+  PUBLIC_FOOTER_ROOT_SX,
+  PUBLIC_FOOTER_TOP_ROW_SX,
+  PUBLIC_FOOTER_IDENTITY_SX,
+  PUBLIC_FOOTER_COPYRIGHT_SX,
+  PUBLIC_FOOTER_NAV_SX,
+  PUBLIC_FOOTER_LEGAL_LINK_SX,
+  PUBLIC_FOOTER_SETTINGS_ROW_SX,
+  PUBLIC_FOOTER_SETTINGS_LINK_SX,
   ACCESS_CODE_ACTION_SX,
   ACCESS_ENDED_BANNER_ALERT_SX,
   BILLING_ACCESS_BADGE_SX,
@@ -250,6 +268,14 @@ export { createKitSxEntry };
 export const KIT_COMPONENT_SX_REGISTRY = [
   entry('PrivacyBanner.paper', 'MuiPaper', PRIVACY_BANNER_PAPER_SX),
   entry('PrivacyBanner.close', 'MuiButton', PRIVACY_BANNER_CLOSE_SX),
+  entry('PublicFooter.root', 'MuiBox', PUBLIC_FOOTER_ROOT_SX),
+  entry('PublicFooter.topRow', 'MuiBox', PUBLIC_FOOTER_TOP_ROW_SX),
+  entry('PublicFooter.identity', 'MuiBox', PUBLIC_FOOTER_IDENTITY_SX),
+  entry('PublicFooter.copyright', 'MuiTypography', PUBLIC_FOOTER_COPYRIGHT_SX),
+  entry('PublicFooter.nav', 'MuiBox', PUBLIC_FOOTER_NAV_SX),
+  entry('PublicFooter.legalLink', 'MuiLink', PUBLIC_FOOTER_LEGAL_LINK_SX),
+  entry('PublicFooter.settingsRow', 'MuiBox', PUBLIC_FOOTER_SETTINGS_ROW_SX),
+  entry('PublicFooter.settingsLink', 'MuiLink', PUBLIC_FOOTER_SETTINGS_LINK_SX),
   entry('AccessCodeManager.action', 'MuiButton', ACCESS_CODE_ACTION_SX),
   entry('AccessCodeManager.primaryAction', 'MuiButton', ACCESS_CODE_PRIMARY_ACTION_SX),
   entry('AccessCodeManager.alert', 'MuiAlert', ACCESS_CODE_ALERT_SX),

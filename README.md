@@ -18,8 +18,9 @@ The privacy and cookie consent controls and their submitted values remain availa
 
 ## Shared privacy choices (opt-in)
 
-Hosts using `django-core-micha` >= 3.22.0 can adopt `PrivacyProvider`, `PrivacyBanner`, `PrivacySettingsLink` and
-`PrivacyNoticeLink`. Create the API once and pass it to the provider when the host mounts the privacy routes elsewhere:
+Hosts using `django-core-micha` >= 3.22.0 can adopt `PrivacyProvider`, `PrivacyBanner`, `PublicFooter`, `UserMenu`'s
+`legal` prop, `PrivacySettingsLink` and `PrivacyNoticeLink`. Create the API once and pass it to the provider when the
+host mounts the privacy routes elsewhere:
 
 ```jsx
 const privacyApi = createPrivacyApi({}, { apiBase: '/api/privacy/', csrfUrl: '/api/csrf/' });
@@ -31,10 +32,29 @@ const privacyApi = createPrivacyApi({}, { apiBase: '/api/privacy/', csrfUrl: '/a
 </PrivacyProvider>
 ```
 
-Place `PrivacyProvider` above the router content, render one `PrivacyBanner` in the app shell, and put
-`PrivacySettingsLink` in the public footer and account area. The provider owns the settings dialog. Register each app-owned
+Place `PrivacyProvider` above the router content and render one `PrivacyBanner` in the app shell. Use `PublicFooter` on
+public pages, including login and registration, and pass the same `legal` configuration to `UserMenu` for authenticated
+workspaces. This keeps public legal links available without a provider and opens settings for the current app when adopted.
+`PrivacyFooterLinks` remains available for existing consumers; a public footer uses `PublicFooter` instead of it, never both. The provider owns the settings dialog. Register each app-owned
 optional adapter with `registerPrivacyService({ purposeId, serviceId, activate, deactivate, ownedStorage })`; gate imports,
 requests and callbacks with `useGrantedPurpose`, `guardedImport` or `createPrivacyGuard`. The package never loads vendors.
+
+```jsx
+const legal = {
+  legalOrigin: 'https://bigler-consult.ch',
+  appId: 'maana',
+  documents: ['privacy', 'terms', 'data-processing', 'cancellation'],
+  extraLinks: [{ id: 'contract-cancel', label: t('Privacy.LEGAL_CONTRACT_CANCEL'), href: '/contracts/cancel' }],
+};
+
+<PublicFooter brand={<MaanaBrand />} copyright={copyrightNode} {...legal} />
+<UserMenu legal={legal} />
+```
+
+Central links use `/legal/<slug>?app=<registered-id>&lang=<document-locale>`; the package chooses a supported document
+language from the UI language and configured fallback. Maana supplies all four documents and its local contract-cancel
+link. Imara uses `appId: 'hram'` and an `/imprint` extra link. Spesix uses the default privacy, terms and data-processing
+documents. Hosts supply each app's applicable destinations and brand/copyright nodes.
 
 Adoption is explicit. `OnboardingProvider` and `ProfileComponent` / `ProfileStepContent` accept `privacyMode="central"` to
 remove the legacy privacy and convenience-cookie prompts while keeping name completion and actual terms acceptance. The

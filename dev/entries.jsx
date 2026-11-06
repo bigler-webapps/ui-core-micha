@@ -19,6 +19,8 @@ import { ProfileStepContent } from '../src/components/ProfileStepContent';
 import { PrivacyProvider } from '../src/privacy/PrivacyProvider';
 import { PrivacyBanner } from '../src/privacy/PrivacyBanner';
 import { PrivacySettingsLink } from '../src/privacy/PrivacySettingsLink';
+import { PublicFooter } from '../src/privacy/PublicFooter';
+import { UserMenu } from '../src/auth/UserMenu';
 import ChatBubbleOutlineIcon from '@mui/icons-material/ChatBubbleOutline';
 import InboxIcon from '@mui/icons-material/Inbox';
 import MoreHorizIcon from '@mui/icons-material/MoreHoriz';
@@ -180,6 +182,78 @@ function PrivacyEntry() {
             <Typography variant="h6">Gemeinsame Datenschutzauswahl</Typography>
             <Typography color="text.secondary" sx={{ mt: 0.5 }}>Manifestdaten und Zustände kommen aus dem Harness-Transport.</Typography>
             <Box sx={{ mt: 2 }}><PrivacySettingsLink /></Box>
+            <PrivacyBanner />
+          </Paper>
+        </PrivacyProvider>
+      </Stack>
+    </I18nextProvider>
+  );
+}
+
+function PublicFooterEntry() {
+  const [scenario, setScenario] = useState('first-choice');
+  const [app, setApp] = useState('maana');
+  const scenarios = [
+    ['first-choice', 'Erste Auswahl'],
+    ['saved', 'Gespeicherte Auswahl'],
+    ['save-error', 'Speicherfehler'],
+    ['necessary-only', 'Nur notwendige Funktionen'],
+  ];
+  const apps = {
+    maana: {
+      name: 'Maana',
+      legal: {
+        legalOrigin: 'https://bigler-consult.ch',
+        appId: 'maana',
+        documents: ['privacy', 'terms', 'data-processing', 'cancellation'],
+        extraLinks: [{ id: 'contract-cancel', label: setupTranslations['Privacy.LEGAL_CONTRACT_CANCEL'].de, href: '/contracts/cancel' }],
+      },
+    },
+    imara: {
+      name: 'Imara',
+      legal: {
+        legalOrigin: 'https://bigler-consult.ch',
+        appId: 'hram',
+        extraLinks: [{ id: 'imprint', label: setupTranslations['Privacy.LEGAL_IMPRINT'].de, href: '/imprint' }],
+      },
+    },
+    spesix: {
+      name: 'Spesix',
+      legal: { legalOrigin: 'https://bigler-consult.ch', appId: 'spesix' },
+    },
+  };
+  const legal = apps[app].legal;
+  return (
+    <I18nextProvider i18n={setupI18n}>
+      <Stack spacing={2}>
+        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5}>
+          <FormControl size="small" sx={{ maxWidth: 360, minWidth: 220 }}>
+            <InputLabel id="public-footer-scenario-label">Zustand</InputLabel>
+            <Select labelId="public-footer-scenario-label" label="Zustand" value={scenario} onChange={(event) => setScenario(event.target.value)}>
+              {scenarios.map(([id, label]) => <MenuItem key={id} value={id}>{label}</MenuItem>)}
+            </Select>
+          </FormControl>
+          <FormControl size="small" sx={{ maxWidth: 360, minWidth: 220 }}>
+            <InputLabel id="public-footer-app-label">App</InputLabel>
+            <Select labelId="public-footer-app-label" label="App" value={app} onChange={(event) => setApp(event.target.value)}>
+              {Object.entries(apps).map(([id, item]) => <MenuItem key={id} value={id}>{item.name}</MenuItem>)}
+            </Select>
+          </FormControl>
+        </Stack>
+        <PrivacyProvider key={scenario} apiBase={`/api/privacy/dev/${scenario}/`}>
+          <Paper variant="outlined" sx={{ minHeight: 320, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', px: 2, py: 1.5 }}>
+              <Typography variant="h6">{apps[app].name} · öffentlicher Seitenabschluss</Typography>
+              <AuthContext.Provider value={{ user: setupHarnessUser, logout: () => {} }}>
+                <UserMenu legal={legal} />
+              </AuthContext.Provider>
+            </Box>
+            <Box sx={{ flex: 1 }} />
+            <PublicFooter
+              {...legal}
+              brand={apps[app].name}
+              copyright="© 2026 Bigler Consult"
+            />
             <PrivacyBanner />
           </Paper>
         </PrivacyProvider>
@@ -1056,4 +1130,5 @@ export const entries = [
   { id: 'billing-origins', label: 'Billing / Balance by origin and purchases', Component: BillingOriginsEntry },
   { id: 'setup-wizard', label: 'Auth / Setup wizard', Component: SetupWizardEntry, fullViewport: true },
   { id: 'privacy', label: 'Privacy / Shared choices', Component: PrivacyEntry, fullViewport: true },
+  { id: 'public-footer', label: 'Privacy / Public footer + menu', Component: PublicFooterEntry, fullViewport: true },
 ];

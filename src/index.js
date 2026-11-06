@@ -181,6 +181,8 @@ export { PrivacyBanner } from './privacy/PrivacyBanner';
 export { PrivacySettingsDialog, PrivacySettingsPanel } from './privacy/PrivacySettings';
 export { PrivacySettingsLink } from './privacy/PrivacySettingsLink';
 export { PrivacyFooterLinks, buildLegalReaderUrl, legalDocumentLanguage } from './privacy/PrivacyFooterLinks';
+export { PublicFooter } from './privacy/PublicFooter';
+export { useLegalEntries } from './privacy/legalEntries';
 export { PrivacyNoticeLink, safePrivacyDocumentUrl } from './privacy/PrivacyNoticeLink';
 export {
   registerPrivacyService,

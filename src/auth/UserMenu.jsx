@@ -14,6 +14,8 @@ import { useTranslation } from 'react-i18next';
 
 import { AuthContext } from './AuthContext';
 import { calculateContrastRatio } from '../theme';
+import { usePrivacy } from '../privacy/PrivacyProvider';
+import { useLegalEntries } from '../privacy/legalEntries';
 
 function getInitials(user) {
   if (!user) return '';
@@ -29,9 +31,11 @@ function getDisplayName(user) {
   return name || user.username || '';
 }
 
-export function UserMenu({ resolveLink, items = [], profileLink = '/account', avatarSrc }) {
+export function UserMenu({ resolveLink, items = [], profileLink = '/account', avatarSrc, legal }) {
   const { t } = useTranslation();
   const { user, logout } = useContext(AuthContext);
+  const privacy = usePrivacy();
+  const legalEntries = useLegalEntries(legal || {});
   const theme = useTheme();
   const [anchorEl, setAnchorEl] = useState(null);
   const open = Boolean(anchorEl);
@@ -111,6 +115,19 @@ export function UserMenu({ resolveLink, items = [], profileLink = '/account', av
             {item.label}
           </MenuItem>
         ))}
+        {legal !== undefined && legal !== null ? (
+          [
+            <Divider key="legal-divider" />,
+            ...legalEntries.map(({ id, label, href }) => (
+              <MenuItem key={`legal-${id}`} component="a" href={href} onClick={handleClose}>
+                {label}
+              </MenuItem>
+            )),
+            ...(legal.showSettings !== false && privacy && privacy.status !== 'unconfigured'
+              ? [<MenuItem key="legal-settings" onClick={() => { handleClose(); privacy.openSettings(); }}>{t('Privacy.LEGAL_SETTINGS')}</MenuItem>]
+              : []),
+          ]
+        ) : null}
         <Divider />
         <MenuItem onClick={handleLogout}>{t('UserMenu.LOGOUT')}</MenuItem>
       </Menu>

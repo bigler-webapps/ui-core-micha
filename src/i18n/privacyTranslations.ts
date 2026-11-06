@@ -32,6 +32,13 @@ export const privacyTranslations = {
   'Privacy.FOOTER_TERMS': { de: 'Nutzungsbedingungen', fr: 'Conditions d’utilisation', en: 'Terms of use', sw: 'Masharti ya matumizi' },
   'Privacy.FOOTER_DATA_PROCESSING': { de: 'Auftragsverarbeitung', fr: 'Traitement des données', en: 'Data processing', sw: 'Uchakataji wa data' },
   'Privacy.FOOTER_CANCELLATION': { de: 'Kündigung und Rückerstattung', fr: 'Résiliation et remboursement', en: 'Cancellation and refunds', sw: 'Kughairi na marejesho' },
+  'Privacy.LEGAL_PRIVACY': { de: 'Datenschutz', fr: 'Confidentialité', en: 'Privacy', sw: 'Faragha' },
+  'Privacy.LEGAL_TERMS': { de: 'Nutzungsbedingungen', fr: 'Conditions d’utilisation', en: 'Terms of use', sw: 'Masharti ya matumizi' },
+  'Privacy.LEGAL_DATA_PROCESSING': { de: 'Auftragsverarbeitung', fr: 'Traitement des données', en: 'Data processing', sw: 'Uchakataji wa data' },
+  'Privacy.LEGAL_CANCELLATION': { de: 'Widerruf und Erstattung', fr: 'Rétractation et remboursement', en: 'Cancellation and refunds', sw: 'Kujiondoa na marejesho' },
+  'Privacy.LEGAL_IMPRINT': { de: 'Impressum', fr: 'Mentions légales', en: 'Imprint', sw: 'Taarifa za kisheria' },
+  'Privacy.LEGAL_CONTRACT_CANCEL': { de: 'Verträge hier kündigen', fr: 'Résilier des contrats ici', en: 'Cancel contracts here', sw: 'Sitisha mikataba hapa' },
+  'Privacy.LEGAL_SETTINGS': { de: 'Datenschutzeinstellungen', fr: 'Paramètres de confidentialité', en: 'Privacy settings', sw: 'Mipangilio ya faragha' },
   'Privacy.LOADING': { de: 'Datenschutzeinstellungen werden geladen.', fr: 'Chargement des paramètres de confidentialité.', en: 'Loading privacy settings.', sw: 'Inapakia mipangilio ya faragha.' },
   'Privacy.UNAVAILABLE': { de: 'Datenschutzeinstellungen sind derzeit nicht verfügbar. Optionale Dienste bleiben ausgeschaltet.', fr: 'Les paramètres de confidentialité sont indisponibles. Les services facultatifs restent désactivés.', en: 'Privacy settings are unavailable right now. Optional services remain off.', sw: 'Mipangilio ya faragha haipatikani sasa. Huduma za hiari zitaendelea kuzimwa.' },
 };

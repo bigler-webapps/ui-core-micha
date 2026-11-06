@@ -1,5 +1,12 @@
 # Changelog
 
+## 4.33.0 - UCM-PRIV-3
+
+Adds the opt-in `PublicFooter` and provider-independent `useLegalEntries` helpers, `UserMenu`'s additive `legal` prop, and
+the `Privacy.LEGAL_*` labels for central documents, host-local legal links and settings. Public footers retain legal links
+without a privacy provider; authenticated consumers can expose the same destinations and app settings through the menu.
+Existing consumers are unchanged when they do not opt in. `PrivacyFooterLinks` remains available for compatibility.
+
 ## 4.32.0 - UCM-PRIV-1
 
 Adds opt-in shared privacy choices for hosts on `django-core-micha` >= 3.22.0: `PrivacyProvider`, `usePrivacy`, the
