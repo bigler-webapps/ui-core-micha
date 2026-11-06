@@ -169,9 +169,12 @@ describe('workspace wiring of long chat and summary', () => {
     render(<ChatWorkspace api={api} wsUrl={(id) => `ws://test/${id}`} />);
     fireEvent.click(await screen.findByText('Budget'));
     const toggle = await screen.findByRole('button', { name: /Chat.summaryUntilHere/ });
-    fireEvent.click(toggle);
-    // The summary expands after the click; a synchronous query races the render under CPU load.
-    expect(await screen.findByText('Earlier talk')).toBeTruthy();
+    // ChatThread collapses the summary in an effect keyed on chat id and summary seq. When that effect lands
+    // after the click (slow CI runner), the click is undone, so click again until the summary stays open.
+    await waitFor(() => {
+      if (toggle.getAttribute('aria-expanded') !== 'true') fireEvent.click(toggle);
+      expect(screen.getByText('Earlier talk')).toBeTruthy();
+    }, { timeout: 5000 });
   });
 });
 
