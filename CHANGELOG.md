@@ -1,5 +1,13 @@
 # Changelog
 
+## 4.33.1 - UCM-PRIV-4
+
+`AccountPage` now accepts `privacyMode` (default `'legacy'`, unchanged) and forwards it to `ProfileComponent`. With
+`privacyMode="central"` the account profile has no privacy-statement or convenience-cookie checkbox, requests no legacy
+statements and sends neither legacy field; name editing and the central privacy notice link are unchanged, also while the
+manifest loads or fails. Omitting the prop keeps the legacy behaviour until UCM-PRIV-2. This closes the 4.32.0/4.33.0 gap where
+only the standalone profile components could select the central contract.
+
 ## 4.33.0 - UCM-PRIV-3
 
 Adds the opt-in `PublicFooter` and provider-independent `useLegalEntries` helpers, `UserMenu`'s additive `legal` prop, and

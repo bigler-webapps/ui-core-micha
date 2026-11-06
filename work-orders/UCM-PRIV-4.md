@@ -71,7 +71,19 @@ Risks: a missing prop at any wrapper retains legacy behavior; using an old publi
 
 ## Part B — Implementation map (not dispatchable)
 
-PLACEHOLDER — the Orchestrator fills the current context package and mandatory preamble before dispatch, separately identifying shared-source and consumer scopes. Include absolute target directories (`C:/Users/Micha Bigler/Documents/webapps/ui-core-micha` and each listed app), named current source/tests, released-package contract, progress contract and disjoint authoring assignments where required. Part A's inventory is evidence, not a completed implementation map. Do not dispatch this placeholder.
+Shared scope (target `C:/Users/Micha Bigler/Documents/webapps/ui-core-micha`, branch `main`). Implemented directly by the Orchestrator because the change is three lines; independent review is the configured one (see Part C).
+
+- `src/pages/AccountPage.jsx`: new prop `privacyMode = 'legacy'` (signature, next to `showProfileStatements`), forwarded to the single `ProfileComponent` render in the `safeTab === 'profile'` branch. `showPrivacy`/`showCookies` stay `true`: central mode in `ProfileComponent` (`src/components/ProfileComponent.jsx`) already ignores them for payload and statement fetches and renders `PrivacyNoticeLink`.
+- Contract slice: `ProfileComponent` with `privacyMode === 'central'` sends only `first_name`/`last_name`, fetches no statements, renders no checkbox, and shows `PrivacyNoticeLink` only when the provider is `ready` with a manifest (nothing while loading/error: Envelope forbids a new fallback API).
+- Tests: `tests/AccountPagePrivacyMode.test.jsx` (real AccountPage + real ProfileComponent + real PrivacyProvider with a fake API; central ready/loading/error, historical booleans true/false, legacy positive controls). Existing `tests/AccountPage.test.jsx` mocks the profile and stays as is.
+- Release: `package.json` 4.33.1, `CHANGELOG.md`, `README.md`.
+- Do-not-touch: `ProfileComponent`, `ProfileStepContent`, onboarding, `UserMenu`, `PublicFooter`, any export list.
+
+Consumer scope (each app root under `C:/Users/Micha Bigler/Documents/webapps/<app>`, branch `develop`): exact `@micha.bigler/ui-core-micha` pin 4.33.1 (or a later verified release) with regenerated lockfile, explicit `privacyMode="central"` on the live AccountPage call site listed in Part A, one focused wrapper/route assertion preserving the wrapper's distinctive props; Gustav additionally a real-package profile-save integration. The pin bump plus one prop is a minimal change: scoped local tests only (the touched wrapper test, the profile-save path, build/lint), no heavy suite and no ci-test run unless a real logic change forces one (operator direction 2026-11-06). Consumers whose PRIV-1 is still open take this item inside that session; landed consumers get a short follow-up session. Apps without a provider adopt central mode only together with their PRIV-1.
+
+Progress contract: each consumer reports commit, pin, call site and test evidence into the delivery matrix in Part C.
+
+Mandatory preamble (shared scope): the WO is the complete spec; implement only what Part B lists; do not run `git add/commit/push`, do not self-review, do not touch lockfiles or package managers; your own run is not the gate.
 
 ## Part C — Orchestrator only
 
@@ -84,3 +96,17 @@ Follow orchestrate-codex. Refresh current instructions and model routing, comple
 Record this as the integration omission originating in UCM-PRIV-1 at `4bba8fe` (review recorded as codex/gpt-6-luna; the AccountPage path was not covered). Do not rewrite that historical review as having checked this path. Track the corrective shared release and each of the 19 consumer commits/tests in a delivery matrix here and cross-reference the existing app PRIV-1 register notes when delivering. Update a prior carried finding only when that consumer has the corrected package, mode and evidence. Shared release alone is not completion of UCM-PRIV-4; explicit unmet app dependencies remain open. UCM-PRIV-2 must wait for this migration path and its consumer evidence, not absorb the fix as deferred cleanup.
 
 Use the existing prototype comparison requirement for the corrected central account/profile surface at 375/1280, keeping the comparison bounded; no new prototype is requested by this correction. Scope permission regression tests to the AccountPage/profile area actually affected. Commit and push only reviewed, tested own changes on the authorized trunks. Release UCM before consumers pin it; select the next available version at delivery. Promotion retains its separate approval.
+
+### Execution record (Orchestrator, 2026-11-06)
+
+- Shared correction authored by the Orchestrator (Claude), not the configured implementer: the whole diff is the one-prop forward plus tests and release metadata. Independent review: codex/gpt-6-luna, one combined read-only pass (envelope, regression, tests, version). 1 raised (test did not prove the provider reached the error state) · 1 accepted · worst accepted: defect · fixed by asserting `getManifest` was called and no notice link before/after saving. Mutation check: removing the forward fails the 5 central tests, the 3 legacy controls stay green. Scoped tests: `AccountPagePrivacyMode`, `AccountPage`, `ProfileComponent.refresh`, `privacyAdoption` green. Not run: the full ucm suite (a one-prop change; the publish workflow runs `pnpm test`).
+- Origin: integration omission of UCM-PRIV-1 at `4bba8fe` (review recorded as codex/gpt-6-luna; the AccountPage path was not covered).
+- Prototype comparison at 375/1280 for the central account profile surface: pending, to be done in the first consumer (Gustav) with the real app.
+
+### Delivery matrix (shared release first, then consumers)
+
+| Repository | Pin | `privacyMode="central"` at call site | Evidence | State |
+|---|---|---|---|---|
+| ui-core-micha | 4.33.1 | n/a | see above | released with the landing commit |
+| Gustav, hram, Photogallery, Cinevia, maana, Kira, webshop-guenter, bigler-consult, spesix, musiknoten | | | | open |
+| reimbursements, jg-ferien, hpc-bridge, fitness-monitor, survey_contact_app, kerzenziehen, survey_app, cockpit, innoservice | | | | open: needs own PRIV-1 first |

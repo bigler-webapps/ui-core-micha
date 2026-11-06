@@ -58,7 +58,9 @@ documents. Hosts supply each app's applicable destinations and brand/copyright n
 
 Adoption is explicit. `OnboardingProvider` and `ProfileComponent` / `ProfileStepContent` accept `privacyMode="central"` to
 remove the legacy privacy and convenience-cookie prompts while keeping name completion and actual terms acceptance. The
-default remains `privacyMode="legacy"` during rollout. `CookieConsentStep` remains exported for compatibility and is
+default remains `privacyMode="legacy"` during rollout. `AccountPage` takes the same `privacyMode` prop (4.33.1) and
+forwards it to its profile tab; pass `privacyMode="central"` there too, because `showProfileStatements={false}` only hides
+statement text and never selects the central contract. `CookieConsentStep` remains exported for compatibility and is
 deprecated. The host manifest supplies actual controllers, purpose details, providers, storage and localized notice links;
 empty optional configuration has no choice banner.
 

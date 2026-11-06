@@ -42,6 +42,10 @@ import { useBillingUsersColumn } from '../billing/useBillingUsersColumn';
  * `billingOperator({ user, account }) => boolean` (optional, UCM-BILL-10): the app's operator rule for the billing
  * users columns built when `billingUsers` is set (status, badge and the "Ohne Abo" switch). Without it superusers are
  * the operators. A new function on each render only recomputes the columns; it does not refetch the accounts.
+ * `privacyMode` (optional, UCM-PRIV-4): `'legacy'` (default, unchanged) or `'central'`. `'central'` is forwarded to
+ * ProfileComponent: the profile drops the privacy-statement and convenience-cookie checkboxes and sends neither legacy
+ * field; name editing is unchanged and the central privacy notice link is shown. It never depends on provider presence,
+ * and stays central while the privacy manifest loads or fails. `showProfileStatements` only hides statement text.
  * `groups` (optional): app-defined account navigation groups with `{ key, label, order?, tabs?, visible? }`. Labels
  * may be strings or `(context) => string`; `tabs` assigns built-in tab values, and `visible(context)` can hide a group
  * and its tabs. Without this prop, the default groups and placement are unchanged.
@@ -63,6 +67,7 @@ export function AccountPage({
   bulkInviteCsvProps = {},
   extraTabs = [],
   showProfileStatements = true,
+  privacyMode = 'legacy',
   billingUsers = false,
   billingOperator,
   groups: groupsProp,
@@ -350,6 +355,7 @@ export function AccountPage({
             showPrivacy
             showCookies
             showStatements={showProfileStatements}
+            privacyMode={privacyMode}
           />
         </Box>
       )}
