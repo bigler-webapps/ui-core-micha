@@ -170,7 +170,8 @@ describe('workspace wiring of long chat and summary', () => {
     fireEvent.click(await screen.findByText('Budget'));
     const toggle = await screen.findByRole('button', { name: /Chat.summaryUntilHere/ });
     fireEvent.click(toggle);
-    expect(screen.getByText('Earlier talk')).toBeTruthy();
+    // The summary expands after the click; a synchronous query races the render under CPU load.
+    expect(await screen.findByText('Earlier talk')).toBeTruthy();
   });
 });
 
