@@ -18,22 +18,24 @@ export const PUBLIC_FOOTER_ROOT_SX = {
   borderTop: 1,
   borderColor: 'divider',
   px: { xs: 2, sm: 4 },
-  py: 1,
+  py: { xs: 0.5, sm: 1 },
   bgcolor: 'background.paper',
   display: 'flex',
   flexWrap: 'wrap',
   alignItems: 'center',
-  justifyContent: 'space-between',
+  justifyContent: { xs: 'center', sm: 'space-between' },
   columnGap: 3,
   rowGap: 0,
 };
 
+// On a phone the identity (logo, tagline, copyright) is dropped: the header already carries the brand and the
+// footer stays a compact row of links.
 export const PUBLIC_FOOTER_IDENTITY_SX = {
-  display: 'flex',
+  display: { xs: 'none', sm: 'flex' },
   alignItems: 'center',
   gap: 1.25,
   flexShrink: 0,
-  minHeight: { xs: 36, sm: 32 },
+  minHeight: 32,
 };
 
 export const PUBLIC_FOOTER_COPYRIGHT_SX = {
@@ -45,20 +47,21 @@ export const PUBLIC_FOOTER_COPYRIGHT_SX = {
 export const PUBLIC_FOOTER_NAV_SX = {
   display: 'flex',
   flexWrap: 'wrap',
-  justifyContent: 'flex-end',
+  justifyContent: { xs: 'center', sm: 'flex-end' },
   alignItems: 'center',
-  columnGap: { xs: 2, sm: 2.75 },
+  columnGap: { xs: 1.5, sm: 2.75 },
   rowGap: 0,
   minWidth: 0,
+  width: { xs: '100%', sm: 'auto' },
 };
 
 export const PUBLIC_FOOTER_LEGAL_LINK_SX = {
   display: 'inline-flex',
   alignItems: 'center',
   minWidth: 0,
-  minHeight: { xs: 40, sm: 32 },
+  minHeight: { xs: 28, sm: 32 },
   color: 'text.secondary',
-  fontSize: '0.8125rem',
+  fontSize: { xs: '0.75rem', sm: '0.8125rem' },
   lineHeight: 1.35,
   overflowWrap: 'anywhere',
   textDecoration: 'none',
@@ -72,10 +75,10 @@ export const PUBLIC_FOOTER_SETTINGS_LINK_SX = {
   display: 'inline-flex',
   alignItems: 'center',
   gap: 0.75,
-  minHeight: { xs: 40, sm: 32 },
+  minHeight: { xs: 28, sm: 32 },
   px: 0,
   color: 'primary.main',
-  fontSize: '0.8125rem',
+  fontSize: { xs: '0.75rem', sm: '0.8125rem' },
   textDecoration: 'none',
   '&:hover': { textDecoration: 'underline' },
 };

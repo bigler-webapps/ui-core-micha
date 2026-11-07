@@ -33,7 +33,8 @@ const privacyApi = createPrivacyApi({}, { apiBase: '/api/privacy/', csrfUrl: '/a
 ```
 
 Place `PrivacyProvider` above the router content and render one `PrivacyBanner` in the app shell. Use `PublicFooter` as
-the one compact line at the end of every page, public and authenticated, including login and registration; there are no
+the one compact line at the end of every page, public and authenticated, including login and registration (on phones
+the `brand` and `copyright` nodes are not shown, so never make the footer the only route to something they link); there are no
 legal or privacy entries in headers or in the account menu. The account page (`privacyMode="central"`) shows the two
 quick choices in its profile section. This keeps public legal links available without a provider. When an app has
 optional purposes, the footer entry reopens the same banner with “Necessary only” and “Allow all”; either choice applies

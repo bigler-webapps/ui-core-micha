@@ -1,5 +1,11 @@
 # Changelog
 
+## 4.35.1 - UCM-PRIV-6
+
+`PublicFooter` is compact on phones: below the `sm` breakpoint the identity block (logo, tagline, copyright) is hidden,
+the links sit in one centred, tightly spaced wrapping row (smaller type, 28 px rows), so the footer no longer takes
+three tall rows. From `sm` up it stays one line. No API change.
+
 ## 4.35.0 - UCM-PRIV-6
 
 Removal, released as a minor because no consumer imports the removed names and all consumers pin exact versions: the
