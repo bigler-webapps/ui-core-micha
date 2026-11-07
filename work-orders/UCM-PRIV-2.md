@@ -16,7 +16,53 @@ Non-goals: broad auth refactor, unrelated profile fields, changing privacy polic
 
 ## Part B — Implementation map (not dispatchable)
 
-PLACEHOLDER — after Gate #1 the Orchestrator supplies absolute working directories, current named files/functions, the API/manifest contract slice, migrations and compatibility invariants, progress contract and mandatory implementer preamble. This Envelope alone is not a coder dispatch.
+Prepared 2026-11-07 from ucm 4.33.1 (`origin/main` 28a677e) and `origin/develop` of the 19 consumers. NOT yet dispatched: start only after the operator's go and the two readiness conditions at the end of this part.
+
+Target directory (shared scope): `C:/Users/Micha Bigler/Documents/webapps/ui-core-micha`, branch `main`. Breaking removal: the next MAJOR version, selected at delivery (never reserve one); every consumer pins the exact ucm version, so nobody breaks until it bumps.
+
+### Legacy surface in ucm (current `path:line`)
+- `src/onboarding/steps/CookieConsentStep.jsx` (whole file; calls `fetchCookieStatement`/`fetchPrivacyStatement`/`updateUserProfile` with `accepted_privacy_statement: true`, `accepted_convenience_cookies`), export `src/index.js:154`, descriptor `cookie_consent` in `src/onboarding/OnboardingProvider.jsx:22-27` (condition `!ctx.user.accepted_privacy_statement`) and the `privacyMode !== 'central'` filter at `:165`, prop `privacyMode = 'legacy'` at `:147`.
+- `src/components/ProfileComponent.jsx`: props `showPrivacy`, `showCookies`, `showStatements`, `privacyStatementText`, `cookieStatementText`, `privacyMode`; state `acceptedPrivacy`/`acceptedCookies`, statement fetch effect (`:87-123`), payload branches (`:138-143`), checkbox and statement blocks (`:237-310`). Keep: name fields, submit/feedback, `PrivacyNoticeLink`.
+- `src/components/ProfileStepContent.jsx`: every `privacyMode !== 'central'` branch (`:120`, `:135`, `:145`, `:183-188`, `:219-221`, `:246-248`, `:292-306`, `:344-378`) and the `fetchPrivacyStatement` use (`:173`). Keep real terms acceptance (`termsEnabled`, `termsApi`) and name completion.
+- `src/pages/AccountPage.jsx:69-70, :355-358`: props `showProfileStatements`, `privacyMode`; the profile tab always renders the central profile afterwards. `showPrivacy`/`showCookies` stop being passed.
+- `src/utils/profileDraft.js:5-30`: `includeLegacyPrivacy`, `acceptedPrivacy`/`acceptedCookies` draft fields.
+- `src/auth/authApi.jsx:69,74`: `fetchPrivacyStatement`, `fetchCookieStatement` (exports via `export * from './auth/authApi'`).
+- `src/auth/AuthContext.jsx:63-67`: `accepted_privacy_statement`/`accepted_convenience_cookies` normalisation of the user object. Decide at implementation whether any consumer still reads them from the user object (the inventory below says none does in frontend code); if none, drop them; otherwise keep read-only and say why.
+- `src/i18n/authTranslations.ts:2389-2410`: four `Auth.field.accepted_*` keys; plus the Profile/Onboarding legacy label keys that become unused (check every key with a grep across `src/` and the consumer inventory before deleting).
+- Tests that assert the legacy behaviour: `tests/AccountPagePrivacyMode.test.jsx` (positive controls become removal assertions), `tests/ProfileComponent.refresh.test.jsx`, `tests/ProfileStepContent.terms.test.jsx`, `tests/privacyAdoption.test.jsx`, plus the i18n aggregate and export-name tests (`tests/packageEntries.test.js`, `tests/i18nAggregate.test.js`).
+
+### Consumer inventory (git grep on `origin/develop`, 2026-11-07, non-test frontend code)
+- `CookieConsentStep`: no consumer. `privacyMode="legacy"`: no consumer. `fetchPrivacyStatement`/`fetchCookieStatement`/`privacyStatementText`/`cookieStatementText`: no consumer.
+- `OnboardingProvider`: only jg-ferien (`App.jsx:63`) and cockpit (`App.jsx:54`), both `privacyMode="central"`; after removal the prop is dropped there.
+- `showProfileStatements={false}` passed by Gustav (`pages/account/GustavAccountPage.jsx:46`), Kira (`App.jsx:88`), bigler-consult (`pages/AccountHubPage.jsx:30`), innoservice (`App.jsx:58`): remove the prop at these four call sites in the same sequence.
+- `privacyMode="central"` at ProfileComponent/AccountPage/OnboardingProvider call sites in every app: remove the prop everywhere once it no longer exists (a harmless unknown prop, but the follow-through must be real).
+- `cookie_consent` step id: `jg-ferien/frontend/src/components/OnboardingStepConfigAdmin.jsx:12` maps it to a title; dcm `onboarding/models.py:5` lists `cookie_consent` in `UNIVERSAL_STEP_KEYS` and test_onboarding asserts it. ucm may drop the step, but the admin step-config UI and the dcm key stay in sync: ucm removal first, dcm key removal belongs to DCM-PRIV-2; until then the jg admin label stays.
+- Apps with their own forked profile components (not ucm): hram (`UtilsComponents/ProfileComponent`, audited clean 2026-11-07) and jg-ferien (forked component cleaned in `1afac38`). They are not affected by the ucm removal.
+- reimbursements `WelcomePage.jsx:18-19` deletes the two legacy fields from the profile payload: remove the two lines with the follow-through (the central profile no longer produces them).
+- Externally published API: `@micha.bigler/ui-core-micha` is consumed only by the repositories above (the 19 apps; bottleneck-analysis-app, excluded from the rollout, declares neither ucm nor dcm in its package.json, requirements or pyproject files, checked 2026-11-07 in the local working copy).
+
+### Contract and invariants
+- After removal the profile and onboarding flows have exactly one privacy contract: the shared manifest/choices (UCM-PRIV-1) and `PrivacyNoticeLink`. Terms acceptance (`termsApi`, `ProfileStepContent` terms) is separate and unchanged.
+- No code reads `accepted_privacy_statement`/`accepted_convenience_cookies` to enable an optional service (required test, below). Historical values stay in the database untouched here (DCM-PRIV-2 owns the server side); do not convert them into grants.
+- Public export names after the change are asserted exactly in `tests/packageEntries.test.js`; update that list deliberately, nothing else may disappear.
+- Do-not-touch: `src/privacy/*`, `PublicFooter`, `UserMenu` legal entries, billing, messaging, notifications, `AccountPage` navigation/groups/billing extensions, theme registry.
+- Pitfalls: `tests/packageTreeShaking.test.js` and two `packageEntries` tests fail on this Windows host with a symlink EPERM (environment); `ui-core-micha` timing-sensitive tests (banner focus, chat summary) were hardened 2026-11-07; run the full local suite before dispatching a publish because the publish workflow runs it on a CPU-bound runner.
+
+### Required tests (written in this order of risk)
+1. The former acceptance booleans cannot enable optional services: render the shared flows with a user whose booleans are true and assert no optional purpose is granted and nothing is written.
+2. Profile and onboarding render and save with only the shared contract: payload is exactly the name fields; terms acceptance still gates onboarding where `termsEnabled`.
+3. Exact public export list; imports of removed names fail loudly in the test (no silent undefined).
+4. Per consumer follow-through: the touched wrapper/route assertion, plus an import-resolution check against the built package version.
+
+### Progress contract
+One commit for the shared removal with release metadata (`package.json`, `CHANGELOG.md` with an explicit migration note, `README.md`), then one commit per consumer (pin + lockfile + prop removal + the focused assertion), each reported into a new delivery matrix in Part C.
+
+### Mandatory implementer preamble
+This work order is the complete spec. Implement only Part B of this file. Do not run `git add`, `git commit`, `git push` or any package-manager command (the Orchestrator does pins and lockfiles). Do not review your own work and do not treat your own test run as the gate. You edit source and test files and may run only the tests you wrote, once.
+
+### Readiness conditions (Orchestrator, before dispatch)
+1. Operator go for the breaking removal (major release) and for the consumer pin bumps.
+2. Evidence that the central account page works on staging for at least one consumer (no staging test account existed on 2026-11-07), or the operator's explicit acceptance of local-only evidence for it.
 
 ## Part C — Orchestrator only
 
