@@ -108,5 +108,24 @@ Use the existing prototype comparison requirement for the corrected central acco
 | Repository | Pin | `privacyMode="central"` at call site | Evidence | State |
 |---|---|---|---|---|
 | ui-core-micha | 4.33.1 | n/a | see above | released with the landing commit |
-| Gustav, hram, Photogallery, Cinevia, maana, Kira, webshop-guenter, bigler-consult, spesix, musiknoten | | | | open |
-| reimbursements, jg-ferien, hpc-bridge, fitness-monitor, survey_contact_app, kerzenziehen, survey_app, cockpit, innoservice | | | | open: needs own PRIV-1 first |
+| Gustav | 4.33.1 | yes (`GustavAccountPage.jsx`), extra tabs kept | `d5d23d0`; real-package profile-save test; 375/1280 comparison reported by the session | on develop, 2026-11-07 |
+| hram | 4.33.1 | yes (`AccountHubPage.jsx`) | `31701771` | on develop |
+| Photogallery | 4.33.1 | yes | `e88b71c`; wrapper test | on develop |
+| Cinevia | 4.33.1 | yes (`App.jsx`), part of CIN-PRIV-1 | `014a46c` | on develop |
+| maana | 4.33.1 | yes, billing/groups/delete props kept | `4f1cb33`; local browser: account page central OK, first click saves after the local migration | on develop |
+| Kira | 4.33.1 | yes (`App.jsx`) | `a4245b8` | on develop |
+| webshop-guenter | 4.33.1 | yes | `ffcb742` | on develop |
+| bigler-consult | 4.33.1 | yes | `10ec16c`; local browser 375/1280 OK | on develop |
+| spesix | 4.33.1 | yes | `888b56b` | on develop |
+| musiknoten | 4.33.1 | yes | `788f206` | on develop |
+| reimbursements | 4.33.1 | yes (`CoreAccountPage` alias) | `47ad5b3`, with RMB-PRIV-1 | on develop |
+| jg-ferien | 4.33.1 | yes | `e8417be`, `9afca3f`, with JG-PRIV-1 (row still `in-review`) | on develop |
+| hpc-bridge | 4.33.1 | yes | `6f3bad1`, with HPC-PRIV-1 | on develop |
+| fitness-monitor | 4.33.1 | yes, admin extra tab kept | `16cee72`, with FM-PRIV-1 | on develop |
+| survey_contact_app | 4.33.1 | yes | `cf4f1f5`, with SCA-PRIV-1 | on develop |
+| kerzenziehen | 4.33.1 | yes (`App.jsx`) | `cff4e39`, with KZ-PRIV-1 | on develop |
+| survey_app | 4.33.1 | yes | `61f7bd4`, with SVA-PRIV-1 (row still `in-review`) | on develop |
+| cockpit | 4.33.1 | yes | `c44db5f`, with CKP-PRIV-1 | on develop |
+| innoservice | 4.33.1 | yes (`App.jsx`) | `13e7ea1`, with INNO-PRIV-1 | on develop |
+
+Verified by the Orchestrator on 2026-11-07 with `git grep` on `origin/develop` of each repository: exact ucm pin 4.33.1, dcm pin 3.22.1 and `privacyMode="central"` present at the AccountPage call site. Evidence is local only (no CI runs by operator decision); the staging deploys were not observed. Open for every app: controller identity confirmation, staging request/storage capture, production legal-reader targets before consumer links go live in production, promotion (separate gate). `yopoulab-hhs-2026` is out of scope (static report, no AccountPage; YOP-PRIV-1 dropped by the operator).
