@@ -23,6 +23,8 @@ describe('public package surface', () => {
     expect(typeof publicApi.CookieConsentStep).toBe('function');
     expect(typeof publicApi.PrivacyFooterLinks).toBe('function');
     expect(typeof publicApi.buildLegalReaderUrl).toBe('function');
+    expect(publicApi).not.toHaveProperty('PrivacySettingsDialog');
+    expect(publicApi).not.toHaveProperty('PrivacySettingsPanel');
   });
 });
 

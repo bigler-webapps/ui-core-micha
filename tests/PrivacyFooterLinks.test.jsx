@@ -1,12 +1,15 @@
 // @vitest-environment jsdom
 import React from 'react';
-import { cleanup, render, screen } from '@testing-library/react';
-import { afterEach, describe, expect, it } from 'vitest';
+import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { I18nextProvider } from 'react-i18next';
 import i18next from 'i18next';
 
 import { PrivacyFooterLinks, buildLegalReaderUrl, legalDocumentLanguage } from '../src/privacy/PrivacyFooterLinks';
+import { PrivacyProvider, usePrivacy } from '../src/privacy/PrivacyProvider';
+import { PrivacyBanner } from '../src/privacy/PrivacyBanner';
 import { uiCoreTranslations } from '../src/i18n/uiCoreTranslations';
+import { makeChoices, makePrivacyManifest } from './privacyTestUtils';
 
 afterEach(() => cleanup());
 
@@ -21,6 +24,11 @@ function i18nFor(language) {
   }
   instance.init({ lng: language, fallbackLng: 'en', resources, interpolation: { escapeValue: false } });
   return instance;
+}
+
+function PrivacyStatus() {
+  const privacy = usePrivacy();
+  return <output data-testid="privacy-status">{privacy?.status}</output>;
 }
 
 describe('buildLegalReaderUrl', () => {
@@ -67,5 +75,79 @@ describe('PrivacyFooterLinks', () => {
       </I18nextProvider>,
     );
     expect(screen.queryAllByRole('link')).toHaveLength(0);
+  });
+
+  it('shows the settings entry only for optional purposes and reopens the choice banner', async () => {
+    const i18n = i18nFor('en');
+    const manifest = makePrivacyManifest();
+    const api = {
+      getManifest: vi.fn(async () => manifest),
+      getChoices: vi.fn(async () => makeChoices(manifest, { display: 'refused', visits: 'refused' })),
+      primeCsrf: vi.fn(async () => {}),
+      saveChoices: vi.fn(),
+    };
+    render(
+      <I18nextProvider i18n={i18n}>
+        <PrivacyProvider api={api}>
+          <PrivacyFooterLinks legalOrigin="https://www.bigler-consult.ch" appId="maana" />
+          <PrivacyBanner />
+        </PrivacyProvider>
+      </I18nextProvider>,
+    );
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Settings' }));
+    const banner = await screen.findByRole('region', { name: 'Privacy choices' });
+    expect(banner.querySelectorAll('button')).toHaveLength(3);
+    expect(screen.queryByRole('dialog')).toBeNull();
+    expect(api.saveChoices).not.toHaveBeenCalled();
+  });
+
+  it('omits the settings entry for a necessary-only manifest and while loading or in error', async () => {
+    const manifest = makePrivacyManifest();
+    const necessaryOnly = { ...manifest, purposes: manifest.purposes.filter((purpose) => purpose.required) };
+    const necessaryApi = {
+      getManifest: async () => necessaryOnly,
+      getChoices: async () => makeChoices(necessaryOnly, {}),
+      primeCsrf: async () => {},
+      saveChoices: vi.fn(),
+    };
+    const { unmount } = render(
+      <I18nextProvider i18n={i18nFor('en')}>
+        <PrivacyProvider api={necessaryApi}>
+          <PrivacyFooterLinks legalOrigin="https://www.bigler-consult.ch" appId="maana" />
+          <PrivacyBanner />
+          <PrivacyStatus />
+        </PrivacyProvider>
+      </I18nextProvider>,
+    );
+    expect(await screen.findByText('ready')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Settings' })).toBeNull();
+    expect(screen.queryByRole('region', { name: 'Privacy choices' })).toBeNull();
+    unmount();
+
+    const pendingApi = {
+      getManifest: vi.fn(() => new Promise(() => {})),
+      getChoices: vi.fn(), primeCsrf: vi.fn(), saveChoices: vi.fn(),
+    };
+    const pending = render(
+      <I18nextProvider i18n={i18nFor('en')}>
+        <PrivacyProvider api={pendingApi}><PrivacyFooterLinks legalOrigin="https://www.bigler-consult.ch" appId="maana" /><PrivacyStatus /></PrivacyProvider>
+      </I18nextProvider>,
+    );
+    expect(screen.getByTestId('privacy-status').textContent).toBe('loading');
+    expect(screen.queryByRole('button', { name: 'Settings' })).toBeNull();
+    pending.unmount();
+
+    const failedApi = {
+      getManifest: vi.fn(async () => { throw new Error('offline'); }),
+      getChoices: vi.fn(), primeCsrf: vi.fn(), saveChoices: vi.fn(),
+    };
+    render(
+      <I18nextProvider i18n={i18nFor('en')}>
+        <PrivacyProvider api={failedApi}><PrivacyFooterLinks legalOrigin="https://www.bigler-consult.ch" appId="maana" /><PrivacyStatus /></PrivacyProvider>
+      </I18nextProvider>,
+    );
+    expect(await screen.findByText('error')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Settings' })).toBeNull();
   });
 });

@@ -7,31 +7,33 @@ import { usePrivacy } from './PrivacyProvider';
 import { PrivacySettingsLink } from './PrivacySettingsLink';
 import { useLegalEntries } from './legalEntries';
 
+// One compact line at the end of the page: identity on the left, legal links and the privacy settings entry on the
+// right. It wraps on narrow screens instead of growing into blocks. `mt: auto` lets it sit at the bottom of a
+// column-flex page without any extra layout in the host.
 export const PUBLIC_FOOTER_ROOT_SX = {
   boxSizing: 'border-box',
   width: '100%',
+  flexShrink: 0,
+  mt: 'auto',
   borderTop: 1,
   borderColor: 'divider',
   px: { xs: 2, sm: 4 },
-  pt: 3,
-  pb: 2.5,
+  py: 1,
   bgcolor: 'background.paper',
-};
-
-export const PUBLIC_FOOTER_TOP_ROW_SX = {
   display: 'flex',
-  flexDirection: { xs: 'column', sm: 'row' },
-  alignItems: { xs: 'stretch', sm: 'center' },
+  flexWrap: 'wrap',
+  alignItems: 'center',
   justifyContent: 'space-between',
-  gap: { xs: 0, sm: 3 },
+  columnGap: 3,
+  rowGap: 0,
 };
 
 export const PUBLIC_FOOTER_IDENTITY_SX = {
   display: 'flex',
-  flexDirection: 'column',
-  gap: 0.5,
+  alignItems: 'center',
+  gap: 1.25,
   flexShrink: 0,
-  mb: { xs: 2, sm: 0 },
+  minHeight: { xs: 36, sm: 32 },
 };
 
 export const PUBLIC_FOOTER_COPYRIGHT_SX = {
@@ -41,12 +43,12 @@ export const PUBLIC_FOOTER_COPYRIGHT_SX = {
 };
 
 export const PUBLIC_FOOTER_NAV_SX = {
-  display: { xs: 'grid', sm: 'flex' },
-  gridTemplateColumns: { xs: 'repeat(2, minmax(0, 1fr))', sm: 'none' },
-  justifyContent: { xs: 'start', sm: 'flex-end' },
+  display: 'flex',
   flexWrap: 'wrap',
+  justifyContent: 'flex-end',
   alignItems: 'center',
-  gap: { xs: '4px 16px', sm: '8px 22px' },
+  columnGap: { xs: 2, sm: 2.75 },
+  rowGap: 0,
   minWidth: 0,
 };
 
@@ -54,9 +56,9 @@ export const PUBLIC_FOOTER_LEGAL_LINK_SX = {
   display: 'inline-flex',
   alignItems: 'center',
   minWidth: 0,
-  minHeight: { xs: 44, sm: 36 },
+  minHeight: { xs: 40, sm: 32 },
   color: 'text.secondary',
-  fontSize: { xs: '0.75rem', sm: '0.8125rem' },
+  fontSize: '0.8125rem',
   lineHeight: 1.35,
   overflowWrap: 'anywhere',
   textDecoration: 'none',
@@ -66,20 +68,11 @@ export const PUBLIC_FOOTER_LEGAL_LINK_SX = {
   },
 };
 
-export const PUBLIC_FOOTER_SETTINGS_ROW_SX = {
-  display: 'flex',
-  justifyContent: { xs: 'flex-start', sm: 'flex-end' },
-  mt: { xs: 2, sm: 1 },
-  pt: { xs: 1.5, sm: 0 },
-  borderTop: { xs: '1px solid', sm: 0 },
-  borderColor: 'divider',
-};
-
 export const PUBLIC_FOOTER_SETTINGS_LINK_SX = {
   display: 'inline-flex',
   alignItems: 'center',
-  gap: 1,
-  minHeight: { xs: 44, sm: 36 },
+  gap: 0.75,
+  minHeight: { xs: 40, sm: 32 },
   px: 0,
   color: 'primary.main',
   fontSize: '0.8125rem',
@@ -102,7 +95,7 @@ export function PublicFooter({
   const privacy = usePrivacy();
   const entries = useLegalEntries({ legalOrigin, appId, documents, extraLinks, fallbackLanguage });
   const { className, sx, ...footerProps } = props;
-  const canOpenSettings = showSettings && privacy && privacy.status !== 'unconfigured';
+  const canOpenSettings = showSettings && privacy?.status === 'ready' && privacy.hasOptionalPurposes;
 
   return (
     <Box
@@ -111,29 +104,25 @@ export function PublicFooter({
       className={className}
       sx={sx ? [PUBLIC_FOOTER_ROOT_SX, sx] : PUBLIC_FOOTER_ROOT_SX}
     >
-      <Box sx={PUBLIC_FOOTER_TOP_ROW_SX}>
-        <Box sx={PUBLIC_FOOTER_IDENTITY_SX}>
-          {brand}
-          {copyright !== undefined && copyright !== null ? (
-            <Typography component="small" sx={PUBLIC_FOOTER_COPYRIGHT_SX}>{copyright}</Typography>
-          ) : null}
-        </Box>
-        <Box component="nav" aria-label={t('Privacy.FOOTER_NAV')} sx={PUBLIC_FOOTER_NAV_SX}>
-          {entries.map(({ id, label, href }) => (
-            <Link key={id} href={href} underline="none" sx={PUBLIC_FOOTER_LEGAL_LINK_SX}>
-              {label}
-            </Link>
-          ))}
-        </Box>
+      <Box sx={PUBLIC_FOOTER_IDENTITY_SX}>
+        {brand}
+        {copyright !== undefined && copyright !== null ? (
+          <Typography component="small" sx={PUBLIC_FOOTER_COPYRIGHT_SX}>{copyright}</Typography>
+        ) : null}
       </Box>
-      {canOpenSettings ? (
-        <Box sx={PUBLIC_FOOTER_SETTINGS_ROW_SX}>
+      <Box component="nav" aria-label={t('Privacy.FOOTER_NAV')} sx={PUBLIC_FOOTER_NAV_SX}>
+        {entries.map(({ id, label, href }) => (
+          <Link key={id} href={href} underline="none" sx={PUBLIC_FOOTER_LEGAL_LINK_SX}>
+            {label}
+          </Link>
+        ))}
+        {canOpenSettings ? (
           <PrivacySettingsLink sx={PUBLIC_FOOTER_SETTINGS_LINK_SX}>
             <TuneIcon fontSize="small" aria-hidden="true" />
             {t('Privacy.LEGAL_SETTINGS')}
           </PrivacySettingsLink>
-        </Box>
-      ) : null}
+        ) : null}
+      </Box>
     </Box>
   );
 }

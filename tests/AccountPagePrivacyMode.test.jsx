@@ -3,7 +3,7 @@
 // sibling tabs are replaced, so a prop that AccountPage forgets to forward cannot produce a false pass.
 import React from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import { MemoryRouter } from 'react-router-dom';
 
@@ -15,7 +15,7 @@ const authApi = vi.hoisted(() => ({
 }));
 
 vi.mock('react-i18next', () => {
-  // A second argument may be an interpolation object (the privacy panel passes one), never render it.
+  // A second argument may be an interpolation object; never render it.
   const t = (key, fallback) => (typeof fallback === 'string' ? fallback : key);
   return {
     useTranslation: () => ({
@@ -66,13 +66,16 @@ function user(overrides = {}) {
   };
 }
 
-function readyApi() {
-  const manifest = makePrivacyManifest();
+function readyApi(manifest = makePrivacyManifest()) {
+  let current = makeChoices(manifest, {});
   return {
     getManifest: vi.fn(async () => manifest),
-    getChoices: vi.fn(async () => makeChoices(manifest, {})),
+    getChoices: vi.fn(async () => current),
     primeCsrf: vi.fn(async () => {}),
-    saveChoices: vi.fn(async () => makeChoices(manifest, {})),
+    saveChoices: vi.fn(async (body) => {
+      current = makeChoices(manifest, body.choices, { seq: current.seq + 1 });
+      return current;
+    }),
   };
 }
 
@@ -137,8 +140,6 @@ describe('AccountPage privacyMode="central"', () => {
       expect(login).toHaveBeenCalledTimes(1);
       expect(authApi.fetchPrivacyStatement).not.toHaveBeenCalled();
       expect(authApi.fetchCookieStatement).not.toHaveBeenCalled();
-      const notice = await screen.findByRole('link', { name: 'Privacy.NOTICE_LINK' });
-      expect(notice.getAttribute('href')).toBe('/privacy/en/');
     },
   );
 
@@ -146,18 +147,22 @@ describe('AccountPage privacyMode="central"', () => {
     const api = readyApi();
     renderAccount({ api, pageProps: { privacyMode: 'central' } });
 
-    expect(await screen.findByText('Privacy.SETTINGS_TITLE')).toBeTruthy();
-    const display = await screen.findByRole('checkbox', { name: 'Remember display' });
-    expect(screen.getByRole('checkbox', { name: 'Measure visits' })).toBeTruthy();
-    // Exactly the purpose choices, no legacy consent checkboxes, one notice link.
-    expect(screen.getAllByRole('checkbox')).toHaveLength(2);
-    expect(screen.getAllByRole('link', { name: 'Privacy.NOTICE_LINK' })).toHaveLength(1);
+    const heading = await screen.findByRole('heading', { name: 'Privacy.SETTINGS_TITLE' });
+    const section = within(heading.parentElement);
+    const necessaryOnly = section.getByRole('button', { name: 'Privacy.NECESSARY_ONLY' });
+    const allowAll = section.getByRole('button', { name: 'Privacy.ALLOW_ALL' });
+    expect(section.getAllByRole('button')).toHaveLength(2);
+    expect(screen.queryAllByRole('checkbox')).toHaveLength(0);
 
-    fireEvent.click(display);
-    fireEvent.click(screen.getByRole('button', { name: 'Privacy.SAVE' }));
+    fireEvent.click(necessaryOnly);
     await waitFor(() => expect(api.saveChoices).toHaveBeenCalledTimes(1));
-    const [saved] = api.saveChoices.mock.calls[0];
-    expect(JSON.stringify(saved)).toContain('granted');
+    expect(api.saveChoices.mock.calls[0][0].choices).toEqual({ display: 'refused', visits: 'refused' });
+    expect(await screen.findByText('Privacy.NECESSARY_ONLY_ACTIVE')).toBeTruthy();
+
+    fireEvent.click(allowAll);
+    await waitFor(() => expect(api.saveChoices).toHaveBeenCalledTimes(2));
+    expect(api.saveChoices.mock.calls[1][0].choices).toEqual({ display: 'granted', visits: 'granted' });
+    expect(await screen.findByText('Privacy.SAVED')).toBeTruthy();
     expect(authApi.updateUserProfile).not.toHaveBeenCalled();
   });
 
@@ -166,6 +171,19 @@ describe('AccountPage privacyMode="central"', () => {
     await screen.findByLabelText('Profile.FIRST_NAME_LABEL');
     expect(screen.queryByText('Privacy.SETTINGS_TITLE')).toBeNull();
     expect(screen.queryAllByRole('checkbox')).toHaveLength(0);
+  });
+
+  it('shows no account choice buttons for a ready necessary-only manifest', async () => {
+    const fullManifest = makePrivacyManifest();
+    const manifest = { ...fullManifest, purposes: fullManifest.purposes.filter((purpose) => purpose.required) };
+    const api = readyApi(manifest);
+    renderAccount({ api, pageProps: { privacyMode: 'central' } });
+
+    await screen.findByLabelText('Profile.FIRST_NAME_LABEL');
+    await waitFor(() => expect(api.getChoices).toHaveBeenCalledOnce());
+    expect(screen.queryByText('Privacy.SETTINGS_TITLE')).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Privacy.NECESSARY_ONLY' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Privacy.ALLOW_ALL' })).toBeNull();
   });
 
   it.each([

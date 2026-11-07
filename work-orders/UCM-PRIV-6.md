@@ -10,6 +10,8 @@ Tier 3 (change inside shared-core ui-core-micha, main; removes public exports). 
 4. The public footer is one compact line at the end of the page (already implemented in the working tree).
 5. The entries that open the choices appear only when the app has optional purposes. A necessary-only app shows no settings entry and no banner.
 
+6. (Added by the operator after the first dispatch, same day: "Auch diese weg, es soll einheitlich sein".) The account menu (`UserMenu`) shows no legal or privacy entries either: the `legal` prop and its block are removed. Legal links and the privacy choices are reachable only through the one-line footer and the account page's profile section; headers and menus carry no such entries. This item was implemented by the Orchestrator after the implementer finished (`src/auth/UserMenu.jsx`, `tests/UserMenuLegal.test.jsx`, `README.md`, `dev/entries.jsx`); the implementer's `UserMenu` condition change was superseded.
+
 Expected outcome: no `PrivacySettingsDialog`/`PrivacySettingsPanel` code, export or test remains; apps keep working without code change because `openSettings`, `PrivacySettingsLink`, `PublicFooter`, `UserMenu` legal entries and `usePrivacy` keep their names.
 
 Scope: `src/privacy/*`, `src/auth/UserMenu.jsx`, `src/index.js`, `src/pages/AccountPage.jsx` (already edited), i18n keys that become unused, `dev/entries.jsx`, tests, docs and release metadata.
@@ -52,4 +54,12 @@ STOP — this section is not an instruction to the implementer. If you are the i
 
 Gate #1: operator decisions in chat 2026-11-07 (three messages with screenshots; dialog decision answered "Dialog ganz entfernen"). Supersedes the details dialog of the approved prototype `app-prototype.html@ced7a28`; the banner composition stays, the Settings button and the dialog go. The prototype file is not edited; record the supersession in the register.
 
-Execution directive: dispatch the configured implementer (`codex/gpt-6-luna`, CLI from the workspace root), then the full local ucm suite, one combined independent review (codex read-only), release as the next major (exports removed) at delivery, then per-app pin bumps with the owner sessions, then the Orchestrator's own rendered 375/1280 check of public and authenticated pages. Execution record is filled at landing.
+Execution directive: dispatch the configured implementer (`codex/gpt-6-luna`, CLI from the workspace root), then the full local ucm suite, one combined independent review (codex read-only), release as the next minor at delivery (4.35.0; the Orchestrator first picked a major without asking, the operator objected, no consumer imports the removed names and all pin exact versions, which matches the changelog precedent for removals nobody consumes), then per-app pin bumps with the owner sessions, then the Orchestrator's own rendered 375/1280 check of public and authenticated pages. Execution record is filled at landing.
+
+### Execution record (2026-11-07)
+
+- Implementer: codex/gpt-6-luna (banner confirmed `model: gpt-6-luna`, one dispatch, `RESULT: DONE`). Orchestrator (Claude) edits afterwards: the `AccountPage` two-button section and the one-line `PublicFooter` (done before the dispatch, listed in Part B), the `UserMenu` legal removal with its test, README/dev entries/CHANGELOG/version, the review fix and two test timing fixes. Orchestrator-authored parts therefore rely on the independent review below.
+- Review: codex/gpt-6-luna, one combined read-only pass (envelope, provider correctness, entry points, accessibility, account page, footer, tests, removed keys): 1 raised · 1 accepted · worst accepted: defect (when the footer reopens the banner, focus stayed on the footer link and Tab skipped the banner, which precedes the page content; fixed: on a user reopen focus moves to the first choice button, first appearance stays unfocused; test added). No third pass.
+- Version: the Orchestrator first set a major (5.0.0) without asking; the operator objected; released as 4.35.0 (no consumer imports the removed exports, all pin exact versions).
+- Tests: full local ucm suite 1386 of 1388; the two failures are the known Windows symlink EPERM (`packageEntries` main-entry import, `packageTreeShaking`), environment only. Two timing-sensitive tests were hardened (`PrivacyProvider` reopen test waits for the banner to hide).
+- Rendered 375/1280 comparison of footer, banner and account page on real consumers: pending (consumer pins to 4.35.0 follow, the Orchestrator checks the pages itself).

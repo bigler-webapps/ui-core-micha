@@ -11,7 +11,6 @@ import { useTranslation } from 'react-i18next';
 
 import { createPrivacyApi, defaultPrivacyApi } from './privacyApi';
 import { setPrivacyState } from './serviceRegistry';
-import { PrivacySettingsDialog } from './PrivacySettings';
 
 const PrivacyContext = createContext(null);
 const OPTIONAL_STATES = new Set(['granted', 'refused']);
@@ -141,7 +140,7 @@ export function PrivacyProvider({
   const [pendingFailed, setPendingFailed] = useState(false);
   const [saveState, setSaveState] = useState('idle');
   const [error, setError] = useState(null);
-  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [reopened, setReopened] = useState(false);
   const [bannerDismissed, setBannerDismissed] = useState(false);
   const manifestRef = useRef(null);
   const choicesRef = useRef(null);
@@ -413,7 +412,11 @@ export function PrivacyProvider({
   );
   const hasPendingDecision = Boolean(pendingRef.current) && (saveState === 'saving' || pendingFailed);
   const bannerVisible = status === 'ready' && optionalPurposes.length > 0
-    && (needsDecision || hasPendingDecision) && !bannerDismissed;
+    && (needsDecision || hasPendingDecision || reopened) && !bannerDismissed;
+
+  useEffect(() => {
+    if (saveState === 'saved') setReopened(false);
+  }, [saveState]);
 
   const hasGrant = useCallback((purposeId, serviceId) => {
     if (status !== 'ready') return false;
@@ -431,16 +434,23 @@ export function PrivacyProvider({
     const selections = Object.fromEntries(optionalPurposes.map((purpose) => [purpose.id, 'refused']));
     return save(selections, channel);
   }, [optionalPurposes, save]);
-  const openSettings = useCallback(() => setSettingsOpen(true), []);
-  const closeSettings = useCallback(() => setSettingsOpen(false), []);
-  const dismissBanner = useCallback(() => setBannerDismissed(true), []);
+  const openSettings = useCallback(() => {
+    setBannerDismissed(false);
+    setReopened(true);
+  }, []);
+  const dismissBanner = useCallback(() => {
+    setBannerDismissed(true);
+    setReopened(false);
+  }, []);
 
   const value = useMemo(() => ({
     status,
     manifest,
     choices,
+    hasOptionalPurposes: optionalPurposes.length > 0,
     needsDecision,
     bannerVisible,
+    bannerReopened: reopened,
     saveState,
     error,
     hasGrant,
@@ -448,19 +458,16 @@ export function PrivacyProvider({
     acceptAll,
     necessaryOnly,
     retry,
-    settingsOpen,
     openSettings,
-    closeSettings,
     dismissBanner,
   }), [
-    status, manifest, choices, needsDecision, bannerVisible, saveState, error, hasGrant,
-    save, acceptAll, necessaryOnly, retry, settingsOpen, openSettings, closeSettings, dismissBanner,
+    status, manifest, choices, optionalPurposes.length, needsDecision, bannerVisible, reopened, saveState, error, hasGrant,
+    save, acceptAll, necessaryOnly, retry, openSettings, dismissBanner,
   ]);
 
   return (
     <PrivacyContext.Provider value={value}>
       {children}
-      <PrivacySettingsDialog />
     </PrivacyContext.Provider>
   );
 }

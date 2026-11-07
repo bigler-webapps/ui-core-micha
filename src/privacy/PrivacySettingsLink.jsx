@@ -7,7 +7,7 @@ import { usePrivacy } from './PrivacyProvider';
 export function PrivacySettingsLink({ children, ...props }) {
   const privacy = usePrivacy();
   const { t } = useTranslation();
-  if (!privacy || privacy.status === 'unconfigured') return null;
+  if (!privacy || privacy.status !== 'ready' || !privacy.hasOptionalPurposes) return null;
   return (
     <Link
       component="button"

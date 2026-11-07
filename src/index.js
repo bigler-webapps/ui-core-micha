@@ -178,7 +178,6 @@ export { createUiCoreTranslations, uiCoreTranslations } from './i18n/uiCoreTrans
 export { PrivacyProvider, usePrivacy } from './privacy/PrivacyProvider';
 export { createPrivacyApi, defaultPrivacyApi } from './privacy/privacyApi';
 export { PrivacyBanner } from './privacy/PrivacyBanner';
-export { PrivacySettingsDialog, PrivacySettingsPanel } from './privacy/PrivacySettings';
 export { PrivacySettingsLink } from './privacy/PrivacySettingsLink';
 export { PrivacyFooterLinks, buildLegalReaderUrl, legalDocumentLanguage } from './privacy/PrivacyFooterLinks';
 export { PublicFooter } from './privacy/PublicFooter';

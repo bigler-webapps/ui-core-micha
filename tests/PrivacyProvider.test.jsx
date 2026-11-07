@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import React, { useState } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 
 import { PrivacyProvider, usePrivacy } from '../src/privacy/PrivacyProvider';
 import { PrivacyBanner } from '../src/privacy/PrivacyBanner';
@@ -33,7 +33,20 @@ function PrivacyProbe({ purposeId = 'display' }) {
   return (
     <>
       <output data-testid={`grant-${purposeId}`}>{String(privacy?.hasGrant(purposeId))}</output>
-      {purposeId === 'display' && <output data-testid="save-state">{privacy?.saveState}</output>}
+      {purposeId === 'display' && <>
+        <output data-testid="save-state">{privacy?.saveState}</output>
+        <output data-testid="privacy-status">{privacy?.status}</output>
+      </>}
+    </>
+  );
+}
+
+function PrivacyActions() {
+  const privacy = usePrivacy();
+  return (
+    <>
+      <button type="button" onClick={privacy.openSettings}>Open choices</button>
+      <button type="button" onClick={privacy.retry}>Retry privacy</button>
     </>
   );
 }
@@ -86,32 +99,34 @@ describe('PrivacyProvider server choices', () => {
     expect(bundle.getCurrent().choices.display.state).toBe('refused');
   });
 
-  it('saves a selective choice, reopens current selections, and changes them later', async () => {
-    const bundle = makeApi();
-    await renderPrivacy({ apiBundle: bundle });
-    fireEvent.click((await screen.findAllByRole('button', { name: 'Settings' }))[0]);
-    const display = await screen.findByRole('checkbox', { name: 'Remember display' });
-    const visits = screen.getByRole('checkbox', { name: 'Measure visits' });
-    expect(display.checked).toBe(false);
-    expect(visits.checked).toBe(false);
-    fireEvent.click(display);
-    fireEvent.click(screen.getByRole('button', { name: 'Save selection' }));
-    await waitFor(() => expect(bundle.getCurrent().choices.display.state).toBe('granted'));
-    expect(bundle.getCurrent().choices.visits.state).toBe('refused');
-    expect(screen.getByTestId('grant-display').textContent).toBe('true');
-    expect(screen.getByTestId('grant-visits').textContent).toBe('false');
+  it('reopens the banner after saved choices, saves all purposes together, and closes a reopened banner', async () => {
+    const manifest = makePrivacyManifest();
+    const bundle = makeApi({ manifest, choices: makeChoices(manifest, { display: 'refused', visits: 'refused' }) });
+    await renderPrivacy({ apiBundle: bundle, children: <><PrivacyProbe /><PrivacyBanner /><PrivacySettingsLink /><PrivacyNoticeLink /><PrivacyActions /></> });
+    expect(await screen.findByText('ready')).toBeTruthy();
+    expect(screen.queryByRole('region', { name: 'Privacy choices' })).toBeNull();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Settings' }));
-    const reopenedDisplay = await screen.findByRole('checkbox', { name: 'Remember display' });
-    const reopenedVisits = screen.getByRole('checkbox', { name: 'Measure visits' });
-    expect(reopenedDisplay.checked).toBe(true);
-    expect(reopenedVisits.checked).toBe(false);
-    fireEvent.click(reopenedDisplay);
-    fireEvent.click(reopenedVisits);
-    fireEvent.click(screen.getByRole('button', { name: 'Save selection' }));
-    await waitFor(() => expect(bundle.getCurrent().choices.display.state).toBe('refused'));
+    fireEvent.click(screen.getByRole('button', { name: 'Open choices' }));
+    const region = await screen.findByRole('region', { name: 'Privacy choices' });
+    expect(within(region).getByRole('button', { name: 'Necessary only' })).toBeTruthy();
+    expect(within(region).getByRole('button', { name: 'Allow all' })).toBeTruthy();
+    // Reopened by the user: focus moves to the first choice (the banner precedes the page content in the DOM).
+    await waitFor(() => expect(document.activeElement).toBe(within(region).getByRole('button', { name: 'Necessary only' })));
+    fireEvent.click(within(region).getByRole('button', { name: 'Allow all' }));
+    await waitFor(() => expect(bundle.getCurrent().choices.display.state).toBe('granted'));
     expect(bundle.getCurrent().choices.visits.state).toBe('granted');
+    expect(bundle.api.saveChoices).toHaveBeenCalledWith(expect.objectContaining({
+      channel: 'banner',
+      choices: { display: 'granted', visits: 'granted' },
+    }));
+    // The banner stays up while the write is in flight and hides once the saved state reaches the UI.
+    await waitFor(() => expect(screen.queryByRole('region', { name: 'Privacy choices' })).toBeNull());
+
+    fireEvent.click(screen.getByRole('button', { name: 'Open choices' }));
+    const reopenedRegion = await screen.findByRole('region', { name: 'Privacy choices' });
+    fireEvent.click(within(reopenedRegion).getByRole('button', { name: 'Close' }));
+    expect(screen.queryByRole('region', { name: 'Privacy choices' })).toBeNull();
+    expect(bundle.api.saveChoices).toHaveBeenCalledOnce();
   });
 
   it('keeps expired and old-revision grants unset', async () => {
@@ -132,15 +147,14 @@ describe('PrivacyProvider server choices', () => {
     expect(screen.getByTestId('grant-display').textContent).toBe('false');
   });
 
-  it('shows notice/settings without a banner when no optional purposes are configured', async () => {
+  it('hides both the banner and settings entry when no optional purposes are configured', async () => {
     const manifest = makePrivacyManifest({ purposes: [makePrivacyManifest().purposes[0]] });
     const bundle = makeApi({ manifest, choices: makeChoices(manifest, {}) });
     await renderPrivacy({ apiBundle: bundle });
-    expect(await screen.findByTestId('grant-display')).toBeTruthy();
+    expect(await screen.findByText('ready')).toBeTruthy();
+    expect(screen.getByTestId('grant-display')).toBeTruthy();
     expect(screen.queryByRole('heading', { name: 'Privacy choices' })).toBeNull();
-    const settingsButton = screen.getByRole('button', { name: 'Settings' });
-    fireEvent.click(settingsButton);
-    expect(await screen.findByText('This app uses only necessary functions.')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Settings' })).toBeNull();
     expect(screen.getByRole('link', { name: 'Privacy notice' }).getAttribute('href')).toBe('/privacy/en/');
     expect(bundle.api.saveChoices).not.toHaveBeenCalled();
   });
@@ -151,7 +165,8 @@ describe('PrivacyProvider server choices', () => {
       getChoices: vi.fn(), primeCsrf: vi.fn(), saveChoices: vi.fn(),
     };
     await renderPrivacy({ apiBundle: { api } });
-    await waitFor(() => expect(screen.queryByRole('button', { name: 'Settings' })).toBeNull());
+    expect(await screen.findByText('unconfigured')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Settings' })).toBeNull();
     expect(screen.queryByRole('link', { name: 'Privacy notice' })).toBeNull();
     expect(screen.queryByRole('region', { name: 'Privacy choices' })).toBeNull();
     expect(api.getChoices).not.toHaveBeenCalled();
@@ -210,14 +225,12 @@ describe('PrivacyProvider server choices', () => {
     } });
     await renderPrivacy({ apiBundle: bundle });
     fireEvent.click(await screen.findByRole('button', { name: 'Settings' }));
-    const checkbox = await screen.findByRole('checkbox', { name: 'Remember display' });
-    expect(checkbox.checked).toBe(true);
-    fireEvent.click(checkbox);
-    fireEvent.click(screen.getByRole('button', { name: 'Save selection' }));
+    const region = await screen.findByRole('region', { name: 'Privacy choices' });
+    fireEvent.click(within(region).getByRole('button', { name: 'Necessary only' }));
     await waitFor(() => expect(screen.getByTestId('save-state').textContent).toBe('error'));
     expect(screen.getByTestId('grant-display').textContent).toBe('false');
-    expect(screen.getByTestId('grant-visits').textContent).toBe('true');
-    expect(screen.getByRole('alert').textContent).toContain('withdrawn services remain off');
+    expect(screen.getByTestId('grant-visits').textContent).toBe('false');
+    expect(screen.getByRole('alert').textContent).toContain('Optional services remain off');
   });
 
   it('does not activate a grant when the browser cannot retain the receipt cookie', async () => {
@@ -237,31 +250,42 @@ describe('PrivacyProvider server choices', () => {
     expect(api.saveChoices).toHaveBeenCalledOnce();
   });
 
-  it('fails closed when CSRF priming fails and retries through the settings surface', async () => {
+  it('fails closed when CSRF priming fails and permits a provider retry after the manifest becomes ready', async () => {
     const manifest = makePrivacyManifest();
     let available = false;
+    let current = makeChoices(manifest, {});
     const api = {
       getManifest: vi.fn(async () => {
         if (!available) throw new Error('offline');
         return manifest;
       }),
-      getChoices: vi.fn(async () => makeChoices(manifest, {})),
+      getChoices: vi.fn(async () => current),
       primeCsrf: vi.fn().mockRejectedValueOnce(new Error('csrf unavailable')).mockResolvedValue(undefined),
-      saveChoices: vi.fn(async (body) => makeChoices(manifest, body.choices, { seq: 2 })),
+      saveChoices: vi.fn(async (body) => {
+        current = makeChoices(manifest, body.choices, { seq: current.seq + 1 });
+        return current;
+      }),
     };
-    await renderPrivacy({ apiBundle: { api } });
-    fireEvent.click(await screen.findByRole('button', { name: 'Settings' }));
-    expect(await screen.findByRole('alert')).toBeTruthy();
+    await renderPrivacy({
+      apiBundle: { api },
+      children: <><PrivacyProbe /><PrivacyBanner /><PrivacySettingsLink /><PrivacyNoticeLink /><PrivacyActions /></>,
+    });
+    expect(screen.getByTestId('privacy-status').textContent).toBe('loading');
+    await waitFor(() => expect(api.getManifest).toHaveBeenCalledOnce());
+    expect(await screen.findByText('error')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Settings' })).toBeNull();
     expect(screen.getByTestId('grant-display').textContent).toBe('false');
     available = true;
-    fireEvent.click(await screen.findByRole('button', { name: 'Retry' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Retry privacy' }));
     await waitFor(() => expect(api.getManifest).toHaveBeenCalledTimes(2));
-    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
-    await screen.findByRole('heading', { name: 'Privacy choices' });
-    fireEvent.click(screen.getByRole('button', { name: 'Allow all' }));
+    const region = await screen.findByRole('region', { name: 'Privacy choices' });
+    fireEvent.click(within(region).getByRole('button', { name: 'Allow all' }));
     await waitFor(() => expect(screen.getByTestId('save-state').textContent).toBe('error'));
     expect(api.saveChoices).not.toHaveBeenCalled();
     expect(screen.getByTestId('grant-display').textContent).toBe('false');
+    fireEvent.click(within(region).getByRole('button', { name: 'Allow all' }));
+    await waitFor(() => expect(screen.getByTestId('grant-display').textContent).toBe('true'));
+    expect(api.saveChoices).toHaveBeenCalledOnce();
   });
 
   it('does not bind server choices to a login or account switch', async () => {

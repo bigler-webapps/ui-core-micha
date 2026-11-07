@@ -1,9 +1,10 @@
 import React, { useContext, useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { 
-  Box, 
-  Typography, 
-  Alert, 
+  Box,
+  Button,
+  Typography,
+  Alert,
   CircularProgress,
   Paper,
   Stack,
@@ -22,7 +23,6 @@ export const ACCOUNT_PAGE_SECTION_PAPER_SX = { p: 2.5 };
 import { WidePage } from '../layout/PageLayout';
 import { SectionNav } from '../layout/SectionNav';
 import { ProfileComponent } from '../components/ProfileComponent';
-import { PrivacySettingsPanel } from '../privacy/PrivacySettings';
 import { usePrivacy } from '../privacy/PrivacyProvider';
 import { SecurityComponent } from '../components/SecurityComponent';
 import { UserListComponent } from '../components/UserListComponent';
@@ -40,36 +40,57 @@ import { fetchAuthPolicy, updateUserProfile } from '../auth/authApi'; // Ggf. Pf
 import { defaultBillingApi } from '../billing/api';
 import { useBillingUsersColumn } from '../billing/useBillingUsersColumn';
 
+// Central mode: the same two privacy choices as the banner, directly on the account page. Footer and menu entries
+// reopen that banner. Renders nothing without a ready privacy provider or when the app has no optional purpose.
+function AccountPrivacySection() {
+  const privacy = usePrivacy();
+  const { t } = useTranslation();
+  if (!privacy || privacy.status !== 'ready' || !privacy.manifest) return null;
+  const purposes = (privacy.manifest.purposes || []).filter((purpose) => !purpose.required);
+  if (purposes.length === 0) return null;
+  const saving = privacy.saveState === 'saving';
+  const onlyNecessary = purposes.every((purpose) => privacy.choices?.choices?.[purpose.id]?.state === 'refused');
+  return (
+    <Box sx={{ mt: 3, maxWidth: 600 }}>
+      <Typography variant="subtitle1" component="h2" gutterBottom>
+        {t('Privacy.SETTINGS_TITLE')}
+      </Typography>
+      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.25}>
+        <Button type="button" variant="contained" size="medium" disabled={saving} onClick={() => privacy.necessaryOnly('settings')}>
+          {t('Privacy.NECESSARY_ONLY')}
+        </Button>
+        <Button type="button" variant="contained" size="medium" disabled={saving} onClick={() => privacy.acceptAll('settings')}>
+          {t('Privacy.ALLOW_ALL')}
+        </Button>
+      </Stack>
+      {privacy.saveState === 'saved' && (
+        <Typography role="status" variant="body2" sx={{ mt: 1 }}>
+          {onlyNecessary ? t('Privacy.NECESSARY_ONLY_ACTIVE') : t('Privacy.SAVED')}
+        </Typography>
+      )}
+      {privacy.saveState === 'error' && (
+        <Typography role="alert" color="error" variant="body2" sx={{ mt: 1 }}>
+          {t('Privacy.SAVE_ERROR')}
+        </Typography>
+      )}
+    </Box>
+  );
+}
+
 /**
  * `billingOperator({ user, account }) => boolean` (optional, UCM-BILL-10): the app's operator rule for the billing
  * users columns built when `billingUsers` is set (status, badge and the "Ohne Abo" switch). Without it superusers are
  * the operators. A new function on each render only recomputes the columns; it does not refetch the accounts.
  * `privacyMode` (optional, UCM-PRIV-4): `'legacy'` (default, unchanged) or `'central'`. `'central'` is forwarded to
  * ProfileComponent: the profile drops the privacy-statement and convenience-cookie checkboxes and sends neither legacy
- * field; name editing is unchanged. The profile tab then shows the privacy settings panel (the same choices as the
- * settings dialog, incl. the notice link) below the form when the host has a PrivacyProvider. It never depends on
+ * field; name editing is unchanged. The profile tab then shows the two quick privacy choices (necessary only / allow
+ * all, as in the banner) below the form when the host has a ready PrivacyProvider with optional purposes. It never depends on
  * provider presence for dropping the legacy controls, and stays central while the privacy manifest loads or fails.
  * `showProfileStatements` only hides statement text.
  * `groups` (optional): app-defined account navigation groups with `{ key, label, order?, tabs?, visible? }`. Labels
  * may be strings or `(context) => string`; `tabs` assigns built-in tab values, and `visible(context)` can hide a group
  * and its tabs. Without this prop, the default groups and placement are unchanged.
  */
-// Central mode: the privacy choices live on the account page itself (the same panel the settings dialog
-// shows), not behind a link. Renders nothing when the host has no privacy provider or no manifest.
-function AccountPrivacySection() {
-  const privacy = usePrivacy();
-  const { t } = useTranslation();
-  if (!privacy || privacy.status === 'unconfigured') return null;
-  return (
-    <Box sx={{ mt: 3, maxWidth: 600 }}>
-      <Typography variant="subtitle1" component="h2" gutterBottom>
-        {t('Privacy.SETTINGS_TITLE')}
-      </Typography>
-      <PrivacySettingsPanel />
-    </Box>
-  );
-}
-
 export function AccountPage({
   userListExtraColumns = [],
   userListExtraRowActions = [],

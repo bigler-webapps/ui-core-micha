@@ -245,7 +245,7 @@ function PublicFooterEntry() {
             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', px: 2, py: 1.5 }}>
               <Typography variant="h6">{apps[app].name} · öffentlicher Seitenabschluss</Typography>
               <AuthContext.Provider value={{ user: setupHarnessUser, logout: () => {} }}>
-                <UserMenu legal={legal} />
+                <UserMenu />
               </AuthContext.Provider>
             </Box>
             <Box sx={{ flex: 1 }} />

@@ -39,6 +39,24 @@ function crawl(entry) {
 const optionalPeers = ['@mui/x-charts', 'react-markdown', 'remark-gfm'];
 
 describe('package sub-path entries', () => {
+  it('keeps the exact public privacy export list without the removed details panel', () => {
+    const source = fs.readFileSync(path.join(root, 'src/index.js'), 'utf8');
+    const privacySection = source.slice(source.indexOf('// --- 11. Privacy choices'));
+    const exports = [...privacySection.matchAll(/export\s+\{([\s\S]*?)\}\s+from\s+['"][^'"]+['"]/g)]
+      .flatMap(([, block]) => block.split(',').map((item) => item.trim()).filter(Boolean))
+      .map((item) => item.split(/\s+as\s+/).at(-1));
+    const expected = [
+      'PrivacyProvider', 'usePrivacy', 'createPrivacyApi', 'defaultPrivacyApi', 'PrivacyBanner',
+      'PrivacySettingsLink', 'PrivacyFooterLinks', 'buildLegalReaderUrl', 'legalDocumentLanguage',
+      'PublicFooter', 'useLegalEntries', 'PrivacyNoticeLink', 'safePrivacyDocumentUrl',
+      'registerPrivacyService', 'useGrantedPurpose', 'guardedImport', 'createPrivacyGuard',
+      'isPurposeGranted', 'privacyTranslations',
+    ];
+
+    expect(exports.sort()).toEqual([...expected].sort());
+    expect(exports).not.toEqual(expect.arrayContaining(['PrivacySettingsDialog', 'PrivacySettingsPanel']));
+  });
+
   it('keeps optional peers out of the main entry and theme graph', () => {
     const main = crawl('src/index.js');
     expect(main.visited.size).toBeGreaterThan(90);

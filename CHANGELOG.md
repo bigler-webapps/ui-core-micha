@@ -1,5 +1,19 @@
 # Changelog
 
+## 4.35.0 - UCM-PRIV-6
+
+Removal, released as a minor because no consumer imports the removed names and all consumers pin exact versions: the
+detailed privacy settings dialog is gone. `PrivacySettingsDialog` and `PrivacySettingsPanel` are no longer
+exported, `UserMenu` no longer takes a `legal` prop and shows no legal or privacy entries, and `usePrivacy()` no longer
+returns `settingsOpen` or `closeSettings`. The only privacy choices are the banner's two buttons ("Necessary only" /
+"Allow all", applied to every optional purpose). `openSettings()` and `PrivacySettingsLink` keep their names and now
+re-show that banner, so a choice can be changed later from the footer; they appear only when the app has optional
+purposes (`usePrivacy().hasOptionalPurposes`). The banner has no "Settings" button and carries the privacy notice link.
+`AccountPage` in `privacyMode="central"` shows the same two buttons in its profile section (replacing the 4.34.0 inline
+panel). `PublicFooter` is one compact line (identity left, legal links and the settings entry right, wrapping on narrow
+screens, `mt: auto` so it sits at the bottom of a column-flex page). Migration: remove `legal` from `UserMenu` call sites
+and any header or menu entry that duplicates the footer; no consumer imported the removed exports.
+
 ## 4.34.0 - UCM-PRIV-5
 
 With `privacyMode="central"`, `AccountPage` now renders the privacy choices (the same panel as the settings dialog,

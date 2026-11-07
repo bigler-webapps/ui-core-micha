@@ -37,8 +37,8 @@ export function buildLegalReaderUrl({ origin, slug, appId, lang }) {
 
 /**
  * Persistent legal footer entries: Privacy notice and Terms (static reader links) plus the local
- * "Privacy settings" action. The settings action opens THIS app's shared settings (never the reader's) and is
- * hidden only when the host has not adopted the privacy module; the legal links are always rendered.
+ * "Privacy settings" action. The settings action reopens THIS app's choice banner (never the reader's) and appears
+ * only when the host has a ready manifest with optional purposes; the legal links are always rendered.
  */
 export function PrivacyFooterLinks({
   legalOrigin,

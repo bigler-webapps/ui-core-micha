@@ -18,8 +18,8 @@ The privacy and cookie consent controls and their submitted values remain availa
 
 ## Shared privacy choices (opt-in)
 
-Hosts using `django-core-micha` >= 3.22.0 can adopt `PrivacyProvider`, `PrivacyBanner`, `PublicFooter`, `UserMenu`'s
-`legal` prop, `PrivacySettingsLink` and `PrivacyNoticeLink`. Create the API once and pass it to the provider when the
+Hosts using `django-core-micha` >= 3.22.0 can adopt `PrivacyProvider`, `PrivacyBanner`, `PublicFooter`,
+`PrivacySettingsLink` and `PrivacyNoticeLink`. Create the API once and pass it to the provider when the
 host mounts the privacy routes elsewhere:
 
 ```jsx
@@ -32,10 +32,13 @@ const privacyApi = createPrivacyApi({}, { apiBase: '/api/privacy/', csrfUrl: '/a
 </PrivacyProvider>
 ```
 
-Place `PrivacyProvider` above the router content and render one `PrivacyBanner` in the app shell. Use `PublicFooter` on
-public pages, including login and registration, and pass the same `legal` configuration to `UserMenu` for authenticated
-workspaces. This keeps public legal links available without a provider and opens settings for the current app when adopted.
-`PrivacyFooterLinks` remains available for existing consumers; a public footer uses `PublicFooter` instead of it, never both. The provider owns the settings dialog. Register each app-owned
+Place `PrivacyProvider` above the router content and render one `PrivacyBanner` in the app shell. Use `PublicFooter` as
+the one compact line at the end of every page, public and authenticated, including login and registration; there are no
+legal or privacy entries in headers or in the account menu. The account page (`privacyMode="central"`) shows the two
+quick choices in its profile section. This keeps public legal links available without a provider. When an app has
+optional purposes, the footer entry reopens the same banner with “Necessary only” and “Allow all”; either choice applies
+to every optional purpose. A necessary-only app has no banner or settings entry. `PrivacyFooterLinks` remains available for existing consumers; a
+public footer uses `PublicFooter` instead of it, never both. Register each app-owned
 optional adapter with `registerPrivacyService({ purposeId, serviceId, activate, deactivate, ownedStorage })`; gate imports,
 requests and callbacks with `useGrantedPurpose`, `guardedImport` or `createPrivacyGuard`. The package never loads vendors.
 
@@ -48,7 +51,6 @@ const legal = {
 };
 
 <PublicFooter brand={<MaanaBrand />} copyright={copyrightNode} {...legal} />
-<UserMenu legal={legal} />
 ```
 
 Central links use `/legal/<slug>?app=<registered-id>&lang=<document-locale>`; the package chooses a supported document
@@ -62,8 +64,8 @@ default remains `privacyMode="legacy"` during rollout. `AccountPage` takes the s
 forwards it to its profile tab; pass `privacyMode="central"` there too, because `showProfileStatements={false}` only hides
 statement text and never selects the central contract. In central mode (4.34.0) the profile tab also shows the privacy
 choices inline when a `PrivacyProvider` is mounted. `CookieConsentStep` remains exported for compatibility and is
-deprecated. The host manifest supplies actual controllers, purpose details, providers, storage and localized notice links;
-empty optional configuration has no choice banner.
+deprecated. The host manifest supplies purposes and localized notice links; empty optional configuration has no choice
+banner or settings entry.
 
 ## Account page: extra tabs in a navigation group
 

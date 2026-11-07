@@ -1,9 +1,10 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { Box, Button, Paper, Stack, Typography } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import { useTranslation } from 'react-i18next';
 
 import { usePrivacy } from './PrivacyProvider';
+import { PrivacyNoticeLink } from './PrivacyNoticeLink';
 
 function localized(value, language) {
   if (!value || typeof value !== 'object') return '';
@@ -32,8 +33,14 @@ export const PRIVACY_BANNER_CLOSE_SX = { minWidth: 44, p: 0, flexShrink: 0 };
 export function PrivacyBanner() {
   const privacy = usePrivacy();
   const { t, i18n } = useTranslation();
-  // The banner is nonmodal: it never takes focus on its own (the title would show a focus ring on first
-  // load); it stays reachable as a labelled region and through the normal tab order.
+  const firstChoiceRef = useRef(null);
+  const reopenedByUser = Boolean(privacy?.bannerVisible && privacy.bannerReopened);
+  // The banner is nonmodal: it never takes focus when it first appears (no focus ring on the title at load).
+  // When the user reopens it from the footer or another entry, focus moves to its first choice button, because the
+  // banner sits before the page content in the DOM and Tab would otherwise skip past it.
+  useEffect(() => {
+    if (reopenedByUser) firstChoiceRef.current?.focus();
+  }, [reopenedByUser]);
   if (!privacy?.bannerVisible) return null;
 
   const onKeyDown = (event) => {
@@ -49,9 +56,6 @@ export function PrivacyBanner() {
     <Paper
       role="region"
       aria-labelledby="privacy-banner-title"
-      // Stays mounted while the settings dialog is open (it sits above modals and would cover the dialog's
-      // actions) so the dialog can return focus to the Settings button that opened it.
-      hidden={privacy.settingsOpen}
       onKeyDown={onKeyDown}
       elevation={8}
       sx={PRIVACY_BANNER_PAPER_SX}
@@ -65,6 +69,7 @@ export function PrivacyBanner() {
             <Typography variant="body2" color="text.secondary" sx={{ mt: 0.75 }}>
               {t('Privacy.NECESSARY_ALWAYS_ACTIVE')} {t('Privacy.CHANGE_ANYTIME')}
             </Typography>
+            <PrivacyNoticeLink />
           </Box>
           <Button
             type="button"
@@ -92,6 +97,7 @@ export function PrivacyBanner() {
         )}
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.25} sx={{ mt: 2 }}>
           <Button
+            ref={firstChoiceRef}
             type="button"
             variant="contained"
             size="medium"
@@ -108,9 +114,6 @@ export function PrivacyBanner() {
             onClick={() => privacy.acceptAll('banner')}
           >
             {t('Privacy.ALLOW_ALL')}
-          </Button>
-          <Button type="button" variant="text" onClick={privacy.openSettings}>
-            {t('Privacy.SETTINGS')}
           </Button>
         </Stack>
       </Box>
