@@ -41,8 +41,8 @@ Target directory (shared scope): `C:/Users/Micha Bigler/Documents/webapps/ui-cor
 - reimbursements `WelcomePage.jsx:18-19` deletes the two legacy fields from the profile payload: remove the two lines with the follow-through (the central profile no longer produces them).
 - Externally published API: `@micha.bigler/ui-core-micha` is consumed only by the repositories above (the 19 apps; bottleneck-analysis-app, excluded from the rollout, declares neither ucm nor dcm in its package.json, requirements or pyproject files, checked 2026-11-07 in the local working copy).
 
-### Added in the same release: privacy settings entry in the central profile
-Operator decision 2026-11-07 (seen on the rendered account page: the central profile showed only the notice link): in `ProfileComponent` central mode (`src/components/ProfileComponent.jsx`, the privacy block around `:237-245`, next to `<PrivacyNoticeLink />`) also render the existing `<PrivacySettingsLink />` (`src/privacy/PrivacySettingsLink.jsx`). It opens the settings dialog that `PrivacyProvider` renders itself (`PrivacyProvider.jsx:463`) and renders nothing when the provider is absent or `unconfigured`, so no host change is needed beyond the new pin. Same treatment is NOT required in `ProfileStepContent` (onboarding keeps the notice link only). No new copy: reuse `Privacy.SETTINGS`. Use the existing prototype composition (`app-prototype.html@ced7a28`, 375/1280): the two links sit together in the "Privacy and cookies" block, no new design or token. Where an app also has the account-menu entry (UCM-PRIV-3) the settings are reachable from both places, which is intended. Necessary-only apps keep the informative dialog.
+### Delivered separately: privacy choices inline in the account page
+Superseded 2026-11-07: instead of a settings link, the operator asked for the privacy choices to be rendered directly in `AccountPage`. This was delivered as UCM-PRIV-5 (ucm 4.34.0, see its WO) and is NOT part of this removal. This order must keep it intact: `AccountPage`'s central branch (`AccountPrivacySection`, `showPrivacy`/`showCookies` false in central mode) stays when `privacyMode` and the legacy props go; after removal the account page always renders the central profile plus that section.
 
 ### Contract and invariants
 - After removal the profile and onboarding flows have exactly one privacy contract: the shared manifest/choices (UCM-PRIV-1) and `PrivacyNoticeLink`. Terms acceptance (`termsApi`, `ProfileStepContent` terms) is separate and unchanged.
@@ -55,7 +55,7 @@ Operator decision 2026-11-07 (seen on the rendered account page: the central pro
 1. The former acceptance booleans cannot enable optional services: render the shared flows with a user whose booleans are true and assert no optional purpose is granted and nothing is written.
 2. Profile and onboarding render and save with only the shared contract: payload is exactly the name fields; terms acceptance still gates onboarding where `termsEnabled`.
 3. Exact public export list; imports of removed names fail loudly in the test (no silent undefined).
-4. The central profile shows the settings link next to the notice link when the provider is ready, clicking it opens the settings dialog (real `PrivacyProvider` with a fake API), and nothing renders without a provider or when unconfigured; the profile save payload stays name-only. Include the account page integration from `tests/AccountPagePrivacyMode.test.jsx`.
+4. The account page integration from `tests/AccountPagePrivacyMode.test.jsx` (inline privacy section, name-only payload) keeps passing without the `privacyMode` prop.
 5. Per consumer follow-through: the touched wrapper/route assertion, plus an import-resolution check against the built package version.
 
 ### Progress contract
@@ -78,7 +78,7 @@ Reorient and re-read current instructions/pins at handoff. The shared visual ref
 
 Coordinate the release and explicit consumer updates as one removal sequence. Do not close this merely because a deprecation warning exists. Verify caller/export inventory before choosing the package's release boundary.
 
-Scope addition recorded 2026-11-07 (operator, in chat): the central profile also gets the privacy settings link, delivered in this same release so that the apps need only one pin round. It is additive and covered by Part B; it does not change the Envelope's no-new-design rule (existing component, existing prototype composition).
+Note 2026-11-07: the operator's wish for privacy choices on the account page was delivered as UCM-PRIV-5 (4.34.0), not folded into this removal (see Part B).
 
 Correction dependency recorded 2026-11-06: [UCM-PRIV-4](UCM-PRIV-4.md) supplies the missing AccountPage central-mode path and the 19 affected consumer integrations. That is an immediately usable migration correction, not cleanup to defer into this order. Require its consumer evidence before removing the legacy path; preserve historical findings until their actual consumer fix is verified.
 

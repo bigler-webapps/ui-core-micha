@@ -1,5 +1,13 @@
 # Changelog
 
+## 4.34.0 - UCM-PRIV-5
+
+With `privacyMode="central"`, `AccountPage` now renders the privacy choices (the same panel as the settings dialog,
+including the notice link) directly in the profile tab, below the form, when the host has a `PrivacyProvider`; the
+profile form no longer shows its own notice-link block there. `PrivacyBanner` no longer moves focus to its title when it
+first appears, so the title shows no focus ring on first load; it remains a labelled region whose buttons are reached in
+the normal tab order. Escape still dismisses it. Consumers without `privacyMode="central"` and without a provider are unchanged.
+
 ## 4.33.1 - UCM-PRIV-4
 
 `AccountPage` now accepts `privacyMode` (default `'legacy'`, unchanged) and forwards it to `ProfileComponent`. With

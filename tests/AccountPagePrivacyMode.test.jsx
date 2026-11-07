@@ -15,7 +15,8 @@ const authApi = vi.hoisted(() => ({
 }));
 
 vi.mock('react-i18next', () => {
-  const t = (key, fallback) => fallback ?? key;
+  // A second argument may be an interpolation object (the privacy panel passes one), never render it.
+  const t = (key, fallback) => (typeof fallback === 'string' ? fallback : key);
   return {
     useTranslation: () => ({
       t,
@@ -83,16 +84,15 @@ function errorApi() {
   return { ...readyApi(), getManifest: vi.fn(async () => { throw new Error('manifest unavailable'); }) };
 }
 
-function renderAccount({ accountUser = user(), api = readyApi(), pageProps = {} } = {}) {
+function renderAccount({ accountUser = user(), api = readyApi(), pageProps = {}, withProvider = true } = {}) {
   const login = vi.fn();
   authApi.updateUserProfile.mockImplementation(async (payload) => ({ ...accountUser, ...payload }));
+  const page = <AccountPage {...pageProps} />;
   render(
     <ThemeProvider theme={theme}>
       <MemoryRouter initialEntries={['/account']}>
         <AuthContext.Provider value={{ user: accountUser, login, loading: false }}>
-          <PrivacyProvider api={api}>
-            <AccountPage {...pageProps} />
-          </PrivacyProvider>
+          {withProvider ? <PrivacyProvider api={api}>{page}</PrivacyProvider> : page}
         </AuthContext.Provider>
       </MemoryRouter>
     </ThemeProvider>,
@@ -131,7 +131,8 @@ describe('AccountPage privacyMode="central"', () => {
 
       await renameAndSave('Grace');
 
-      expect(screen.queryAllByRole('checkbox')).toHaveLength(0);
+      expect(screen.queryByLabelText('Profile.ACCEPT_PRIVACY_LABEL')).toBeNull();
+      expect(screen.queryByLabelText('Profile.ACCEPT_COOKIES_LABEL')).toBeNull();
       expect(authApi.updateUserProfile).toHaveBeenCalledWith({ first_name: 'Grace', last_name: 'Lovelace' });
       expect(login).toHaveBeenCalledTimes(1);
       expect(authApi.fetchPrivacyStatement).not.toHaveBeenCalled();
@@ -140,6 +141,32 @@ describe('AccountPage privacyMode="central"', () => {
       expect(notice.getAttribute('href')).toBe('/privacy/en/');
     },
   );
+
+  it('renders the privacy choices on the account page and saves them through the shared API', async () => {
+    const api = readyApi();
+    renderAccount({ api, pageProps: { privacyMode: 'central' } });
+
+    expect(await screen.findByText('Privacy.SETTINGS_TITLE')).toBeTruthy();
+    const display = await screen.findByRole('checkbox', { name: 'Remember display' });
+    expect(screen.getByRole('checkbox', { name: 'Measure visits' })).toBeTruthy();
+    // Exactly the purpose choices, no legacy consent checkboxes, one notice link.
+    expect(screen.getAllByRole('checkbox')).toHaveLength(2);
+    expect(screen.getAllByRole('link', { name: 'Privacy.NOTICE_LINK' })).toHaveLength(1);
+
+    fireEvent.click(display);
+    fireEvent.click(screen.getByRole('button', { name: 'Privacy.SAVE' }));
+    await waitFor(() => expect(api.saveChoices).toHaveBeenCalledTimes(1));
+    const [saved] = api.saveChoices.mock.calls[0];
+    expect(JSON.stringify(saved)).toContain('granted');
+    expect(authApi.updateUserProfile).not.toHaveBeenCalled();
+  });
+
+  it('shows no privacy section when the host has no PrivacyProvider', async () => {
+    renderAccount({ withProvider: false, pageProps: { privacyMode: 'central' } });
+    await screen.findByLabelText('Profile.FIRST_NAME_LABEL');
+    expect(screen.queryByText('Privacy.SETTINGS_TITLE')).toBeNull();
+    expect(screen.queryAllByRole('checkbox')).toHaveLength(0);
+  });
 
   it.each([
     ['while the manifest loads', loadingApi],
@@ -169,7 +196,8 @@ describe('AccountPage privacyMode="central"', () => {
   it('wins over showProfileStatements, which only ever hides statement text', async () => {
     renderAccount({ pageProps: { privacyMode: 'central', showProfileStatements: true } });
     await renameAndSave('Grace');
-    expect(screen.queryAllByRole('checkbox')).toHaveLength(0);
+    expect(screen.queryByLabelText('Profile.ACCEPT_PRIVACY_LABEL')).toBeNull();
+    expect(screen.queryByLabelText('Profile.ACCEPT_COOKIES_LABEL')).toBeNull();
     expect(authApi.updateUserProfile.mock.calls[0][0]).not.toHaveProperty('accepted_privacy_statement');
     expect(authApi.updateUserProfile.mock.calls[0][0]).not.toHaveProperty('accepted_convenience_cookies');
   });

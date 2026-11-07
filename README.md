@@ -60,7 +60,8 @@ Adoption is explicit. `OnboardingProvider` and `ProfileComponent` / `ProfileStep
 remove the legacy privacy and convenience-cookie prompts while keeping name completion and actual terms acceptance. The
 default remains `privacyMode="legacy"` during rollout. `AccountPage` takes the same `privacyMode` prop (4.33.1) and
 forwards it to its profile tab; pass `privacyMode="central"` there too, because `showProfileStatements={false}` only hides
-statement text and never selects the central contract. `CookieConsentStep` remains exported for compatibility and is
+statement text and never selects the central contract. In central mode (4.34.0) the profile tab also shows the privacy
+choices inline when a `PrivacyProvider` is mounted. `CookieConsentStep` remains exported for compatibility and is
 deprecated. The host manifest supplies actual controllers, purpose details, providers, storage and localized notice links;
 empty optional configuration has no choice banner.
 

@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React from 'react';
 import { Box, Button, Paper, Stack, Typography } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import { useTranslation } from 'react-i18next';
@@ -32,14 +32,8 @@ export const PRIVACY_BANNER_CLOSE_SX = { minWidth: 44, p: 0, flexShrink: 0 };
 export function PrivacyBanner() {
   const privacy = usePrivacy();
   const { t, i18n } = useTranslation();
-  const headingRef = useRef(null);
-  useEffect(() => {
-    if (!privacy?.bannerVisible) return;
-    // The banner is nonmodal and loads asynchronously: move focus only when nothing else holds it,
-    // so it never interrupts someone who is already using the page.
-    const active = typeof document !== 'undefined' ? document.activeElement : null;
-    if (!active || active === document.body) headingRef.current?.focus();
-  }, [privacy?.bannerVisible]);
+  // The banner is nonmodal: it never takes focus on its own (the title would show a focus ring on first
+  // load); it stays reachable as a labelled region and through the normal tab order.
   if (!privacy?.bannerVisible) return null;
 
   const onKeyDown = (event) => {
@@ -65,7 +59,7 @@ export function PrivacyBanner() {
       <Box sx={{ maxWidth: 960, mx: 'auto' }}>
         <Stack direction="row" alignItems="flex-start" justifyContent="space-between" spacing={2}>
           <Box>
-            <Typography id="privacy-banner-title" component="h2" variant="h6" tabIndex={-1} ref={headingRef}>
+            <Typography id="privacy-banner-title" component="h2" variant="h6">
               {t('Privacy.CHOICE_TITLE')}
             </Typography>
             <Typography variant="body2" color="text.secondary" sx={{ mt: 0.75 }}>

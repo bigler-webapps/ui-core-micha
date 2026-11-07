@@ -22,6 +22,8 @@ export const ACCOUNT_PAGE_SECTION_PAPER_SX = { p: 2.5 };
 import { WidePage } from '../layout/PageLayout';
 import { SectionNav } from '../layout/SectionNav';
 import { ProfileComponent } from '../components/ProfileComponent';
+import { PrivacySettingsPanel } from '../privacy/PrivacySettings';
+import { usePrivacy } from '../privacy/PrivacyProvider';
 import { SecurityComponent } from '../components/SecurityComponent';
 import { UserListComponent } from '../components/UserListComponent';
 import { UserInviteComponent } from '../components/UserInviteComponent';
@@ -44,12 +46,30 @@ import { useBillingUsersColumn } from '../billing/useBillingUsersColumn';
  * the operators. A new function on each render only recomputes the columns; it does not refetch the accounts.
  * `privacyMode` (optional, UCM-PRIV-4): `'legacy'` (default, unchanged) or `'central'`. `'central'` is forwarded to
  * ProfileComponent: the profile drops the privacy-statement and convenience-cookie checkboxes and sends neither legacy
- * field; name editing is unchanged and the central privacy notice link is shown. It never depends on provider presence,
- * and stays central while the privacy manifest loads or fails. `showProfileStatements` only hides statement text.
+ * field; name editing is unchanged. The profile tab then shows the privacy settings panel (the same choices as the
+ * settings dialog, incl. the notice link) below the form when the host has a PrivacyProvider. It never depends on
+ * provider presence for dropping the legacy controls, and stays central while the privacy manifest loads or fails.
+ * `showProfileStatements` only hides statement text.
  * `groups` (optional): app-defined account navigation groups with `{ key, label, order?, tabs?, visible? }`. Labels
  * may be strings or `(context) => string`; `tabs` assigns built-in tab values, and `visible(context)` can hide a group
  * and its tabs. Without this prop, the default groups and placement are unchanged.
  */
+// Central mode: the privacy choices live on the account page itself (the same panel the settings dialog
+// shows), not behind a link. Renders nothing when the host has no privacy provider or no manifest.
+function AccountPrivacySection() {
+  const privacy = usePrivacy();
+  const { t } = useTranslation();
+  if (!privacy || privacy.status === 'unconfigured') return null;
+  return (
+    <Box sx={{ mt: 3, maxWidth: 600 }}>
+      <Typography variant="subtitle1" component="h2" gutterBottom>
+        {t('Privacy.SETTINGS_TITLE')}
+      </Typography>
+      <PrivacySettingsPanel />
+    </Box>
+  );
+}
+
 export function AccountPage({
   userListExtraColumns = [],
   userListExtraRowActions = [],
@@ -352,11 +372,12 @@ export function AccountPage({
           <ProfileComponent
             onSubmit={handleProfileSubmit}
             showName
-            showPrivacy
-            showCookies
+            showPrivacy={privacyMode !== 'central'}
+            showCookies={privacyMode !== 'central'}
             showStatements={showProfileStatements}
             privacyMode={privacyMode}
           />
+          {privacyMode === 'central' && <AccountPrivacySection />}
         </Box>
       )}
 
