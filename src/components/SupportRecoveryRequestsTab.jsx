@@ -46,6 +46,7 @@ export function SupportRecoveryRequestsTab() {
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [errorKey, setErrorKey] = useState(null);
+  const [loadError, setLoadError] = useState(null);
   const [statusFilter, setStatusFilter] = useState('pending');
 
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -59,12 +60,13 @@ export function SupportRecoveryRequestsTab() {
 
   const loadRequests = async () => {
     setLoading(true);
-    setErrorKey(null);
+    setLoadError(null);
+    setRequests([]);
     try {
       const data = await fetchRecoveryRequests(statusFilter);
       setRequests(Array.isArray(data) ? data : []);
     } catch (err) {
-      setErrorKey(resolveErrorText(i18n, err, 'Support.RECOVERY_REQUESTS_LOAD_FAILED'));
+      setLoadError([401, 403].includes(err?.response?.status ?? err?.status) ? 'denied' : 'unavailable');
     } finally {
       setLoading(false);
     }
@@ -195,8 +197,22 @@ export function SupportRecoveryRequestsTab() {
   if (loading) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
-        <CircularProgress />
+        <CircularProgress aria-label={t('Common.LOADING', 'Loading')} />
       </Box>
+    );
+  }
+
+  if (loadError === 'denied') {
+    return <Alert severity="warning">{t('Support.RECOVERY_ACCESS_DENIED')}</Alert>;
+  }
+
+  if (loadError === 'unavailable') {
+    return (
+      <Alert severity="error" action={(
+        <Button color="inherit" onClick={loadRequests}>{t('Account.RETRY', 'Retry')}</Button>
+      )}>
+        {t('Support.RECOVERY_REQUESTS_LOAD_FAILED')}
+      </Alert>
     );
   }
 
@@ -319,21 +335,21 @@ export function SupportRecoveryRequestsTab() {
         <Button
           variant={statusFilter === 'pending' ? 'contained' : 'outlined'}
           size="small"
-          onClick={() => setStatusFilter('pending')}
+          onClick={() => { setErrorKey(null); setStatusFilter('pending'); }}
         >
           {t('Support.RECOVERY_FILTER_PENDING', 'Open')}
         </Button>
         <Button
           variant={statusFilter === 'approved' ? 'contained' : 'outlined'}
           size="small"
-          onClick={() => setStatusFilter('approved')}
+          onClick={() => { setErrorKey(null); setStatusFilter('approved'); }}
         >
           {t('Support.RECOVERY_FILTER_APPROVED', 'Approved')}
         </Button>
         <Button
           variant={statusFilter === 'rejected' ? 'contained' : 'outlined'}
           size="small"
-          onClick={() => setStatusFilter('rejected')}
+          onClick={() => { setErrorKey(null); setStatusFilter('rejected'); }}
         >
           {t('Support.RECOVERY_FILTER_REJECTED', 'Rejected')}
         </Button>

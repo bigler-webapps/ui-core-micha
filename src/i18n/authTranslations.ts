@@ -1276,6 +1276,12 @@ export const authTranslations = {
     "en": "Users who cannot complete MFA can submit a request here. You can review the request and then approve or reject it.",
     "sw": "Watumiaji ambao hawawezi kukamilisha MFA wanaweza kutuma ombi hapa. Unaweza kukagua ombi na kisha kulikubali au kulikataa."
   },
+  "Support.RECOVERY_ACCESS_DENIED": {
+    "de": "Dieses Konto hat keinen Zugriff auf die Support-Funktionen.",
+    "en": "This account does not have access to support features.",
+    "fr": "Ce compte n’a pas accès aux fonctions d’assistance.",
+    "sw": "Akaunti hii haina ufikiaji wa vipengele vya usaidizi."
+  },
   "Support.RECOVERY_REQUESTS_LOAD_FAILED": {
     "de": "Die Anfragen zur Kontowiederherstellung konnten nicht geladen werden.",
     "fr": "Impossible de charger les demandes de récupération de compte.",
@@ -1422,6 +1428,24 @@ export const authTranslations = {
     "fr": "Expirée",
     "en": "Expired",
     "sw": "Muda umekwisha"
+  },
+  "Account.INVITATIONS_UNAVAILABLE": {
+    "de": "Einladungen konnten nicht geladen werden. Die Einstellungen bleiben unverändert.",
+    "en": "Invitations could not be loaded. Settings remain unchanged.",
+    "fr": "Impossible de charger les invitations. Les paramètres restent inchangés.",
+    "sw": "Mialiko haikuweza kupakiwa. Mipangilio haijabadilika."
+  },
+  "Account.INVITATIONS_DENIED": {
+    "de": "Dieses Konto hat keinen Zugriff auf die Einladungseinstellungen.",
+    "en": "This account does not have access to invitation settings.",
+    "fr": "Ce compte n’a pas accès aux paramètres d’invitation.",
+    "sw": "Akaunti hii haina ufikiaji wa mipangilio ya mialiko."
+  },
+  "Account.RETRY": {
+    "de": "Erneut versuchen",
+    "en": "Retry",
+    "fr": "Réessayer",
+    "sw": "Jaribu tena"
   },
   "Auth.AUTH_POLICY_FETCH_FAILED": {
     "de": "Die Authentifizierungsrichtlinie konnte nicht geladen werden.",
@@ -2034,6 +2058,30 @@ export const authTranslations = {
     "fr": "Actions",
     "en": "Actions",
     "sw": "Vitendo"
+  },
+  "UserList.LAST_LOGIN": {
+    "de": "Letzte Anmeldung",
+    "en": "Last sign-in",
+    "fr": "Dernière connexion",
+    "sw": "Mara ya mwisho kuingia"
+  },
+  "UserList.DETAILS": {
+    "de": "Details",
+    "en": "Details",
+    "fr": "Détails",
+    "sw": "Maelezo"
+  },
+  "UserList.SORT_ASCENDING": {
+    "de": "{{label}}: aufsteigend sortiert",
+    "en": "{{label}}: sorted ascending",
+    "fr": "{{label}} : tri croissant",
+    "sw": "{{label}}: imepangwa kwa mpangilio wa kupanda"
+  },
+  "UserList.SORT_DESCENDING": {
+    "de": "{{label}}: absteigend sortiert",
+    "en": "{{label}}: sorted descending",
+    "fr": "{{label}} : tri décroissant",
+    "sw": "{{label}}: imepangwa kwa mpangilio wa kushuka"
   },
   "UserList.TITLE": {
     "de": "Alle Benutzer",

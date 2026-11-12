@@ -10,6 +10,10 @@ import {
   Tooltip,
   CircularProgress,
   Alert,
+  Accordion,
+  AccordionDetails,
+  AccordionSummary,
+  Stack,
   TextField,
   Table,
   TableBody,
@@ -23,6 +27,7 @@ import {
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CancelIcon from '@mui/icons-material/Cancel';
 import DeleteIcon from '@mui/icons-material/Delete';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import { useTranslation } from 'react-i18next';
 import { fetchUsersList, deleteUser, updateUserRole } from '../auth/authApi';
 import { resolveErrorText } from '../utils/resolveErrorText';
@@ -57,6 +62,7 @@ export function UserListComponent({
     showNewColumn = true,
     showSuccessfulLoginColumn = true,
     showRoleColumn = true,
+    compact = false,
     onChangeRole = null,
     showDeleteAction = true,
     canDeleteUser = null,
@@ -380,6 +386,7 @@ export function UserListComponent({
               value={row.role || 'none'}
               onChange={(event) => handleChangeRole(row.id, event.target.value)}
               variant="outlined"
+              inputProps={{ 'aria-label': t('UserList.ROLE', 'Role') }}
             >
               {roles.map((role) => <MenuItem key={role} value={role}>{role}</MenuItem>)}
             </Select>
@@ -496,12 +503,16 @@ export function UserListComponent({
   const sortedUsers = useMemo(() => {
     const col = columns.find((c) => c.field === sortField);
     return [...filteredUsers].sort((a, b) => {
+      if (compact && sortField === 'last_login') {
+        const cmp = (Date.parse(a.last_login) || 0) - (Date.parse(b.last_login) || 0);
+        return sortDir === 'asc' ? cmp : -cmp;
+      }
       const aVal = col?.valueGetter ? col.valueGetter(a) : (a[sortField] ?? '');
       const bVal = col?.valueGetter ? col.valueGetter(b) : (b[sortField] ?? '');
       const cmp = String(aVal ?? '').localeCompare(String(bVal ?? ''), undefined, { numeric: true, sensitivity: 'base' });
       return sortDir === 'asc' ? cmp : -cmp;
     });
-  }, [filteredUsers, sortField, sortDir, columns]);
+  }, [filteredUsers, sortField, sortDir, columns, compact]);
 
   const pagedUsers = useMemo(
     () => sortedUsers.slice(page * pageSize, page * pageSize + pageSize),
@@ -517,6 +528,18 @@ export function UserListComponent({
     }
     setPage(0);
   };
+
+  const primaryFields = ['email', 'name', 'role', 'actions'];
+  const detailColumns = compact ? columns.filter((column) => !primaryFields.includes(column.field)) : [];
+  const actions = compact ? columns.find((column) => column.field === 'actions') : null;
+  const lastLogin = compact ? new Intl.DateTimeFormat(i18n?.language || undefined, {
+    dateStyle: 'short',
+    timeStyle: 'short',
+  }) : null;
+  const compactSortLabel = (field, label) => sortField === field
+    ? t(sortDir === 'asc' ? 'UserList.SORT_ASCENDING' : 'UserList.SORT_DESCENDING', { label })
+    : undefined;
+  const summaryColumns = 1 + Number(showRoleColumn) + Number(showSuccessfulLoginColumn);
 
   return (
     <Box>
@@ -543,6 +566,81 @@ export function UserListComponent({
 
       {!loading && (
         <Box sx={{ width: '100%' }}>
+          {compact ? (
+            <Stack spacing={1}>
+              <Stack direction="row" flexWrap="wrap" gap={1}>
+                {columns.filter((col) => col.sortable !== false).map((col) => (
+                  <TableSortLabel
+                    key={col.field}
+                    active={sortField === col.field}
+                    direction={sortField === col.field ? sortDir : 'asc'}
+                    aria-label={compactSortLabel(col.field, col.headerName)}
+                    onClick={() => handleSortClick(col.field)}
+                  >
+                    {col.headerName}
+                  </TableSortLabel>
+                ))}
+                {showSuccessfulLoginColumn && (
+                  <TableSortLabel
+                    active={sortField === 'last_login'}
+                    direction={sortField === 'last_login' ? sortDir : 'asc'}
+                    aria-label={compactSortLabel('last_login', t('UserList.LAST_LOGIN'))}
+                    onClick={() => handleSortClick('last_login')}
+                  >
+                    {t('UserList.LAST_LOGIN')}
+                  </TableSortLabel>
+                )}
+              </Stack>
+              {pagedUsers.length === 0 && <Typography>{t('UserList.NO_USERS', 'No users found.')}</Typography>}
+              {pagedUsers.map((row) => (
+                <Box key={row.id} sx={{ border: 1, borderColor: 'divider', borderRadius: 1, p: 1.5 }}>
+                  <Box sx={{
+                    display: 'grid',
+                    gridTemplateColumns: {
+                      xs: 'minmax(0, 1fr)',
+                      md: `minmax(0, 2fr) repeat(${summaryColumns}, minmax(0, 1fr))`,
+                    },
+                    alignItems: 'start',
+                    gap: 1,
+                  }}>
+                    <Box sx={{ overflowWrap: 'anywhere' }}>
+                      <Typography fontWeight={600}>{getUserDisplayName(row)}</Typography>
+                      <Typography variant="body2">{row.email}</Typography>
+                    </Box>
+                    {showRoleColumn && (
+                      <Typography variant="body2" sx={{ overflowWrap: 'anywhere' }}>
+                        {t('UserList.ROLE', 'Role')}: {row.role || 'none'}
+                      </Typography>
+                    )}
+                    {showSuccessfulLoginColumn && (
+                      <Typography variant="body2">
+                        {t('UserList.LAST_LOGIN')}: {row.last_login && Number.isFinite(Date.parse(row.last_login))
+                          ? lastLogin.format(new Date(row.last_login)) : '—'}
+                      </Typography>
+                    )}
+                    {actions?.renderCell(row)}
+                  </Box>
+                  {(showRoleColumn || detailColumns.length > 0) && (
+                    <Accordion disableGutters elevation={0} sx={{ '&:before': { display: 'none' } }}>
+                      <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                        {t('UserList.DETAILS')}
+                      </AccordionSummary>
+                      <AccordionDetails sx={{ px: 0, overflowWrap: 'anywhere' }}>
+                        <Stack spacing={1}>
+                          {columns.filter((column) => column.field === 'role' || detailColumns.includes(column)).map((column) => (
+                            <Box key={column.field}>
+                              <Typography variant="body2">{column.headerName}</Typography>
+                              {column.renderCell(row)}
+                            </Box>
+                          ))}
+                        </Stack>
+                      </AccordionDetails>
+                    </Accordion>
+                  )}
+                </Box>
+              ))}
+            </Stack>
+          ) : (
           <TableContainer sx={{ border: 1, borderColor: 'divider', borderRadius: 1 }}>
             <Table size="small">
               <TableHead sx={{ bgcolor: 'action.hover' }}>
@@ -598,6 +696,7 @@ export function UserListComponent({
               </TableBody>
             </Table>
           </TableContainer>
+          )}
           <TablePagination
             component="div"
             count={sortedUsers.length}
@@ -611,6 +710,11 @@ export function UserListComponent({
             labelRowsPerPage={t('UserList.ROWS_PER_PAGE', 'Rows per page:')}
             labelDisplayedRows={formatDisplayedRowsLabel(t)}
             rowsPerPageOptions={[10, 25, 50, 100]}
+            sx={compact ? {
+              '& .MuiTablePagination-toolbar': { flexWrap: 'wrap', px: 0, justifyContent: 'flex-end' },
+              '& .MuiTablePagination-spacer': { display: 'none' },
+              '& .MuiTablePagination-actions': { ml: 0 },
+            } : undefined}
           />
         </Box>
       )}

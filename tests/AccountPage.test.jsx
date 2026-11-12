@@ -47,7 +47,9 @@ vi.mock('../src/components/SecurityComponent', () => ({
 vi.mock('../src/components/UserListComponent', () => ({
   UserListComponent: () => <div>Users content</div>,
 }));
-vi.mock('../src/components/UserInviteComponent', () => ({ UserInviteComponent: () => null }));
+vi.mock('../src/components/UserInviteComponent', () => ({
+  UserInviteComponent: () => <button>Send invitation</button>,
+}));
 vi.mock('../src/components/AccessCodeManager', () => ({ AccessCodeManager: () => null }));
 vi.mock('../src/components/AllowedEmailDomainsManager', () => ({ AllowedEmailDomainsManager: () => null }));
 vi.mock('../src/components/RegistrationMethodsManager', () => ({ RegistrationMethodsManager: () => null }));
@@ -61,6 +63,7 @@ vi.mock('../src/components/SupportRecoveryRequestsTab', () => ({
 vi.mock('../src/components/BulkInviteCsvTab', () => ({ BulkInviteCsvTab: () => null }));
 
 import { AuthContext } from '../src/auth/AuthContext';
+import { fetchAuthPolicy } from '../src/auth/authApi';
 import { AccountPage } from '../src/pages/AccountPage';
 
 const theme = createTheme();
@@ -142,6 +145,42 @@ function groupTabLabels(navRoot, groupLabel) {
 function allNavigationTabLabels(navRoot) {
   return within(navRoot).getAllByRole('button').map((button) => button.textContent);
 }
+
+describe('invitation policy availability', () => {
+  beforeEach(() => setViewportWidth(1280));
+  afterEach(() => cleanup());
+
+  it('waits for a successful retry before mounting dependent invitation actions', async () => {
+    fetchAuthPolicy.mockClear();
+    fetchAuthPolicy.mockRejectedValueOnce({ status: 404 })
+      .mockResolvedValueOnce({})
+      .mockResolvedValueOnce({ allow_admin_invite: true });
+    renderAccount({ route: '/account?tab=invite' });
+
+    expect(screen.getByRole('progressbar', { name: 'Invite' })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Send invitation' })).toBeNull();
+    const unavailable = await screen.findByRole('alert');
+    expect(unavailable.textContent).toContain('Account.INVITATIONS_UNAVAILABLE');
+    expect(screen.queryByRole('button', { name: 'Send invitation' })).toBeNull();
+
+    fireEvent.click(within(unavailable).getByRole('button', { name: 'Retry' }));
+    const unusable = await screen.findByRole('alert');
+    expect(unusable.textContent).toContain('Account.INVITATIONS_UNAVAILABLE');
+    expect(screen.queryByRole('button', { name: 'Send invitation' })).toBeNull();
+
+    fireEvent.click(within(unusable).getByRole('button', { name: 'Retry' }));
+    expect(await screen.findByRole('button', { name: 'Send invitation' })).toBeTruthy();
+    expect(fetchAuthPolicy).toHaveBeenCalledTimes(3);
+  });
+
+  it('does not offer retry or invitation actions after access is denied', async () => {
+    fetchAuthPolicy.mockRejectedValueOnce({ status: 403 });
+    renderAccount({ route: '/account?tab=invite' });
+    expect((await screen.findByRole('alert')).textContent).toContain('Account.INVITATIONS_DENIED');
+    expect(screen.queryByRole('button', { name: 'Retry' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Send invitation' })).toBeNull();
+  });
+});
 
 describe('AccountPage section navigation', () => {
   beforeEach(() => setViewportWidth(375));

@@ -52,6 +52,46 @@ function renderDeleteList(props = {}) {
   );
 }
 
+describe('compact user directory', () => {
+  afterEach(() => cleanup());
+
+  it('keeps role, login, extension callbacks and delete restrictions while filtering cards', async () => {
+    const onInspect = vi.fn();
+    authApi.fetchUsersList.mockResolvedValueOnce([
+      { ...user, last_login: '2026-11-12T09:00:00Z' },
+      ownUser,
+    ]);
+    renderDeleteList({
+      compact: true,
+      showSuccessfulLoginColumn: true,
+      extraColumns: [{ key: 'extra', label: 'Extension', renderCell: ({ user: entry }) => `Extra ${entry.id}` }],
+      extraRowActions: [{ key: 'inspect', label: 'Inspect', onClick: onInspect }],
+    });
+
+    await screen.findByText(user.email);
+    expect(screen.queryByRole('table')).toBeNull();
+    expect(screen.getAllByRole('button', { name: 'Delete' }).map((button) => button.disabled)).toEqual([true, false]);
+    fireEvent.change(screen.getByRole('textbox', { name: 'Search' }), { target: { value: 'student' } });
+    expect(screen.queryByText(ownUser.email)).toBeNull();
+    const lastLogin = new Intl.DateTimeFormat(undefined, { dateStyle: 'short', timeStyle: 'short' })
+      .format(new Date('2026-11-12T09:00:00Z'));
+    expect(screen.getByText(`UserList.LAST_LOGIN: ${lastLogin}`)).toBeTruthy();
+    expect(screen.queryByRole('combobox', { name: 'Role' })).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'UserList.DETAILS' }));
+    expect(screen.getByText('Extra 1')).toBeTruthy();
+    expect(screen.getByRole('combobox', { name: 'Role' })).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Inspect' }));
+    expect(onInspect).toHaveBeenCalledWith(expect.objectContaining({ user: expect.objectContaining({ id: 1 }) }));
+  });
+
+  it('does not show or sort by login timestamps when the caller hides login information', async () => {
+    authApi.fetchUsersList.mockResolvedValueOnce([{ ...user, last_login: '2026-11-12T09:00:00Z' }]);
+    renderDeleteList({ compact: true });
+    await screen.findByText(user.email);
+    expect(screen.queryByText(/UserList\.LAST_LOGIN/)).toBeNull();
+  });
+});
+
 function getRowByEmail(email) {
   return screen.getByRole('cell', { name: email }).closest('tr');
 }

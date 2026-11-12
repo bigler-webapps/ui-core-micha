@@ -12,7 +12,6 @@ import {
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import { useTranslation } from 'react-i18next';
-import { resolveErrorText } from '../utils/resolveErrorText';
 
 // Internal context
 import { AuthContext } from '../auth/AuthContext';
@@ -100,6 +99,7 @@ export function AccountPage({
   userListShowNewColumn = true,
   userListShowSuccessfulLoginColumn = true,
   userListShowRoleColumn = true,
+  userListCompact = false,
   userListOnChangeRole = null,
   userListShowDeleteAction = true,
   userListCanDeleteUser = null,
@@ -113,11 +113,12 @@ export function AccountPage({
   billingOperator,
   groups: groupsProp,
 }) {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const { user, login, loading } = useContext(AuthContext);
   const [searchParams, setSearchParams] = useSearchParams();
   const [authPolicy, setAuthPolicy] = useState(null);
-  const [authPolicyError, setAuthPolicyError] = useState('');
+  const [authPolicyLoad, setAuthPolicyLoad] = useState(null);
+  const [authPolicyAttempt, setAuthPolicyAttempt] = useState(0);
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const billingApi = billingUsers && typeof billingUsers === 'object' ? billingUsers : defaultBillingApi;
@@ -148,6 +149,10 @@ export function AccountPage({
   const canSendInvites = Boolean(isSuperUser || perms.can_send_invites);
   const canManageAccessCodes = Boolean(isSuperUser || perms.can_manage_access_codes);
   const canManageSignupQr = Boolean(isSuperUser || perms.can_manage_signup_qr);
+  const canLoadPolicy = Boolean(user) && (canViewAuthPolicy || canManageSignupQr || canManageAccessCodes);
+  const policyLoad = authPolicyLoad?.user === user && authPolicyLoad?.attempt === authPolicyAttempt
+    ? authPolicyLoad.state
+    : 'loading';
 
   const extensionContext = { user, perms, isSuperUser, t };
   const declaredGroups = useMemo(() => {
@@ -187,24 +192,27 @@ export function AccountPage({
 
   useEffect(() => {
     let active = true;
-    const canLoadPolicy = Boolean(user) && (canViewAuthPolicy || canManageSignupQr || canManageAccessCodes);
-
-    if (!canLoadPolicy) {
-      setAuthPolicy(null);
-      setAuthPolicyError('');
-      return undefined;
-    }
+    if (!canLoadPolicy) return undefined;
 
     const loadPolicy = async () => {
       try {
         const data = await fetchAuthPolicy();
         if (!active) return;
+        if (typeof data?.allow_admin_invite !== 'boolean') {
+          setAuthPolicy(null);
+          setAuthPolicyLoad({ user, attempt: authPolicyAttempt, state: 'unavailable' });
+          return;
+        }
         setAuthPolicy(data);
-        setAuthPolicyError('');
+        setAuthPolicyLoad({ user, attempt: authPolicyAttempt, state: 'ready' });
       } catch (err) {
         if (!active) return;
         setAuthPolicy(null);
-        setAuthPolicyError(resolveErrorText(i18n, err, 'Auth.AUTH_POLICY_FETCH_FAILED'));
+        setAuthPolicyLoad({
+          user,
+          attempt: authPolicyAttempt,
+          state: [401, 403].includes(err?.status ?? err?.response?.status) ? 'denied' : 'unavailable',
+        });
       }
     };
 
@@ -213,7 +221,7 @@ export function AccountPage({
     return () => {
       active = false;
     };
-  }, [user, canViewAuthPolicy, canManageSignupQr, canManageAccessCodes, t]);
+  }, [user, canLoadPolicy, authPolicyAttempt]);
 
   // 3. Dynamic Tabs (angepasst für Superuser)
   const tabs = useMemo(() => {
@@ -424,6 +432,7 @@ export function AccountPage({
             showNewColumn={userListShowNewColumn}
             showSuccessfulLoginColumn={userListShowSuccessfulLoginColumn}
             showRoleColumn={userListShowRoleColumn}
+            compact={userListCompact}
             onChangeRole={userListOnChangeRole}
             showDeleteAction={userListShowDeleteAction}
             canDeleteUser={userListCanDeleteUser}
@@ -432,7 +441,25 @@ export function AccountPage({
         </Box>
       )}
 
-      {safeTab === 'invite' && (
+      {safeTab === 'invite' && canLoadPolicy && policyLoad === 'loading' && (
+        <CircularProgress sx={{ mt: 2 }} aria-label={t('Account.TAB_INVITE', 'Invite')} />
+      )}
+
+      {safeTab === 'invite' && canLoadPolicy && policyLoad === 'unavailable' && (
+        <Alert severity="error" sx={{ mt: 2 }} action={(
+          <Button color="inherit" onClick={() => setAuthPolicyAttempt((attempt) => attempt + 1)}>
+            {t('Account.RETRY', 'Retry')}
+          </Button>
+        )}>
+          {t('Account.INVITATIONS_UNAVAILABLE')}
+        </Alert>
+      )}
+
+      {safeTab === 'invite' && (!canLoadPolicy || policyLoad === 'denied') && (
+        <Alert severity="warning" sx={{ mt: 2 }}>{t('Account.INVITATIONS_DENIED')}</Alert>
+      )}
+
+      {safeTab === 'invite' && canLoadPolicy && policyLoad === 'ready' && (
         <Box sx={{ mt: 2 }}>
           <Stack spacing={2.5}>
             {canViewAuthPolicy && (
@@ -445,7 +472,6 @@ export function AccountPage({
               <Paper variant="outlined" sx={ACCOUNT_PAGE_SECTION_PAPER_SX}>
                 <RegistrationMethodsManager
                   policy={authPolicy}
-                  error={authPolicyError}
                   onPolicyChange={setAuthPolicy}
                   canEdit={canWriteAuthPolicy}
                 />

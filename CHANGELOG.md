@@ -1,5 +1,13 @@
 # Changelog
 
+## 4.36.0 - KZ-UI-2
+
+Account invitation controls wait for a usable policy. Failed and denied invitation or
+support loads have distinct states, and retryable failures can recover without showing
+an empty result. `AccountPage` accepts the optional `userListCompact` prop, and
+`UserListComponent` accepts `compact`, to display a responsive directory with last
+login and accessible row details. Existing callers retain the default table.
+
 ## 4.35.1 - UCM-PRIV-6
 
 `PublicFooter` is compact on phones: below the `sm` breakpoint the identity block (logo, tagline, copyright) is hidden,
