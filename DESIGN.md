@@ -4,6 +4,10 @@ How we design app frontends across the estate. **Consistency here is consistency
 
 These principles are the spec a **prototype** encodes and the implementation matches. `frontend-engineering` (build) and `ui_reviewer` (review) point here; the prototype workflow is the `frontend-design` skill.
 
+For the additional design checks adapted from Impeccable and Loupe in this document and the related design skills: apply these checks to the affected surface and change. They add no review role, gate, separate report or blanket test matrix. Existing mandatory acceptance criteria remain binding; use their existing evidence record. They do not authorize new product behavior, copy, tokens or data contracts. Resolve missing scope through the existing Envelope/approval process.
+
+Sources for the extensions below (inspiration, not authority): principle #7 draws on [Impeccable clarify](https://github.com/pbakaus/impeccable/blob/b4bff1626c344067788c2679f048a20057c7cc5a/skill/reference/clarify.md) and [harden](https://github.com/pbakaus/impeccable/blob/b4bff1626c344067788c2679f048a20057c7cc5a/skill/reference/harden.md); principle #15 draws on [Impeccable audit](https://github.com/pbakaus/impeccable/blob/b4bff1626c344067788c2679f048a20057c7cc5a/skill/reference/audit.md).
+
 ## Identity
 
 ### Dark mode
@@ -34,7 +38,7 @@ while baseline values that fail are derived against the theme's own page.
 4. **Scan and operate, not read.** Summary before detail; state encoded in form (chips, knee-markers); interactive things look interactive.
 5. **The user's language, not the system's.** Humanize labels (`incidence_scale` → "Incidence scale"); keep the raw name reachable on hover for the technicians — readability without losing traceability. Words are design material.
 6. **Reduce help to the minimum, don't remove it.** Explanation lives in on-demand affordances (ⓘ-popover, provisional-chip), never in permanent banners or helper sentences — in doubt a chip, not a sentence; less noise, same information.
-7. **Design the edge-states, not just the happy path.** An empty / "no frontier" state gets a real design (statement + CTA), never a bare alert.
+7. **Design the edge-states, not just the happy path.** An empty / "no frontier" state gets a real design (statement + CTA), never a bare alert. Distinguish first use, no results after filtering, and a loading failure when these states occur in the affected flow. Each state offers the relevant next step where the approved flow permits one. State only known failure causes. Preserve entered work across recoverable failures where the approved state and data-lifecycle contract allows it; do not introduce storage, retry behavior or new explanatory copy without the existing scope approval.
 
 ## Charts (read by humans, executed by code)
 
@@ -56,5 +60,5 @@ For the **design craft** of a prototype (an HTML artifact) and its charts, load 
 
 13. **Spacing / density = tool density, not document width.** A defined spacing rhythm, dense enough to scan and operate — not airy like a reading document. Use the theme's spacing scale; don't hand-pick pixel gaps.
 14. **Responsive = container-sized, not fixed px.** Layouts and charts size to their container; define breakpoint behaviour deliberately (what stacks, what hides, what scrolls) — the same container-responsive rule the charts already follow.
-15. **Motion = restrained and functional.** Transitions serve orientation/feedback (state change, reveal), never decoration. Short, few, purposeful; respect `prefers-reduced-motion`.
+15. **Motion = restrained and functional.** Transitions serve orientation/feedback (state change, reveal), never decoration. Short, few, purposeful; respect `prefers-reduced-motion`. Reduced motion must preserve orientation and feedback. When nonessential movement is removed or reduced, keep the resulting state and any necessary focus or status feedback understandable without that movement. Verify this for changed motion; do not add animation merely to satisfy the check.
 16. **Prefer icons for secondary actions where the meaning is conventional.** A dense action row reads better as one labelled primary action plus **icon buttons** (preview, download, edit, delete, overflow) than as a row of text buttons — and a labelled `Button` is simply the cheapest thing to type, so implementations drift toward text-heavy rows the prototype never had. Conditions: use an **established glyph** (never invented iconography); always pair it with a **`Tooltip` AND an `aria-label`**, since an icon-only control otherwise has no accessible name; and **keep the text label** when the action is primary, destructive without a confirm step, or app-specific enough that no conventional icon exists. A tooltip may NAME an action — if it has to explain a concept, the control needs a label, or on-demand help (#6).
