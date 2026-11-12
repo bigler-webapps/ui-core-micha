@@ -446,17 +446,21 @@ export function AccountPage({
       )}
 
       {safeTab === 'invite' && canLoadPolicy && policyLoad === 'unavailable' && (
-        <Alert severity="error" sx={{ mt: 2 }} action={(
-          <Button color="inherit" onClick={() => setAuthPolicyAttempt((attempt) => attempt + 1)}>
-            {t('Account.RETRY', 'Retry')}
-          </Button>
-        )}>
-          {t('Account.INVITATIONS_UNAVAILABLE')}
-        </Alert>
+        <Box sx={{ mt: 2 }}>
+          <Alert severity="error" action={(
+            <Button color="inherit" onClick={() => setAuthPolicyAttempt((attempt) => attempt + 1)}>
+              {t('Account.RETRY', 'Retry')}
+            </Button>
+          )}>
+            {t('Account.INVITATIONS_UNAVAILABLE')}
+          </Alert>
+        </Box>
       )}
 
       {safeTab === 'invite' && (!canLoadPolicy || policyLoad === 'denied') && (
-        <Alert severity="warning" sx={{ mt: 2 }}>{t('Account.INVITATIONS_DENIED')}</Alert>
+        <Box sx={{ mt: 2 }}>
+          <Alert severity="warning">{t('Account.INVITATIONS_DENIED')}</Alert>
+        </Box>
       )}
 
       {safeTab === 'invite' && canLoadPolicy && policyLoad === 'ready' && (
