@@ -287,6 +287,11 @@ Since 4.29.0 a chat without a message is not listed and "New chat" reuses it. Si
 `isChatInUse(chat)` and return `true` for a chat without messages that it created on purpose (for example with released
 excerpts): such a chat stays listed and is never reused, also when it becomes in use while it is open and empty.
 
+## Shared chat: model line under replies
+
+Each finished reply shows a caption with the model, the effort and, when the host passes `usageToTokens`, the token count.
+A host that shows the model only in the picker passes `showReplyCaption={false}` to `ChatWorkspace` (or `ChatThread`).
+
 ## Shared chat: host controls
 
 `ChatWorkspace` (from `@micha.bigler/ui-core-micha/chat`) takes optional props for apps that put UI around the surface;

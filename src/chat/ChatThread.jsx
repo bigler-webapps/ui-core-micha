@@ -28,7 +28,7 @@ function SourceChips({ sources }) {
   );
 }
 
-function Answer({ turn, tool, onRetry, chat, renderAnswerExtra, renderTurnError, usageToTokens, onNavigate }) {
+function Answer({ turn, tool, onRetry, chat, renderAnswerExtra, renderTurnError, usageToTokens, onNavigate, showReplyCaption }) {
   const { t, i18n } = useTranslation();
   const generating = turn.state === 'generating';
   const failed = ['failed', 'cancelled'].includes(turn.state) && turn.error_code;
@@ -53,7 +53,7 @@ function Answer({ turn, tool, onRetry, chat, renderAnswerExtra, renderTurnError,
         {turn.tool_steps.map((step, index) => <Chip key={`${step.name || step.label}-${index}`} role="listitem" size="small" variant="outlined" label={step.label} sx={CHAT_THREAD_TOOL_CHIP_SX} />)}
       </Stack> : null}
       <SourceChips sources={turn.sources} />
-      {!generating && replyCaption(turn) ? <Typography variant="caption" color="text.secondary">{replyCaption(turn)}</Typography> : null}
+      {showReplyCaption && !generating && replyCaption(turn) ? <Typography variant="caption" color="text.secondary">{replyCaption(turn)}</Typography> : null}
       {renderAnswerExtra ? <React.Fragment key={chat?.id}>{renderAnswerExtra({ turn, chat, appFrames: turn.appFrames ?? [] })}</React.Fragment> : null}
       {turn.state === 'interrupted' ? (
         <Stack direction="row" alignItems="center" gap={1}>
@@ -74,7 +74,7 @@ function Answer({ turn, tool, onRetry, chat, renderAnswerExtra, renderTurnError,
  * The turns of one chat. The streaming answer is simply the last turn in state `generating`; the caller keeps its text
  * up to date. `notice` is a connection or limit message shown under the last turn. `readOnly` (an archived chat) hides Retry.
  */
-export function ChatThread({ turns = [], tool = null, notice = null, hasOlder = false, olderBusy = false, onLoadOlder, onRetry, readOnly = false, sx, chat, renderAnswerExtra, renderTurnError, summary = null, usageToTokens, onNavigate }) {
+export function ChatThread({ turns = [], tool = null, notice = null, hasOlder = false, olderBusy = false, onLoadOlder, onRetry, readOnly = false, sx, chat, renderAnswerExtra, renderTurnError, summary = null, usageToTokens, onNavigate, showReplyCaption = true }) {
   const { t } = useTranslation();
   const end = useRef(null);
   const scroller = useRef(null);
@@ -161,7 +161,7 @@ export function ChatThread({ turns = [], tool = null, notice = null, hasOlder = 
                 {turn.user_text}
               </Typography>
             </Box>
-            <Answer turn={turn} tool={index === turns.length - 1 ? tool : null} onRetry={readOnly ? undefined : onRetry} chat={chat} renderAnswerExtra={renderAnswerExtra} renderTurnError={renderTurnError} usageToTokens={usageToTokens} onNavigate={onNavigate} />
+            <Answer turn={turn} tool={index === turns.length - 1 ? tool : null} onRetry={readOnly ? undefined : onRetry} chat={chat} renderAnswerExtra={renderAnswerExtra} renderTurnError={renderTurnError} usageToTokens={usageToTokens} onNavigate={onNavigate} showReplyCaption={showReplyCaption} />
           </Box>
         );
       })}

@@ -1,5 +1,10 @@
 # Changelog
 
+## 4.37.0 - UCM-CHAT-18
+
+`ChatWorkspace` and `ChatThread` accept the optional `showReplyCaption` (default `true`). With `false` the line under a finished
+reply (model, effort and, when `usageToTokens` is given, the token count) is not shown. Existing callers keep the line.
+
 ## 4.36.0 - KZ-UI-2
 
 Account invitation controls wait for a usable policy. Failed and denied invitation or

@@ -63,7 +63,7 @@ const appendDelta = (turns, text) => {
  */
 export const CHAT_WORKSPACE_SIDE_PANEL_SX = { borderLeft: 1, borderColor: 'divider', minHeight: 0, overflow: 'auto', contain: 'strict' };
 
-export function ChatWorkspace({ apiBase, wsUrl, api: apiOverrides, scope, preloadedChats, sx, unavailableReasonText, sidePanel, sidePanelLabel, renderAnswerExtra, renderTurnError, renderComposerExtra, composerLayout = 'standard', renderComposerContext, onAppFrame, onNavigate, activeChatId, onActiveChatChange, onComposeStart, composerPrefill, getSendContext, sendRequest, onSendRequestHandled, layout = 'viewport', compactBelow = 720, tokenBalance = null, usageToTokens, longChatTokens = 40000, isChatInUse }) {
+export function ChatWorkspace({ apiBase, wsUrl, api: apiOverrides, scope, preloadedChats, sx, unavailableReasonText, sidePanel, sidePanelLabel, renderAnswerExtra, renderTurnError, renderComposerExtra, composerLayout = 'standard', renderComposerContext, onAppFrame, onNavigate, activeChatId, onActiveChatChange, onComposeStart, composerPrefill, getSendContext, sendRequest, onSendRequestHandled, layout = 'viewport', compactBelow = 720, tokenBalance = null, usageToTokens, longChatTokens = 40000, isChatInUse, showReplyCaption = true }) {
   const { t } = useTranslation();
   const theme = useTheme();
   const viewportNarrow = useMediaQuery(theme.breakpoints.down('md'));
@@ -587,7 +587,7 @@ export function ChatWorkspace({ apiBase, wsUrl, api: apiOverrides, scope, preloa
         </Stack>
         {chat ? (
           <>
-            <ChatThread turns={turns} chat={chat} renderAnswerExtra={answerExtra} renderTurnError={renderTurnError} tool={tool} notice={noticeFor()} hasOlder={Boolean(olderCursor)} olderBusy={olderBusy} onLoadOlder={loadOlder} onRetry={retry} readOnly={isArchived} summary={summary} usageToTokens={usageToTokens} onNavigate={onNavigate} />
+            <ChatThread turns={turns} chat={chat} renderAnswerExtra={answerExtra} renderTurnError={renderTurnError} tool={tool} notice={noticeFor()} hasOlder={Boolean(olderCursor)} olderBusy={olderBusy} onLoadOlder={loadOlder} onRetry={retry} readOnly={isArchived} summary={summary} usageToTokens={usageToTokens} onNavigate={onNavigate} showReplyCaption={showReplyCaption} />
             {isArchived ? <Typography variant="caption" color="text.secondary" sx={{ px: 2, pb: 1 }}>{t('Chat.archivedReadOnly')}</Typography> : null}
             {renderComposerExtra ? <Box key={chat.id}>{renderComposerExtra({ chat })}</Box> : null}
             {composerLayout !== 'compact' && longChat ? <Alert severity="info" action={<Button color="inherit" size="small" onClick={createChat}>{t('Chat.newConversation')}</Button>}>{t('Chat.longChat')}</Alert> : null}

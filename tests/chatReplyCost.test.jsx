@@ -14,3 +14,11 @@ it('shows converted cost for a finished reply and falls back for invalid or abse
   rerender(<ChatThread turns={[turn(null)]} usageToTokens={convert} />);
   expect(screen.getByText('Sonnet · Chat.effort.high')).toBeTruthy();
 });
+
+it('hides the model line under a reply only when the host switches it off', () => {
+  const { rerender } = render(<ChatThread turns={[turn({ input_tokens: 2 })]} usageToTokens={() => 6} />);
+  expect(screen.getByText('Sonnet · Chat.effort.high · Chat.replyTokens')).toBeTruthy();
+  rerender(<ChatThread turns={[turn({ input_tokens: 2 })]} usageToTokens={() => 6} showReplyCaption={false} />);
+  expect(screen.queryByText(/Sonnet/)).toBeNull();
+  expect(screen.getByText('A')).toBeTruthy();
+});
