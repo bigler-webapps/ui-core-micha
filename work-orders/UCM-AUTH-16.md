@@ -24,12 +24,22 @@ Shared consumers may have more steps, longer or unbroken labels, and different a
 
 Cover the six-step German case and long labels at narrow width in an appropriate rendered check; assert labels and controls remain accessible, with current/completed and keyboard behavior preserved. Cover a normal desktop width and a different step count. A DOM-only test cannot establish actual wrapping; verify rendered width as well.
 
-# B. Implementation map
+# B. Implementation map — addressed to the implementer
 
-To be filled by the Orchestrator after Gate #1. No implementer dispatch while this placeholder remains or the required preamble is absent.
+Target paths: `C:/Users/Micha Bigler/Documents/webapps/ui-core-micha/src/onboarding/SetupWizardShell.jsx` and `C:/Users/Micha Bigler/Documents/webapps/ui-core-micha/tests/SetupWizardShell.test.jsx`. The shell renders an ordered flex list with one `li` per step and a `ButtonBase` containing the step number and label; the label currently has `overflowWrap: 'anywhere'`. Its public controlled props determine current, reachable and completed states. Existing tests cover navigation and accessible states. Preserve this contract; use Part A's scope and tests. Rendered-width verification is the orchestrator's task, not a jsdom assertion.
+
+**Your first tool action is the hook canary: run the shell command `codex-hook-canary-ws-gov-60` exactly.** The expected denial is `WS-GOV-60 canary: workspace hooks are active`; continue after it. If absent, report unverified coverage once and continue.
+
+The text above is the COMPLETE spec. Read the nearest `AGENTS.md`, the relevant `.codex/skills/frontend-engineering/SKILL.md`, and app `MEMORY.md` only for conventions. Stay in scope; do not touch auth/permissions/deps/schema/CI unless the spec says so; do not update `MEMORY.md`. Do not edit `WORK_ORDERS.md` or the register. Your tools are for editing source and test files and running only the tests you wrote. Do not install dependencies, touch a lockfile, run a package manager, tidy stray files, or run git add/commit/push. If blocked, report `RESULT: BLOCKED <reason>`. Write the required tests and run only your own new tests once. The orchestrator runs the authoritative tests and review.
+
+Narrate `PLAN: <steps>` first, then `PROGRESS: [n/total] <action>` before each action, with no gap over about two minutes; finish with exactly one `RESULT: DONE|BLOCKED <reason>`.
 
 ---
 
 # C. Orchestrator only — STOP: not addressed to the implementer
 
-Record review routing, evidence, and completion here.
+If you are the implementer, STOP here. Do not dispatch reviewers or implementers, verify, edit the register, or commit.
+
+## Gate record
+
+Gate #1 approved by the operator 2026-11-16 in this chat.
