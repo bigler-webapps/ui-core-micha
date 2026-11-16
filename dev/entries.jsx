@@ -88,6 +88,7 @@ const SETUP_STATES = [
 
 function SetupWizardEntry() {
   const [state, setState] = useState('account');
+  const [longSteps, setLongSteps] = useState(false);
   const [sentTo, setSentTo] = useState('');
   const [signUpRound, setSignUpRound] = useState(0);
   const [profileDraft, setProfileDraft] = useState(null);
@@ -138,9 +139,10 @@ function SetupWizardEntry() {
             <Button key={key} size="small" variant={state === key ? 'contained' : 'outlined'} onClick={() => setState(key)}>{label}</Button>
           ))}
           {completed && <Typography role="status" variant="body2">{completed}</Typography>}
+          <Button size="small" onClick={() => setLongSteps((value) => !value)}>Long step labels</Button>
         </Stack>
         <SetupWizardShell
-          steps={SETUP_STEPS}
+          steps={longSteps ? SETUP_STEPS.slice(0, 4).map((step, index) => ({ ...step, label: ['Konto', 'A particularly long translated step label', 'UnbrokenLongStepIdentifierForTesting', 'Abschluss'][index] })) : SETUP_STEPS}
           currentStepId={signedIn ? 'step-1' : 'step-0'}
           completedStepIds={signedIn ? ['step-0'] : []}
           reachableStepIds={signedIn ? ['step-0'] : []}

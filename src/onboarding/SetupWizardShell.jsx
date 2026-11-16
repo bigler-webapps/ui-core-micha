@@ -117,7 +117,16 @@ export function SetupWizardShell({
         <Box component="nav" aria-label={t('Onboarding.SETUP')}>
           <Box
             component="ol"
-            sx={{ display: 'flex', listStyle: 'none', gap: { xs: 0, sm: 0.5 }, m: 0, mt: 2.25, p: 0 }}
+            sx={{
+              display: { xs: 'grid', sm: 'flex' },
+              gridTemplateColumns: { xs: 'repeat(3, minmax(0, 1fr))', sm: 'none' },
+              alignItems: 'start',
+              listStyle: 'none',
+              gap: { xs: 0, sm: 0.5 },
+              m: 0,
+              mt: 2.25,
+              p: 0,
+            }}
           >
             {steps.map((step, index) => {
               const isCurrent = index === currentIndex;

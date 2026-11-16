@@ -49,6 +49,65 @@ function ControlledWizard({ busy = false, error, onPrimary = vi.fn(), primaryFor
 }
 
 describe('SetupWizardShell', () => {
+  it('keeps all six German steps accessible at a narrow viewport', () => {
+    const previousWidth = window.innerWidth;
+    Object.defineProperty(window, 'innerWidth', { configurable: true, value: 375 });
+    const steps = [
+      { id: 'start', label: 'Start' },
+      { id: 'person', label: 'Person' },
+      { id: 'address', label: 'Adresse' },
+      { id: 'details', label: 'Details' },
+      { id: 'payment', label: 'Zahlung' },
+      { id: 'finish', label: 'Abschluss' },
+    ];
+    const onSelectStep = vi.fn();
+
+    render(
+      <SetupWizardShell
+        steps={steps}
+        currentStepId="payment"
+        completedStepIds={['start', 'person']}
+        reachableStepIds={['start', 'person', 'address', 'details']}
+        onSelectStep={onSelectStep}
+      />,
+    );
+
+    expect(screen.getAllByRole('button').map((button) => button.textContent).join(' ')).toContain('Abschluss');
+    expect(screen.getByRole('button', { name: 'Abschluss' }).disabled).toBe(true);
+    expect(screen.getByRole('button', { name: 'Zahlung' }).getAttribute('aria-current')).toBe('step');
+    expect(screen.getByRole('button', { name: 'Start, Onboarding.COMPLETED' }).disabled).toBe(false);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Adresse' }));
+    expect(onSelectStep).toHaveBeenCalledWith('address');
+    const listClass = screen.getByRole('list').className.split(' ').find((name) => name.startsWith('css-'));
+    const rules = Array.from(document.styleSheets).flatMap((sheet) => Array.from(sheet.cssRules, (rule) => rule.cssText)).join('\n');
+    expect(rules).toMatch(new RegExp(`${listClass}[^}]*display:\\s*grid`));
+    expect(rules).toMatch(new RegExp(`${listClass}[^}]*grid-template-columns:\\s*repeat\\(3,`));
+    Object.defineProperty(window, 'innerWidth', { configurable: true, value: previousWidth });
+  });
+
+  it('keeps long and unbroken step names available in the narrow navigation', () => {
+    const steps = ['Short', 'An especially long translated step name', 'UnbrokenLongStepIdentifier'].map((label, index) => ({ id: String(index), label }));
+    render(<SetupWizardShell steps={steps} currentStepId="0" reachableStepIds={['1', '2']} onSelectStep={() => {}} />);
+    for (const step of steps) expect(screen.getByRole('button', { name: step.label })).toBeTruthy();
+  });
+
+  it('keeps long labels and all controls available at desktop width with a different step count', () => {
+    const steps = [
+      { id: 'request', label: 'Request' },
+      { id: 'contact', label: 'Contact information' },
+      { id: 'organization', label: 'Organization details' },
+      { id: 'confirmation', label: 'Review and confirmation' },
+    ];
+
+    render(<SetupWizardShell steps={steps} currentStepId="request" />);
+
+    expect(screen.getAllByRole('button')).toHaveLength(4);
+    for (const step of steps) expect(screen.getByRole('button', { name: step.label })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Request' }).getAttribute('aria-current')).toBe('step');
+    expect(screen.getByRole('button', { name: 'Organization details' }).disabled).toBe(true);
+  });
+
   it('keeps the host draft across steps and marks the current, completed and unreachable steps', () => {
     render(<ControlledWizard />);
     fireEvent.change(screen.getByRole('textbox', { name: 'Draft' }), { target: { value: 'kept value' } });

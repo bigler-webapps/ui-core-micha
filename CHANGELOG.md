@@ -1,5 +1,9 @@
 # Changelog
 
+## 4.37.1 - UCM-AUTH-16
+
+Setup wizard step labels use a wider three-column layout on narrow screens, keeping longer labels readable while retaining the desktop row and existing navigation behavior.
+
 ## 4.37.0 - UCM-CHAT-18
 
 `ChatWorkspace` and `ChatThread` accept the optional `showReplyCaption` (default `true`). With `false` the line under a finished
