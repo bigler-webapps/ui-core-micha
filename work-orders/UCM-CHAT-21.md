@@ -52,4 +52,4 @@ Verify the DCM-CHAT-21 payload, the privacy checks in the rendered managed UI, a
 
 ## Gate record
 
-Requested on 2026-11-17. Gate #1 for implementation is pending.
+Gate #1 approved by the operator 2026-11-17 in the Codex requirements chat: “Ich gebe alle drei WO frei.” Approved Envelope: `3b47ab4`; pinned prototype: `539e3937de901f2020e68e63f29e287281d036fb`.
