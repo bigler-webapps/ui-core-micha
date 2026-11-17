@@ -21,13 +21,13 @@ Validate against the released or agreed DCM-CHAT-21 public payload before public
 
 ### Prototype and visual acceptance
 
-Use `work-orders/assets/app-prototype.html@9f12030c9aab4b49a958a504329e3e0670e96768`, scene `?scene=managed-picker`, checklist `ucm-chat-21-checklist`. Coverage is the existing managed picker trigger and open desktop and mobile picker states. Surrounding chat is context. The prototype governs visual and selection parity. DCM and this Envelope govern the API, privacy and routing behavior. Token delta: none. Copy reuses existing picker labels, with **OpenAI** and **Claude** as group headings and the exact family labels. Fixture controls and explanations are prototype copy only.
+Use `work-orders/assets/app-prototype.html@539e3937de901f2020e68e63f29e287281d036fb`, scene `?scene=managed-picker`, checklist `ucm-chat-21-checklist`. Coverage is the existing managed picker trigger and open desktop and mobile picker states. Surrounding chat is context. The prototype governs visual and selection parity. DCM and this Envelope govern the API, privacy and routing behavior. Token delta: none. Copy reuses existing picker labels, with **OpenAI** and **Claude** as group headings and the exact family labels. Fixture controls and explanations are prototype copy only.
 
 At **375 px and 1280 px**, all five prototype criteria apply:
 
 | ID | Expected result |
 |---|---|
-| UCM21-01 | Group the eligible families by OpenAI and Claude. Sonnet is initially selected in the example. Public text, trigger and accessible names show provider/family and the existing effort only. |
+| UCM21-01 | Use prominent OpenAI and Claude group headings. Show the selected family with a straight blue line at the left edge. Sonnet is initially selected in the example. Public text, trigger and accessible names show provider/family and the existing effort only. |
 | UCM21-02 | Select across provider groups by keyboard. The trigger and effort controls update. Close and reopen with the same explicit choice focused. The existing user token balance remains usable. |
 | UCM21-03 | Apply a route-only catalogue refresh with Sonnet selected. Sonnet remains one selected row. User-visible text, selection and the user token balance stay stable. |
 | UCM21-04 | When Sonnet is revoked, the received server default Sol takes its place and the remaining families are selectable. |
