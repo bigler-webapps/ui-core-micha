@@ -137,7 +137,11 @@ project, import or payment work. Existing pages and the dialog `OnboardingProvid
   email. `showProviders` adds Google/Microsoft above the form. `preferredSignupMode` (also on `SignUpPage`, e.g.
   `'self_signup_open'`) shows that mode first and selected when the server offers it; otherwise it is ignored and the
   server order applies. Open self-signup submits with "Konto anlegen" (`Auth.SIGNUP_SUBMIT_OPEN`); the other modes
-  keep "Einladung anfordern".
+  keep "Einladung anfordern". An embedding app may pass `renderAdditionalField({ disabled })` to render its own optional
+  field inside the shared form and `additionalRegistrationData` as a flat object of its request keys and values. The
+  app owns field labels, translations, validation and error text. Empty values are omitted, and keys that could replace
+  the email, mode, access code, QR token or Turnstile token are ignored. The component does not persist this data or
+  place it in a URL or logs; the host should keep it transient as well.
 - `SignupConfirmContent` — the password form of `SignupConfirmPage`. Pass `token` (from the emailed
   `/signup/confirm/?token=…` link, which your app routes) and `onSuccess()`; there is no automatic sign-in, show
   `LoginContent` next.

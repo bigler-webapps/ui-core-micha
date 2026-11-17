@@ -2,6 +2,7 @@
 import React from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 
 const mocks = vi.hoisted(() => ({
   submitRegistrationRequest: vi.fn(),
@@ -106,5 +107,133 @@ describe('SignUpContent', () => {
 
     await waitFor(() => expect(mocks.reset).toHaveBeenCalled());
     expect(screen.getByRole('textbox', { name: /Auth.EMAIL_LABEL/ })).toBeTruthy();
+  });
+
+  it('renders an accessible host field and submits its edited value', async () => {
+    mocks.submitRegistrationRequest.mockResolvedValue({ code: 'Auth.INVITE_SENT' });
+    const onSubmitted = vi.fn();
+    function HostForm() {
+      const [organization, setOrganization] = React.useState('');
+      return (
+        <AuthContext.Provider value={{ authMethods: AUTH_METHODS }}>
+          <SignUpContent
+            renderAdditionalField={({ disabled }) => (
+              <label>Optional organization<input aria-label="Optional organization" disabled={disabled} name="organization" value={organization} onChange={(event) => setOrganization(event.target.value)} /></label>
+            )}
+            additionalRegistrationData={{ organization }}
+            onSubmitted={onSubmitted}
+          />
+        </AuthContext.Provider>
+      );
+    }
+    render(<HostForm />);
+
+    const field = screen.getByRole('textbox', { name: 'Optional organization' });
+    field.focus();
+    expect(document.activeElement).toBe(field);
+    fireEvent.change(field, { target: { value: 'Research Lab' } });
+    fireEvent.change(screen.getByRole('textbox', { name: /Auth.EMAIL_LABEL/ }), {
+      target: { value: 'a@example.test' },
+    });
+    fireEvent.click(screen.getByText('captcha'));
+    expect(screen.getByRole('button', { name: 'Auth.SIGNUP_SUBMIT_OPEN' }).type).toBe('submit');
+    fireEvent.submit(field.closest('form'));
+
+    await waitFor(() => expect(onSubmitted).toHaveBeenCalledWith('a@example.test'));
+    expect(mocks.submitRegistrationRequest).toHaveBeenCalledWith(expect.objectContaining({
+      additionalRegistrationData: { organization: 'Research Lab' },
+    }));
+    expect(window.location.search).toBe('');
+    expect(localStorage.length).toBe(0);
+  });
+
+  it('reaches the host field by keyboard and submits its edited value with Enter', async () => {
+    mocks.submitRegistrationRequest.mockResolvedValue({ code: 'Auth.INVITE_SENT' });
+    const onSubmitted = vi.fn();
+    function HostForm() {
+      const [organization, setOrganization] = React.useState('');
+      return (
+        <AuthContext.Provider value={{ authMethods: { signup_modes: ['self_signup_open'] } }}>
+          <SignUpContent
+            renderAdditionalField={({ disabled }) => (
+              <label>Optional organization<input disabled={disabled} value={organization} onChange={(event) => setOrganization(event.target.value)} /></label>
+            )}
+            additionalRegistrationData={{ organization }}
+            onSubmitted={onSubmitted}
+          />
+        </AuthContext.Provider>
+      );
+    }
+    const keyboard = userEvent.setup();
+    render(<HostForm />);
+    await keyboard.tab();
+    expect(document.activeElement).toBe(screen.getByRole('textbox', { name: /Auth.EMAIL_LABEL/ }));
+    await keyboard.keyboard('keyboard@example.test');
+    await keyboard.tab();
+    expect(document.activeElement).toBe(screen.getByRole('textbox', { name: 'Optional organization' }));
+    await keyboard.keyboard('Research Lab{Enter}');
+    await waitFor(() => expect(onSubmitted).toHaveBeenCalledWith('keyboard@example.test'));
+    expect(mocks.submitRegistrationRequest).toHaveBeenCalledWith(expect.objectContaining({
+      additionalRegistrationData: { organization: 'Research Lab' },
+    }));
+  });
+
+  it('passes the host value to the request helper and disables the field while submitting', async () => {
+    let resolveRequest;
+    mocks.submitRegistrationRequest.mockReturnValueOnce(new Promise((resolve) => {
+      resolveRequest = resolve;
+    }));
+    renderSignUp({
+      renderAdditionalField: ({ disabled }) => (
+        <label>
+          Optional organization
+          <input aria-label="Optional organization" disabled={disabled} />
+        </label>
+      ),
+      additionalRegistrationData: { organization: '' },
+    });
+    const field = screen.getByRole('textbox', { name: 'Optional organization' });
+    fireEvent.change(screen.getByRole('textbox', { name: /Auth.EMAIL_LABEL/ }), {
+      target: { value: 'a@example.test' },
+    });
+    fireEvent.click(screen.getByText('captcha'));
+    fireEvent.click(screen.getByRole('button', { name: 'Auth.SIGNUP_SUBMIT_OPEN' }));
+
+    await waitFor(() => expect(field.disabled).toBe(true));
+    expect(mocks.submitRegistrationRequest).toHaveBeenCalledWith(expect.objectContaining({
+      additionalRegistrationData: { organization: '' },
+    }));
+    resolveRequest({ code: 'Auth.INVITE_SENT' });
+    await waitFor(() => expect(field.disabled).toBe(false));
+  });
+
+  it('preserves retry after an extension submission error', async () => {
+    mocks.submitRegistrationRequest
+      .mockRejectedValueOnce({ code: 'Auth.INVITE_FAILED' })
+      .mockResolvedValueOnce({ code: 'Auth.INVITE_SENT' });
+    const onSubmitted = vi.fn();
+    renderSignUp({
+      renderAdditionalField: () => <label>Optional organization<input aria-label="Optional organization" /></label>,
+      additionalRegistrationData: { organization: 'Research Lab' },
+      onSubmitted,
+    });
+    fireEvent.change(screen.getByRole('textbox', { name: /Auth.EMAIL_LABEL/ }), {
+      target: { value: 'a@example.test' },
+    });
+    fireEvent.change(screen.getByRole('textbox', { name: 'Optional organization' }), {
+      target: { value: 'Research Lab' },
+    });
+    fireEvent.click(screen.getByText('captcha'));
+    fireEvent.click(screen.getByRole('button', { name: 'Auth.SIGNUP_SUBMIT_OPEN' }));
+    await screen.findByText('Auth.INVITE_FAILED');
+    expect(screen.getByRole('textbox', { name: 'Optional organization' })).toBeTruthy();
+
+    fireEvent.click(screen.getByText('captcha'));
+    fireEvent.click(screen.getByRole('button', { name: 'Auth.SIGNUP_SUBMIT_OPEN' }));
+    await waitFor(() => expect(onSubmitted).toHaveBeenCalledWith('a@example.test'));
+    expect(mocks.submitRegistrationRequest).toHaveBeenNthCalledWith(2, expect.objectContaining({
+      additionalRegistrationData: { organization: 'Research Lab' },
+    }));
+    expect(screen.getByText('Auth.CONFIRMATION_EMAIL_INSTRUCTION')).toBeTruthy();
   });
 });

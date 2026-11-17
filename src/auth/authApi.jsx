@@ -369,6 +369,7 @@ export async function submitRegistrationRequest({
   registrationContextToken,
   registrationContext,
   turnstileToken,
+  additionalRegistrationData,
 }) {
   const payload = { email, mode };
   if (accessCode) payload.access_code = accessCode;
@@ -379,6 +380,34 @@ export async function submitRegistrationRequest({
     payload.registration_context = registrationContext;
   }
   if (turnstileToken) payload.turnstile_token = turnstileToken;
+
+  const protectedRegistrationFields = new Set([
+    'email',
+    'mode',
+    'accessCode',
+    'access_code',
+    'registrationContextToken',
+    'registration_context_token',
+    'registrationContext',
+    'registration_context',
+    'turnstileToken',
+    'turnstile_token',
+    '__proto__',
+    'prototype',
+    'constructor',
+  ]);
+  if (additionalRegistrationData && typeof additionalRegistrationData === 'object') {
+    for (const [key, value] of Object.entries(additionalRegistrationData)) {
+      if (
+        !protectedRegistrationFields.has(key)
+        && value !== undefined
+        && value !== null
+        && value !== ''
+      ) {
+        payload[key] = value;
+      }
+    }
+  }
 
   try {
     const res = await apiClient.post(`${USERS_BASE}/register-request/`, payload);

@@ -37,3 +37,13 @@ Operator explicitly approved this UI-core dependency on 2026-11-16 in the MAANA-
 ## Gate record
 
 Gate #1 approved by the operator 2026-11-16: "Ja, freigeben" to the separately scoped backwards-compatible registration form extension.
+
+## Progress — 2026-11-16
+
+Implementation and two independent review rounds completed. Round 1 found that the keyboard test simulated form submission instead of verifying real keyboard input; the test now verifies the host-controlled edited value and the submit control semantics. Round 2 repeated the outstanding real-keyboard finding. The two affected test files pass (9 tests), but the required actual keyboard interaction is not yet verified. The local test harness is `scratchpad/ucm-auth17-keyboard.html`; the in-app browser could not reach its server on the initial attempt and the subsequent local preview was queued while the chat was not visible. Do not mark done or publish until keyboard interaction is verified. Changes remain uncommitted.
+
+Follow-up: a durable keyboard test was added to `tests/SignUpContent.test.jsx`, using `@testing-library/user-event` to navigate with Tab, type, and submit with Enter. It passes with the existing suite (10 tests) using a temporary local alias to version 14.6.12. The package is not yet declared in ui-core-micha; normal CI cannot run the new test until the operator explicitly authorizes that development dependency and the lockfile is updated. Do not commit a broken test or claim the dependency was approved. Input was emulated, not a rendered-browser acceptance.
+
+Later follow-up: the operator approved 14.6.12 and the package and minimal lockfile changes are now prepared under UCM-DEP-4. The corrected scoped suite passes 11 tests using the temporary alias. A normal frozen install is currently refused by pnpm's minimum-release-age policy until approximately 2026-11-17 02:28 UTC; no bypass has been approved. The UCM-AUTH-17 code and tests remain uncommitted until UCM-DEP-4's ordinary install and checks succeed.
+
+On 2026-11-17 the operator approved replacing 14.6.12 with the established 14.6.1, tracked as UCM-DEP-5. Its normal frozen install, UI-core build, and 11 focused tests pass; the keyboard test uses emulated Tab, text entry and Enter. UCM-DEP-5's independent review returned no findings. No computer-use interaction was performed. Landing and publication remain pending the repository's foreign unpushed commit.

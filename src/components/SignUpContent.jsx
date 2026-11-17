@@ -74,6 +74,13 @@ export function orderSignupModes(modes, preferredMode) {
  * - `showProviders` (default false) and `continuation`: Google/Microsoft entry
  *   above the email form when the app enables it; the validated continuation is
  *   the provider callback URL.
+ * - `renderAdditionalField({ disabled })`: optional host-rendered field placed
+ *   in the form. The host owns its label, translations, validation and error
+ *   text; `disabled` follows the shared form's submitting state.
+ * - `additionalRegistrationData`: optional flat object of app-owned request
+ *   fields. Empty values are omitted and protected registration fields are
+ *   ignored by the request helper. Keep this value in transient component state;
+ *   the shared form does not persist it or add it to a URL or logs.
  * The access code, QR token and Turnstile token never leave this component.
  */
 export function SignUpContent({
@@ -83,6 +90,8 @@ export function SignUpContent({
   onSubmitted,
   showProviders = false,
   continuation,
+  renderAdditionalField,
+  additionalRegistrationData,
 }) {
   const { t, i18n } = useTranslation();
   const { authMethods } = useContext(AuthContext) || {};
@@ -173,6 +182,7 @@ export function SignUpContent({
         accessCode,
         registrationContextToken: mode === 'self_signup_qr' ? registrationContextToken : null,
         turnstileToken: turnstileRequired ? turnstileToken : undefined,
+        ...(additionalRegistrationData ? { additionalRegistrationData } : {}),
       });
       // The backend's own response code is already mode-agnostic and accurate
       // (Auth.INVITE_SENT). Falling back to the access-code-specific "if valid,
@@ -279,6 +289,8 @@ export function SignUpContent({
             disabled={submitting}
           />
         )}
+
+        {renderAdditionalField?.({ disabled: submitting })}
 
         {turnstileRequired && (
           <TurnstileWidget
