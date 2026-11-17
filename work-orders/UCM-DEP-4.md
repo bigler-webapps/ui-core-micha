@@ -25,3 +25,7 @@ STOP — implementer instructions end here. The operator explicitly authorized t
 ## Gate record
 
 Operator approved 2026-11-16: "Ja, ich gebe @testing-library/user-event 14.6.12 als Entwicklungsabhängigkeit samt Lockfile-Änderung frei."
+
+## Progress — 2026-11-16
+
+The exact dependency and minimal lockfile entries are prepared; unrelated pnpm 10 rewrites were removed. Round 1 independent review (envelope gpt-6.1-terra; regression, duplication, tests, security, UI gpt-6-luna) identified one inaccurate test description, corrected with explicit wire-payload coverage. The closing round found one missing retry-payload assertion, fixed after review; no third pass. Scoped tests passed: 11 with a temporary 14.6.12 alias. Normal frozen install using the existing pnpm 11 store rejects this newly published package under minimum release age until approximately 2026-11-17 02:28 UTC. No exception or bypass was approved; leave UCM-AUTH-17 and this order open until frozen installation and normal tests pass. A failed install disrupted local links; the old environment was restored from the previous frozen lockfile in a temporary project.
