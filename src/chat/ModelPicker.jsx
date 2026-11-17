@@ -30,6 +30,19 @@ const cleanLabel = (entry, shortLabel = false) => {
   const withoutVersion = (entry?.label || entry?.model || '').replace(/\s+\d+(?:\.\d+)*$/, '');
   return shortLabel ? withoutVersion.replace(/^(?:(?:Claude|Anthropic|OpenAI)\s+)+/i, '') : withoutVersion;
 };
+const originalLabel = (entry) => entry?.label || entry?.model || '';
+const sourceNamedLabel = (entry, label, duplicateLabels) => (
+  duplicateLabels.has(label) && entry?.source_label ? `${label} · ${entry.source_label}` : label
+);
+
+const repeatedLabels = (entries, getLabel) => {
+  const counts = new Map();
+  entries.forEach((entry) => {
+    const label = getLabel(entry);
+    counts.set(label, (counts.get(label) || 0) + 1);
+  });
+  return new Set([...counts].filter(([, count]) => count > 1).map(([label]) => label));
+};
 
 function estimateText(entry, effort, t, language) {
   if (entry.billing === 'subscription') return t('Chat.subscriptionShort');
@@ -51,7 +64,7 @@ function estimateText(entry, effort, t, language) {
   return null;
 }
 
-export function ModelPicker({ entries = [], selection, onChange, disabled = false, open, onOpenChange, balance = null, shortLabel = false }) {
+export function ModelPicker({ entries = [], selection, onChange, disabled = false, open, onOpenChange, balance = null, shortLabel = false, managed = false }) {
   const { t, i18n } = useTranslation();
   const language = typeof i18n?.language === 'string' ? i18n.language.split('_')[0] || undefined : undefined;
   const theme = useTheme();
@@ -62,27 +75,31 @@ export function ModelPicker({ entries = [], selection, onChange, disabled = fals
   const [innerOpen, setInnerOpen] = useState(false);
   const isOpen = open ?? innerOpen;
   const setOpen = (value) => { setInnerOpen(value); onOpenChange?.(value); };
-  const activeSelection = useMemo(() => validSelection(entries, selection) || fallback(entries), [entries, selection]);
+  const activeSelection = useMemo(() => validSelection(entries, selection) || (!managed ? fallback(entries) : null), [entries, selection, managed]);
   const active = entries.find((entry) => entry.id === activeSelection?.entry);
   const effort = activeSelection?.effort;
+  const duplicateRows = useMemo(() => repeatedLabels(entries, originalLabel), [entries]);
+  const duplicateTriggers = useMemo(() => repeatedLabels(entries, (entry) => cleanLabel(entry, shortLabel)), [entries, shortLabel]);
   const grouped = LEVELS.map((level) => [level, entries.filter((entry) => entry.level === level)]).filter(([, items]) => items.length);
   const unknown = entries.filter((entry) => !LEVELS.includes(entry.level));
   const orderedEntries = [...grouped.flatMap(([, items]) => items), ...unknown];
   const selectEntry = (entry) => onChange?.({ entry: entry.id, effort: supported(entry, effort) ? effort : entry.efforts?.[0] });
-  const entryRow = (entry) => {
+  const entryRow = (entry, index) => {
     const shown = supported(entry, effort) ? effort : entry.efforts?.[0];
     const estimate = estimateText(entry, shown, t, language);
     const checked = entry.id === active?.id;
-    return <ListItemButton key={entry.id} role="radio" aria-checked={checked} tabIndex={checked ? 0 : -1} data-model-entry={entry.id} selected={checked} sx={CHAT_MODEL_ENTRY_SX} onClick={() => selectEntry(entry)}>
-      <Box sx={CHAT_MODEL_ENTRY_CONTENT_SX}><Typography variant="body2" fontWeight={checked ? 600 : 400}>{entry.label || entry.model}</Typography>{estimate ? <Typography variant="caption" color="text.secondary" sx={CHAT_MODEL_COST_SX}>{estimate}</Typography> : null}</Box>
+    return <ListItemButton key={entry.id} role="radio" aria-checked={checked} tabIndex={checked || (!active && index === 0) ? 0 : -1} data-model-entry={entry.id} selected={checked} sx={CHAT_MODEL_ENTRY_SX} onClick={() => selectEntry(entry)}>
+      <Box sx={CHAT_MODEL_ENTRY_CONTENT_SX}><Typography variant="body2" fontWeight={checked ? 600 : 400}>{sourceNamedLabel(entry, originalLabel(entry), duplicateRows)}</Typography>{estimate ? <Typography variant="caption" color="text.secondary" sx={CHAT_MODEL_COST_SX}>{estimate}</Typography> : null}</Box>
     </ListItemButton>;
   };
   // Radio-group keyboard behaviour: arrows move the focus and the choice, only the checked row is a tab stop.
   const moveSelection = (event) => {
     const keys = { ArrowDown: 1, ArrowRight: 1, ArrowUp: -1, ArrowLeft: -1 };
     if (!(event.key in keys)) return;
+    if (!orderedEntries.length) return;
     const at = orderedEntries.findIndex((entry) => entry.id === active?.id);
-    const next = orderedEntries[(at + keys[event.key] + orderedEntries.length) % orderedEntries.length];
+    const nextIndex = at < 0 ? (keys[event.key] > 0 ? 0 : orderedEntries.length - 1) : (at + keys[event.key] + orderedEntries.length) % orderedEntries.length;
+    const next = orderedEntries[nextIndex];
     if (!next) return;
     event.preventDefault();
     selectEntry(next);
@@ -108,7 +125,7 @@ export function ModelPicker({ entries = [], selection, onChange, disabled = fals
       </Stack>
     </Box>
   );
-  const trigger = <Button ref={anchor} size="small" color="inherit" sx={shortLabel ? CHAT_MODEL_TRIGGER_SHORT_SX : CHAT_MODEL_TRIGGER_SX} disabled={disabled || !entries.length} onClick={() => setOpen(true)} aria-haspopup="dialog"><Box component="span" sx={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{active ? `${cleanLabel(active, shortLabel)} · ${t(`Chat.effort.${effort}`)} ▾` : t('Chat.chooseModel')}</Box></Button>;
+  const trigger = <Button ref={anchor} size="small" color="inherit" sx={shortLabel ? CHAT_MODEL_TRIGGER_SHORT_SX : CHAT_MODEL_TRIGGER_SX} disabled={disabled || !entries.length} onClick={() => setOpen(true)} aria-haspopup="dialog"><Box component="span" sx={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{active ? `${sourceNamedLabel(active, cleanLabel(active, shortLabel), duplicateTriggers)} · ${t(`Chat.effort.${effort}`)} ▾` : t('Chat.unavailable')}</Box></Button>;
   return <>{trigger}{narrow ? <Drawer anchor="bottom" open={isOpen} onClose={() => setOpen(false)}>{content}</Drawer> : <Popover open={isOpen} anchorEl={anchor.current} onClose={() => setOpen(false)} anchorOrigin={{ vertical: 'top', horizontal: 'left' }} transformOrigin={{ vertical: 'bottom', horizontal: 'left' }}>{content}</Popover>}</>;
 }
 export default ModelPicker;

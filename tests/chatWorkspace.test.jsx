@@ -26,6 +26,11 @@ const catalogue = {
   default: { entry: 'cli-sonnet', effort: 'high' },
 };
 const baseChat = { id: 7, title: 'Budget', archived_at: null, selection: { entry: 'cli-sonnet', effort: 'high' } };
+const managedEntries = [
+  { id: 'acct-a:same', model: 'same', label: 'Same', source_id: 'acct-a', source_label: 'Account A', efforts: ['low'], level: 'top', billing: 'subscription' },
+  { id: 'acct-b:same', model: 'same', label: 'Same', source_id: 'acct-b', source_label: 'Account B', efforts: ['low'], level: 'top', billing: 'subscription' },
+];
+const managedCatalogue = (entries = managedEntries, standard = entries[0] ? { entry: entries[0].id, effort: 'low' } : null, revision = 1) => ({ entries, default: standard, policy: { revision } });
 
 function makeApi(extra = {}) {
   return {
@@ -230,5 +235,110 @@ describe('ChatWorkspace wiring', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Chat.retry' }));
     expect(screen.getByText('Again')).toBeTruthy();
     expect(socket.sent).toEqual([]);
+  });
+
+  it('keeps a valid managed choice, identifies duplicate sources, and does not persist a fallback', async () => {
+    const chat = { ...baseChat, selection: { entry: 'acct-b:same', effort: 'low' } };
+    const api = makeApi({
+      getCatalogue: vi.fn().mockResolvedValue(managedCatalogue()),
+      listChats: vi.fn().mockImplementation(async ({ archived } = {}) => ({ results: archived ? [] : [chat], next: null })),
+    });
+    render(<ChatWorkspace api={api} wsUrl={(id) => `ws://test/${id}`} />);
+    fireEvent.click(await screen.findByText('Budget'));
+    fireEvent.click(await screen.findByRole('button', { name: /Same · Account B/ }));
+    expect(screen.getByRole('radio', { name: /Same · Account A/ })).toBeTruthy();
+    expect(screen.getByRole('radio', { name: /Same · Account B/ })).toBeTruthy();
+    expect(api.updateChat).not.toHaveBeenCalled();
+  });
+
+  it('shows the managed standard after repeated revocations without choosing the first entry', async () => {
+    let current = managedCatalogue();
+    const api = makeApi({
+      getCatalogue: vi.fn().mockImplementation(() => Promise.resolve(current)),
+      listChats: vi.fn().mockImplementation(async ({ archived } = {}) => ({ results: archived ? [] : [{ ...baseChat, selection: { entry: 'acct-b:same', effort: 'low' } }], next: null })),
+    });
+    render(<ChatWorkspace api={api} wsUrl={(id) => `ws://test/${id}`} />);
+    fireEvent.click(await screen.findByText('Budget'));
+    await screen.findByRole('button', { name: /Same · Account B/ });
+
+    current = managedCatalogue([managedEntries[0]], { entry: managedEntries[0].id, effort: 'low' }, 2);
+    fireEvent.click(screen.getByRole('button', { name: /Same · Account B/ }));
+    await waitFor(() => expect(screen.getByRole('radio').dataset.modelEntry).toBe('acct-a:same'));
+    expect(screen.getByRole('radio').getAttribute('aria-checked')).toBe('true');
+    expect(api.updateChat).not.toHaveBeenCalled();
+
+    current = managedCatalogue([managedEntries[1]], { entry: managedEntries[1].id, effort: 'low' }, 3);
+    act(() => document.dispatchEvent(new Event('visibilitychange')));
+    await waitFor(() => expect(screen.getByRole('radio').dataset.modelEntry).toBe('acct-b:same'));
+    expect(screen.getByRole('radio').getAttribute('aria-checked')).toBe('true');
+    expect(api.updateChat).not.toHaveBeenCalled();
+  });
+
+  it('keeps eligible explicit entries reachable when the managed standard is absent', async () => {
+    const api = makeApi({
+      getCatalogue: vi.fn().mockResolvedValue(managedCatalogue(managedEntries, null, 4)),
+      listChats: vi.fn().mockImplementation(async ({ archived } = {}) => ({ results: archived ? [] : [{ ...baseChat, selection: { entry: 'revoked', effort: 'low' } }], next: null })),
+    });
+    render(<ChatWorkspace api={api} wsUrl={(id) => `ws://test/${id}`} />);
+    fireEvent.click(await screen.findByText('Budget'));
+    const trigger = await screen.findByRole('button', { name: 'Chat.unavailable' });
+    fireEvent.click(trigger);
+    expect(screen.getByRole('radio', { name: /Same · Account A/ })).toBeTruthy();
+    expect(screen.getByRole('radio', { name: /Same · Account B/ })).toBeTruthy();
+    expect(api.updateChat).not.toHaveBeenCalled();
+  });
+
+  it('polls a managed catalogue even when the first policy is unavailable', async () => {
+    const timer = vi.spyOn(window, 'setInterval');
+    const api = makeApi({
+      getStatus: vi.fn().mockResolvedValue({ status: 'unavailable', reason: 'policy_unavailable', policy: { revision: null } }),
+      getCatalogue: vi.fn()
+        .mockResolvedValueOnce(managedCatalogue([], null, null))
+        .mockResolvedValue(managedCatalogue()),
+    });
+    try {
+      render(<ChatWorkspace api={api} />);
+      await screen.findByText('Budget');
+      await waitFor(() => expect(timer.mock.calls.some(([, delay]) => delay === 10000)).toBe(true));
+      const [tick] = timer.mock.calls.find(([, delay]) => delay === 10000);
+      const previousCalls = api.getCatalogue.mock.calls.length;
+      act(() => tick());
+      await waitFor(() => expect(api.getCatalogue.mock.calls.length).toBeGreaterThan(previousCalls));
+    } finally {
+      timer.mockRestore();
+    }
+  });
+
+  it('drops an older catalogue response after switching chats', async () => {
+    const pending = new Map();
+    const chat8 = { ...baseChat, id: 8, title: 'Other', selection: { entry: 'model-8', effort: 'low' } };
+    const api = makeApi({
+      getCatalogue: vi.fn(({ chat } = {}) => new Promise((resolve) => pending.set(chat, resolve))),
+      listChats: vi.fn().mockImplementation(async ({ archived } = {}) => ({ results: archived ? [] : [baseChat, chat8], next: null })),
+    });
+    const view = render(<ChatWorkspace api={api} activeChatId={7} wsUrl={(id) => `ws://test/${id}`} />);
+    await waitFor(() => expect(pending.has(7)).toBe(true));
+    view.rerender(<ChatWorkspace api={api} activeChatId={8} wsUrl={(id) => `ws://test/${id}`} />);
+    await waitFor(() => expect(pending.has(8)).toBe(true));
+    pending.get(7)({ entries: [{ id: 'model-7', label: 'Model Seven', model: 'model-7', efforts: ['low'] }], default: { entry: 'model-7', effort: 'low' } });
+    pending.get(8)({ entries: [{ id: 'model-8', label: 'Model Eight', model: 'model-8', efforts: ['low'] }], default: { entry: 'model-8', effort: 'low' } });
+    await waitFor(() => expect(screen.getByRole('button', { name: /Model Eight/ })).toBeTruthy());
+    expect(screen.queryByRole('button', { name: /Model Seven/ })).toBeNull();
+  });
+
+  it('refreshes on foreground return without interrupting a running request', async () => {
+    let resolveRefresh;
+    const api = makeApi({ getCatalogue: vi.fn().mockResolvedValueOnce(catalogue).mockImplementationOnce(() => new Promise((resolve) => { resolveRefresh = resolve; })) });
+    const socket = await openChat(api);
+    fireEvent.change(screen.getByRole('textbox', { name: 'Chat.message' }), { target: { value: 'keep running' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Chat.send' }));
+    Object.defineProperty(document, 'visibilityState', { configurable: true, value: 'hidden' });
+    act(() => document.dispatchEvent(new Event('visibilitychange')));
+    Object.defineProperty(document, 'visibilityState', { configurable: true, value: 'visible' });
+    act(() => document.dispatchEvent(new Event('visibilitychange')));
+    await waitFor(() => expect(resolveRefresh).toBeTypeOf('function'));
+    expect(screen.getByRole('button', { name: 'Chat.stop' })).toBeTruthy();
+    expect(socket.sent).toEqual([{ type: 'send', message: 'keep running' }]);
+    resolveRefresh(catalogue);
   });
 });

@@ -26,6 +26,8 @@ STOP — implementer, do not act on this section.
 
 Verify the agreed catalogue payload against the DCM implementation before release. Verify the scoped chat UI tests and independent reviews. Coordinate release manifest ownership with UCM-AUTH-17 and UCM-DEP-4, and release the shared picker compatibly with the DCM contract before consumer pins. The visual acceptance of the Bigler Consult owner backoffice remains in BCO-UI-10.
 
+DCM 3.30.0 supplies the managed catalogue and availability contract. Independent review used codex/gpt-6.1-terra for the Envelope and codex/gpt-6-luna for regression, duplication, tests, security and UI. Fixed overlapping refreshes, legacy fallback persistence, source display labels and timer coverage. Round two closed with defects recorded: a malformed catalogue for a changed chat should clear the old catalogue; the empty legacy trigger's label changed; the older-response test alone does not distinguish the new guards. These do not alter DCM's enforcement. The end-to-end delivery window is verified in the parent order.
+
 ## Gate record
 
 Gate #1 approved by the operator in BCO-UI-10 chat on 2026-11-17. This is the UCM portion of the approved Envelope.

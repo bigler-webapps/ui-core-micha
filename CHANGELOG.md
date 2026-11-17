@@ -1,5 +1,11 @@
 # Changelog
 
+## 4.39.0 - UCM-CHAT-20
+
+Chat workspaces refresh managed model catalogues in the foreground and identify the source when
+display labels collide. A revoked selection follows the server's eligible standard without
+persisting a new explicit choice. Requires a source-aware DCM catalogue for managed behavior.
+
 ## 4.37.1 - UCM-AUTH-16
 
 Setup wizard step labels use a wider three-column layout on narrow screens, keeping longer labels readable while retaining the desktop row and existing navigation behavior.

@@ -49,6 +49,20 @@ const appendDelta = (turns, text) => {
   if (index < 0) return turns;
   return turns.map((turn, i) => (i === index ? { ...turn, assistant_text: `${turn.assistant_text || ''}${text}` } : turn));
 };
+const sameChatId = (left, right) => (left == null && right == null)
+  || (left != null && right != null && String(left) === String(right));
+const validSelection = (entries, selection) => {
+  const entry = entries.find((item) => item.id === selection?.entry);
+  return entry && entry.efforts?.includes(selection?.effort) ? selection : null;
+};
+const validCatalogue = (value) => {
+  if (!value || typeof value !== 'object' || !Array.isArray(value.entries)
+    || !Object.prototype.hasOwnProperty.call(value, 'default')) return false;
+  if (!Object.prototype.hasOwnProperty.call(value, 'policy')) return true;
+  return value.policy && typeof value.policy === 'object'
+    && Object.prototype.hasOwnProperty.call(value.policy, 'revision')
+    && (value.policy.revision === null || Number.isInteger(value.policy.revision));
+};
 
 /**
  * The complete chat surface: chat list, thread, composer and model picker for one user.
@@ -146,30 +160,49 @@ export function ChatWorkspace({ apiBase, wsUrl, api: apiOverrides, scope, preloa
   const running = turns.some(isGenerating);
   const isArchived = Boolean(chat?.archived_at);
   const usageLimitReached = Boolean(usageLimit && usageLimit.usedUsdMicros >= usageLimit.limitUsdMicros);
-  const selection = chat?.selection || catalogue.default;
+  const selection = chat
+    ? (validSelection(catalogue.entries, chat.selection) || validSelection(catalogue.entries, catalogue.default))
+    : validSelection(catalogue.entries, catalogue.default);
   const activeEntry = catalogue.entries.find((entry) => entry.id === selection?.entry);
+  const managedPolicy = catalogue.policy != null;
   const latestUsageTurn = [...turns].reverse().find((turn) => turn.usage);
   const longChat = longChatTokens > 0 && Number.isFinite(latestUsageTurn?.usage?.context_tokens) && latestUsageTurn.usage.context_tokens >= longChatTokens;
   // Only the newest catalogue request may update the state, so a slow answer for a chat that was left cannot overwrite the active one.
   const catalogueRequest = useRef(0);
+  const pendingCatalogue = useRef(null);
   const catalogueFor = useRef(null);
+  const shownChatId = useRef(null);
+  // Bumped on every scope change so that a list response of the previous scope is dropped.
+  const scopeVersion = useRef(0);
   const [catalogueLoading, setCatalogueLoading] = useState(false);
   const refreshCatalogue = useCallback(async (chatId) => {
+    const version = scopeVersion.current;
+    const pending = pendingCatalogue.current;
+    if (pending?.version === version && sameChatId(pending.chatId, chatId)) return null;
     const request = ++catalogueRequest.current;
+    pendingCatalogue.current = { request, version, chatId };
     setCatalogueLoading(true);
     try {
       const next = await api.getCatalogue(chatId !== undefined ? { chat: chatId } : {});
-      if (request !== catalogueRequest.current) return null;
+      const current = request === catalogueRequest.current
+        && version === scopeVersion.current
+        && sameChatId(shownChatId.current, chatId);
+      if (!current || !validCatalogue(next)) return null;
       catalogueFor.current = chatId ?? null;
       setCatalogue(next); setCatalogueChatId(chatId ?? null);
       return next;
     } catch {
       // A failed load for another chat must not leave the previous chat's models on offer.
-      if (request === catalogueRequest.current && chatId !== undefined && catalogueFor.current !== chatId) setCatalogue({ entries: [], default: null });
+      if (request === catalogueRequest.current && version === scopeVersion.current && chatId !== undefined
+        && sameChatId(shownChatId.current, chatId) && !sameChatId(catalogueFor.current, chatId)) {
+        setCatalogue({ entries: [], default: null });
+      }
       return null;
-    } finally { if (request === catalogueRequest.current) setCatalogueLoading(false); }
+    } finally {
+      if (pendingCatalogue.current?.request === request) pendingCatalogue.current = null;
+      if (request === catalogueRequest.current) setCatalogueLoading(false);
+    }
   }, [api]);
-  const shownChatId = useRef(null);
   const generalCatalogueRequested = useRef(false);
   const requestGeneralCatalogue = useCallback(() => {
     if (generalCatalogueRequested.current) return null;
@@ -177,8 +210,6 @@ export function ChatWorkspace({ apiBase, wsUrl, api: apiOverrides, scope, preloa
     return refreshCatalogue();
   }, [refreshCatalogue]);
 
-  // Bumped on every scope change so that a list response of the previous scope is dropped.
-  const scopeVersion = useRef(0);
   const limitRequest = useRef(0);
   const refreshLimit = useCallback(async (chatId) => {
     const request = ++limitRequest.current;
@@ -241,7 +272,8 @@ export function ChatWorkspace({ apiBase, wsUrl, api: apiOverrides, scope, preloa
     statusRequest
       .then((state) => {
         if (!live) return;
-        if (state.status !== 'available') {
+        const managedUnavailable = state.policy && ['policy_unavailable', 'no_model_enabled'].includes(state.reason);
+        if (state.status !== 'available' && !managedUnavailable) {
           setStatus(state.status);
           setUnavailableReason(state.reason || null);
           return;
@@ -253,7 +285,7 @@ export function ChatWorkspace({ apiBase, wsUrl, api: apiOverrides, scope, preloa
           setChats(active.results || []);
           setNextChats(active.next || null);
           setArchived(old.results || []);
-          setStatus(state.status);
+          setStatus('available');
           setListsLoaded(true);
           setUnavailableReason(null);
         }).catch(() => { if (live) setStatus('error'); });
@@ -273,6 +305,18 @@ export function ChatWorkspace({ apiBase, wsUrl, api: apiOverrides, scope, preloa
     } else if (!generalCatalogueRequested.current && chatWasShown.current) requestGeneralCatalogue();
   }, [chat?.id, refreshCatalogue, requestGeneralCatalogue]);
   useEffect(() => { if (pickerOpen) refreshCatalogue(chat?.id); }, [pickerOpen]);
+  useEffect(() => {
+    const refreshIfForeground = () => {
+      if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return;
+      refreshCatalogue(chat?.id);
+    };
+    document.addEventListener('visibilitychange', refreshIfForeground);
+    const interval = managedPolicy ? window.setInterval(refreshIfForeground, 10000) : null;
+    return () => {
+      document.removeEventListener('visibilitychange', refreshIfForeground);
+      if (interval !== null) window.clearInterval(interval);
+    };
+  }, [chat?.id, managedPolicy, refreshCatalogue]);
 
   useEffect(() => {
     const id = chat?.id ?? null;
@@ -460,17 +504,17 @@ export function ChatWorkspace({ apiBase, wsUrl, api: apiOverrides, scope, preloa
     if (chat?.id === target.id) setChat(updated);
     await loadLists();
   });
-  const fallbackApplied = useRef(new Set());
+  const legacyFallbackApplied = useRef(new Set());
   useEffect(() => {
-    if (!chat || catalogueChatId !== chat.id || !catalogue.entries.length || fallbackApplied.current.has(chat.id)) return;
-    const valid = catalogue.entries.some((entry) => entry.id === chat.selection?.entry && entry.efforts?.includes(chat.selection?.effort));
-    if (valid) return;
-    const served = catalogue.entries.find((item) => item.id === catalogue.default?.entry && item.efforts?.includes(catalogue.default?.effort));
-    const entry = served || catalogue.entries.find((item) => item.default) || catalogue.entries[0];
-    if (!entry) return;
-    fallbackApplied.current.add(chat.id);
-    updateChat(chat, { selection: { entry: entry.id, effort: served ? catalogue.default.effort : entry.efforts?.[0] } });
-  }, [chat, catalogue, catalogueChatId, updateChat]);
+    if (managedPolicy || !chat || catalogueChatId !== chat.id || !catalogue.entries.length
+      || legacyFallbackApplied.current.has(chat.id) || validSelection(catalogue.entries, chat.selection)) return;
+    const served = validSelection(catalogue.entries, catalogue.default);
+    const fallback = catalogue.entries.find((entry) => entry.default) || catalogue.entries[0];
+    const next = served || (fallback && { entry: fallback.id, effort: fallback.efforts?.[0] });
+    if (!next) return;
+    legacyFallbackApplied.current.add(chat.id);
+    updateChat(chat, { selection: next });
+  }, [chat, catalogue, catalogueChatId, managedPolicy, updateChat]);
   const deleteChat = guarded(async (target) => {
     await api.deleteChat(target.id);
     setChats((current) => current.filter((item) => item.id !== target.id));
@@ -597,7 +641,7 @@ export function ChatWorkspace({ apiBase, wsUrl, api: apiOverrides, scope, preloa
                 onDismiss: () => setDismissedComposerNotices((current) => new Set(current).add(`${chat.id}:long-chat`)),
               } : null}
               draftRequest={draftRequest?.chatId === chat.id ? draftRequest : null} onDraftRequestApplied={onDraftRequestApplied} onSend={(text) => startTurn(text)} onStop={() => socket.send({ type: 'stop' })} running={running} archived={isArchived} connected={socket.connected} inputRef={composerInputRef} usageLimit={usageLimit}
-              actions={<ModelPicker entries={catalogue.entries} selection={selection} disabled={isArchived || running || (catalogueLoading && catalogueChatId !== chat.id)} open={pickerOpen} onOpenChange={setPickerOpen} onChange={(next) => updateChat(chat, { selection: next })} balance={tokenBalance} shortLabel={composerLayout === 'compact'} />} />
+              actions={<ModelPicker entries={catalogue.entries} selection={selection} managed={Object.prototype.hasOwnProperty.call(catalogue, 'policy')} disabled={isArchived || running || (catalogueLoading && catalogueChatId !== chat.id)} open={pickerOpen} onOpenChange={setPickerOpen} onChange={(next) => updateChat(chat, { selection: next })} balance={tokenBalance} shortLabel={composerLayout === 'compact'} />} />
           </>
         ) : (
           <Stack alignItems="center" justifyContent="center" spacing={2} sx={{ flex: 1, p: 3 }}>

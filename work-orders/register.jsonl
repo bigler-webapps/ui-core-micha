@@ -37,3 +37,4 @@
 {"id":"UCM-AUTH-17","title":"Extensible registration form for optional app field","status":"in-progress","date":"2026-11-16","updated":"2026-11-16","tier":3,"commits":[],"summary":"","review":"","wo":"work-orders/UCM-AUTH-17.md"}
 {"id":"UCM-DEP-4","title":"Durable keyboard regression test dependency","status":"dropped","date":"2026-11-16","updated":"2026-11-17","tier":3,"commits":[],"summary":"Superseded by operator-approved 14.6.1 under UCM-DEP-5; 14.6.12 was not landed or published.","review":"","wo":"work-orders/UCM-DEP-4.md"}
 {"id":"UCM-DEP-5","title":"Keyboard test with established user-event version","status":"planned","date":"2026-11-17","updated":"2026-11-17","tier":3,"commits":[],"summary":"","review":"","wo":"work-orders/UCM-DEP-5.md"}
+{"id":"UCM-CHAT-20","title":"Refresh source-aware managed chat models","status":"planned","date":"2026-11-17","updated":"2026-11-17","tier":3,"commits":[],"summary":"","review":"","wo":"work-orders/UCM-CHAT-20.md"}
