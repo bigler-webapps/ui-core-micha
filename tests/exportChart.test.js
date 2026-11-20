@@ -102,7 +102,9 @@ describe('exportChartSvg (UCM-CHART-17)', () => {
     const blob = exportChartSvg(container);
     const text = await blob.text();
     document.head.removeChild(style);
-    expect(text).toMatch(/transform:\s*rotate\(45deg\)/);
+    // jsdom 31's computed styles may resolve `transform` to its matrix form, as browsers do (see
+    // `CHART_STYLE_PROPERTIES`'s own note) -- either is the same 45deg rotation.
+    expect(text).toMatch(/transform:\s*(rotate\(45deg\)|matrix\(0\.7071\d*, 0\.7071\d*, -0\.7071\d*, 0\.7071\d*, 0, 0\))/);
     expect(text).toMatch(/transform-origin:\s*20%\s*30%/);
   });
 

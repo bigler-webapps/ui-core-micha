@@ -250,7 +250,8 @@ describe('AccountPage section navigation', () => {
     const grid = container.querySelector('[data-section-nav-mode="desktop"]');
 
     expect(grid).toBeTruthy();
-    expect(getComputedStyle(grid).gridTemplateColumns).toBe('280px minmax(0, 1fr)');
+    // jsdom 31 serialises computed lengths per spec (`0` -> `0px`); both forms mean the same track.
+    expect(getComputedStyle(grid).gridTemplateColumns).toMatch(/^280px minmax\(0(px)?, 1fr\)$/);
     expect(container.querySelector('.MuiTabs-root')).toBeNull();
     expect(container.querySelector('nav')).toBeTruthy();
   });
