@@ -18,7 +18,7 @@ import { useNotifications } from './NotificationsProvider';
 
 export function NotificationBell({ resolveLink }) {
   const { t } = useTranslation();
-  const { notifications, unreadCount, markSeen } = useNotifications();
+  const { notifications, unreadCount, markSeen, markAllSeen, canMarkAll, marking, markError, loadMore, refresh, hasMore, loadingMore, feedError } = useNotifications();
   const [anchorEl, setAnchorEl] = useState(null);
   const open = Boolean(anchorEl);
   const unreadIds = notifications
@@ -26,9 +26,9 @@ export function NotificationBell({ resolveLink }) {
     .map((notification) => notification.id);
 
   const handleItemClick = (notification) => {
-    if (notification.id != null) markSeen([notification.id]);
+    if (notification.id != null) Promise.resolve(markSeen([notification.id])).catch(() => {});
     setAnchorEl(null);
-    if (resolveLink && notification.content?.link) resolveLink(notification.content.link);
+    if (resolveLink && typeof notification.content?.link === 'string' && notification.content.link) resolveLink(notification.content.link);
   };
 
   return (
@@ -49,15 +49,16 @@ export function NotificationBell({ resolveLink }) {
         open={open}
         transformOrigin={{ horizontal: 'right', vertical: 'top' }}
       >
-        <Box sx={{ minWidth: 320 }}>
+        <Box sx={{ width: 320, maxWidth: 'calc(100vw - 32px)' }}>
           <Box sx={{ alignItems: 'center', display: 'flex', justifyContent: 'space-between', px: 2, py: 1 }}>
             <Typography variant="subtitle1">{t('NotificationBell.TITLE')}</Typography>
-            {unreadIds.length > 0 && (
-              <Button onClick={() => markSeen(unreadIds)} size="small">
-                {t('NotificationBell.MARK_ALL')}
+            {(canMarkAll ? unreadCount > 0 : unreadIds.length > 0) && (
+              <Button disabled={marking} onClick={() => canMarkAll ? markAllSeen() : Promise.resolve(markSeen(unreadIds)).catch(() => {})} size="small">
+                {t(canMarkAll ? 'NotificationBell.MARK_ALL' : 'NotificationBell.MARK_LOADED')}
               </Button>
             )}
           </Box>
+          {markError && <Typography role="alert" sx={{ px: 2 }}>{t('NotificationBell.MARK_ERROR')}</Typography>}
           {notifications.length === 0 ? (
             <Typography sx={{ px: 2, py: 2 }} variant="body2">
               {t('NotificationBell.EMPTY')}
@@ -77,6 +78,10 @@ export function NotificationBell({ resolveLink }) {
               ))}
             </List>
           )}
+          {feedError && <Typography role="alert" sx={{ px: 2 }}>{t('NotificationBell.LOAD_ERROR')}</Typography>}
+          {feedError && !hasMore && <Button onClick={() => refresh().catch(() => {})}>{t('NotificationBell.RETRY')}</Button>}
+          {hasMore && <Button disabled={loadingMore} onClick={loadMore}>{t(loadingMore ? 'NotificationBell.LOADING' : feedError ? 'NotificationBell.RETRY' : 'NotificationBell.LOAD_MORE')}</Button>}
+          {!feedError && !hasMore && notifications.length > 0 && <Typography sx={{ px: 2, py: 1 }} variant="body2">{t('NotificationBell.END')}</Typography>}
         </Box>
       </Menu>
     </>

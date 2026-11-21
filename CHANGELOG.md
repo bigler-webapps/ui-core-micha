@@ -1,5 +1,17 @@
 # Changelog
 
+## 4.40.0 - UCM-NOTIF-16
+
+The notification bell pages through the inbox with a Load more control, offers a bulk mark-all-read
+action when the backend advertises `capabilities.mark_all_seen`, reconciles the unread count from the
+server and refreshes on the `notification.inbox_changed` realtime message. Notification state is keyed
+by account, so a late response of a previous account never populates the next one. The notification
+settings show a per-category channel matrix (inherit, enabled, disabled) from
+`/api/notifications/preferences/channel-matrix/`. Requires django-core-micha 3.41.0 or newer for
+paging, bulk marking and the matrix. Against an older backend the bell keeps the scoped
+mark-loaded-as-read behaviour (no `capabilities.mark_all_seen`) and the matrix shows its retryable
+load error. Existing context keys are unchanged.
+
 ## 4.39.0 - UCM-CHAT-20
 
 Chat workspaces refresh managed model catalogues in the foreground and identify the source when

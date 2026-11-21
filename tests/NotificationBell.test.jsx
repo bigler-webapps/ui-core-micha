@@ -57,4 +57,36 @@ describe('NotificationBell', () => {
     expect(notifications.useNotifications.mock.results[0].value.markSeen).toHaveBeenCalledWith([7]);
     expect(resolveLink).toHaveBeenCalledWith('/payments/7');
   });
+  it('offers account-wide marking when supported and loaded-only marking otherwise', () => {
+    const markAllSeen = vi.fn(); const markSeen = vi.fn();
+    const state = { ...notifications.useNotifications(), canMarkAll: true, markAllSeen, markSeen };
+    notifications.useNotifications.mockReturnValue(state);
+    const view = render(<NotificationBell />);
+    fireEvent.click(screen.getByRole('button', { name: 'translated:NotificationBell.TITLE' }));
+    fireEvent.click(screen.getByText('translated:NotificationBell.MARK_ALL'));
+    expect(markAllSeen).toHaveBeenCalledOnce(); expect(markSeen).not.toHaveBeenCalled();
+    notifications.useNotifications.mockReturnValue({ ...state, canMarkAll: false }); view.rerender(<NotificationBell />);
+    fireEvent.click(screen.getByText('translated:NotificationBell.MARK_LOADED'));
+    expect(markSeen).toHaveBeenCalledWith([7]);
+  });
+
+  it('loads more, displays loading, and retries a failed page', () => {
+    const loadMore = vi.fn(); const state = { ...notifications.useNotifications(), hasMore: true, loadMore };
+    notifications.useNotifications.mockReturnValue(state); const view = render(<NotificationBell />);
+    fireEvent.click(screen.getByRole('button', { name: 'translated:NotificationBell.TITLE' }));
+    fireEvent.click(screen.getByText('translated:NotificationBell.LOAD_MORE')); expect(loadMore).toHaveBeenCalledOnce();
+    notifications.useNotifications.mockReturnValue({ ...state, loadingMore: true }); view.rerender(<NotificationBell />);
+    expect(screen.getByText('translated:NotificationBell.LOADING').closest('button').disabled).toBe(true);
+    notifications.useNotifications.mockReturnValue({ ...state, feedError: true }); view.rerender(<NotificationBell />);
+    expect(screen.getByRole('alert').textContent).toContain('translated:NotificationBell.LOAD_ERROR');
+    fireEvent.click(screen.getByText('translated:NotificationBell.RETRY')); expect(loadMore).toHaveBeenCalledTimes(2);
+  });
+
+  it('offers refresh retry without claiming the failed feed is complete', () => {
+    const refresh = vi.fn().mockResolvedValue({});
+    notifications.useNotifications.mockReturnValue({ ...notifications.useNotifications(), hasMore: false, feedError: true, refresh });
+    render(<NotificationBell />); fireEvent.click(screen.getByRole('button', { name: 'translated:NotificationBell.TITLE' }));
+    expect(screen.queryByText('translated:NotificationBell.END')).toBeNull();
+    fireEvent.click(screen.getByText('translated:NotificationBell.RETRY')); expect(refresh).toHaveBeenCalledOnce();
+  });
 });

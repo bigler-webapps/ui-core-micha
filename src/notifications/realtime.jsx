@@ -68,6 +68,7 @@ export function useRealtimeCore({ active, wsUrl }) {
     let hasConnected = false;
 
     const handleMessage = (event) => {
+      if (!isActive) return;
       let data;
       try {
         data = JSON.parse(event.data);

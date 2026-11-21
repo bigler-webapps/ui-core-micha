@@ -1,15 +1,23 @@
-import React, { useEffect, useState } from 'react';
+import React, { useContext, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import Alert from '@mui/material/Alert';
+import Button from '@mui/material/Button';
+import FormControl from '@mui/material/FormControl';
+import FormLabel from '@mui/material/FormLabel';
+import Radio from '@mui/material/Radio';
+import RadioGroup from '@mui/material/RadioGroup';
 import Box from '@mui/material/Box';
 import CircularProgress from '@mui/material/CircularProgress';
 import Divider from '@mui/material/Divider';
 import FormControlLabel from '@mui/material/FormControlLabel';
 import Switch from '@mui/material/Switch';
 import Typography from '@mui/material/Typography';
+import { AuthContext } from '../auth/AuthContext';
 import NotificationsIcon from '@mui/icons-material/Notifications';
 import {
   getNotificationPreferences,
+  getNotificationChannelMatrix,
+  patchNotificationChannelChoice,
   getVapidPublicKey,
   patchNotificationPreferences,
   removePushSubscription,
@@ -63,6 +71,11 @@ function getIosInstallState() {
 }
 
 export function NotificationSettings() {
+  const auth = useContext(AuthContext);
+  return <AccountNotificationSettings key={auth?.user?.id ?? 'anonymous'} />;
+}
+
+function AccountNotificationSettings() {
   const { t } = useTranslation();
   const [preferences, setPreferences] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -73,6 +86,51 @@ export function NotificationSettings() {
   const [error, setError] = useState('');
   const [conflict, setConflict] = useState('');
   const [savingSubscription, setSavingSubscription] = useState(null);
+  const [matrix, setMatrix] = useState([]);
+  const [matrixError, setMatrixError] = useState('');
+  const [matrixLoading, setMatrixLoading] = useState(true);
+  const [savingPair, setSavingPair] = useState(null);
+  const matrixVersion = useRef(0);
+  const active = useRef(true);
+
+  const refreshMatrix = async () => {
+    const version = ++matrixVersion.current;
+    setMatrixLoading(true);
+    setMatrixError('');
+    try {
+      const data = await getNotificationChannelMatrix();
+      if (active.current && version === matrixVersion.current) setMatrix(data.results);
+    } catch {
+      if (active.current && version === matrixVersion.current) setMatrixError(t('NotificationSettings.MATRIX_LOAD_ERROR'));
+    } finally {
+      if (active.current && version === matrixVersion.current) setMatrixLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    active.current = true;
+    refreshMatrix();
+    return () => { active.current = false; matrixVersion.current += 1; };
+  }, []);
+
+  const handleChoice = async (row, choice) => {
+    if (savingPair) return;
+    const pair = `${row.category}:${row.channel}`;
+    ++matrixVersion.current;
+    setMatrixLoading(false);
+    setSavingPair(pair);
+    setMatrixError('');
+    try {
+      const updated = await patchNotificationChannelChoice(row.category, row.channel, choice);
+      if (active.current) setMatrix((current) => current.map((item) => (
+        item.category === row.category && item.channel === row.channel ? updated : item
+      )));
+    } catch {
+      if (active.current) setMatrixError(t('NotificationSettings.MATRIX_SAVE_ERROR'));
+    } finally {
+      if (active.current) setSavingPair(null);
+    }
+  };
 
   const pushSupported = getPushSupport();
   const iosNeedsInstall = getIosInstallState();
@@ -117,6 +175,7 @@ export function NotificationSettings() {
     try {
       const updated = await patchNotificationPreferences({ email_opt_in });
       setPreferences(updated);
+      if (active.current) refreshMatrix();
     } catch {
       setError(t('NotificationSettings.SAVE_ERROR'));
     } finally {
@@ -143,6 +202,7 @@ export function NotificationSettings() {
       await savePushSubscription(subscription.toJSON(), navigator.userAgent);
       const updated = await patchNotificationPreferences({ push_opt_in: true });
       setPreferences(updated);
+      if (active.current) refreshMatrix();
       setPushSubscribed(true);
     } catch (requestError) {
       if (requestError?.response?.status === 409) {
@@ -266,6 +326,30 @@ export function NotificationSettings() {
           labelPlacement="end"
           sx={NOTIFICATION_SETTINGS_PUSH_CONTROL_SX}
         />
+      </Box>
+
+      <Divider />
+      <Box sx={{ py: 2 }}>
+        {matrixLoading && <Typography role="status">{t('NotificationSettings.MATRIX_LOADING')}</Typography>}
+        {matrixError && <Alert severity="error" action={<Button onClick={refreshMatrix}>{t('NotificationSettings.RETRY')}</Button>}>{matrixError}</Alert>}
+        {matrix.length > 0 && <Typography variant="subtitle2" gutterBottom>{t('NotificationSettings.MATRIX_TITLE')}</Typography>}
+        {matrix.map((row) => (
+          <Box key={`${row.category}:${row.channel}`} sx={{ py: 1, overflowWrap: 'anywhere' }}>
+            <FormControl component="fieldset" aria-busy={Boolean(savingPair)}>
+              <FormLabel component="legend">{row.label_key ? t(row.label_key, { defaultValue: row.label }) : row.label}</FormLabel>
+              <RadioGroup row value={row.choice} onChange={(event) => handleChoice(row, event.target.value)}>
+                <FormControlLabel value="inherit" control={<Radio />} label={t('NotificationSettings.CHOICE_INHERIT')} />
+                <FormControlLabel value="enabled" control={<Radio />} label={t('NotificationSettings.CHOICE_ON')} />
+                <FormControlLabel value="disabled" control={<Radio />} label={t('NotificationSettings.CHOICE_OFF')} />
+              </RadioGroup>
+            </FormControl>
+            <Typography variant="body2" color="text.secondary">
+              {t(row.effective_enabled ? 'NotificationSettings.EFFECTIVE_ON' : 'NotificationSettings.EFFECTIVE_OFF')}
+            </Typography>
+            {row.channel === 'push' && !pushSubscribed && <Typography variant="body2" color="text.secondary">{t('NotificationSettings.PUSH_DEVICE_UNAVAILABLE')}</Typography>}
+            {savingPair === `${row.category}:${row.channel}` && <Typography role="status">{t('NotificationSettings.MATRIX_SAVING')}</Typography>}
+          </Box>
+        ))}
       </Box>
 
       {preferences?.notification_types?.length > 0 && (

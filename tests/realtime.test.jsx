@@ -208,12 +208,12 @@ describe('realtime primitive (NOTIF-13)', () => {
     }
   });
 
-  it("NotificationsProvider's public context value is unchanged", async () => {
+  it("NotificationsProvider's public context keeps every existing key (new keys are additive)", async () => {
     renderWithStreams();
     await waitFor(() => expect(MockWebSocket.instances).toHaveLength(1));
 
     expect(JSON.parse(screen.getByTestId('context-keys').textContent)).toEqual(
-      ['markDismissed', 'markDone', 'markSeen', 'notifications', 'refresh', 'unreadCount'].sort(),
+      expect.arrayContaining(['markDismissed', 'markDone', 'markSeen', 'notifications', 'refresh', 'unreadCount']),
     );
   });
 });

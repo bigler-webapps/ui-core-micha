@@ -1,10 +1,12 @@
 // @vitest-environment jsdom
 import React from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor, act } from '@testing-library/react';
 
 const notificationsApi = vi.hoisted(() => ({
   getNotificationPreferences: vi.fn(),
+  getNotificationChannelMatrix: vi.fn().mockResolvedValue({ results: [] }),
+  patchNotificationChannelChoice: vi.fn(),
   getVapidPublicKey: vi.fn(),
   patchNotificationPreferences: vi.fn(),
   removePushSubscription: vi.fn(),
@@ -22,6 +24,7 @@ const stableT = (key) => key;
 vi.mock('react-i18next', () => ({ useTranslation: () => ({ t: stableT }) }));
 
 import { NotificationSettings } from '../src/notifications/NotificationSettings';
+import { AuthContext } from '../src/auth/AuthContext';
 
 function installPushEnvironment(subscription) {
   const registration = {
@@ -273,4 +276,71 @@ describe('NotificationSettings reach axis (NOTIF-26)', () => {
     await waitFor(() => expect(notificationsApi.setNotificationCategorySubscription).toHaveBeenCalledWith('ops', true));
     await waitFor(() => expect(toggle.checked).toBe(false));
   });
+});
+
+
+describe('personal channel choices', () => {
+  const row = { category: 'messaging', channel: 'push', label: 'Chat push', choice: 'inherit', effective_enabled: false };
+  beforeEach(() => {
+    vi.clearAllMocks();
+    notificationsApi.getNotificationPreferences.mockResolvedValue({ email_opt_in: false, push_opt_in: true });
+    notificationsApi.getNotificationChannelMatrix.mockResolvedValue({ results: [row] });
+  });
+
+  it('saves and resets the offered pair using the authoritative response even without a device subscription', async () => {
+    installPushEnvironment(null);
+    notificationsApi.patchNotificationChannelChoice.mockResolvedValueOnce({ ...row, choice: 'enabled', effective_enabled: true }).mockResolvedValueOnce(row);
+    render(<NotificationSettings />);
+    expect(await screen.findByText('Chat push')).toBeTruthy();
+    expect(screen.getByText('NotificationSettings.PUSH_DEVICE_UNAVAILABLE')).toBeTruthy();
+    fireEvent.click(screen.getByRole('radio', { name: 'NotificationSettings.CHOICE_ON' }));
+    await waitFor(() => expect(screen.getByText('NotificationSettings.EFFECTIVE_ON')).toBeTruthy());
+    expect(notificationsApi.patchNotificationChannelChoice).toHaveBeenCalledWith('messaging', 'push', 'enabled');
+    fireEvent.click(screen.getByRole('radio', { name: 'NotificationSettings.CHOICE_INHERIT' }));
+    await waitFor(() => expect(screen.getByText('NotificationSettings.EFFECTIVE_OFF')).toBeTruthy());
+  });
+
+  it('retains the previous choice on failure and permits another selection', async () => {
+    notificationsApi.patchNotificationChannelChoice.mockRejectedValueOnce(new Error()).mockResolvedValueOnce({ ...row, choice: 'disabled' });
+    render(<NotificationSettings />);
+    const off = await screen.findByRole('radio', { name: 'NotificationSettings.CHOICE_OFF' });
+    fireEvent.click(off);
+    expect(await screen.findByText('NotificationSettings.MATRIX_SAVE_ERROR')).toBeTruthy();
+    expect(screen.getByRole('radio', { name: 'NotificationSettings.CHOICE_INHERIT' }).checked).toBe(true);
+    fireEvent.click(off);
+    await waitFor(() => expect(off.checked).toBe(true));
+  });
+
+  it('refreshes inherited effective values after changing the general email setting', async () => {
+    const email = { ...row, channel: 'email', label: 'Chat email' };
+    notificationsApi.getNotificationChannelMatrix.mockResolvedValueOnce({ results: [email] }).mockResolvedValueOnce({ results: [{ ...email, effective_enabled: true }] });
+    notificationsApi.patchNotificationPreferences.mockResolvedValue({ email_opt_in: true, push_opt_in: true });
+    render(<NotificationSettings />);
+    await screen.findByText('Chat email');
+    fireEvent.click(screen.getByRole('switch', { name: /EMAIL_LABEL/ }));
+    expect(await screen.findByText('NotificationSettings.EFFECTIVE_ON')).toBeTruthy();
+  });
+});
+
+it('does not show a delayed matrix response from the previous account', async () => {
+  let resolveOld;
+  notificationsApi.getNotificationPreferences.mockResolvedValue({ email_opt_in: false });
+  notificationsApi.getNotificationChannelMatrix.mockReset().mockReturnValueOnce(new Promise((resolve) => { resolveOld = resolve; })).mockResolvedValueOnce({ results: [{ category: 'todo', channel: 'email', label: 'New account', choice: 'inherit', effective_enabled: false }] });
+  const view = render(<AuthContext.Provider value={{ user: { id: 1 } }}><NotificationSettings /></AuthContext.Provider>);
+  view.rerender(<AuthContext.Provider value={{ user: { id: 2 } }}><NotificationSettings /></AuthContext.Provider>);
+  expect(await screen.findByText('New account')).toBeTruthy();
+  await act(async () => { resolveOld({ results: [{ category: 'messaging', channel: 'email', label: 'Old account', choice: 'enabled', effective_enabled: true }] }); await Promise.resolve(); });
+  expect(screen.queryByText('Old account')).toBeNull();
+});
+
+it('keeps the selected radio focused while saving', async () => {
+  let resolveSave;
+  notificationsApi.getNotificationPreferences.mockResolvedValue({email_opt_in:false});
+  notificationsApi.getNotificationChannelMatrix.mockResolvedValue({results:[{category:'ops',channel:'email',label:'Ops',choice:'inherit',effective_enabled:false}]});
+  notificationsApi.patchNotificationChannelChoice.mockReturnValue(new Promise(resolve => { resolveSave = resolve; }));
+  render(<NotificationSettings />);
+  const radio = await screen.findByRole('radio', {name:'NotificationSettings.CHOICE_ON'});
+  radio.focus(); fireEvent.click(radio);
+  expect(document.activeElement).toBe(radio); expect(radio.disabled).toBe(false);
+  await act(async () => { resolveSave({category:'ops',channel:'email',label:'Ops',choice:'enabled',effective_enabled:true}); await Promise.resolve(); });
 });

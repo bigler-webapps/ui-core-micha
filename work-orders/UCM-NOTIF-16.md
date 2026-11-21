@@ -98,8 +98,22 @@ Run the new or updated cases from the UCM root with the existing Vitest runner (
 
 ## Completion
 
-Implementation, reviews, compatibility evidence and release are pending.
+Landed as ui-core-micha 4.40.0, compatible with django-core-micha 3.41.0 (DCM-NOTIF-30).
+
+Tests: the six notification suites pass (44 tests). The full suite shows two environment failures unrelated to the change: `packageTreeShaking` (Windows symlink EPERM) and `packageEntries` (passes alone, fails under load).
+
+Review: round 1 plus one closing round, six lenses (envelope, regression, duplication, tests, security, UI). Round 1 findings were fixed by one fix worker. The closing round raised no blocker.
+
+Carried to the register (not blockers):
+- An individual mark does not invalidate a refresh that started before it, so a stale refresh can overwrite the optimistic seen state and badge.
+- Merge key also uses `notification_id`; the contract names `results[].id` as the stable key.
+- On a direct account switch the provider renders once with the previous account's data before the effect clears it (security lens; account-keyed state should be derived during render).
+- Settings: a save response does not invalidate an in-flight matrix refresh; the retry button reloads the matrix instead of retrying the failed choice; choices made while a save is pending are dropped without feedback.
+- Bell shows the empty-state text next to a failed first load.
+- Weak assertions: refresh-race test, bulk-retry test and the matrix GET URL.
+
+The notification and chat work share the package; UCM-CHAT-21 files were not staged.
 
 ## Gate record
 
-On 2026-11-21 the operator requested preparation of the combined Core package alongside JG-NOTIF-29. Gate #1 for code implementation is pending.
+On 2026-11-21 the operator requested preparation of the combined Core package alongside JG-NOTIF-29. Gate #1 approved by the operator 2026-11-21 (UCM package, Tier 3, together with DCM-NOTIF-30 and JG-NOTIF-29).

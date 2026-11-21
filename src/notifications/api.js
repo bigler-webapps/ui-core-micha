@@ -14,6 +14,21 @@ export async function patchNotificationPreferences(patch) {
   return response.data;
 }
 
+export async function getNotificationChannelMatrix() {
+  try {
+    const response = await apiClient.get(`${PREFERENCES_URL}channel-matrix/`);
+    return response.data;
+  } catch (error) {
+    if (error?.response?.status === 404) return { results: [] };
+    throw error;
+  }
+}
+
+export async function patchNotificationChannelChoice(category, channel, choice) {
+  const response = await apiClient.patch(`${PREFERENCES_URL}channel-matrix/`, { category, channel, choice });
+  return response.data;
+}
+
 export async function setNotificationCategorySubscription(category, subscribed) {
   const response = await apiClient.post(SUBSCRIPTIONS_URL, { category, subscribed });
   return response.data;
