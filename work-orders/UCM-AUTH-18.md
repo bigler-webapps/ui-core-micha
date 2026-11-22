@@ -51,3 +51,5 @@
 - For every language present, `Auth.PASSWORD_TOO_SHORT`, `Auth.PASSWORD_TOO_SHORT_LOCAL` and `password_too_short` have identical texts.
 
 ## Gate record
+
+Gate #1 approved by the operator 2026-11-22 (AskUserQuestion: "Freigeben + Übergabetext").
