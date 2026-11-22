@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 import React from 'react';
+import axe from 'axe-core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { createTheme, ThemeProvider } from '@mui/material/styles';
@@ -45,7 +46,7 @@ describe('UserMenu', () => {
     const user = { first_name: 'Ada', last_name: 'Lovelace', email: 'ada@example.com', username: 'ada' };
     renderUserMenu({ user });
 
-    fireEvent.click(screen.getByRole('button', { name: 'translated:UserMenu.TITLE' }));
+    fireEvent.click(screen.getByRole('button', { name: /translated:UserMenu.TITLE/ }));
 
     expect(screen.getByText('Ada Lovelace')).toBeTruthy();
     expect(screen.getByText('ada@example.com')).toBeTruthy();
@@ -58,7 +59,7 @@ describe('UserMenu', () => {
     const user = { username: 'ada' };
     renderUserMenu({ user, logout });
 
-    fireEvent.click(screen.getByRole('button', { name: 'translated:UserMenu.TITLE' }));
+    fireEvent.click(screen.getByRole('button', { name: /translated:UserMenu.TITLE/ }));
     fireEvent.click(screen.getByText('translated:UserMenu.LOGOUT'));
 
     expect(logout).toHaveBeenCalledTimes(1);
@@ -69,7 +70,7 @@ describe('UserMenu', () => {
     const user = { username: 'ada' };
     renderUserMenu({ user, resolveLink });
 
-    fireEvent.click(screen.getByRole('button', { name: 'translated:UserMenu.TITLE' }));
+    fireEvent.click(screen.getByRole('button', { name: /translated:UserMenu.TITLE/ }));
     fireEvent.click(screen.getByText('translated:UserMenu.PROFILE'));
 
     expect(resolveLink).toHaveBeenCalledWith('/account');
@@ -77,7 +78,7 @@ describe('UserMenu', () => {
 
     const resolveLinkOverride = vi.fn();
     renderUserMenu({ user, resolveLink: resolveLinkOverride, profileLink: '/settings/profile' });
-    fireEvent.click(screen.getByRole('button', { name: 'translated:UserMenu.TITLE' }));
+    fireEvent.click(screen.getByRole('button', { name: /translated:UserMenu.TITLE/ }));
     fireEvent.click(screen.getByText('translated:UserMenu.PROFILE'));
 
     expect(resolveLinkOverride).toHaveBeenCalledWith('/settings/profile');
@@ -95,7 +96,7 @@ describe('UserMenu', () => {
       ],
     });
 
-    fireEvent.click(screen.getByRole('button', { name: 'translated:UserMenu.TITLE' }));
+    fireEvent.click(screen.getByRole('button', { name: /translated:UserMenu.TITLE/ }));
 
     const menuItems = screen.getAllByRole('menuitem').map((el) => el.textContent);
     expect(menuItems).toEqual([
@@ -114,7 +115,7 @@ describe('UserMenu', () => {
     const user = { username: 'ada' };
     renderUserMenu({ user });
 
-    const trigger = screen.getByRole('button', { name: 'translated:UserMenu.TITLE' });
+    const trigger = screen.getByRole('button', { name: /translated:UserMenu.TITLE/ });
     trigger.focus();
     fireEvent.click(trigger);
     expect(screen.getByText('translated:UserMenu.LOGOUT')).toBeTruthy();
@@ -131,7 +132,7 @@ describe('UserMenu', () => {
     const user = { username: 'ada@example.com', email: 'ada@example.com' };
     renderUserMenu({ user });
 
-    fireEvent.click(screen.getByRole('button', { name: 'translated:UserMenu.TITLE' }));
+    fireEvent.click(screen.getByRole('button', { name: /translated:UserMenu.TITLE/ }));
 
     expect(screen.getAllByText('ada@example.com')).toHaveLength(1);
   });
@@ -143,6 +144,25 @@ describe('UserMenu', () => {
 
     renderUserMenu({ user: { username: 'grace' } });
     expect(screen.getByText('G')).toBeTruthy();
+  });
+
+  it('names the account button with visible initials but no extra identity data', () => {
+    for (const [user, initials] of [[{ first_name: 'Ada', last_name: 'Lovelace', email: 'private@example.com' }, 'AL'], [{ username: 'grace' }, 'G'], [{}, '']]) {
+      renderUserMenu({ user });
+      const button = screen.getByRole('button', { name: `translated:UserMenu.TITLE${initials ? ` ${initials}` : ''}` });
+      expect(button.textContent).toBe(initials);
+      expect(button.getAttribute('aria-label')).not.toContain('private@example.com');
+      cleanup();
+    }
+    renderUserMenu({ user: { first_name: 'Ada' }, avatarSrc: '/avatar.png' });
+    expect(screen.getByRole('button', { name: 'translated:UserMenu.TITLE' }).textContent).toBe('');
+  });
+
+  it('passes the axe label rule with visible initials', async () => {
+    renderUserMenu({ user: { first_name: 'Ada', last_name: 'Lovelace' } });
+    const button = screen.getByRole('button', { name: 'translated:UserMenu.TITLE AL' });
+    expect(button.textContent).toBe('AL');
+    expect((await axe.run(button, { runOnly: ['label-content-name-mismatch'] })).violations).toEqual([]);
   });
 
   it("uses a contrasting avatar pair with jg-ferien's primary colour", () => {

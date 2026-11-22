@@ -69,7 +69,7 @@ export function UserMenu({ resolveLink, items = [], profileLink = '/account', av
   return (
     <>
       <IconButton
-        aria-label={t('UserMenu.TITLE')}
+        aria-label={[t('UserMenu.TITLE'), !avatarSrc && getInitials(user)].filter(Boolean).join(' ')}
         color="inherit"
         onClick={(event) => setAnchorEl(event.currentTarget)}
       >

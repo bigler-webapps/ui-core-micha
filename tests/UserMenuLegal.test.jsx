@@ -26,7 +26,7 @@ describe('UserMenu has no legal or privacy entries', () => {
         </AuthContext.Provider>
       </TranslationRoot>,
     );
-    fireEvent.click(screen.getByRole('button', { name: 'UserMenu.TITLE' }));
+    fireEvent.click(screen.getByRole('button', { name: 'UserMenu.TITLE A' }));
     expect(menuTexts()).toEqual(['UserMenu.PROFILE', 'Billing', 'UserMenu.LOGOUT']);
   });
 
@@ -49,7 +49,7 @@ describe('UserMenu has no legal or privacy entries', () => {
       </TranslationRoot>,
     );
     await vi.waitFor(() => expect(api.getChoices).toHaveBeenCalled());
-    fireEvent.click(screen.getByRole('button', { name: 'UserMenu.TITLE' }));
+    fireEvent.click(screen.getByRole('button', { name: 'UserMenu.TITLE A' }));
     expect(menuTexts()).toEqual(['UserMenu.PROFILE', 'UserMenu.LOGOUT']);
     expect(api.saveChoices).not.toHaveBeenCalled();
   });

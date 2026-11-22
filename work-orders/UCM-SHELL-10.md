@@ -26,8 +26,9 @@ additional personal information through names.
 ### Scope and exclusions
 
 In scope are the two shared components, their directly related translations
-and focused tests. Preserve existing consumer-facing props and behavior.
-No redesign, permission or authentication logic changes, dependency changes,
+and focused tests, including an additive axe-core development dependency.
+Preserve existing consumer-facing props and behavior.
+No redesign, permission or authentication logic changes, other dependency changes,
 shared workflow changes, Cockpit product changes, or unrelated accessibility
 cleanup. Release/version changes and consumer dependency updates follow
 their own established gates.
@@ -100,7 +101,39 @@ rechecked against a named build with the approved consumer dependency. Record
 component tests, actual review lenses and the cross-repo dependency. Preserve
 the user's explicit Gate #1 decision before dispatch.
 
+## Completion
+
+The configured Codex Terra implementer updated the two component names and
+notification translations. The first worker attempt was rejected by a
+server-access hook due to its command form and changed no files; the retry
+used file edits. The operator separately approved adding axe-core 4.14.1 as a
+development dependency. A Codex Terra fix worker added targeted axe and real
+translation tests and updated the two affected existing legal-menu tests.
+Part B: accurate.
+
+Independent review used Terra for envelope, regression, tests, security and
+UI, and Luna for duplication. Round 1 raised two accepted defects, targeted
+axe coverage and real translation interpolation, both addressed. Closing
+round 2 raised one accepted, carried defect: tests open both menus with a
+mouse and do not verify keyboard activation. No blocker was raised.
+
+The declared full frontend scope ran 1,446 tests with three failures. The
+package-entry tests timed out / failed under load; a subsequent selection of
+that file passed five tests. The package tree-shaking test could not create a
+Windows symlink (EPERM). Selections of NotificationBell, UserMenu and
+UserMenuLegal passed 8, 12 and 2 tests respectively, including the axe and
+translation assertions. These selections are diagnostic, not scope evidence.
+No CI dispatch occurred.
+
+Cockpit CP-CI-3 remains dependent on a local run against an explicitly
+identified build of this Core change, followed by the separately gated
+consumer dependency and release path. No release or pin change is authorized
+by this WO alone.
+
 ## Gate record
 
 Gate #1 approved by the operator 2026-11-22 (NotificationBell and UserMenu
 accessible names and the described regressions, with local Cockpit follow-up).
+
+The operator approved adding axe-core as a development dependency for the
+targeted regression tests on 2026-11-22.

@@ -34,7 +34,7 @@ export function NotificationBell({ resolveLink }) {
   return (
     <>
       <IconButton
-        aria-label={t('NotificationBell.TITLE')}
+        aria-label={`${t('NotificationBell.TITLE')} ${t('NotificationBell.UNREAD', { count: unreadCount > 99 ? '99+' : unreadCount })}`}
         color="inherit"
         onClick={(event) => setAnchorEl(event.currentTarget)}
       >

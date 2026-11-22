@@ -1,5 +1,6 @@
 export const notificationsTranslations = {
   'NotificationBell.TITLE': { de: 'Benachrichtigungen', fr: 'Notifications', en: 'Notifications', sw: 'Arifa' },
+  'NotificationBell.UNREAD': { de: '{{count}} ungelesen', fr: '{{count}} non lues', en: '{{count}} unread', sw: '{{count}} ambazo hazijasomwa' },
   'NotificationBell.EMPTY': { de: 'Keine Benachrichtigungen vorhanden.', fr: 'Aucune notification.', en: 'No notifications.', sw: 'Hakuna arifa.' },
   'NotificationBell.LOAD_MORE': { de: 'Mehr laden', fr: 'Charger plus', en: 'Load more', sw: 'Pakia zaidi' },
   'NotificationBell.LOADING': { de: 'Wird geladen…', fr: 'Chargement…', en: 'Loading…', sw: 'Inapakia…' },
