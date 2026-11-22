@@ -72,3 +72,34 @@ describe('authTranslations — UserList pagination labels', () => {
     expect(authTranslations['UserList.DISPLAYED_ROWS_MORE_THAN'][locale]).not.toContain('{{count}}');
   });
 });
+
+
+describe('authTranslations — password-too-short wording', () => {
+  it('uses the same nonempty text for every locale across all three keys', () => {
+    const approvedTexts = {
+      de: 'Das Passwort muss mindestens 8 Zeichen lang sein.',
+      en: 'The password must be at least 8 characters long.',
+      fr: 'Le mot de passe doit contenir au moins 8 caractères.',
+      sw: 'Nenosiri linahitajika kuwa na angalau herufi 8.',
+    };
+    const messages = [
+      authTranslations['Auth.PASSWORD_TOO_SHORT'],
+      authTranslations['Auth.PASSWORD_TOO_SHORT_LOCAL'],
+      authTranslations.password_too_short,
+    ];
+    const locales = new Set([
+      ...Object.keys(approvedTexts),
+      ...messages.flatMap((message) => Object.keys(message)),
+    ]);
+
+    for (const locale of locales) {
+      expect(messages[0][locale]).toEqual(expect.any(String));
+      expect(messages[0][locale].trim()).not.toBe('');
+      expect(messages[1][locale]).toBe(messages[0][locale]);
+      expect(messages[2][locale]).toBe(messages[0][locale]);
+      if (Object.hasOwn(approvedTexts, locale)) {
+        expect(messages[0][locale]).toBe(approvedTexts[locale]);
+      }
+    }
+  });
+});

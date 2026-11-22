@@ -1884,9 +1884,9 @@ export const authTranslations = {
   },
   "Auth.PASSWORD_TOO_SHORT": {
     "de": "Das Passwort muss mindestens 8 Zeichen lang sein.",
-    "fr": "Le mot de passe doit comporter au moins 8 caractères.",
-    "en": "Password must be at least 8 characters long.",
-    "sw": "Nenosiri lazima liwe na herufi 8 au zaidi."
+    "fr": "Le mot de passe doit contenir au moins 8 caractères.",
+    "en": "The password must be at least 8 characters long.",
+    "sw": "Nenosiri linahitajika kuwa na angalau herufi 8."
   },
   "Auth.PASSWORD_MISMATCH": {
     "de": "Die Passwörter stimmen nicht überein.",

@@ -1,5 +1,9 @@
 # Changelog
 
+## 4.40.1 - UCM-AUTH-18
+
+The English, French and Swahili signup password-too-short messages now match the existing local and server error wording.
+
 ## 4.40.0 - UCM-NOTIF-16
 
 The notification bell pages through the inbox with a Load more control, offers a bulk mark-all-read

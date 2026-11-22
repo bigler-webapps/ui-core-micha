@@ -50,6 +50,26 @@
 
 - For every language present, `Auth.PASSWORD_TOO_SHORT`, `Auth.PASSWORD_TOO_SHORT_LOCAL` and `password_too_short` have identical texts.
 
+## B. Implementation map
+
+Target: `C:/Users/Micha Bigler/Documents/webapps/ui-core-micha` on `main`. The existing `src/i18n/authTranslations.ts` contains all three keys and the four locales `de`, `en`, `fr`, `sw`; the two existing comparison keys already match. The existing `tests/authTranslations.test.js` checks auth translation coverage and is the relevant test seam. The Orchestrator owns the work order, register, version, changelog, tests, independent review and release. Preserve the unrelated uncommitted chat and permissions changes in the shared checkout.
+
+## Preamble
+
+> You are the configured implementer for UCM-AUTH-18. Run `codex-hook-canary-ws-gov-60` first from the workspace root; report unverified coverage if the expected denial is absent. Parts A and B are the complete specification. Work only in `src/i18n/authTranslations.ts` and `tests/authTranslations.test.js` under the target repository. Other sessions share the checkout; preserve their changes. Do not read environment files, credentials or real records. Do not edit the WO, register, metadata, dependencies or other paths; do not install packages, run git writes, review, delegate or dispatch. Write the required test; the Orchestrator runs authoritative evidence. Leave an uncommitted diff and return PLAN, PROGRESS and RESULT.
+
+## C. Orchestrator only
+
+Record test evidence, independent review, release and Part B accuracy in Completion.
+
+## Completion
+
+The configured implementer and fix worker used `codex/gpt-6.1-terra`. Independent OpenAI review used `codex/gpt-6.1-terra` for envelope, regression, tests, security and UI and `codex/gpt-6-luna` for duplication. The first round raised two test defects, both corrected; the closing round reported no findings. Part B: accurate.
+
+The initial `tests.py --repo ui-core-micha --scope frontend --wo UCM-AUTH-18` returned `RESULT: BLOCKED` because the local `project.yaml` declared only `managed_picker`. After the operator approved the permanent test configuration, `tests.py --repo ui-core-micha --scope auth_translations --wo UCM-AUTH-18` passed 23 tests. The operator authorized an independent replacement review because the review runner refused round 3; `codex/gpt-6.1-terra` found no issues. The first attempt returned exit 65 because its answer did not match the wrapper's format; the formatted retry passed. The local test configuration also names an uncommitted UCM-CHAT-21 test, so its permanent landing remains coordinated with that order. The 4.40.1 metadata is prepared locally; publication remains to be verified.
+
 ## Gate record
 
 Gate #1 approved by the operator 2026-11-22 (AskUserQuestion: "Freigeben + Übergabetext").
+
+Gate #1 expansion approved by the operator 2026-11-22: add a permanent frontend test scope and an auth translation scope to `project.yaml`, and correct the managed-picker Windows test invocation.
