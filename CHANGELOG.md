@@ -1,5 +1,11 @@
 # Changelog
 
+## 4.40.2 - UCM-SHELL-10
+
+Notification and account menu buttons include their visible unread count or
+avatar initials in their accessible names while retaining their existing
+menu behavior.
+
 ## 4.40.1 - UCM-AUTH-18
 
 The English, French and Swahili signup password-too-short messages now match the existing local and server error wording.

@@ -39,7 +39,7 @@ async function bundlePackageExport({ caseName, exportName, manifestField }) {
   await cp(
     path.join(packageRoot, 'node_modules', '@fontsource', 'dm-sans'),
     installedFontRoot,
-    { recursive: true },
+    { recursive: true, dereference: true },
   );
   await writeFile(
     path.join(installedPackageRoot, 'package.json'),
