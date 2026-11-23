@@ -113,3 +113,31 @@ tests were absent from that metadata-only payload is rejected because those
 files were reviewed in rounds 1 and 2. Round 3's other lenses found no issues.
 Part B: accurate. Exact full-scope tests, package build and release remain
 pending; the test assertion added after round 2 has no separate review.
+
+2026-11-23: Candidate `7f4ab567da242f920d649b88181684c22d8d7689` was
+installed from the frozen lockfile offline in the separate direct clone
+`ui-core-micha-notif17-check`. Package build passed. The declared frontend
+scope with `VITEST_MAX_WORKERS=2` failed: 1444/1445 passed, with the existing
+optional-peer cold-import test timing out at its unchanged 30-second limit.
+Log: `.claude/scratch/tests-ui-core-micha-notif17-check-20261123-112632/`.
+A selected diagnostic rerun of `tests/packageEntries.test.js` on the same
+snapshot also timed out in that test (4/5 passed); log
+`.claude/scratch/tests-ui-core-micha-notif17-check-20261123-114222/`.
+The same selected file passed 5/5 in the earlier 4.40.2-source check clone
+in 28.4 seconds, close to the per-test limit; that diagnostic does not prove
+whether the candidate change or differing runtime conditions caused the
+candidate timeout. Its log is
+`.claude/scratch/tests-ui-core-micha-shell10-check-20261123-114350/`.
+Selection is not scope evidence. The cause of the timeout is not established;
+the full-scope gate remains red. No patch release, push or Actions dispatch
+occurred, and the Cockpit pin remains blocked.
+
+After the concurrent HRAM test ended, the unchanged optional-peer package
+test passed on the old check clone (5/5, 21.9 s) and on the exact candidate
+(5/5, 25.0 s), both under Node 25.9.0 and `VITEST_MAX_WORKERS=2`; selection
+runs are diagnostic only. A host interruption invalidated an earlier baseline
+comparison. The single authorized full rerun on `7f4ab56` then passed all
+1445 tests in 509.2 s, with unchanged assertions and timeouts. Log:
+`.claude/scratch/tests-ui-core-micha-notif17-check-20261123-130625/`.
+The candidate package build passed before this run. Publication and consumer
+verification remain to be recorded after the regular push.
