@@ -14,6 +14,9 @@ first committed render in 4.40.2. Delayed requests, realtime activity and
 mutations from an earlier identity must not restore its state or affect the
 new identity. Logout followed by a separate login remains isolated. Preserve
 children, existing consumer APIs and notification behavior for one account.
+An interrupted or abandoned React render must not mutate live account refs,
+request guards or pagination state, and an identity change must not remount
+the application subtree or discard unrelated child state.
 
 ### Scope and exclusions
 
@@ -37,6 +40,8 @@ paging, live delivery, optimistic updates or consumer component lifecycle.
   delayed old-account feed, pages and marks including rejection and realtime
   events. Verify new-account refresh, paging and operations remain functional.
 - Use synthetic identities and marker contents only.
+- Cover an abandoned or suspended account-change render followed by continued
+  use of the original account, including in-flight operations and pagination.
 
 ## B. Implementation map
 
@@ -81,3 +86,30 @@ approved pin, local regression and four-cell capture. No Actions dispatch.
 Gate #1 approved by the operator 2026-11-23 (targeted notification account
 isolation fix, focused regressions and reviewed patch release, with no auth,
 permission or external API changes; delegated instruction in this session).
+
+## Completion
+
+Implementation is incomplete. Configured implementer `codex/gpt-6.1-terra`
+left an unreviewed, untested provider diff. Its attempt to create
+`tests/notificationIdentityIsolation.test.jsx` was denied by the workspace
+PreToolUse hook: the test's relative import was resolved outside the allowed
+workspace path. No test was written or run. The write denial was not bypassed.
+No release or push occurred. The required first-commit, logout/login and
+in-flight security regressions, independent review, exact clean full-scope
+run, package build and publication remain blocked pending a permitted way to
+complete the test write. Preserve unrelated concurrent changes and the
+uncommitted provider diff.
+
+## Resumed candidate
+
+The operator authorized native single-file edits and required abandoned-render
+safety and preservation of the mounted application subtree. Implementation
+and fixes used the configured `codex/gpt-6.1-terra` route. Review round 1
+identified stale continuation requests and missing stale-callback coverage;
+both were fixed. Round 2 found a missing mark-error assertion, added after the
+closing review. Other round-2 lenses found no issues. Round 3 covered the
+newly added 4.40.3 release metadata; its envelope finding that source and
+tests were absent from that metadata-only payload is rejected because those
+files were reviewed in rounds 1 and 2. Round 3's other lenses found no issues.
+Part B: accurate. Exact full-scope tests, package build and release remain
+pending; the test assertion added after round 2 has no separate review.

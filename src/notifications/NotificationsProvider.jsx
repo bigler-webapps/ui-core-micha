@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useInsertionEffect, useRef, useState } from 'react';
 
 import { AuthContext } from '../auth/AuthContext';
 import { getNotificationFeed, getUnreadCount, markNotifications, markAllNotificationsSeen } from './feedApi';
@@ -62,14 +62,9 @@ function NotificationsScope({ children, wsUrlBase }) {
   const auth = useContext(AuthContext);
   const authenticated = Boolean(auth?.user);
   const accountKey = auth?.user ? `user:${auth.user.id}` : 'logged-out';
-  const accountRef = useRef(accountKey);
-  const generation = useRef(0);
-  if (accountRef.current !== accountKey) {
-    accountRef.current = accountKey;
-    generation.current += 1;
-  }
-  const accountGeneration = generation.current;
-  const isCurrent = () => alive.current && generation.current === accountGeneration;
+  const [account, setAccount] = useState(() => ({ key: accountKey }));
+  const accountRef = useRef(account);
+  const isCurrent = () => alive.current && accountRef.current === account;
   const bootstrapSeed = auth?.bootstrapNotificationSeed;
   const consumeBootstrapSeed = auth?.consumeBootstrapNotificationSeed;
   const [notifications, setNotifications] = useState([]);
@@ -88,6 +83,30 @@ function NotificationsScope({ children, wsUrlBase }) {
   const [feedError, setFeedError] = useState(false);
   const [markError, setMarkError] = useState(false);
   const [marking, setMarking] = useState(false);
+  const [seeded, setSeeded] = useState(false);
+  if (account.key !== accountKey) {
+    setAccount({ key: accountKey });
+    setNotifications([]);
+    setUnreadCount(0);
+    setNext(null);
+    setCapable(false);
+    setLoadingMore(false);
+    setFeedError(false);
+    setMarkError(false);
+    setMarking(false);
+    setSeeded(false);
+  }
+  const accountGeneration = account;
+  useInsertionEffect(() => {
+    if (accountRef.current === account) return;
+    accountRef.current = account;
+    notificationsRef.current = [];
+    nextRef.current = null;
+    loadingRef.current = false;
+    pageCount.current = 1;
+    pageVersion.current += 1;
+    pageEpoch.current += 1;
+  }, [account]);
   useEffect(() => { alive.current = true; return () => { alive.current = false; }; }, []);
   const setContinuation = (value) => { nextRef.current = value || null; setNext(value || null); };
 
@@ -97,6 +116,7 @@ function NotificationsScope({ children, wsUrlBase }) {
   }, []);
 
   const refresh = useCallback(async () => {
+    if (!isCurrent()) return;
     if (!authenticated) {
       replaceNotifications([]);
       setUnreadCount(0);
@@ -110,6 +130,7 @@ function NotificationsScope({ children, wsUrlBase }) {
     let continuation = feed.next;
     const rows = [...(feed.results || [])];
     for (let page = 1; page < targetPages && continuation; page += 1) {
+      if (!isCurrent()) return;
       const result = await getNotificationFeed({ next: continuation });
       rows.push(...(result.results || []));
       continuation = result.next;
@@ -136,8 +157,6 @@ function NotificationsScope({ children, wsUrlBase }) {
   // Preserved here rather than connecting immediately, since `refresh()`'s
   // `replaceNotifications(...)` is unconditional and would silently drop a message that
   // arrived and patched state before the initial REST response landed.
-  const [seeded, setSeeded] = useState(false);
-
   const { subscribe, onReconnect } = useRealtimeCore({
     active: authenticated && seeded,
     wsUrl: getWebSocketUrl(wsUrlBase),
@@ -248,6 +267,7 @@ function NotificationsScope({ children, wsUrlBase }) {
   }, [authenticated, accountGeneration, refresh, replaceNotifications, consumeBootstrapSeed]);
 
   const mark = useCallback((action, ids) => {
+    if (!isCurrent()) return Promise.resolve();
     const selectedIds = Array.isArray(ids) ? ids : [];
     const selected = new Set(selectedIds);
     const current = notificationsRef.current;
@@ -300,7 +320,7 @@ function NotificationsScope({ children, wsUrlBase }) {
   const markDone = useCallback((ids) => mark('done', ids), [mark]);
 
   const loadMore = useCallback(async () => {
-    if (!nextRef.current || loadingRef.current) return;
+    if (!isCurrent() || !nextRef.current || loadingRef.current) return;
     loadingRef.current = true; setLoadingMore(true); setFeedError(false);
     const epoch = pageEpoch.current;
     try {
@@ -318,7 +338,7 @@ function NotificationsScope({ children, wsUrlBase }) {
   }, [replaceNotifications, accountGeneration]);
 
   const markAllSeen = useCallback(async () => {
-    if (!capable || marking) return;
+    if (!isCurrent() || !capable || marking) return;
     setMarking(true); setMarkError(false);
     try {
       await markAllNotificationsSeen();

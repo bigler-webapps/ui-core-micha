@@ -1,5 +1,11 @@
 # Changelog
 
+## 4.40.3 - UCM-NOTIF-17
+
+Notification feed, unread count and pagination state are cleared before the
+first committed render for a different account. Delayed operations from the
+previous account cannot restore its state or request further feed pages.
+
 ## 4.40.2 - UCM-SHELL-10
 
 Notification and account menu buttons include their visible unread count or
