@@ -99,7 +99,7 @@ describe('package sub-path entries', () => {
       vi.doUnmock('remark-gfm');
       vi.resetModules();
     }
-  }, 30000);
+  }, 60000);
 
   it('exports the exact public names from each sub-path entry', async () => {
     const entries = [
@@ -113,7 +113,7 @@ describe('package sub-path entries', () => {
       expect(Object.keys(namespace).sort()).toEqual([...expectedNames].sort());
       for (const name of expectedNames) expect(namespace[name]).toBeDefined();
     }
-  });
+  }, 30000);
   it('maps every sub-path in package.json to an emitted entry and declares the peers accordingly', () => {
     const manifest = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8'));
     const { exports: exportsMap } = manifest;

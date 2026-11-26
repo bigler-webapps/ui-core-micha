@@ -10,6 +10,8 @@ export function createChatApi(overrides = {}, { apiBase = '/api/assistant/' } = 
     createChat: (payload = {}) => data(apiClient.post(urls.chats, payload)),
     updateChat: (id, patch) => data(apiClient.patch(urls.chat(id), patch)),
     deleteChat: (id) => data(apiClient.delete(urls.chat(id))),
+    getGroupGrants: (id, { language } = {}) => data(language ? apiClient.get(urls.groupGrants(id), { headers: { 'Accept-Language': language } }) : apiClient.get(urls.groupGrants(id))),
+    saveGroupGrants: (id, payload, { language } = {}) => data(language ? apiClient.put(urls.groupGrants(id), payload, { headers: { 'Accept-Language': language } }) : apiClient.put(urls.groupGrants(id), payload)),
     listTurns: (id, { cursor } = {}) => data(apiClient.get(urls.turns(id), { params: cursor ? { cursor } : {} })),
     getStatus: ({ scope } = {}) => data(scope !== undefined ? apiClient.get(urls.status, { params: { scope } }) : apiClient.get(urls.status)),
     getLimit: () => data(apiClient.get(urls.limit)),

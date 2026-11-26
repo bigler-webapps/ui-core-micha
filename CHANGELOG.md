@@ -1,5 +1,10 @@
 # Changelog
 
+## 4.41.0 - UCM-CHAT-22
+
+Chat workspaces support per-chat permission groups, including explicit
+reauthorization when access has been withdrawn and restored.
+
 ## 4.40.3 - UCM-NOTIF-17
 
 Notification feed, unread count and pagination state are cleared before the

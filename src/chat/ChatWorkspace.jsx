@@ -1,3 +1,4 @@
+import ChatGroupGrants from './ChatGroupGrants';
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Alert, Box, Button, Chip, Drawer, Stack, Typography, useMediaQuery, useTheme } from '@mui/material';
 import { useTranslation } from 'react-i18next';
@@ -627,6 +628,7 @@ export function ChatWorkspace({ apiBase, wsUrl, api: apiOverrides, scope, preloa
           {socket.status === 'connecting' && openedOnce ? <Chip size="small" color="warning" variant="outlined" label={t('Chat.reconnecting')} /> : null}
           {isArchived ? <Chip size="small" label={t('Chat.archived')} /> : null}
           {isArchived ? <Button size="small" onClick={() => updateChat(chat, { archived: false })}>{t('Chat.restore')}</Button> : null}
+          {chat && !isArchived && chat.id !== PENDING_ID ? <ChatGroupGrants key={String(chat.id)} chatId={chat.id} api={api} /> : null}
           {chat && sidePanel && narrow ? <Button color="inherit" onClick={() => setSidePanelOpen(true)}>{sidePanelLabel || t('Chat.sidePanel')}</Button> : null}
         </Stack>
         {chat ? (
