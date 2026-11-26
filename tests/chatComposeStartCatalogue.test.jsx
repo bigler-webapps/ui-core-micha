@@ -84,9 +84,20 @@ describe('composer start signal', () => {
     const sidePanel = vi.fn(() => <div>Side</div>);
     const renderAnswerExtra = vi.fn(() => <span>Answer extra</span>);
     const onComposeStart = vi.fn();
-    const api = makeApi();
+    let resolveCatalogue;
+    let resolveTurns;
+    const api = makeApi({
+      getCatalogue: vi.fn(() => new Promise((resolve) => { resolveCatalogue = resolve; })),
+      listTurns: vi.fn(() => new Promise((resolve) => { resolveTurns = resolve; })),
+    });
     render(<ChatWorkspace api={api} activeChatId={7} sidePanel={sidePanel} renderAnswerExtra={renderAnswerExtra} onComposeStart={onComposeStart} />);
     const input = await screen.findByRole('textbox', { name: 'Chat.message' });
+    await waitFor(() => { expect(resolveCatalogue).toBeTypeOf('function'); expect(resolveTurns).toBeTypeOf('function'); });
+    await act(async () => {
+      resolveCatalogue(catalogue);
+      resolveTurns({ results: [], next: null });
+    });
+    expect(screen.getByRole('button', { name: /Model/ })).toBeTruthy();
     const baseline = [sidePanel.mock.calls.length, renderAnswerExtra.mock.calls.length];
     for (const value of ['a', 'ab', 'abc', 'abcd']) fireEvent.change(input, { target: { value } });
     expect([sidePanel.mock.calls.length, renderAnswerExtra.mock.calls.length]).toEqual(baseline);
