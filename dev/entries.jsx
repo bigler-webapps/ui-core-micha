@@ -940,6 +940,29 @@ function ChatPickerEntry() {
   </Stack>;
 }
 
+const managedPickerEntries = [
+  ...['astra', 'sol', 'terra', 'luna'].map((family) => ({ id: `openai:${family}`, provider: 'openai', family, efforts: ['low', 'medium', 'high'] })),
+  ...['fable', 'opus', 'sonnet', 'haiku'].map((family) => ({ id: `claude:${family}`, provider: 'claude', family, efforts: ['low', 'medium', 'high'] })),
+];
+
+function ManagedFamilyPickerEntry() {
+  const fixture = new URLSearchParams(window.location.search).get('fixture');
+  const [entries, setEntries] = useState(() => fixture === 'empty' ? [] : fixture === 'revoked'
+    ? managedPickerEntries.filter((entry) => entry.id !== 'claude:sonnet')
+    : fixture === 'route' ? managedPickerEntries.map((entry) => ({ ...entry, source_id: 'synthetic-new-route' })) : managedPickerEntries);
+  const [selection, setSelection] = useState(() => fixture === 'empty' ? null
+    : { entry: fixture === 'revoked' || fixture === 'sol' ? 'openai:sol' : 'claude:sonnet', effort: 'medium' });
+  const [open, setOpen] = useState(true);
+  return <I18nextProvider i18n={setupI18n}><Stack spacing={2} sx={{ minHeight: '90vh', justifyContent: 'flex-start', pt: { xs: 0, sm: 62 } }}>
+    <Stack direction="row" spacing={1} aria-label="Synthetic catalogue controls" sx={{ order: 1 }}>
+      <Button onClick={() => setEntries(managedPickerEntries.map((entry) => ({ ...entry, source_id: 'synthetic-new-route' })))}>Change route</Button>
+      <Button onClick={() => { setEntries(managedPickerEntries.filter((entry) => entry.id !== 'claude:sonnet')); setSelection({ entry: 'openai:sol', effort: 'medium' }); }}>Revoke Sonnet</Button>
+      <Button onClick={() => { setEntries([]); setSelection(null); }}>Empty catalogue</Button>
+    </Stack>
+    <ChatComposer value="" onChange={() => {}} onSend={() => {}} onStop={() => {}} actions={<ModelPicker managed entries={entries} selection={selection} onChange={setSelection} open={open} onOpenChange={setOpen} balance={12400} />} />
+  </Stack></I18nextProvider>;
+}
+
 function ChatCompactComposerEntry() {
   const [selection, setSelection] = useState({ entry: 'api:sonnet-5-5', effort: 'medium' });
   const [state, setState] = useState('empty');
@@ -1123,6 +1146,7 @@ export const entries = [
   { id: 'messaging-poll-card', label: 'Messaging / Poll card', Component: PollCardEntry },
   { id: 'messaging-scope-config', label: 'Messaging / Scope config', Component: MessagingScopeConfigEntry },
   { id: 'chat-model-picker', label: 'Chat / Model picker', Component: ChatPickerEntry },
+  { id: 'chat-managed-families', label: 'Chat / Managed families', Component: ManagedFamilyPickerEntry, fullViewport: true },
   { id: 'chat-compact-composer', label: 'Chat / Compact composer', Component: ChatCompactComposerEntry, fullViewport: true },
   { id: 'chat-long-thread', label: 'Chat / Long thread (layout cost)', Component: ChatLongThreadEntry, fullViewport: true },
   { id: 'receipts-capture', label: 'Receipts / Capture card', Component: ReceiptsEntry },

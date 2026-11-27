@@ -7,7 +7,7 @@ import { useChatSocket } from './useChatSocket';
 import ChatList from './ChatList';
 import ChatThread from './ChatThread';
 import ChatComposer from './ChatComposer';
-import ModelPicker from './ModelPicker';
+import ModelPicker, { publicFamilies } from './ModelPicker';
 
 const PENDING_ID = 'pending';
 const buildSendFrame = (message, getContext) => {
@@ -189,9 +189,14 @@ export function ChatWorkspace({ apiBase, wsUrl, api: apiOverrides, scope, preloa
         && version === scopeVersion.current
         && sameChatId(shownChatId.current, chatId);
       if (!current || !validCatalogue(next)) return null;
+      const safe = Object.prototype.hasOwnProperty.call(next, 'policy') ? {
+        entries: publicFamilies(next.entries),
+        default: next.default ? { entry: next.default.entry, effort: next.default.effort } : null,
+        policy: { revision: next.policy.revision },
+      } : next;
       catalogueFor.current = chatId ?? null;
-      setCatalogue(next); setCatalogueChatId(chatId ?? null);
-      return next;
+      setCatalogue(safe); setCatalogueChatId(chatId ?? null);
+      return safe;
     } catch {
       // A failed load for another chat must not leave the previous chat's models on offer.
       if (request === catalogueRequest.current && version === scopeVersion.current && chatId !== undefined

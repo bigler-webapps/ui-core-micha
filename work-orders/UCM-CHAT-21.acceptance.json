@@ -1,0 +1,18 @@
+{
+  "version": 1,
+  "wo": "UCM-CHAT-21",
+  "environment": {
+    "mode": "local-stack",
+    "base_url": "http://127.0.0.1:4173",
+    "prototype_dir": "work-orders/assets",
+    "scope": "managed_picker"
+  },
+  "actors": { "user": {} },
+  "criteria": [
+    { "id": "UCM21-01", "type": "V", "actor": "user", "state": "Sonnet selected with provider groups", "route": "/#chat-managed-families", "prototype": "app-prototype.html?scene=managed-picker", "prototype_target_by_width": { "375": { "text": "375 px" }, "1280": { "text": "1280 px" } }, "widths": [375, 1280] },
+    { "id": "UCM21-02", "type": "V", "actor": "user", "state": "Sol selected with both provider groups present", "route": "/?fixture=sol#chat-managed-families", "prototype": "app-prototype.html?scene=managed-picker", "prototype_setup": [{ "do": "select", "role": "combobox", "value": "revoked" }, { "do": "select", "role": "combobox", "value": "route" }], "prototype_target_by_width": { "375": { "text": "375 px" }, "1280": { "text": "1280 px" } }, "widths": [375, 1280] },
+    { "id": "UCM21-03", "type": "V", "actor": "user", "state": "Sonnet remains selected after route change", "route": "/?fixture=route#chat-managed-families", "prototype": "app-prototype.html?scene=managed-picker", "prototype_setup": [{ "do": "select", "role": "combobox", "value": "route" }], "prototype_target_by_width": { "375": { "text": "375 px" }, "1280": { "text": "1280 px" } }, "widths": [375, 1280] },
+    { "id": "UCM21-04", "type": "V", "actor": "user", "state": "Sol is selected after Sonnet revocation", "route": "/?fixture=revoked#chat-managed-families", "prototype": "app-prototype.html?scene=managed-picker", "prototype_setup": [{ "do": "select", "role": "combobox", "value": "revoked" }], "prototype_target_by_width": { "375": { "text": "375 px" }, "1280": { "text": "1280 px" } }, "widths": [375, 1280] },
+    { "id": "UCM21-05", "type": "V", "actor": "user", "state": "Empty managed catalogue", "route": "/?fixture=empty#chat-managed-families", "prototype": "app-prototype.html?scene=managed-picker", "prototype_setup": [{ "do": "select", "role": "combobox", "value": "empty" }], "prototype_target_by_width": { "375": { "text": "375 px" }, "1280": { "text": "1280 px" } }, "widths": [375, 1280] }
+  ]
+}

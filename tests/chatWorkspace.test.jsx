@@ -27,8 +27,8 @@ const catalogue = {
 };
 const baseChat = { id: 7, title: 'Budget', archived_at: null, selection: { entry: 'cli-sonnet', effort: 'high' } };
 const managedEntries = [
-  { id: 'acct-a:same', model: 'same', label: 'Same', source_id: 'acct-a', source_label: 'Account A', efforts: ['low'], level: 'top', billing: 'subscription' },
-  { id: 'acct-b:same', model: 'same', label: 'Same', source_id: 'acct-b', source_label: 'Account B', efforts: ['low'], level: 'top', billing: 'subscription' },
+  { id: 'openai:sol', provider: 'openai', family: 'sol', label: 'Sol', source_id: 'acct-a', source_label: 'Account A', efforts: ['low'], billing: 'subscription' },
+  { id: 'claude:sonnet', provider: 'claude', family: 'sonnet', label: 'Sonnet', source_id: 'acct-b', source_label: 'Account B', efforts: ['low'], billing: 'subscription' },
 ];
 const managedCatalogue = (entries = managedEntries, standard = entries[0] ? { entry: entries[0].id, effort: 'low' } : null, revision = 1) => ({ entries, default: standard, policy: { revision } });
 
@@ -237,17 +237,28 @@ describe('ChatWorkspace wiring', () => {
     expect(socket.sent).toEqual([]);
   });
 
-  it('keeps a valid managed choice, identifies duplicate sources, and does not persist a fallback', async () => {
-    const chat = { ...baseChat, selection: { entry: 'acct-b:same', effort: 'low' } };
+  it('keeps a valid managed family without exposing source labels or persisting a fallback', async () => {
+    const chat = { ...baseChat, selection: { entry: 'claude:sonnet', effort: 'low' } };
+    let current = managedCatalogue();
     const api = makeApi({
-      getCatalogue: vi.fn().mockResolvedValue(managedCatalogue()),
+      getCatalogue: vi.fn().mockImplementation(async () => current),
       listChats: vi.fn().mockImplementation(async ({ archived } = {}) => ({ results: archived ? [] : [chat], next: null })),
     });
     render(<ChatWorkspace api={api} wsUrl={(id) => `ws://test/${id}`} />);
     fireEvent.click(await screen.findByText('Budget'));
-    fireEvent.click(await screen.findByRole('button', { name: /Same · Account B/ }));
-    expect(screen.getByRole('radio', { name: /Same · Account A/ })).toBeTruthy();
-    expect(screen.getByRole('radio', { name: /Same · Account B/ })).toBeTruthy();
+    fireEvent.click(await screen.findByRole('button', { name: /Claude · Sonnet/ }));
+    expect(screen.getByRole('radio', { name: 'OpenAI Sol' })).toBeTruthy();
+    expect(screen.getByRole('radio', { name: 'Claude Sonnet' })).toBeTruthy();
+    expect(document.body.innerHTML).not.toMatch(/Account A|Account B|acct-a|acct-b|subscription/);
+    expect(api.updateChat).not.toHaveBeenCalled();
+    await act(async () => { await Promise.resolve(); });
+    const before = api.getCatalogue.mock.calls.length;
+    current = managedCatalogue([managedEntries[0], { ...managedEntries[1], source_id: 'new-private-route', source_label: 'New account' }, { id: 'openai:terra', provider: 'openai', family: 'terra', efforts: ['low'] }], undefined, 2);
+    act(() => document.dispatchEvent(new Event('visibilitychange')));
+    await waitFor(() => expect(api.getCatalogue.mock.calls.length).toBeGreaterThan(before));
+    await screen.findByRole('radio', { name: 'OpenAI Terra' });
+    expect(screen.getByRole('radio', { name: 'Claude Sonnet' }).getAttribute('aria-checked')).toBe('true');
+    expect(document.body.innerHTML).not.toMatch(/new-private-route|New account/);
     expect(api.updateChat).not.toHaveBeenCalled();
   });
 
@@ -255,21 +266,21 @@ describe('ChatWorkspace wiring', () => {
     let current = managedCatalogue();
     const api = makeApi({
       getCatalogue: vi.fn().mockImplementation(() => Promise.resolve(current)),
-      listChats: vi.fn().mockImplementation(async ({ archived } = {}) => ({ results: archived ? [] : [{ ...baseChat, selection: { entry: 'acct-b:same', effort: 'low' } }], next: null })),
+      listChats: vi.fn().mockImplementation(async ({ archived } = {}) => ({ results: archived ? [] : [{ ...baseChat, selection: { entry: 'claude:sonnet', effort: 'low' } }], next: null })),
     });
     render(<ChatWorkspace api={api} wsUrl={(id) => `ws://test/${id}`} />);
     fireEvent.click(await screen.findByText('Budget'));
-    await screen.findByRole('button', { name: /Same · Account B/ });
+    await screen.findByRole('button', { name: /Claude · Sonnet/ });
 
     current = managedCatalogue([managedEntries[0]], { entry: managedEntries[0].id, effort: 'low' }, 2);
-    fireEvent.click(screen.getByRole('button', { name: /Same · Account B/ }));
-    await waitFor(() => expect(screen.getByRole('radio').dataset.modelEntry).toBe('acct-a:same'));
+    fireEvent.click(screen.getByRole('button', { name: /Claude · Sonnet/ }));
+    await waitFor(() => expect(screen.getByRole('radio').dataset.modelEntry).toBe('openai:sol'));
     expect(screen.getByRole('radio').getAttribute('aria-checked')).toBe('true');
     expect(api.updateChat).not.toHaveBeenCalled();
 
     current = managedCatalogue([managedEntries[1]], { entry: managedEntries[1].id, effort: 'low' }, 3);
     act(() => document.dispatchEvent(new Event('visibilitychange')));
-    await waitFor(() => expect(screen.getByRole('radio').dataset.modelEntry).toBe('acct-b:same'));
+    await waitFor(() => expect(screen.getByRole('radio').dataset.modelEntry).toBe('claude:sonnet'));
     expect(screen.getByRole('radio').getAttribute('aria-checked')).toBe('true');
     expect(api.updateChat).not.toHaveBeenCalled();
   });
@@ -283,8 +294,8 @@ describe('ChatWorkspace wiring', () => {
     fireEvent.click(await screen.findByText('Budget'));
     const trigger = await screen.findByRole('button', { name: 'Chat.unavailable' });
     fireEvent.click(trigger);
-    expect(screen.getByRole('radio', { name: /Same · Account A/ })).toBeTruthy();
-    expect(screen.getByRole('radio', { name: /Same · Account B/ })).toBeTruthy();
+    expect(screen.getByRole('radio', { name: 'OpenAI Sol' })).toBeTruthy();
+    expect(screen.getByRole('radio', { name: 'Claude Sonnet' })).toBeTruthy();
     expect(api.updateChat).not.toHaveBeenCalled();
   });
 

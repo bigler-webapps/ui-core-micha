@@ -1,0 +1,7 @@
+tests:
+  frontend:
+    command: node node_modules/vitest/vitest.mjs run
+  auth_translations:
+    command: node node_modules/vitest/vitest.mjs run tests/authTranslations.test.js
+  managed_picker:
+    command: node node_modules/vitest/vitest.mjs run tests/chatManagedFamilies.test.jsx tests/chatWorkspace.test.jsx tests/chatPicker.test.jsx tests/chatPickerLevels.test.jsx tests/chatComposeStartCatalogue.test.jsx

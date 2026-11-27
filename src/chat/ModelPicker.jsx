@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Box, Button, Drawer, IconButton, List, ListItemButton, Popover, Stack, ToggleButton, ToggleButtonGroup, Typography, useMediaQuery, useTheme } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import { useTranslation } from 'react-i18next';
@@ -6,6 +6,24 @@ import { useTranslation } from 'react-i18next';
 const LEVELS = ['top', 'best', 'balanced', 'fast'];
 const EFFORTS = ['low', 'medium', 'high', 'max'];
 const EFFORT_LABELS = { low: 'Low', medium: 'Medium', high: 'High', max: 'Max' };
+const MANAGED_FAMILIES = {
+  openai: { astra: 'Astra', sol: 'Sol', terra: 'Terra', luna: 'Luna' },
+  claude: { fable: 'Fable', opus: 'Opus', sonnet: 'Sonnet', haiku: 'Haiku' },
+};
+const PROVIDER_LABELS = { openai: 'OpenAI', claude: 'Claude' };
+
+export function publicFamilies(entries) {
+  const seen = new Set();
+  return entries.flatMap((entry) => {
+    const label = MANAGED_FAMILIES[entry?.provider]?.[entry?.family];
+    const id = `${entry?.provider}:${entry?.family}`;
+    if (!label || entry.id !== id || seen.has(id) || !Array.isArray(entry.efforts)) return [];
+    const efforts = EFFORTS.filter((effort) => entry.efforts.includes(effort));
+    if (!efforts.length) return [];
+    seen.add(id);
+    return [{ id, provider: entry.provider, family: entry.family, label, efforts }];
+  });
+}
 export const CHAT_MODEL_TRIGGER_SX = { minWidth: 0, px: 1.25, color: 'text.secondary', whiteSpace: 'nowrap', flexShrink: 0, maxWidth: { xs: 140, sm: 'none' } };
 // The short label sits at the end of the compact composer's context row, which clips the host content first.
 export const CHAT_MODEL_TRIGGER_SHORT_SX = { ...CHAT_MODEL_TRIGGER_SX, maxWidth: 'none' };
@@ -64,7 +82,7 @@ function estimateText(entry, effort, t, language) {
   return null;
 }
 
-export function ModelPicker({ entries = [], selection, onChange, disabled = false, open, onOpenChange, balance = null, shortLabel = false, managed = false }) {
+export function ModelPicker({ entries: rawEntries = [], selection, onChange, disabled = false, open, onOpenChange, balance = null, shortLabel = false, managed = false }) {
   const { t, i18n } = useTranslation();
   const language = typeof i18n?.language === 'string' ? i18n.language.split('_')[0] || undefined : undefined;
   const theme = useTheme();
@@ -72,24 +90,32 @@ export function ModelPicker({ entries = [], selection, onChange, disabled = fals
   // The bottom sheet only on a narrow viewport, whatever the chat container's width (UCM-CHAT-12).
   const narrow = viewportNarrow;
   const anchor = useRef(null);
+  const choices = useRef(null);
   const [innerOpen, setInnerOpen] = useState(false);
   const isOpen = open ?? innerOpen;
+  useEffect(() => {
+    if (!isOpen) return undefined;
+    const timer = window.setTimeout(() => choices.current?.querySelector('[role="radio"][aria-checked="true"]')?.focus(), 0);
+    return () => window.clearTimeout(timer);
+  }, [isOpen]);
   const setOpen = (value) => { setInnerOpen(value); onOpenChange?.(value); };
+  const entries = useMemo(() => managed ? publicFamilies(rawEntries) : rawEntries, [managed, rawEntries]);
   const activeSelection = useMemo(() => validSelection(entries, selection) || (!managed ? fallback(entries) : null), [entries, selection, managed]);
   const active = entries.find((entry) => entry.id === activeSelection?.entry);
   const effort = activeSelection?.effort;
   const duplicateRows = useMemo(() => repeatedLabels(entries, originalLabel), [entries]);
   const duplicateTriggers = useMemo(() => repeatedLabels(entries, (entry) => cleanLabel(entry, shortLabel)), [entries, shortLabel]);
-  const grouped = LEVELS.map((level) => [level, entries.filter((entry) => entry.level === level)]).filter(([, items]) => items.length);
-  const unknown = entries.filter((entry) => !LEVELS.includes(entry.level));
+  const grouped = (managed ? Object.keys(PROVIDER_LABELS).map((provider) => [provider, entries.filter((entry) => entry.provider === provider)])
+    : LEVELS.map((level) => [level, entries.filter((entry) => entry.level === level)])).filter(([, items]) => items.length);
+  const unknown = managed ? [] : entries.filter((entry) => !LEVELS.includes(entry.level));
   const orderedEntries = [...grouped.flatMap(([, items]) => items), ...unknown];
   const selectEntry = (entry) => onChange?.({ entry: entry.id, effort: supported(entry, effort) ? effort : entry.efforts?.[0] });
   const entryRow = (entry, index) => {
     const shown = supported(entry, effort) ? effort : entry.efforts?.[0];
-    const estimate = estimateText(entry, shown, t, language);
+    const estimate = managed ? null : estimateText(entry, shown, t, language);
     const checked = entry.id === active?.id;
-    return <ListItemButton key={entry.id} role="radio" aria-checked={checked} tabIndex={checked || (!active && index === 0) ? 0 : -1} data-model-entry={entry.id} selected={checked} sx={CHAT_MODEL_ENTRY_SX} onClick={() => selectEntry(entry)}>
-      <Box sx={CHAT_MODEL_ENTRY_CONTENT_SX}><Typography variant="body2" fontWeight={checked ? 600 : 400}>{sourceNamedLabel(entry, originalLabel(entry), duplicateRows)}</Typography>{estimate ? <Typography variant="caption" color="text.secondary" sx={CHAT_MODEL_COST_SX}>{estimate}</Typography> : null}</Box>
+    return <ListItemButton key={entry.id} role="radio" aria-label={managed ? `${PROVIDER_LABELS[entry.provider]} ${entry.label}` : undefined} aria-checked={checked} tabIndex={checked || (!active && index === 0) ? 0 : -1} data-model-entry={entry.id} selected={checked} sx={managed && checked ? { ...CHAT_MODEL_ENTRY_SX, position: 'relative', '&::before': { content: '""', position: 'absolute', left: 0, top: 4, bottom: 4, width: 3, bgcolor: 'primary.main' } } : CHAT_MODEL_ENTRY_SX} onClick={() => selectEntry(entry)}>
+      <Box sx={CHAT_MODEL_ENTRY_CONTENT_SX}><Typography variant="body2" fontWeight={checked ? 600 : 400}>{managed ? entry.label : sourceNamedLabel(entry, originalLabel(entry), duplicateRows)}</Typography>{estimate ? <Typography variant="caption" color="text.secondary" sx={CHAT_MODEL_COST_SX}>{estimate}</Typography> : null}</Box>
     </ListItemButton>;
   };
   // Radio-group keyboard behaviour: arrows move the focus and the choice, only the checked row is a tab stop.
@@ -112,8 +138,8 @@ export function ModelPicker({ entries = [], selection, onChange, disabled = fals
           <Typography id="chat-model-picker-title" variant="subtitle1" sx={{ fontWeight: 600 }}>{t('Chat.pickerTitle')}</Typography>
           <IconButton aria-label={t('Chat.close')} size="small" sx={CHAT_MODEL_CLOSE_SX} onClick={() => setOpen(false)}><CloseIcon fontSize="small" /></IconButton>
         </Stack>
-        <Box role="radiogroup" aria-labelledby="chat-model-picker-title" onKeyDown={moveSelection}>
-          <List dense disablePadding>{orderedEntries.map(entryRow)}</List>
+        <Box ref={choices} role="radiogroup" aria-labelledby="chat-model-picker-title" onKeyDown={moveSelection}>
+          {managed ? (grouped.length ? grouped.map(([provider, items]) => <Box key={provider} sx={{ my: 1 }}><Typography variant="subtitle2" sx={{ ml: 1, mb: 0.5, fontWeight: 600 }}>{PROVIDER_LABELS[provider]}</Typography><List dense disablePadding>{items.map((entry) => entryRow(entry, orderedEntries.indexOf(entry)))}</List></Box>) : <Typography variant="body2" color="text.secondary">{t('Chat.unavailable')}</Typography>) : <List dense disablePadding>{orderedEntries.map(entryRow)}</List>}
         </Box>
         {active ? <Box>
           <Typography variant="subtitle2" sx={{ mb: 0.75 }}>{t('Chat.effortLabel')}</Typography>
@@ -125,7 +151,7 @@ export function ModelPicker({ entries = [], selection, onChange, disabled = fals
       </Stack>
     </Box>
   );
-  const trigger = <Button ref={anchor} size="small" color="inherit" sx={shortLabel ? CHAT_MODEL_TRIGGER_SHORT_SX : CHAT_MODEL_TRIGGER_SX} disabled={disabled || !entries.length} onClick={() => setOpen(true)} aria-haspopup="dialog"><Box component="span" sx={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{active ? `${sourceNamedLabel(active, cleanLabel(active, shortLabel), duplicateTriggers)} · ${t(`Chat.effort.${effort}`)} ▾` : t('Chat.unavailable')}</Box></Button>;
+  const trigger = <Button ref={anchor} size="small" color="inherit" sx={shortLabel ? CHAT_MODEL_TRIGGER_SHORT_SX : CHAT_MODEL_TRIGGER_SX} disabled={disabled || (!managed && !entries.length)} onClick={() => setOpen(true)} aria-haspopup="dialog"><Box component="span" sx={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{active ? `${managed ? `${PROVIDER_LABELS[active.provider]} · ${active.label}` : sourceNamedLabel(active, cleanLabel(active, shortLabel), duplicateTriggers)} · ${t(`Chat.effort.${effort}`)} ▾` : t('Chat.unavailable')}</Box></Button>;
   return <>{trigger}{narrow ? <Drawer anchor="bottom" open={isOpen} onClose={() => setOpen(false)}>{content}</Drawer> : <Popover open={isOpen} anchorEl={anchor.current} onClose={() => setOpen(false)} anchorOrigin={{ vertical: 'top', horizontal: 'left' }} transformOrigin={{ vertical: 'bottom', horizontal: 'left' }}>{content}</Popover>}</>;
 }
 export default ModelPicker;

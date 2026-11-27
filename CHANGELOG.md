@@ -1,5 +1,16 @@
 # Changelog
 
+## 4.42.0 - UCM-CHAT-21
+
+In managed mode the chat model picker lists the offered families grouped by
+provider (OpenAI: Astra, Sol, Terra, Luna; Claude: Fable, Opus, Sonnet,
+Haiku), one row per provider/family, and sends the stable public ID
+`provider:family` with the effort. Route, account, billing and model-version
+fields of the catalogue are neither rendered nor kept, so a route-only change
+keeps the explicit selection. Requires the managed public catalogue of
+django-core-micha 3.32.0 (`entries[].{id, provider, family, efforts}`); the
+unmanaged picker is unchanged.
+
 ## 4.41.0 - UCM-CHAT-22
 
 Chat workspaces support per-chat permission groups, including explicit
