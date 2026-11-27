@@ -68,6 +68,8 @@ The configured implementer and fix worker used `codex/gpt-6.1-terra`. Independen
 
 The initial `tests.py --repo ui-core-micha --scope frontend --wo UCM-AUTH-18` returned `RESULT: BLOCKED` because the local `project.yaml` declared only `managed_picker`. After the operator approved the permanent test configuration, `tests.py --repo ui-core-micha --scope auth_translations --wo UCM-AUTH-18` passed 23 tests. The operator authorized an independent replacement review because the review runner refused round 3; `codex/gpt-6.1-terra` found no issues. The first attempt returned exit 65 because its answer did not match the wrapper's format; the formatted retry passed. The local test configuration also names an uncommitted UCM-CHAT-21 test, so its permanent landing remains coordinated with that order. The 4.40.1 metadata is prepared locally; publication remains to be verified.
 
+The Auth change landed as `6e4ee0c`, followed by register commit `503215f`. Publish workflow `45046098825` completed successfully, including build and tests, and its npm step reported publishing `4.40.1`. The public npm registry initially returned `version not found: 4.40.1`, then confirmed the exact version after a short propagation delay. Keep the order in review until the approved permanent test configuration is landed.
+
 ## Gate record
 
 Gate #1 approved by the operator 2026-11-22 (AskUserQuestion: "Freigeben + Übergabetext").
