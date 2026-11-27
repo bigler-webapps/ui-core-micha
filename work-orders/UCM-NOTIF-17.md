@@ -141,3 +141,11 @@ comparison. The single authorized full rerun on `7f4ab56` then passed all
 `.claude/scratch/tests-ui-core-micha-notif17-check-20261123-130625/`.
 The candidate package build passed before this run. Publication and consumer
 verification remain to be recorded after the regular push.
+
+The regular main push to `1c89b98` triggered publish run `45172742672`,
+which passed its build, tests and npm publish. The registry now serves 4.40.3
+with SHA-512 integrity
+`sha512-XnWZm+b4C8m87jp09/FCKcwlWhA1NFwDnqd19xddlv/Ez8cfwN7TI3JOdi3PnlAJYIcm2meqiIOL57E295KWLA==`.
+The downloaded tarball matches that integrity. Its NotificationsProvider,
+NotificationBell and UserMenu modules match the build of exact tested
+candidate `7f4ab56` by SHA-256. Consumer validation remains open.
