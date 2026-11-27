@@ -239,6 +239,10 @@ extra peers are optional: `@micha.bigler/ui-core-micha/charts` (`@mui/x-charts`)
 (`react-markdown`, `remark-gfm`). Install those peers only in apps that import the sub-path. The 4.0.0 entry in
 `CHANGELOG.md` has the migration table.
 
+## Shared chat: group permissions
+
+An app that registers a DCM group catalogue gets the shared chat permission control without extra `ChatWorkspace` props. For the selected private, unarchived chat, UCM reads `chats/<id>/group-grants/` under `apiBase`; unsupported apps and older servers retain their existing chat UI. The server supplies localized group and member labels, availability, write confirmation metadata and opaque revisions. UCM sends only selected group IDs and both revisions on save. A stale response requires a reload; failed saves retain the draft. Existing `api` overrides can provide `getGroupGrants(id)` and `saveGroupGrants(id, payload)` using the same response contract. Authorization and enforcement remain server responsibilities.
+
 ## Shared chat: compact composer (opt-in)
 
 `<ChatWorkspace composerLayout="compact" renderComposerContext={({ chat }) => ...}>` lays the composer out in two
